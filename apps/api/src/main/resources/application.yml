@@ -1,0 +1,9 @@
+spring:
+  application:
+    name: ken-blog-api
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
