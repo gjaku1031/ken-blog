@@ -1,0 +1,23 @@
+# Local configuration and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.log
+
+# Web build output
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+
+# API build output
+target/
+
+# Local tools and study material
+.idea/
+.vscode/
+.DS_Store
+/AGENTS.md
+/docs/study/
