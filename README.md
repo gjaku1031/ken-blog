@@ -55,6 +55,6 @@ ssh -N -L 3000:127.0.0.1:3000 -L 8081:127.0.0.1:8081 <VM-접속대상>
 
 - API Maven 빌드와 JAR 기동·health 응답 확인. 테스트 소스는 아직 없음.
 - Web 클린 설치·타입 검사·프로덕션 빌드 통과. 개발 서버의 브라우저 렌더링과 오류 없음 확인.
-- CI 원격 실행 결과는 workflow 반영 후 기록.
+- [GitHub CI](https://github.com/gjaku1031/ken-blog/actions/runs/36126854555)의 API·Web 빌드와 프로덕션 서버 HTTP 응답 검증 통과. 검증일: 2026-09-25.
 
 실제 환경변수·비밀 설정과 `docs/study/`는 Git에 포함하지 않음. 운영 클라우드 자원 연결·배포와 GitHub Pages 대문은 후속 계획.
