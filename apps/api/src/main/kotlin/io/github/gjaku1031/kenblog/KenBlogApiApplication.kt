@@ -6,8 +6,8 @@ import org.springframework.boot.runApplication
 /**
  * 블로그 API의 Spring 설정과 컴포넌트 탐색을 위한 진입점.
  *
- * 현재 웹 서버와 Actuator 상태 확인만 활성화. [main]이 이 클래스를 사용해
- * 애플리케이션 컨텍스트 생성.
+ * 웹 서버, [StatusController], API 명세와 Actuator를 구성하기 위한 컴포넌트 탐색 제공.
+ * [main]이 이 클래스를 사용해 애플리케이션 컨텍스트 생성.
  */
 @SpringBootApplication
 class KenBlogApiApplication
