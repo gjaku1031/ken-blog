@@ -1,11 +1,11 @@
 # 새 프로젝트 개발 순서
 
-현재 [P0-01](issues/P0-01.md)의 최소 앱 구성·빌드·기동·CI 검증 완료. 아래 항목은 후속 계획이며 일괄 승인된 구현 범위가 아님.
+현재 [P0-02](issues/P0-02.md)의 API 상태 조회·오류 응답·Swagger·통합 테스트·CI 검증 완료. 아래 항목은 후속 계획이며 일괄 승인된 구현 범위가 아님.
 
 | 단계 | 작업 | 완료 기준 |
 |---|---|---|
 | P0-01 | `apps/web`·`apps/api` 초기 구성 | 완료: 앱별 빌드·기동·CI |
-| P0-02 | API 오류 응답과 Swagger 계약 | ProblemDetail, Controller 명세 인터페이스, 응답 검증 |
+| P0-02 | API 오류 응답과 Swagger 계약 | 완료: ProblemDetail, Controller 명세 인터페이스, 응답 검증 |
 | P0-03 | Next와 API 연결 | 공개 응답 표시·빈 결과·장애 표시, 호출 경로 구분 |
 | P0-04 | 실행 이미지·개발 환경·문서 대문 | Spring Buildpacks, Compose, 새 아키텍처 도면과 GitHub Pages |
 | P1-01 | MySQL·JPA·Flyway와 게시글 | 격리된 테스트 DB에서 저장·조회·입력 검증 |
