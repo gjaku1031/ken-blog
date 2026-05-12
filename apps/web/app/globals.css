@@ -34,3 +34,26 @@ p {
   font-size: 1.125rem;
   line-height: 1.6;
 }
+
+.status {
+  width: min(100%, 32rem);
+  margin-top: 2.5rem;
+  padding: 1.5rem;
+  border: 1px solid #d5dfe9;
+  border-radius: 0.75rem;
+  background: #fff;
+}
+
+.status h2 {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.status p {
+  font-size: 1rem;
+}
+
+.status .status-note {
+  color: #526273;
+  font-size: 0.875rem;
+}
