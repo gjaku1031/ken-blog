@@ -60,6 +60,8 @@ jobs:
         run: npm ci
       - name: Check web types
         run: npm run typecheck
+      - name: Test web status handling
+        run: npm test
       - name: Build web
         run: npm run build
       - name: Check web home over HTTP
@@ -77,3 +79,4 @@ jobs:
           response=$(curl --fail --silent --retry 30 \
             --retry-delay 1 --retry-connrefused http://127.0.0.1:18080/)
           [[ "$response" == *'<title>Ken Blog</title>'* ]]
+          [[ "$response" == *'API 연결 주소가 설정되지 않았습니다.'* ]]
