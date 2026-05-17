@@ -7,7 +7,7 @@
 | P0-01 | `apps/web`·`apps/api` 초기 구성 | 완료: 앱별 빌드·기동·CI |
 | P0-02 | API 오류 응답과 Swagger 계약 | 완료: ProblemDetail, Controller 명세 인터페이스, 응답 검증 |
 | P0-03 | Next와 API 연결 | 완료: 공개 상태·설정 및 응답 오류·장애 표시, 호출 경로 구분 |
-| P0-04 | 실행 이미지·개발 환경·문서 대문 | Spring Buildpacks, Compose, 새 아키텍처 도면과 GitHub Pages |
+| P0-04 | 정적 프론트·Spring 실행 이미지 | Next 정적 Pages, 브라우저 API 호출·CORS, API 단독 Compose·도면 |
 | P1-01 | MySQL·JPA·Flyway와 게시글 | 격리된 테스트 DB에서 저장·조회·입력 검증 |
 | P1-02 | Spring Security·로그인·내부 Redis 세션 | 인증·권한·CSRF·세션 종료, 비밀값 외부 주입 |
 | P1-03 | OCI Object Storage 첨부파일 | 파일과 메타데이터 저장·다운로드·권한·크기 검증 |
@@ -20,4 +20,4 @@
 
 초기 P0-01에는 DB·인증·캐시·첨부파일·GA·운영 배포 없음. 확정한 첨부파일 저장소는 OCI Object Storage. GA 측정 ID는 `G-JDYNG61J70`이며 연동 단계에서 사용.
 
-GitHub Pages는 정적 문서·아키텍처 대문용. Next.js와 Spring 런타임은 별도로 배포. 디자인 핸드오프는 후속 화면·에디터 기능의 참고 자료이며 샘플 코드·데이터의 무검증 복사 없음.
+GitHub Pages는 Next 정적 프론트 배포용. 브라우저가 공개 HTTPS Spring API를 호출하는 구조이며 VM에는 Spring 실행. 공개 API 도메인·HTTPS 주소는 아직 미정. 디자인 핸드오프는 후속 화면·에디터 기능의 참고 자료이며 샘플 코드·데이터의 무검증 복사 없음.

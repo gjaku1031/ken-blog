@@ -8,7 +8,7 @@ Kotlin 사용. Java 소스 추가 없음. 생성자 주입과 `val` 우선. Serv
 
 ## 프론트
 
-Next.js App Router와 TypeScript 사용. 필요한 화면만 클라이언트 컴포넌트로 구성. 인증·권한·데이터 접근은 향후 Spring API에서 처리. 서버용 비밀값을 브라우저 번들에 포함하지 않음.
+Next.js App Router·TypeScript의 정적 출력 사용. 브라우저 API 호출 등 상호작용 부분만 클라이언트 컴포넌트로 구성. GitHub Pages에서 프론트 배포, VM에서는 Spring 실행. 인증·권한·데이터 접근은 Spring API에서 처리. `NEXT_PUBLIC_` 값은 공개되는 빌드 설정이며 API 비밀값 포함 금지.
 
 ## 주석
 
