@@ -10,6 +10,7 @@ import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.options
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.content
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.header
@@ -24,10 +25,47 @@ import org.springframework.context.annotation.Import
  *
  * @property mvc 테스트 HTTP 요청을 처리할 Spring MVC 인스턴스
  */
-@SpringBootTest
+@SpringBootTest(properties = ["app.cors.allowed-origins=https://gjaku1031.github.io,http://127.0.0.1:14000"])
 @AutoConfigureMockMvc
 @Import(TestProbeController::class)
 class StatusApiIntegrationTest(@Autowired private val mvc: MockMvc) {
+    /** 지정한 Pages origin의 공개 GET에만 읽기 허용 헤더를 반환하는지 검증. */
+    @Test
+    fun statusAllowsPagesOriginWithoutCredentials() {
+        mvc.perform(get("/api/v1/status").header("Origin", "https://gjaku1031.github.io"))
+            .andExpect(status().isOk)
+            .andExpect(header().string("Access-Control-Allow-Origin", "https://gjaku1031.github.io"))
+            .andExpect(header().doesNotExist("Access-Control-Allow-Credentials"))
+            .andExpect(jsonPath("$.status").value("UP"))
+    }
+
+    /** 로컬 정적 화면의 GET 사전 요청이 허용 origin과 메서드를 반환하는지 검증. */
+    @Test
+    fun statusAllowsLocalGetPreflight() {
+        mvc.perform(options("/api/v1/status")
+            .header("Origin", "http://127.0.0.1:14000")
+            .header("Access-Control-Request-Method", "GET")
+            .header("Access-Control-Request-Headers", "Accept"))
+            .andExpect(status().isOk)
+            .andExpect(header().string("Access-Control-Allow-Origin", "http://127.0.0.1:14000"))
+            .andExpect(header().string("Access-Control-Allow-Methods", "GET"))
+            .andExpect(header().doesNotExist("Access-Control-Allow-Credentials"))
+    }
+
+    /** 허용하지 않은 origin과 메서드의 사전 요청을 거부하는지 검증. */
+    @Test
+    fun statusRejectsOtherOriginAndMethod() {
+        mvc.perform(get("/api/v1/status").header("Origin", "https://other.example"))
+            .andExpect(status().isForbidden)
+            .andExpect(header().doesNotExist("Access-Control-Allow-Origin"))
+
+        mvc.perform(options("/api/v1/status")
+            .header("Origin", "https://gjaku1031.github.io")
+            .header("Access-Control-Request-Method", "POST"))
+            .andExpect(status().isForbidden)
+            .andExpect(header().doesNotExist("Access-Control-Allow-Origin"))
+    }
+
     /** 정상 프로세스 요청의 JSON 계약과 미디어 타입을 검증. */
     @Test
     fun statusReturnsUp() {

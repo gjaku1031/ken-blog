@@ -56,6 +56,15 @@
       <plugin>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-maven-plugin</artifactId>
+        <configuration>
+          <image>
+            <name>ken-blog-p004-api:local</name>
+            <builder>paketobuildpacks/builder-noble-java-tiny:0.0.152</builder>
+            <env>
+              <BP_JVM_VERSION>25</BP_JVM_VERSION>
+            </env>
+          </image>
+        </configuration>
       </plugin>
       <plugin>
         <groupId>org.jetbrains.kotlin</groupId>
