@@ -10,6 +10,8 @@ test("UP 응답은 요청 옵션을 지키고 프로세스 상태로 변환한�
     called = true;
     assert.equal(url.href, `${baseUrl}/api/v1/status`);
     assert.equal(options.cache, "no-store");
+    assert.equal(options.credentials, "omit");
+    assert.equal(options.mode, "cors");
     assert.equal(options.redirect, "error");
     assert.equal(options.headers.Accept, "application/json");
     assert.equal(options.signal.aborted, false);
@@ -33,6 +35,12 @@ test("없는 주소와 잘못된 주소에서는 네트워크 요청을 하지 �
   ]) {
     assert.deepEqual(await checkApiStatus(value, neverFetch), { kind: "invalid-config" });
   }
+});
+
+test("HTTPS 페이지는 HTTP API 요청을 시작하지 않는다", async () => {
+  const neverFetch = async () => { throw Error("fetch must not run"); };
+  assert.deepEqual(await checkApiStatus(baseUrl, neverFetch, "https:"), { kind: "insecure-config" });
+  assert.deepEqual(await checkApiStatus("https://api.example.com", async () => Response.json({ status: "UP" }), "https:"), { kind: "up" });
 });
 
 test("HTTP 오류에서는 원문을 읽지 않는다", async () => {

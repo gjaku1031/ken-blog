@@ -63,10 +63,16 @@ jobs:
       - name: Test web status handling
         run: npm test
       - name: Build web
+        env:
+          NEXT_PUBLIC_BASE_PATH: /ken-blog
+          NEXT_PUBLIC_API_BASE_URL: ''
         run: npm run build
-      - name: Check web home over HTTP
+      - name: Check static web over HTTP
         run: |
-          ./node_modules/.bin/next start --hostname 127.0.0.1 --port 18080 > web.log 2>&1 &
+          mkdir -p "$RUNNER_TEMP/ken-blog-site/ken-blog"
+          cp -a out/. "$RUNNER_TEMP/ken-blog-site/ken-blog/"
+          python3 -m http.server 18080 --bind 127.0.0.1 \
+            --directory "$RUNNER_TEMP/ken-blog-site" > web.log 2>&1 &
           web_pid=$!
           cleanup() {
             status=$?
@@ -76,7 +82,23 @@ jobs:
             exit "$status"
           }
           trap cleanup EXIT
-          response=$(curl --fail --silent --retry 30 \
-            --retry-delay 1 --retry-connrefused http://127.0.0.1:18080/)
-          [[ "$response" == *'<title>Ken Blog</title>'* ]]
-          [[ "$response" == *'API 연결 주소가 설정되지 않았습니다.'* ]]
+          curl --fail --silent --retry 30 --retry-delay 1 --retry-connrefused \
+            http://127.0.0.1:18080/ken-blog/ > home.html
+          python3 - <<'PY'
+          import re
+          import urllib.request
+
+          html = open('home.html', encoding='utf-8').read()
+          assert '<title>Ken Blog</title>' in html
+          assert '공개 API 주소가 아직 설정되지 않았습니다.' in html
+          assert '/ken-blog/architecture/architecture.svg' in html
+          assert '/ken-blog/architecture/architecture.dark.svg' in html
+          asset = re.search(r'/ken-blog/_next/static/[^" ]+\.js', html)
+          assert asset is not None
+          with urllib.request.urlopen('http://127.0.0.1:18080' + asset.group()) as response:
+              assert response.status == 200
+          with urllib.request.urlopen('http://127.0.0.1:18080/ken-blog/architecture/architecture.svg') as response:
+              assert response.status == 200
+          with urllib.request.urlopen('http://127.0.0.1:18080/ken-blog/architecture/architecture.dark.svg') as response:
+              assert response.status == 200
+          PY

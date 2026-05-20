@@ -18,7 +18,7 @@ body {
   min-height: 100vh;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   padding: 2rem;
   text-align: center;
 }
@@ -56,4 +56,41 @@ p {
 .status .status-note {
   color: #526273;
   font-size: 0.875rem;
+}
+
+.architecture {
+  width: min(100%, 68rem);
+  margin-top: 3rem;
+}
+
+.architecture h2 {
+  margin: 0;
+  font-size: 1.5rem;
+}
+
+.architecture p {
+  font-size: 1rem;
+}
+
+.architecture figure {
+  margin: 1.5rem 0 0;
+}
+
+.architecture img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.architecture figcaption {
+  margin-top: 0.75rem;
+  color: #526273;
+  font-size: 0.875rem;
+}
+
+.architecture-links {
+  display: flex;
+  justify-content: center;
+  gap: 1.25rem;
+  flex-wrap: wrap;
 }
