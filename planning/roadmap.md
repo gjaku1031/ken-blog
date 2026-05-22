@@ -1,13 +1,13 @@
 # 새 프로젝트 개발 순서
 
-현재 [P0-03](issues/P0-03.md)의 Next·Spring 상태 조회 연결과 정상·장애 화면·CI 검증 완료. 아래 항목은 후속 계획이며 일괄 승인된 구현 범위가 아님.
+현재 [P0-04](issues/P0-04.md)의 Next 정적 Pages 배포·Spring 단독 실행 기반·CORS·도면 검증 완료. 공개 HTTPS API 연결은 주소 확정 후 진행 대상. 아래 항목은 후속 계획이며 일괄 승인된 구현 범위가 아님.
 
 | 단계 | 작업 | 완료 기준 |
 |---|---|---|
 | P0-01 | `apps/web`·`apps/api` 초기 구성 | 완료: 앱별 빌드·기동·CI |
 | P0-02 | API 오류 응답과 Swagger 계약 | 완료: ProblemDetail, Controller 명세 인터페이스, 응답 검증 |
 | P0-03 | Next와 API 연결 | 완료: 공개 상태·설정 및 응답 오류·장애 표시, 호출 경로 구분 |
-| P0-04 | 정적 프론트·Spring 실행 이미지 | Next 정적 Pages, 브라우저 API 호출·CORS, API 단독 Compose·도면 |
+| P0-04 | 정적 프론트·Spring 실행 이미지 | 완료: Next 정적 Pages, 브라우저 API 호출·CORS, API 단독 Compose·도면 |
 | P1-01 | MySQL·JPA·Flyway와 게시글 | 격리된 테스트 DB에서 저장·조회·입력 검증 |
 | P1-02 | Spring Security·로그인·내부 Redis 세션 | 인증·권한·CSRF·세션 종료, 비밀값 외부 주입 |
 | P1-03 | OCI Object Storage 첨부파일 | 파일과 메타데이터 저장·다운로드·권한·크기 검증 |
