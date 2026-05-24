@@ -1,5 +1,9 @@
 # 현재 작업
 
+- 진행 계획: [P1-01 — MySQL·JPA·Flyway와 게시글 저장 기반](issues/P1-01.md).
+- 사용자 승인 확인, 구현·실제 MySQL 검증 진행 중. 아래 P0-04는 선행 완료 기록.
+
+
 - 완료 계획: [P0-04 — 정적 프론트 Pages 배포와 Spring 실행 이미지](issues/P0-04.md).
 - 상태: 구현·로컬 검증·main 반영·Pages 배포 완료.
 - 구조: GitHub Pages의 Next 정적 화면, 브라우저에서 Spring API 호출. VM의 Next 서버·Web 컨테이너 없음.
@@ -22,7 +26,7 @@
 
 ## 다음 작업
 
-[P1-01 — MySQL·JPA·Flyway와 게시글 저장 기반](issues/P1-01.md). 계획 초안이며 별도 승인 전 구현 없음.
+[P1-01 — MySQL·JPA·Flyway와 게시글 저장 기반](issues/P1-01.md). 승인됨. 현재 구현 중.
 
 ## 남은 결정
 
