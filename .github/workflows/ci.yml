@@ -12,6 +12,21 @@ jobs:
   api:
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    services:
+      mysql:
+        image: mysql:8.4.11
+        env:
+          MYSQL_DATABASE: ken_blog_ci
+          MYSQL_USER: ci_api
+          MYSQL_PASSWORD: ci_ephemeral_only
+          MYSQL_ROOT_PASSWORD: ci_root_ephemeral_only
+        ports:
+          - 13307:3306
+        options: >-
+          --health-cmd "mysqladmin ping -h 127.0.0.1"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
     defaults:
       run:
         working-directory: apps/api
@@ -26,6 +41,10 @@ jobs:
       - name: Build API
         run: ./mvnw -B clean verify
       - name: Check API health over HTTP
+        env:
+          DB_URL: jdbc:mysql://127.0.0.1:13307/ken_blog_ci
+          DB_USERNAME: ci_api
+          DB_PASSWORD: ci_ephemeral_only
         run: |
           java -jar target/ken-blog-api-0.0.1-SNAPSHOT.jar \
             --server.address=127.0.0.1 --server.port=18081 > api.log 2>&1 &

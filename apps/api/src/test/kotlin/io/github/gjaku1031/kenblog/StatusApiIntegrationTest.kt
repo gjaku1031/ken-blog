@@ -1,6 +1,7 @@
 package io.github.gjaku1031.kenblog
 
 import io.github.gjaku1031.kenblog.fixture.TestProbeController
+import io.github.gjaku1031.kenblog.fixture.TestMysqlConfig
 import org.hamcrest.Matchers.containsString
 import org.hamcrest.Matchers.not
 import org.junit.jupiter.api.Test
@@ -21,13 +22,14 @@ import org.springframework.context.annotation.Import
 /**
  * 실제 MVC 설정에서 상태 계약, OpenAPI 문서와 오류 응답을 검증하는 통합 테스트.
  *
+ * [TestMysqlConfig]가 실제 MySQL에 마이그레이션을 적용하고,
  * [TestProbeController]는 테스트에서만 오류 입력과 예상하지 못한 예외를 생성함.
  *
  * @property mvc 테스트 HTTP 요청을 처리할 Spring MVC 인스턴스
  */
 @SpringBootTest(properties = ["app.cors.allowed-origins=https://gjaku1031.github.io,http://127.0.0.1:14000"])
 @AutoConfigureMockMvc
-@Import(TestProbeController::class)
+@Import(TestProbeController::class, TestMysqlConfig::class)
 class StatusApiIntegrationTest(@Autowired private val mvc: MockMvc) {
     /** 지정한 Pages origin의 공개 GET에만 읽기 허용 헤더를 반환하는지 검증. */
     @Test

@@ -4,6 +4,8 @@
 
 Kotlin 사용. Java 소스 추가 없음. 생성자 주입과 `val` 우선. Service는 구체 클래스, JPA Repository는 Spring Data JPA의 `JpaRepository`를 확장하는 인터페이스로 선언. Swagger용 Controller 계약도 인터페이스로 선언. 기본 CRUD는 상속받고 필요한 조건 조회만 파생 쿼리 등으로 선언하며 기본 메서드를 중복 선언하거나 불필요한 공통 Repository 계층을 만들지 않음.
 
+새 엔티티 저장에서 즉시 DB 제약 검사가 필요한 경로는 `saveAndFlush` 사용. flush는 SQL 동기화이지 트랜잭션 커밋이 아니며 외부 트랜잭션 롤백 경계 유지. 상속 `findById`의 `Optional`은 Kotlin `findByIdOrNull`로 변환해 조회 결과가 없을 때 `null`을 반환. `Optional.get()`이나 강제 non-null로 내부 조회 계약을 바꾸지 않음.
+
 오류 응답은 `ProblemDetail` 기반으로 구성. `ApiErrorHandler`의 Spring 기본 예외 처리 흐름과 HTTP 상태·헤더 보존. 예상하지 못한 예외의 내부 메시지를 응답에 포함하지 않음. 도메인 입력 검증에 일반 `IllegalArgumentException` 사용 금지. 아직 없는 계층이나 기능을 완료된 것으로 설명하지 않음.
 
 ## 프론트
