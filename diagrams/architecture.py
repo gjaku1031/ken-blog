@@ -1,4 +1,4 @@
-"""P0-04 아키텍처의 같은 배치 라이트·다크 도면을 생성한다."""
+"""P1-01 아키텍처의 같은 배치 라이트·다크 도면을 생성한다."""
 
 from argparse import ArgumentParser
 from html import escape
@@ -90,6 +90,7 @@ def render(icons: Path, output: Path, theme: str):
         return Node(
             escape(label), nodeid=f"t{next(ids)}", pos=f"{x},{y}!", pin="true",
             fontname=FONT, fontsize=str(size), fontcolor=fill or color["muted"],
+            fixedsize="false", width="0", height="0",
         )
 
     with FixedDiagram(
@@ -106,10 +107,11 @@ def render(icons: Path, output: Path, theme: str):
         with region("GitHub Pages · 공개 정적 화면", (275, 220, 685, 520)):
             pages = card("GitHub Pages", "HTML·JS·도면 제공", 475, 420, "github", 250)
             card("Next.js · static export", "서버 프로세스 없음", 475, 310, "nextjs", 250)
-        with region("OCI ARM64 VM · API 검증 환경", (735, 220, 1165, 520)):
+        with region("OCI ARM64 VM · 로컬 검증 환경", (735, 80, 1165, 520)):
             card("OCI Compute", "호스트 24 GB", 940, 420, "oci-vm", 245)
-            card("Docker Compose", "API만 수동 기동", 940, 335, "docker", 245)
+            card("Docker Compose", "API·MySQL 수동 기동", 940, 335, "docker", 245)
             api = card("Spring Boot · API", "로컬 127.0.0.1:18081", 940, 250, "spring", 255)
+            mysql = card("MySQL 8.4.11", "개발 DB · 기본 로컬 :13306", 940, 145, "mysql", 225)
 
         browser >> Edge(color=color["runtime"], penwidth="1.8", arrowsize="0.75") >> pages
         delivery_top = port(305, 560)
@@ -123,17 +125,18 @@ def render(icons: Path, output: Path, theme: str):
         browser >> Edge(color=color["future"], style="dashed", arrowhead="none", penwidth="1.5") >> pending_corner
         pending_corner >> Edge(color=color["future"], style="dashed", arrowhead="none", penwidth="1.5") >> pending_turn
         pending_turn >> Edge(color=color["future"], style="dashed", arrowsize="0.75", penwidth="1.5") >> api
+        api >> Edge(color=color["runtime"], penwidth="1.8", arrowsize="0.75") >> mysql
 
         caption("GET 정적 파일", 270, 455, 10, color["runtime"])
         caption("out 업로드", 460, 580, 10, color["delivery"])
         caption("공개 HTTPS API · 주소 미정 / 미연결", 505, 174, 10, color["future"])
-        caption("로컬 검증에서만 브라우저 → Spring 상태 요청", 890, 174, 10)
+        caption("로컬 브라우저의 Spring 상태 요청 검증", 950, 100, 10)
+        caption("JDBC mysql:3306 · JPA / Flyway", 1050, 195, 10, color["runtime"])
 
-        with region("후속 단계 · 미구현 / 미연결", (35, 5, 1165, 165), color["panel"], color["future"], True):
-            card("MySQL · JPA", "게시글 영속화 예정", 260, 70, "mysql", 225)
-            card("Redis", "세션·공개 글 캐시 예정", 580, 70, "redis", 225)
-            card("OCI Object Storage", "첨부파일 저장 예정", 940, 70, "oci-object-storage", 260)
-        caption("실선: 정적 파일 요청   /   초록 파선: Pages 산출물   /   갈색 파선: 공개 API 예정", 575, -30, 10)
+        with region("후속 단계 · 미구현 / 미연결", (35, -110, 1165, 55), color["panel"], color["future"], True):
+            card("Redis", "세션·공개 글 캐시 예정", 350, -40, "redis", 225)
+            card("OCI Object Storage", "첨부파일 저장 예정", 840, -40, "oci-object-storage", 260)
+        caption("실선: 정적 파일 요청·로컬 DB 접근   /   초록 파선: Pages 산출물   /   갈색 파선: 공개 API 예정", 575, -145, 10)
 
     svg = diagram.dot.pipe(format="svg", renderer="cairo", neato_no_op=2)
     root = ET.fromstring(svg)
