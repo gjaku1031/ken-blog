@@ -13,12 +13,14 @@ docs/          # 실행·설계 안내
 프론트는 GitHub Pages에서 제공하고 브라우저가 Spring API를 호출하는 구조. VM에는 Spring 실행. 공개 API 도메인·HTTPS 주소가 아직 없어 공개 홈은 API 미설정 상태로 배포.
 
 - [프론트와 임시 아키텍처 대문](https://gjaku1031.github.io/ken-blog/)
-- [현재 계획](planning/issues/P0-04.md) · [작업 상태](planning/tasks.md) · [개발 순서](planning/roadmap.md)
+- [현재 계획](planning/issues/P1-01.md) · [작업 상태](planning/tasks.md) · [개발 순서](planning/roadmap.md)
 - [코드·문서 규칙](docs/code-conventions.md) · [런타임 안내](docs/runtime.md) · [도면 설명](docs/architecture.md)
 
 ## API 직접 실행
 
-필요 환경: JDK 25. Spring Boot 4.1.1·Kotlin 2.3.21·Maven wrapper 사용.
+필요 환경: JDK 25·Docker와 MySQL 연결 설정. Spring Boot 4.1.1·Kotlin 2.3.21·Maven wrapper 사용.
+
+DB 준비와 환경변수 주입은 [게시글 저장 기반 실행 안내](docs/persistence.md) 참고. 테스트는 격리된 실제 MySQL 컨테이너 사용.
 
 ```bash
 cd apps/api
@@ -33,7 +35,7 @@ SERVER_ADDRESS=127.0.0.1 SERVER_PORT=8081 ./mvnw spring-boot:run
 | `/v3/api-docs` | OpenAPI 명세 JSON |
 | `/swagger-ui/index.html` | Swagger UI |
 
-상태 API 명세는 `StatusApi`, 구현은 `StatusController`에서 관리. Spring MVC 오류는 `ApiErrorHandler`의 RFC 9457 `ProblemDetail`로 처리. 현재 DB·인증·게시글 기능 없음.
+상태 API 명세는 `StatusApi`, 구현은 `StatusController`에서 관리. Spring MVC 오류는 `ApiErrorHandler`의 RFC 9457 `ProblemDetail`로 처리. MySQL·JPA·Flyway와 내부 게시글 초안 저장·조회 제공. 인증과 게시글 HTTP API는 아직 없음.
 
 ## 정적 프론트 빌드
 
@@ -55,12 +57,12 @@ NEXT_PUBLIC_BASE_PATH=/ken-blog npm run build
 
 ## Spring 컨테이너와 배포 범위
 
-Spring API 이미지는 Buildpacks로 생성. Compose는 API 한 개만 실행하며 Web Docker 구성 없음. 기본 공개 포트는 로컬 주소에만 연결하고 공개 HTTPS API 배포는 아직 수행하지 않음.
+Spring API 이미지는 Buildpacks로 생성. 개발 Compose는 API와 MySQL을 실행하며 Web Docker 구성 없음. 기본 공개 포트는 로컬 주소에만 연결하고 공개 HTTPS API 배포는 아직 수행하지 않음.
 
-[도면 설명과 원본](docs/architecture.md)은 실제 정적 프론트 배포·API 실행 기반과 후속 HTTPS 연결·MySQL·Redis·OCI Object Storage를 구분.
+[도면 설명과 원본](docs/architecture.md)은 실제 정적 프론트 배포·API 실행 기반과 로컬 MySQL 저장 검증과 후속 HTTPS 연결·Redis·OCI Object Storage를 구분.
 
 ## 검증 기록
 
 계획별 실제 빌드·테스트·브라우저·CI 결과는 [작업 상태](planning/tasks.md)에서 확인. 메모리 사용량은 [런타임 안내](docs/runtime.md)의 측정 조건과 함께 해석.
 
-실제 환경 파일과 `docs/study/`는 Git 및 Pages 산출물에서 제외. 로그인·DB·Redis·첨부파일·GA 연동과 공개 HTTPS API 연결은 후속 단계.
+실제 환경 파일과 `docs/study/`는 Git 및 Pages 산출물에서 제외. 로그인·Redis·첨부파일·GA 연동과 공개 HTTPS API 연결은 후속 단계.
