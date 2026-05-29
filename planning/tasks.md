@@ -1,5 +1,9 @@
 # 현재 작업
 
+- 진행 계획: [P1-02 — Spring Security·로그인과 Redis 세션](issues/P1-02.md).
+- 사용자 승인 확인, 구현·검증 진행 중. 아래는 선행 P1-01 완료 기록.
+
+
 - 완료 계획: [P1-01 — MySQL·JPA·Flyway와 게시글 저장 기반](issues/P1-01.md).
 - 상태: 구현·실제 MySQL 테스트·Buildpacks·Compose 재기동·main 반영·Pages 도면 배포 완료.
 - 내부 초안 저장·ID 및 slug 조회 제공. 공개 게시글 HTTP API와 인증은 아직 없음.
@@ -22,7 +26,7 @@ Spring Security·Redis·OCI Object Storage·GA 연동과 게시글 화면은 후
 
 ## 다음 작업
 
-[P1-02 — Spring Security·로그인과 Redis 세션](issues/P1-02.md). 계획 초안이며 별도 승인 전 구현 없음.
+[P1-02 — Spring Security·로그인과 Redis 세션](issues/P1-02.md). 승인됨. 현재 구현 중.
 
 ## 남은 결정
 
