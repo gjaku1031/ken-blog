@@ -17,5 +17,9 @@ management:
         include: health
 
 app:
+  bootstrap:
+    admin:
+      username: ${BOOTSTRAP_ADMIN_USERNAME:}
+      password-hash: ${BOOTSTRAP_ADMIN_PASSWORD_HASH:}
   cors:
     allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:https://gjaku1031.github.io}
