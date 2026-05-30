@@ -2,6 +2,7 @@ package io.github.gjaku1031.kenblog
 
 import io.github.gjaku1031.kenblog.fixture.TestProbeController
 import io.github.gjaku1031.kenblog.fixture.TestMysqlConfig
+import io.github.gjaku1031.kenblog.fixture.TestProbeSecurityConfig
 import org.hamcrest.Matchers.containsString
 import org.hamcrest.Matchers.not
 import org.junit.jupiter.api.Test
@@ -29,7 +30,7 @@ import org.springframework.context.annotation.Import
  */
 @SpringBootTest(properties = ["app.cors.allowed-origins=https://gjaku1031.github.io,http://127.0.0.1:14000"])
 @AutoConfigureMockMvc
-@Import(TestProbeController::class, TestMysqlConfig::class)
+@Import(TestProbeController::class, TestProbeSecurityConfig::class, TestMysqlConfig::class)
 class StatusApiIntegrationTest(@Autowired private val mvc: MockMvc) {
     /** 지정한 Pages origin의 공개 GET에만 읽기 허용 헤더를 반환하는지 검증. */
     @Test
@@ -136,7 +137,7 @@ class StatusApiIntegrationTest(@Autowired private val mvc: MockMvc) {
     /** 지원하지 않는 메서드가 원래 Allow 헤더를 유지하는지 검증. */
     @Test
     fun unsupportedMethodKeepsAllowHeader() {
-        mvc.perform(post("/api/v1/status"))
+        mvc.perform(post("/__test/input"))
             .andExpect(status().isMethodNotAllowed)
             .andExpect(header().string("Allow", containsString("GET")))
             .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
@@ -165,7 +166,7 @@ class StatusApiIntegrationTest(@Autowired private val mvc: MockMvc) {
     /** 없는 경로가 경로 내용을 설명에 노출하지 않고 HTTP 404를 반환하는지 검증. */
     @Test
     fun missingPathIsSafeProblem() {
-        mvc.perform(get("/api/v1/secret-marker"))
+        mvc.perform(get("/__test/secret-marker"))
             .andExpect(status().isNotFound)
             .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))
             .andExpect(jsonPath("$.detail").value("요청을 처리할 수 없습니다."))

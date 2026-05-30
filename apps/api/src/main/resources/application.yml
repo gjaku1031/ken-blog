@@ -1,6 +1,17 @@
 spring:
   application:
     name: ken-blog-api
+  data:
+    redis:
+      host: ${REDIS_HOST:127.0.0.1}
+      port: ${REDIS_PORT:6379}
+      connect-timeout: 2s
+      timeout: 2s
+  session:
+    timeout: 30m
+    data:
+      redis:
+        namespace: ken-blog:session
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
@@ -10,6 +21,15 @@ spring:
     hibernate:
       ddl-auto: validate
 
+server:
+  servlet:
+    session:
+      cookie:
+        name: KENBLOGSESSION
+        http-only: true
+        secure: ${SESSION_COOKIE_SECURE:true}
+        same-site: lax
+
 management:
   endpoints:
     web:
@@ -17,6 +37,9 @@ management:
         include: health
 
 app:
+  auth:
+    cors:
+      allowed-origins: ${APP_AUTH_CORS_ALLOWED_ORIGINS:}
   bootstrap:
     admin:
       username: ${BOOTSTRAP_ADMIN_USERNAME:}

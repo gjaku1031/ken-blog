@@ -10,6 +10,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
 import org.springframework.web.context.request.WebRequest
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler
+import org.springframework.security.core.AuthenticationException
 
 /**
  * Spring MVC 오류를 RFC 9457 본문으로 변환하는 공통 경계.
@@ -19,6 +20,17 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
  */
 @RestControllerAdvice
 class ApiErrorHandler : ResponseEntityExceptionHandler() {
+    /**
+     * 로그인 실패 원인과 계정 존재 여부를 구분하지 않는 HTTP 401을 반환.
+     *
+     * @param ex 인증 제공자의 실패; 내부 메시지는 사용하지 않음
+     * @return 고정 설명의 [ProblemDetail] 응답
+     */
+    @ExceptionHandler(AuthenticationException::class)
+    fun handleAuthentication(ex: AuthenticationException): ResponseEntity<ProblemDetail> =
+        ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+            .body(ProblemDetail.forStatusAndDetail(HttpStatus.UNAUTHORIZED, "인증이 필요합니다."))
+
     /**
      * Spring MVC 오류의 상태와 헤더를 보존하면서 안전한 설명을 반환.
      *
