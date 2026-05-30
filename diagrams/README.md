@@ -25,4 +25,4 @@ cp diagrams/architecture.svg diagrams/architecture.dark.svg diagrams/architectur
 
 도면의 MySQL은 OCI ARM64 VM의 개발·로컬 검증용 Docker Compose 범위에 포함. Compose의 `mysql:8.4.11` 이미지와 별도 데이터 볼륨을 사용하고, 호스트 접근은 기본 `127.0.0.1:13306`에 한정. Spring 컨테이너는 Compose 네트워크의 `mysql:3306`으로 JDBC 연결. Flyway가 게시글 스키마를 적용한 뒤 JPA가 스키마를 검증. 이 선은 게시글 영속화의 내부 연결이며 공개 게시글 API나 운영 DB를 뜻하지 않음.
 
-갈색 파선의 공개 HTTPS API 연결은 주소 미정·미연결. Redis와 OCI Object Storage는 별도 파선 영역의 후속 미구현 자원. 정적 Pages 화면과 로컬 검증 연결의 차이는 [아키텍처 설명](../docs/architecture.md)에 기록.
+Redis는 같은 Compose의 `redis:7.4.11-alpine` 이미지로 Spring Session 서버 세션을 저장. Spring은 내부 `redis:6379`로 접근하고 Redis에는 호스트 공개 포트·영속 볼륨 없음. 공개 글 캐시는 아직 미구현이며 도면 Redis 카드의 ‘캐시 후속’은 사용 예정 기능만 표시. 갈색 파선의 공개 HTTPS API 연결은 주소 미정·미연결. OCI Object Storage는 별도 파선 영역의 후속 미구현 자원. 정적 Pages 화면에 로그인 화면은 없으며 로컬 인증 경계는 [아키텍처 설명](../docs/architecture.md)에 기록.
