@@ -1,5 +1,7 @@
-package io.github.gjaku1031.kenblog
+package io.github.gjaku1031.kenblog.post.repository
 
+import io.github.gjaku1031.kenblog.post.domain.PostEntity
+import io.github.gjaku1031.kenblog.post.service.PostService
 import org.springframework.data.jpa.repository.JpaRepository
 
 /**

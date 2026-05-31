@@ -1,15 +1,19 @@
-package io.github.gjaku1031.kenblog
+package io.github.gjaku1031.kenblog.post.service
 
-import org.springframework.dao.DataIntegrityViolationException
-import org.springframework.data.repository.findByIdOrNull
-import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
+import io.github.gjaku1031.kenblog.post.domain.DuplicatePostSlugException
+import io.github.gjaku1031.kenblog.post.domain.InvalidPostDraftException
+import io.github.gjaku1031.kenblog.post.domain.PostEntity
+import io.github.gjaku1031.kenblog.post.repository.PostRepository
 import java.sql.SQLIntegrityConstraintViolationException
 import java.time.Clock
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
 import java.util.Locale
+import org.springframework.dao.DataIntegrityViolationException
+import org.springframework.data.repository.findByIdOrNull
+import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 
 /**
  * 내부 초안 입력 계약을 검증하고 [PostRepository]의 저장·조회를 트랜잭션으로 묶는 서비스.

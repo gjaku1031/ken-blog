@@ -1,4 +1,6 @@
-package io.github.gjaku1031.kenblog
+package io.github.gjaku1031.kenblog.status.dto
+
+import io.github.gjaku1031.kenblog.status.controller.StatusController
 
 /**
  * [StatusController]의 프로세스 응답을 표현하는 DTO.

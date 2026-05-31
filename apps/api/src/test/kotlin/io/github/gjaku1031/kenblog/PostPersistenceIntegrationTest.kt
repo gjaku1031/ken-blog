@@ -1,6 +1,9 @@
 package io.github.gjaku1031.kenblog
 
 import io.github.gjaku1031.kenblog.fixture.TestMysqlConfig
+import io.github.gjaku1031.kenblog.post.domain.DuplicatePostSlugException
+import io.github.gjaku1031.kenblog.post.domain.InvalidPostDraftException
+import io.github.gjaku1031.kenblog.post.service.PostService
 import org.flywaydb.core.Flyway
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse

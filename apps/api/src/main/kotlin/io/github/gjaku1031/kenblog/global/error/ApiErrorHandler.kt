@@ -1,16 +1,16 @@
-package io.github.gjaku1031.kenblog
+package io.github.gjaku1031.kenblog.global.error
 
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.HttpStatusCode
 import org.springframework.http.ProblemDetail
 import org.springframework.http.ResponseEntity
+import org.springframework.security.core.AuthenticationException
 import org.springframework.web.ErrorResponse
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
 import org.springframework.web.context.request.WebRequest
 import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler
-import org.springframework.security.core.AuthenticationException
 
 /**
  * Spring MVC 오류를 RFC 9457 본문으로 변환하는 공통 경계.

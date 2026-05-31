@@ -1,5 +1,6 @@
 package io.github.gjaku1031.kenblog
 
+import io.github.gjaku1031.kenblog.status.controller.StatusController
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 

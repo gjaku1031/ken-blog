@@ -1,6 +1,6 @@
 package io.github.gjaku1031.kenblog.fixture
 
-import io.github.gjaku1031.kenblog.StatusResponse
+import io.github.gjaku1031.kenblog.status.dto.StatusResponse
 import io.swagger.v3.oas.annotations.Hidden
 import org.springframework.http.MediaType
 import org.springframework.http.HttpStatus

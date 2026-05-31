@@ -1,5 +1,6 @@
-package io.github.gjaku1031.kenblog
+package io.github.gjaku1031.kenblog.status.controller
 
+import io.github.gjaku1031.kenblog.status.dto.StatusResponse
 import org.springframework.web.bind.annotation.RestController
 
 /**

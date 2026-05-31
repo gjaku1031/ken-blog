@@ -1,5 +1,7 @@
-package io.github.gjaku1031.kenblog
+package io.github.gjaku1031.kenblog.account.repository
 
+import io.github.gjaku1031.kenblog.account.domain.UserEntity
+import io.github.gjaku1031.kenblog.account.service.AccountService
 import org.springframework.data.jpa.repository.JpaRepository
 
 /**

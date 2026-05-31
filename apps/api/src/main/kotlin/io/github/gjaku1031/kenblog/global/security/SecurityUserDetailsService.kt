@@ -1,5 +1,7 @@
-package io.github.gjaku1031.kenblog
+package io.github.gjaku1031.kenblog.global.security
 
+import io.github.gjaku1031.kenblog.account.domain.UserRole
+import io.github.gjaku1031.kenblog.account.repository.AccountRepository
 import org.springframework.security.core.userdetails.User
 import org.springframework.security.core.userdetails.UserDetails
 import org.springframework.security.core.userdetails.UserDetailsService

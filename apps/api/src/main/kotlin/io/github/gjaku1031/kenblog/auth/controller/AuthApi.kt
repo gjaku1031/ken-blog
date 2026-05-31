@@ -1,5 +1,8 @@
-package io.github.gjaku1031.kenblog
+package io.github.gjaku1031.kenblog.auth.controller
 
+import io.github.gjaku1031.kenblog.auth.dto.CsrfResponse
+import io.github.gjaku1031.kenblog.auth.dto.CurrentUserResponse
+import io.github.gjaku1031.kenblog.auth.dto.LoginRequest
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.enums.ParameterIn

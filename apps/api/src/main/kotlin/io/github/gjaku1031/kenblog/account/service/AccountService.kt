@@ -1,11 +1,14 @@
-package io.github.gjaku1031.kenblog
+package io.github.gjaku1031.kenblog.account.service
 
-import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
+import io.github.gjaku1031.kenblog.account.domain.UserEntity
+import io.github.gjaku1031.kenblog.account.domain.UserRole
+import io.github.gjaku1031.kenblog.account.repository.AccountRepository
 import java.time.Clock
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
+import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
 
 /**
  * 초기 관리자 계정 준비를 검증하고 [AccountRepository] 쓰기를 트랜잭션으로 묶음.

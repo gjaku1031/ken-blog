@@ -1,5 +1,6 @@
 package io.github.gjaku1031.kenblog
 
+import io.github.gjaku1031.kenblog.account.service.AccountService
 import io.github.gjaku1031.kenblog.fixture.TestMysqlConfig
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotEquals

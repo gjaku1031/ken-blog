@@ -1,4 +1,6 @@
-package io.github.gjaku1031.kenblog
+package io.github.gjaku1031.kenblog.post.domain
+
+import io.github.gjaku1031.kenblog.post.service.PostService
 
 /**
  * [PostService.createDraft]에 전달한 제목·slug·본문이 저장 계약을 충족하지 않을 때 발생.

@@ -1,5 +1,6 @@
-package io.github.gjaku1031.kenblog
+package io.github.gjaku1031.kenblog.account.bootstrap
 
+import io.github.gjaku1031.kenblog.account.service.AccountService
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.boot.ApplicationArguments
 import org.springframework.boot.ApplicationRunner

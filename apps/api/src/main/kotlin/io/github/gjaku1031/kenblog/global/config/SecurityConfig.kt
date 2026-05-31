@@ -1,5 +1,7 @@
-package io.github.gjaku1031.kenblog
+package io.github.gjaku1031.kenblog.global.config
 
+import io.github.gjaku1031.kenblog.auth.controller.AuthController
+import io.github.gjaku1031.kenblog.global.security.SecurityProblemWriter
 import io.swagger.v3.oas.annotations.enums.SecuritySchemeIn
 import io.swagger.v3.oas.annotations.enums.SecuritySchemeType
 import io.swagger.v3.oas.annotations.security.SecurityScheme

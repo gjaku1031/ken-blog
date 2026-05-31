@@ -1,4 +1,4 @@
-package io.github.gjaku1031.kenblog
+package io.github.gjaku1031.kenblog.global.security
 
 import jakarta.servlet.http.HttpServletResponse
 import org.springframework.http.HttpStatus

@@ -6,6 +6,8 @@ Kotlin 사용. Java 소스 추가 없음. 생성자 주입과 `val` 우선. Serv
 
 새 엔티티 저장에서 즉시 DB 제약 검사가 필요한 경로는 `saveAndFlush` 사용. flush는 SQL 동기화이지 트랜잭션 커밋이 아니며 외부 트랜잭션 롤백 경계 유지. 상속 `findById`의 `Optional`은 Kotlin `findByIdOrNull`로 변환해 조회 결과가 없을 때 `null`을 반환. `Optional.get()`이나 강제 non-null로 내부 조회 계약을 바꾸지 않음.
 
+패키지는 기능을 먼저 구분하고 그 아래 역할별로 배치. 예: `post/domain`, `post/repository`, `post/service`. 공통 설정·오류·보안 구성은 `global` 아래에서 관리하며, 루트 패키지에는 애플리케이션 진입점만 배치. 실제 선언이 없는 빈 계층이나 패키지 생성 없음.
+
 오류 응답은 `ProblemDetail` 기반으로 구성. `ApiErrorHandler`의 Spring 기본 예외 처리 흐름과 HTTP 상태·헤더 보존. 예상하지 못한 예외의 내부 메시지를 응답에 포함하지 않음. 도메인 입력 검증에 일반 `IllegalArgumentException` 사용 금지. 아직 없는 계층이나 기능을 완료된 것으로 설명하지 않음.
 
 ## 프론트
@@ -26,3 +28,7 @@ Next.js App Router·TypeScript의 정적 출력 사용. 브라우저 API 호출 
 - [TSDoc](https://tsdoc.org/)
 - [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/)
 - [Google 변경 설명 지침](https://google.github.io/eng-practices/review/developer/cl-descriptions.html)
+
+## 검증 범위
+
+단순 기능의 신규 테스트 코드는 추가하지 않음. 기존 테스트는 유지하며 패키지 이동에 필요한 참조만 수정. 빌드·기존 검사·실제 HTTP 확인 중 변경에 맞는 검증 수행. 실행 결과와 확인하지 않은 범위는 구분하여 기록.

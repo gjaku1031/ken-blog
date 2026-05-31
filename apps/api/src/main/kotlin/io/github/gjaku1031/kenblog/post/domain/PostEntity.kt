@@ -1,5 +1,6 @@
-package io.github.gjaku1031.kenblog
+package io.github.gjaku1031.kenblog.post.domain
 
+import io.github.gjaku1031.kenblog.post.service.PostService
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.GeneratedValue

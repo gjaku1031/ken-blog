@@ -1,5 +1,6 @@
-package io.github.gjaku1031.kenblog
+package io.github.gjaku1031.kenblog.account.domain
 
+import io.github.gjaku1031.kenblog.account.service.AccountService
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
