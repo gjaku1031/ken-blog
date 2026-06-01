@@ -27,15 +27,6 @@ jobs:
           --health-interval 5s
           --health-timeout 3s
           --health-retries 20
-      redis:
-        image: redis:7.4.11-alpine
-        ports:
-          - 16379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 5s
-          --health-timeout 3s
-          --health-retries 12
     defaults:
       run:
         working-directory: apps/api
@@ -54,8 +45,6 @@ jobs:
           DB_URL: jdbc:mysql://127.0.0.1:13307/ken_blog_ci
           DB_USERNAME: ci_api
           DB_PASSWORD: ci_ephemeral_only
-          REDIS_HOST: 127.0.0.1
-          REDIS_PORT: 16379
           SESSION_COOKIE_SECURE: 'false'
         run: |
           java -jar target/ken-blog-api-0.0.1-SNAPSHOT.jar \

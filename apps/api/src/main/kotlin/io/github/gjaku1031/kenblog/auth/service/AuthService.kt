@@ -19,7 +19,7 @@ import org.springframework.stereotype.Service
  *
  * @property authenticationManager DB 계정과 해시를 검증하는 인증 관리자
  * @property sessionStrategy 세션 ID를 교체하고 기존 CSRF 토큰을 지우는 전략
- * @property contextRepository Redis HTTP 세션에 인증 결과를 명시적으로 저장하는 저장소
+ * @property contextRepository JDBC HTTP 세션에 인증 결과를 명시적으로 저장하는 저장소
  */
 @Service
 class AuthService(

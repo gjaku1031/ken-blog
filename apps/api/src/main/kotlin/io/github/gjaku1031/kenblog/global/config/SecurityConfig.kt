@@ -32,7 +32,7 @@ import org.springframework.web.cors.CorsConfiguration
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 
 /**
- * 공개 조회와 인증 경계를 구분하고 Redis 기반 Servlet 세션 인증을 구성.
+ * 공개 조회와 인증 경계를 구분하고 JDBC 기반 Servlet 세션 인증을 구성.
  *
  * 로그인과 로그아웃은 [AuthController]에서 수행하며 폼 로그인·Basic 인증은 비활성화.
  */
@@ -62,7 +62,7 @@ class SecurityConfig {
     }
 
     /**
-     * 로그인 전후 기대 CSRF 토큰을 Redis의 HTTP 세션에 저장.
+     * 로그인 전후 기대 CSRF 토큰을 MySQL의 HTTP 세션에 저장.
      *
      * @return [AuthController.csrf]와 Security 필터가 공유할 저장소
      */

@@ -1,17 +1,11 @@
 spring:
   application:
     name: ken-blog-api
-  data:
-    redis:
-      host: ${REDIS_HOST:127.0.0.1}
-      port: ${REDIS_PORT:6379}
-      connect-timeout: 2s
-      timeout: 2s
   session:
     timeout: 30m
-    data:
-      redis:
-        namespace: ken-blog:session
+    jdbc:
+      initialize-schema: never
+      cleanup-cron: "0 * * * * *"
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}

@@ -14,13 +14,11 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.web.server.LocalServerPort
 import org.springframework.context.annotation.Import
-import org.springframework.data.redis.core.StringRedisTemplate
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 import org.springframework.session.SessionRepository
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
-import org.testcontainers.containers.GenericContainer
 import tools.jackson.databind.ObjectMapper
 import java.net.CookieManager
 import java.net.CookiePolicy
@@ -33,9 +31,7 @@ import java.time.Duration
 import java.util.Base64
 
 /**
- * 실제 서버·MySQL·Redis에서 브라우저 쿠키, CSRF, 로그인과 역할 경계를 검증.
- *
- * Redis 장애 시험은 일시 중지를 사용해 같은 테스트 컨텍스트에서 복구 가능하게 함.
+ * 실제 서버·MySQL에서 브라우저 쿠키, CSRF, 로그인과 역할 경계를 검증.
  */
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -54,13 +50,7 @@ class AuthHttpIntegrationTest {
     private lateinit var jdbc: JdbcTemplate
 
     @Autowired
-    private lateinit var redis: StringRedisTemplate
-
-    @Autowired
     private lateinit var sessions: SessionRepository<*>
-
-    @Autowired
-    private lateinit var redisContainer: GenericContainer<*>
 
     /** 익명 경로와 인증 경로의 CORS·쿠키 정책 및 ProblemDetail을 실제 HTTP로 검증. */
     @Test
@@ -122,17 +112,17 @@ class AuthHttpIntegrationTest {
         assertProblem(send(client, "POST", "/api/v1/auth/logout", csrf = token), 403)
 
         val sessionId = decodeSessionId(after)
-        val key = sessionKey(sessionId)
-        assertTrue(redis.hasKey(key), "Configured Redis session namespace was not used")
+        assertEquals(1, sessionCount(sessionId))
         assertEquals(Duration.ofMinutes(30), sessions.findById(sessionId)?.maxInactiveInterval)
-        val serialized = redis.connectionFactory!!.connection.use {
-            it.hashCommands().hGetAll(key.toByteArray()).values.toList()
-        }
+        val serialized = jdbc.query(
+            "SELECT a.ATTRIBUTE_BYTES FROM SPRING_SESSION_ATTRIBUTES a JOIN SPRING_SESSION s ON a.SESSION_PRIMARY_ID = s.PRIMARY_ID WHERE s.SESSION_ID = ?",
+            { rs, _ -> rs.getBytes(1) }, sessionId,
+        )
         assertTrue(serialized.none { String(it, Charsets.ISO_8859_1).contains(TEST_HASH) })
 
         val freshToken = csrfToken(client)
         assertEquals(204, send(client, "POST", "/api/v1/auth/logout", csrf = freshToken).statusCode())
-        assertFalse(redis.hasKey(key))
+        assertEquals(0, sessionCount(sessionId))
         assertProblem(send(newClient().first, "GET", "/api/v1/auth/me", headers = mapOf("Cookie" to "KENBLOGSESSION=$after")), 401)
     }
 
@@ -166,34 +156,17 @@ class AuthHttpIntegrationTest {
         }
     }
 
-    /** Redis 세션 키 만료 시 브라우저 쿠키만으로 인증이 복원되지 않는지 검증. */
+    /** JDBC 세션 만료 시 브라우저 쿠키만으로 인증이 복원되지 않는지 검증. */
     @Test
     @Order(5)
     fun expiredSessionCannotBeReused() {
         val (client, cookies) = newClient()
         val token = csrfToken(client)
         assertEquals(200, send(client, "POST", "/api/v1/auth/login", csrf = token, body = loginBody("testadmin", TEST_PASSWORD)).statusCode())
-        val key = sessionKey(decodeSessionId(sessionCookie(cookies)))
-        assertTrue(redis.hasKey(key))
-        assertTrue(redis.expire(key, Duration.ofSeconds(1)))
-        Thread.sleep(1300)
+        val sessionId = decodeSessionId(sessionCookie(cookies))
+        assertEquals(1, sessionCount(sessionId))
+        jdbc.update("UPDATE SPRING_SESSION SET LAST_ACCESS_TIME = 0, EXPIRY_TIME = 0 WHERE SESSION_ID = ?", sessionId)
         assertProblem(send(client, "GET", "/api/v1/auth/me"), 401)
-    }
-
-    /** Redis 명령이 지연될 때 세션 조회·CSRF 발급·로그인이 모두 안전한 503을 반환하는지 검증. */
-    @Test
-    @Order(6)
-    fun redisOutageFailsClosed() {
-        val (client, _) = newClient()
-        val token = csrfToken(client)
-        assertEquals(200, send(client, "POST", "/api/v1/auth/login", csrf = token, body = loginBody("testadmin", TEST_PASSWORD)).statusCode())
-        val currentToken = csrfToken(client)
-        assertEquals(0, redisContainer.execInContainer("redis-cli", "CLIENT", "PAUSE", "9000", "ALL").exitCode)
-        assertProblem(send(client, "GET", "/api/v1/auth/me"), 503)
-        assertProblem(send(client, "GET", "/api/v1/auth/csrf"), 503)
-        assertProblem(send(client, "POST", "/api/v1/auth/login", csrf = currentToken, body = loginBody("testadmin", TEST_PASSWORD)), 503)
-        Thread.sleep(4000)
-        assertEquals(200, send(client, "GET", "/api/v1/auth/me").statusCode())
     }
 
     /** 테스트마다 독립적인 브라우저 쿠키 저장소와 HTTP 클라이언트를 생성. */
@@ -209,8 +182,10 @@ class AuthHttpIntegrationTest {
     /** Spring Session 쿠키의 Base64 값에서 세션 ID를 복원. */
     private fun decodeSessionId(cookieValue: String): String = String(Base64.getDecoder().decode(cookieValue), Charsets.UTF_8)
 
-    /** 현재 앱의 세션 namespace와 정확한 세션 ID를 결합한 Redis 키를 반환. */
-    private fun sessionKey(sessionId: String): String = "ken-blog:session:sessions:$sessionId"
+    /** 현재 브라우저 세션 ID에 대응하는 JDBC 행 수를 읽음. */
+    private fun sessionCount(sessionId: String): Int = jdbc.queryForObject(
+        "SELECT COUNT(*) FROM SPRING_SESSION WHERE SESSION_ID = ?", Int::class.java, sessionId,
+    )!!
 
     /** 공개 CSRF 경로에서 토큰을 읽고 세션 쿠키를 브라우저 저장소에 남김. */
     private fun csrfToken(client: HttpClient): String {

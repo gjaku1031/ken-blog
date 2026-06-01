@@ -29,6 +29,10 @@ Next.js App Router·TypeScript의 정적 출력 사용. 브라우저 API 호출 
 - [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/)
 - [Google 변경 설명 지침](https://google.github.io/eng-practices/review/developer/cl-descriptions.html)
 
+## 인증 경계
+
+인증은 Spring Security의 서버 세션과 Spring Session JDBC 사용. 계정·게시글·세션은 MySQL에 저장하며 세션 테이블은 Flyway로 관리. 로그인·로그아웃·CSRF·세션 ID 교체·권한 검사를 유지. 비밀번호·세션 식별자·CSRF 토큰 원문은 로그나 객체 문자열에 노출하지 않음. Redis Cloud는 후속 공개 데이터 캐시용이며 인증에 사용하지 않음.
+
 ## 검증 범위
 
 단순 기능의 신규 테스트 코드는 추가하지 않음. 기존 테스트는 유지하며 패키지 이동에 필요한 참조만 수정. 빌드·기존 검사·실제 HTTP 확인 중 변경에 맞는 검증 수행. 실행 결과와 확인하지 않은 범위는 구분하여 기록.

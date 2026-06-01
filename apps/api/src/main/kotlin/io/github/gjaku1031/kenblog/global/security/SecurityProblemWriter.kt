@@ -30,7 +30,7 @@ class SecurityProblemWriter(private val objectMapper: ObjectMapper) {
         val detail = when (status) {
             HttpStatus.UNAUTHORIZED -> "인증이 필요합니다."
             HttpStatus.FORBIDDEN -> "접근 권한이 없습니다."
-            HttpStatus.SERVICE_UNAVAILABLE -> "세션 저장소를 사용할 수 없습니다."
+            HttpStatus.SERVICE_UNAVAILABLE -> "데이터베이스에 연결할 수 없습니다."
             else -> "요청을 처리할 수 없습니다."
         }
         objectMapper.writeValue(response.outputStream, ProblemDetail.forStatusAndDetail(status, detail))

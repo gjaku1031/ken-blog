@@ -16,28 +16,16 @@ services:
       timeout: 3s
       retries: 20
       start_period: 30s
-  redis:
-    image: redis:7.4.11-alpine
-    command: ["redis-server", "--save", "", "--appendonly", "no"]
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 5s
-      timeout: 3s
-      retries: 12
   api:
     image: ken-blog-p004-api:local
     depends_on:
       mysql:
-        condition: service_healthy
-      redis:
         condition: service_healthy
     environment:
       APP_CORS_ALLOWED_ORIGINS: ${APP_CORS_ALLOWED_ORIGINS:-https://gjaku1031.github.io}
       DB_URL: jdbc:mysql://mysql:3306/ken_blog
       DB_USERNAME: ${DB_USERNAME:?DB_USERNAME is required}
       DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD is required}
-      REDIS_HOST: redis
-      REDIS_PORT: 6379
       SESSION_COOKIE_SECURE: ${SESSION_COOKIE_SECURE:-true}
       BOOTSTRAP_ADMIN_USERNAME: ${BOOTSTRAP_ADMIN_USERNAME:-}
       BOOTSTRAP_ADMIN_PASSWORD_HASH: ${BOOTSTRAP_ADMIN_PASSWORD_HASH:-}
