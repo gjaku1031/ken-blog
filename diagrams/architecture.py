@@ -1,4 +1,4 @@
-"""P1-02 아키텍처의 같은 배치 라이트·다크 도면을 생성한다."""
+"""P1-02A 아키텍처의 같은 배치 라이트·다크 도면을 생성한다."""
 
 from argparse import ArgumentParser
 from html import escape
@@ -107,12 +107,11 @@ def render(icons: Path, output: Path, theme: str):
         with region("GitHub Pages · 공개 정적 화면", (275, 220, 685, 520)):
             pages = card("GitHub Pages", "HTML·JS·도면 제공", 475, 420, "github", 250)
             card("Next.js · static export", "서버 프로세스 없음", 475, 310, "nextjs", 250)
-        with region("OCI ARM64 VM · 로컬 검증 환경", (735, -55, 1165, 520)):
+        with region("OCI ARM64 VM · 로컬 검증 환경", (735, 80, 1165, 520)):
             card("OCI Compute", "호스트 24 GB", 940, 420, "oci-vm", 245)
-            card("Docker Compose", "API·MySQL·Redis 수동 기동", 940, 335, "docker", 245)
-            api = card("Spring Boot · API", "로컬 127.0.0.1:18081", 940, 250, "spring", 255)
-            mysql = card("MySQL 8.4.11", "개발 DB · 기본 로컬 :13306", 940, 145, "mysql", 225)
-            redis = card("Redis 7.4.11", "세션 저장 · 캐시 후속", 940, 15, "redis", 225)
+            card("Docker Compose", "API·MySQL 수동 기동", 940, 335, "docker", 245)
+            api = card("Spring Boot · API", "쿠키 세션 · 로컬 :18081", 940, 250, "spring", 255)
+            mysql = card("MySQL 8.4.11", "게시글·계정·세션 저장", 940, 145, "mysql", 225)
 
         browser >> Edge(color=color["runtime"], penwidth="1.8", arrowsize="0.75") >> pages
         delivery_top = port(305, 560)
@@ -127,26 +126,18 @@ def render(icons: Path, output: Path, theme: str):
         pending_corner >> Edge(color=color["future"], style="dashed", arrowhead="none", penwidth="1.5") >> pending_turn
         pending_turn >> Edge(color=color["future"], style="dashed", arrowsize="0.75", penwidth="1.5") >> api
         api >> Edge(color=color["runtime"], penwidth="1.8", arrowsize="0.75") >> mysql
-        session_above = port(870, 290)
-        session_right_top = port(1130, 290)
-        session_right_bottom = port(1130, -25)
-        session_left_bottom = port(870, -25)
-        api >> Edge(color=color["runtime"], arrowhead="none") >> session_above
-        session_above >> Edge(color=color["runtime"], arrowhead="none") >> session_right_top
-        session_right_top >> Edge(color=color["runtime"], arrowhead="none") >> session_right_bottom
-        session_right_bottom >> Edge(color=color["runtime"], arrowhead="none") >> session_left_bottom
-        session_left_bottom >> Edge(color=color["runtime"], arrowsize="0.75") >> redis
 
         caption("GET 정적 파일", 270, 455, 10, color["runtime"])
         caption("out 업로드", 460, 580, 10, color["delivery"])
         caption("공개 HTTPS API · 주소 미정 / 미연결", 505, 174, 10, color["future"])
         caption("Pages 로그인 화면 없음 · API 인증은 로컬 검증", 450, 115, 10)
-        caption("JDBC / JPA·Flyway", 1000, 195, 10, color["runtime"])
-        caption("Spring Session · redis:6379", 1000, 80, 10, color["runtime"])
+        caption("JPA·Flyway / Spring Session JDBC", 1040, 195, 10, color["runtime"])
+        caption("개발 DB · 기본 로컬 :13306", 1030, 100, 10)
 
-        with region("후속 단계 · 미구현 / 미연결", (365, -250, 1165, -95), color["panel"], color["future"], True):
-            card("OCI Object Storage", "첨부파일 저장 예정", 765, -180, "oci-object-storage", 260)
-        caption("실선: 정적 파일 요청·로컬 DB·세션 접근   /   초록 파선: Pages 산출물   /   갈색 파선: 공개 API 예정", 575, -285, 10)
+        with region("후속 단계 · 미구현 / 미연결", (35, -110, 1165, 55), color["panel"], color["future"], True):
+            card("Redis Cloud", "공개 글 캐시 예정", 350, -40, "redis", 225)
+            card("OCI Object Storage", "첨부파일 저장 예정", 840, -40, "oci-object-storage", 260)
+        caption("실선: 정적 파일 요청·로컬 MySQL 접근   /   초록 파선: Pages 산출물   /   갈색 파선: 공개 API 예정", 575, -145, 10)
 
     svg = diagram.dot.pipe(format="svg", renderer="cairo", neato_no_op=2)
     root = ET.fromstring(svg)
