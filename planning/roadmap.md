@@ -1,6 +1,6 @@
 # 새 프로젝트 개발 순서
 
-현재 [P1-01](issues/P1-01.md)의 MySQL·JPA·Flyway와 내부 초안 저장 기반 구현 및 실제 MySQL 테스트 완료. 공개 HTTPS API 연결은 주소 확정 후 진행 대상. 아래 항목은 후속 계획이며 일괄 승인된 구현 범위가 아님.
+현재 [P1-02A](issues/P1-02A.md)의 Spring Session JDBC 전환·격리 검증·원격 CI·Pages 반영 완료. 세션은 기존 MySQL에 저장하고 새 프로젝트의 내부 Redis 제거. 기존 VM 배포 앱·Redis는 교체하지 않음. 공개 HTTPS·도메인·프론트 로그인 연결은 후속 범위.
 
 | 단계 | 작업 | 완료 기준 |
 |---|---|---|
@@ -9,9 +9,10 @@
 | P0-03 | Next와 API 연결 | 완료: 공개 상태·설정 및 응답 오류·장애 표시, 호출 경로 구분 |
 | P0-04 | 정적 프론트·Spring 실행 이미지 | 완료: Next 정적 Pages, 브라우저 API 호출·CORS, API 단독 Compose·도면 |
 | P1-01 | MySQL·JPA·Flyway와 게시글 | 완료: 실제 MySQL 저장·조회·입력 검증·롤백·마이그레이션 |
-| P1-02 | Spring Security·로그인·내부 Redis 세션 | 인증·권한·CSRF·세션 종료, 비밀값 외부 주입 |
+| P1-02 | Spring Security·로그인 기반 | 원격 반영: 계정·Redis 세션·CSRF·권한·기능별 패키지 |
+| P1-02A | Spring Session JDBC 전환 | 구현·검증 완료: MySQL 세션·Flyway·만료 정리·격리 HTTP 검증 |
 | P1-03 | OCI Object Storage 첨부파일 | 파일과 메타데이터 저장·다운로드·권한·크기 검증 |
-| P1-04 | 공개 글 Redis 캐시 | TTL·수정 시 무효화·장애 시 DB 조회·민감 정보 제외 |
+| P1-04 | 공개 글 Redis Cloud 캐시 | TTL·수정 시 무효화·장애 시 DB 조회·민감 정보 제외 |
 | P1-05 | 회원 권한·공개 범위·Tech 분류 | 목록·검색·직접 URL의 권한 일치 |
 | P2 | Tech 화면과 본문 에디터 | 문단→목록→초안·출간→접기·표→이미지→코드·수식·도식→링크 순서로 개별 계획 |
 | P3 | Projects·Notes와 관리 | 프로젝트 문서·기술 배지·과목·회차를 기능별로 분리 |
