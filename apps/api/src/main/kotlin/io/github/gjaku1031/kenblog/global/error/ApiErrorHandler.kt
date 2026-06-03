@@ -1,5 +1,6 @@
 package io.github.gjaku1031.kenblog.global.error
 
+import io.github.gjaku1031.kenblog.attachment.domain.AttachmentFailure
 import io.github.gjaku1031.kenblog.global.security.isDatabaseConnectionFailure
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -21,6 +22,16 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
  */
 @RestControllerAdvice
 class ApiErrorHandler : ResponseEntityExceptionHandler() {
+    /**
+     * 첨부 계약의 공개 가능한 오류만 [ProblemDetail]로 전달.
+     *
+     * @param ex 내부 key·공급자 원문을 담지 않은 첨부 오류
+     * @return 오류별 400·404·409·413·415·503 상태
+     */
+    @ExceptionHandler(AttachmentFailure::class)
+    fun handleAttachment(ex: AttachmentFailure): ResponseEntity<ProblemDetail> =
+        ResponseEntity.status(ex.status).body(ProblemDetail.forStatusAndDetail(ex.status, ex.publicDetail))
+
     /**
      * 계정 오류는 동일한 401, DB 연결 장애만 안전한 503을 반환.
      *
