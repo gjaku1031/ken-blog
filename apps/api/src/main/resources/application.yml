@@ -1,4 +1,8 @@
 spring:
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 11MB
   application:
     name: ken-blog-api
   session:
@@ -31,6 +35,14 @@ management:
         include: health
 
 app:
+  attachment:
+    storage:
+      endpoint: ${OCI_OBJECT_STORAGE_ENDPOINT:}
+      region: ${OCI_OBJECT_STORAGE_REGION:}
+      bucket: ${OCI_OBJECT_STORAGE_BUCKET:}
+      access-key: ${OCI_OBJECT_STORAGE_ACCESS_KEY:}
+      secret-key: ${OCI_OBJECT_STORAGE_SECRET_KEY:}
+      key-prefix: ${OCI_OBJECT_STORAGE_KEY_PREFIX:ken-blog/attachments}
   auth:
     cors:
       allowed-origins: ${APP_AUTH_CORS_ALLOWED_ORIGINS:}
