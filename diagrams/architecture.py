@@ -1,4 +1,4 @@
-"""P1-02A 아키텍처의 같은 배치 라이트·다크 도면을 생성한다."""
+"""P1-03 아키텍처의 같은 배치 라이트·다크 도면을 생성한다."""
 
 from argparse import ArgumentParser
 from html import escape
@@ -112,6 +112,8 @@ def render(icons: Path, output: Path, theme: str):
             card("Docker Compose", "API·MySQL 수동 기동", 940, 335, "docker", 245)
             api = card("Spring Boot · API", "쿠키 세션 · 로컬 :18081", 940, 250, "spring", 255)
             mysql = card("MySQL 8.4.11", "게시글·계정·세션 저장", 940, 145, "mysql", 225)
+        with region("OCI Object Storage · 비공개 버킷", (620, -110, 1165, 55)):
+            storage = card("OCI Object Storage", "관리자 이미지 원본", 840, -40, "oci-object-storage", 260)
 
         browser >> Edge(color=color["runtime"], penwidth="1.8", arrowsize="0.75") >> pages
         delivery_top = port(305, 560)
@@ -126,18 +128,27 @@ def render(icons: Path, output: Path, theme: str):
         pending_corner >> Edge(color=color["future"], style="dashed", arrowhead="none", penwidth="1.5") >> pending_turn
         pending_turn >> Edge(color=color["future"], style="dashed", arrowsize="0.75", penwidth="1.5") >> api
         api >> Edge(color=color["runtime"], penwidth="1.8", arrowsize="0.75") >> mysql
+        storage_top = port(870, 290)
+        storage_right_top = port(1150, 290)
+        storage_right_bottom = port(1150, -75)
+        storage_left_bottom = port(770, -75)
+        api >> Edge(color=color["runtime"], arrowhead="none") >> storage_top
+        storage_top >> Edge(color=color["runtime"], arrowhead="none") >> storage_right_top
+        storage_right_top >> Edge(color=color["runtime"], arrowhead="none") >> storage_right_bottom
+        storage_right_bottom >> Edge(color=color["runtime"], arrowhead="none") >> storage_left_bottom
+        storage_left_bottom >> Edge(color=color["runtime"], arrowsize="0.75") >> storage
 
         caption("GET 정적 파일", 270, 455, 10, color["runtime"])
         caption("out 업로드", 460, 580, 10, color["delivery"])
         caption("공개 HTTPS API · 주소 미정 / 미연결", 505, 174, 10, color["future"])
         caption("Pages 로그인 화면 없음 · API 인증은 로컬 검증", 450, 115, 10)
         caption("JPA·Flyway / Spring Session JDBC", 1040, 195, 10, color["runtime"])
-        caption("개발 DB · 기본 로컬 :13306", 1030, 100, 10)
+        caption("첨부 메타데이터 · 로컬 DB :13306", 1030, 100, 10)
+        caption("HTTPS · 비공개 버킷", 980, -91, 10, color["runtime"])
 
-        with region("후속 단계 · 미구현 / 미연결", (35, -110, 1165, 55), color["panel"], color["future"], True):
+        with region("후속 단계 · 미구현 / 미연결", (35, -110, 590, 55), color["panel"], color["future"], True):
             card("Redis Cloud", "공개 글 캐시 예정", 350, -40, "redis", 225)
-            card("OCI Object Storage", "첨부파일 저장 예정", 840, -40, "oci-object-storage", 260)
-        caption("실선: 정적 파일 요청·로컬 MySQL 접근   /   초록 파선: Pages 산출물   /   갈색 파선: 공개 API 예정", 575, -145, 10)
+        caption("실선: 정적 요청·MySQL 접근·첨부 전송   /   초록 파선: Pages 산출물   /   갈색 파선: 공개 API 예정", 575, -145, 10)
 
     svg = diagram.dot.pipe(format="svg", renderer="cairo", neato_no_op=2)
     root = ET.fromstring(svg)

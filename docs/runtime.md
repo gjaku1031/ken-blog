@@ -1,6 +1,6 @@
 # 정적 프론트와 로컬 API 실행
 
-현재 프론트는 GitHub Pages에 올리는 Next.js 정적 파일. 브라우저가 공개 상태 API를 직접 호출하는 구조. Spring API는 Cloud Native Buildpacks의 JVM 이미지로 생성하고, 이 문서의 Compose는 API·개발 MySQL을 실행. [게시글 저장 기반](persistence.md)은 API 내부 기능이며 [관리자 로그인](authentication.md)은 MySQL에 저장하는 서버 세션 기반. OCI Object Storage는 후속 작업.
+현재 프론트는 GitHub Pages에 올리는 Next.js 정적 파일. 브라우저가 공개 상태 API를 직접 호출하는 구조. Spring API는 Cloud Native Buildpacks의 JVM 이미지로 생성하고, 이 문서의 Compose는 API·개발 MySQL을 실행. [게시글 저장 기반](persistence.md)은 API 내부 기능이며 [관리자 로그인](authentication.md)은 MySQL에 저장하는 서버 세션 기반. 관리자 이미지 첨부는 [비공개 OCI Object Storage](attachments.md)에 선택적으로 연결.
 
 ## Spring 이미지와 API 실행
 
@@ -16,7 +16,9 @@ curl -fsS http://127.0.0.1:18081/api/v1/status
 curl -fsS http://127.0.0.1:18081/actuator/health
 ```
 
-이미지 이름 `ken-blog-p004-api:local`은 앞 단계에서 정한 로컬 태그. 현재 JDBC 세션 의존성을 포함하려면 재빌드 필요. Compose는 API 컨테이너의 8080을 호스트의 `127.0.0.1:18081`에, MySQL의 3306을 `127.0.0.1:13306`에만 연결. 새 프로젝트에 Redis 서비스는 없음. 기존 8080 앱과 Redis는 별도 환경으로 유지. [루트 `.env.example`](https://github.com/gjaku1031/ken-blog/blob/main/.env.example)의 포트나 개발 DB 비밀번호는 `.env`에서 설정. 외부 공개 주소와 HTTPS 설정은 현재 없음.
+이미지 이름 `ken-blog-p004-api:local`은 앞 단계에서 정한 로컬 태그. JDBC 세션과 첨부 기능의 현재 코드를 포함하려면 이미지 재빌드 필요. Compose는 API 컨테이너의 8080을 호스트의 `127.0.0.1:18081`에, MySQL의 3306을 `127.0.0.1:13306`에만 연결. 새 프로젝트에 Redis 서비스는 없음. 기존 8080 앱과 Redis는 별도 환경으로 유지. [루트 `.env.example`](https://github.com/gjaku1031/ken-blog/blob/main/.env.example)의 포트나 개발 DB 비밀번호는 `.env`에서 설정. 외부 공개 주소와 HTTPS 설정은 현재 없음.
+
+OCI Object Storage 연결에는 `OCI_OBJECT_STORAGE_ENDPOINT`·`OCI_OBJECT_STORAGE_REGION`·`OCI_OBJECT_STORAGE_BUCKET`·`OCI_OBJECT_STORAGE_ACCESS_KEY`·`OCI_OBJECT_STORAGE_SECRET_KEY`를 외부 설정으로 주입. 다섯 값이 모두 비어 있으면 앱은 기동하지만 첨부 경로는 503, 일부만 채우면 설정 오류로 기동 실패. 선택적 `OCI_OBJECT_STORAGE_KEY_PREFIX` 기본값은 `ken-blog/attachments`. 비밀키를 저장소·빌드 출력·로그에 넣지 않음. 검증에는 기존 객체와 분리한 실행별 접두사를 사용. 구성·장애 처리·정리 절차는 [첨부파일 운영 안내](attachments.md) 참고.
 
 ```sh
 docker compose -p ken-blog-p102 logs --tail=100 api
@@ -65,6 +67,8 @@ python3 -m http.server 14000 --bind 127.0.0.1 \
 Spring CORS는 `/api/v1/status`의 지정 origin과 공개 GET 및 OPTIONS 사전 요청만 허용. 기본 origin은 `https://gjaku1031.github.io`; 로컬 origin은 위처럼 실행 시 명시적으로 추가. 현재 정적 화면의 상태 조회는 자격 증명을 보내지 않으며 API는 상태 경로에 자격 증명 허용 CORS 헤더를 반환하지 않음. 인증 API의 자격 증명 CORS는 별도 `APP_AUTH_CORS_ALLOWED_ORIGINS`로만 명시 허용하며 기본 비허용. CORS는 브라우저의 읽기 정책으로, API 인증이나 네트워크 방화벽을 대체하지 않음.
 
 2026-09-25 별도 검증 프로젝트에서 Spring Session JDBC를 포함한 Buildpacks 이미지 생성 성공. MySQL·API만 기동해 `/actuator/health`와 `/api/v1/status` `UP` 확인. 같은 MySQL에 재연결한 실행 JAR에서 Flyway V1~V3가 중복 적용되지 않았고, API 재시작 후 유효 세션 복원도 확인. 검증용 MySQL의 중단·복구와 만료 행 정리는 [관리자 로그인](authentication.md)에 기록. 검증 프로젝트의 컨테이너·네트워크·전용 볼륨·임시 비밀 파일은 제거했으며 기존 8080 앱·Redis는 유지.
+
+2026-09-25 P1-03 격리 검증에서는 Java SDK의 OCI Object Storage 실제 PNG·JPEG 업로드·다운로드·삭제, 실패 후 상태 정리, Buildpacks Compose API·MySQL 기동, DB 중단·복구를 확인. 실행별 첨부 객체 접두사는 정리 후 비어 있음. 응답 상태와 인위적 장애 주입의 범위는 [첨부파일 운영 안내](attachments.md)에 기록. 새 API를 공개 HTTPS 주소에 배포하거나 기존 앱을 교체한 결과는 아님.
 
 ## 메모리 한도와 검증 범위
 

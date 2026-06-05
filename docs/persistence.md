@@ -1,6 +1,6 @@
 # 게시글 저장 기반
 
-P1-01은 Spring API 내부에서만 초안을 저장·조회하는 기반. 공개 글 작성 HTTP 경로, 출간, 에디터 블록, OCI Object Storage는 아직 없음. 관리자 인증과 MySQL 세션은 [별도 계약](authentication.md)으로 추가되었으며 게시글 쓰기 API는 아직 없음.
+P1-01은 Spring API 내부에서만 초안을 저장·조회하는 기반. 당시에는 공개 글 작성 HTTP 경로, 출간, 에디터 블록, OCI Object Storage 첨부 기능이 없었음. 이후 관리자 인증과 MySQL 세션은 [별도 계약](authentication.md)으로, 관리자 첨부 기능은 [P1-03 계약](attachments.md)으로 추가. 게시글 쓰기 API와 첨부의 게시글 연결은 아직 없음.
 
 Kotlin 게시글 코드는 `post/domain`의 엔티티·도메인 오류, `post/repository`의 Spring Data JPA 인터페이스, `post/service`의 구체 서비스·입력 검증·트랜잭션으로 분리. Flyway SQL은 기존 `db/migration`에 유지하며 데이터 표와 공개 HTTP 계약은 저장소 구현 변경으로 달라지지 않음.
 
