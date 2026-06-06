@@ -1,0 +1,128 @@
+package io.github.gjaku1031.kenblog.post.controller
+
+import io.github.gjaku1031.kenblog.post.dto.PostDetailResponse
+import io.github.gjaku1031.kenblog.post.dto.PostPageResponse
+import io.github.gjaku1031.kenblog.post.dto.PostWriteRequest
+import io.swagger.v3.oas.annotations.Operation
+import io.swagger.v3.oas.annotations.Parameter
+import io.swagger.v3.oas.annotations.enums.ParameterIn
+import io.swagger.v3.oas.annotations.media.Content
+import io.swagger.v3.oas.annotations.media.Schema
+import io.swagger.v3.oas.annotations.responses.ApiResponse
+import io.swagger.v3.oas.annotations.responses.ApiResponses
+import io.swagger.v3.oas.annotations.security.SecurityRequirement
+import org.springframework.http.MediaType
+import org.springframework.http.ProblemDetail
+import org.springframework.http.ResponseEntity
+import org.springframework.web.bind.annotation.DeleteMapping
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.PutMapping
+import org.springframework.web.bind.annotation.RequestBody
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestParam
+
+/**
+ * 관리자 전용 초안 작성·목록·상세·전체 교체·삭제의 HTTP/OpenAPI 계약.
+ *
+ * [PostController]가 구현하며 ADMIN 세션과 쓰기 요청의 기존 CSRF 필터를 사용함.
+ */
+@RequestMapping("/api/v1/admin/posts")
+@SecurityRequirement(name = "sessionCookie")
+interface PostApi {
+    /**
+     * 필수 JSON 세 필드로 초안을 생성.
+     *
+     * @param request 제목·slug·본문 전체 입력
+     * @return 상세 [PostDetailResponse]와 관리자 조회 Location의 HTTP 201
+     */
+    @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE], produces = [MediaType.APPLICATION_JSON_VALUE])
+    @Operation(summary = "관리자 초안 생성", parameters = [Parameter(name = "X-CSRF-TOKEN", `in` = ParameterIn.HEADER, required = true)])
+    @ApiResponses(value = [
+        ApiResponse(responseCode = "201", content = [Content(schema = Schema(implementation = PostDetailResponse::class))]),
+        ApiResponse(responseCode = "400", description = "입력 또는 JSON 오류", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
+        ApiResponse(responseCode = "401", description = "인증 필요", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
+        ApiResponse(responseCode = "403", description = "관리자 권한 또는 CSRF 필요", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
+        ApiResponse(responseCode = "409", description = "slug 중복", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
+        ApiResponse(responseCode = "503", description = "DB 연결 장애", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
+    ])
+    fun create(@RequestBody request: PostWriteRequest): ResponseEntity<PostDetailResponse>
+
+    /**
+     * 본문을 제외하고 생성 시각·ID 내림차순의 한 페이지를 조회.
+     *
+     * @param page 0 기반 페이지 번호, 기본 0
+     * @param size 1~100 페이지 크기, 기본 20
+     * @return 목록과 전체 건수를 담은 [PostPageResponse]
+     */
+    @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE])
+    @Operation(summary = "관리자 초안 목록")
+    @ApiResponses(value = [
+        ApiResponse(responseCode = "200", content = [Content(schema = Schema(implementation = PostPageResponse::class))]),
+        ApiResponse(responseCode = "400", description = "페이지 입력 오류", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
+        ApiResponse(responseCode = "401", description = "인증 필요", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
+        ApiResponse(responseCode = "403", description = "관리자 권한 필요", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
+        ApiResponse(responseCode = "503", description = "DB 연결 장애", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
+    ])
+    fun list(
+        @RequestParam(defaultValue = "0") page: Int,
+        @RequestParam(defaultValue = "20") size: Int,
+    ): ResponseEntity<PostPageResponse>
+
+    /**
+     * 양수 ID의 초안을 본문 원문까지 조회.
+     *
+     * @param id 조회할 양수 게시글 식별자
+     * @return [PostDetailResponse]
+     */
+    @GetMapping("/{id}", produces = [MediaType.APPLICATION_JSON_VALUE])
+    @Operation(summary = "관리자 초안 상세")
+    @ApiResponses(value = [
+        ApiResponse(responseCode = "200", content = [Content(schema = Schema(implementation = PostDetailResponse::class))]),
+        ApiResponse(responseCode = "400", description = "ID 입력 오류", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
+        ApiResponse(responseCode = "401", description = "인증 필요", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
+        ApiResponse(responseCode = "403", description = "관리자 권한 필요", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
+        ApiResponse(responseCode = "404", description = "게시글 없음", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
+        ApiResponse(responseCode = "503", description = "DB 연결 장애", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
+    ])
+    fun detail(@PathVariable("id") id: Long): ResponseEntity<PostDetailResponse>
+
+    /**
+     * 양수 ID 초안의 제목·slug·본문을 모두 교체.
+     *
+     * @param id 수정할 게시글 식별자
+     * @param request 필수 세 필드의 새 값
+     * @return ID·생성 시각을 유지한 [PostDetailResponse]
+     */
+    @PutMapping("/{id}", consumes = [MediaType.APPLICATION_JSON_VALUE], produces = [MediaType.APPLICATION_JSON_VALUE])
+    @Operation(summary = "관리자 초안 전체 수정", parameters = [Parameter(name = "X-CSRF-TOKEN", `in` = ParameterIn.HEADER, required = true)])
+    @ApiResponses(value = [
+        ApiResponse(responseCode = "200", content = [Content(schema = Schema(implementation = PostDetailResponse::class))]),
+        ApiResponse(responseCode = "400", description = "ID·입력·JSON 오류", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
+        ApiResponse(responseCode = "401", description = "인증 필요", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
+        ApiResponse(responseCode = "403", description = "관리자 권한 또는 CSRF 필요", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
+        ApiResponse(responseCode = "404", description = "게시글 없음", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
+        ApiResponse(responseCode = "409", description = "slug 중복", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
+        ApiResponse(responseCode = "503", description = "DB 연결 장애", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
+    ])
+    fun update(@PathVariable("id") id: Long, @RequestBody request: PostWriteRequest): ResponseEntity<PostDetailResponse>
+
+    /**
+     * 양수 ID의 초안 행만 삭제하며 첨부 객체는 건드리지 않음.
+     *
+     * @param id 삭제할 게시글 식별자
+     * @return 본문 없는 HTTP 204
+     */
+    @DeleteMapping("/{id}")
+    @Operation(summary = "관리자 초안 삭제", parameters = [Parameter(name = "X-CSRF-TOKEN", `in` = ParameterIn.HEADER, required = true)])
+    @ApiResponses(value = [
+        ApiResponse(responseCode = "204", description = "삭제 완료"),
+        ApiResponse(responseCode = "400", description = "ID 입력 오류", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
+        ApiResponse(responseCode = "401", description = "인증 필요", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
+        ApiResponse(responseCode = "403", description = "관리자 권한 또는 CSRF 필요", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
+        ApiResponse(responseCode = "404", description = "게시글 없음", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
+        ApiResponse(responseCode = "503", description = "DB 연결 장애", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
+    ])
+    fun delete(@PathVariable("id") id: Long): ResponseEntity<Void>
+}

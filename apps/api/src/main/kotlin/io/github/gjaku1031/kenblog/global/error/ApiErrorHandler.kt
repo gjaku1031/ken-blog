@@ -2,6 +2,10 @@ package io.github.gjaku1031.kenblog.global.error
 
 import io.github.gjaku1031.kenblog.attachment.domain.AttachmentFailure
 import io.github.gjaku1031.kenblog.global.security.isDatabaseConnectionFailure
+import io.github.gjaku1031.kenblog.post.domain.DuplicatePostSlugException
+import io.github.gjaku1031.kenblog.post.domain.InvalidPostDraftException
+import io.github.gjaku1031.kenblog.post.domain.InvalidPostRequestException
+import io.github.gjaku1031.kenblog.post.domain.PostNotFoundException
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.HttpStatusCode
@@ -22,6 +26,36 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
  */
 @RestControllerAdvice
 class ApiErrorHandler : ResponseEntityExceptionHandler() {
+    /**
+     * 초안·ID·페이지 입력 오류를 원문 없이 HTTP 400으로 변환.
+     *
+     * @param ex 공개 응답에 메시지를 싣지 않을 게시글 입력 오류
+     * @return 고정 [ProblemDetail] 설명
+     */
+    @ExceptionHandler(InvalidPostDraftException::class, InvalidPostRequestException::class)
+    fun handlePostInput(ex: RuntimeException): ResponseEntity<ProblemDetail> =
+        ResponseEntity.badRequest().body(ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "게시글 입력을 확인하세요."))
+
+    /**
+     * 없는 양수 ID를 공개 가능한 HTTP 404로 변환.
+     *
+     * @param ex 내부 ID를 응답에 싣지 않을 조회 오류
+     * @return 고정 [ProblemDetail] 설명
+     */
+    @ExceptionHandler(PostNotFoundException::class)
+    fun handlePostNotFound(ex: PostNotFoundException): ResponseEntity<ProblemDetail> =
+        ResponseEntity.status(HttpStatus.NOT_FOUND).body(ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, "게시글을 찾을 수 없습니다."))
+
+    /**
+     * DB가 판정한 slug 고유 제약 위반을 HTTP 409로 변환.
+     *
+     * @param ex slug와 DB 원문을 응답에 싣지 않을 충돌 오류
+     * @return 고정 [ProblemDetail] 설명
+     */
+    @ExceptionHandler(DuplicatePostSlugException::class)
+    fun handlePostDuplicate(ex: DuplicatePostSlugException): ResponseEntity<ProblemDetail> =
+        ResponseEntity.status(HttpStatus.CONFLICT).body(ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, "이미 사용 중인 게시글 주소입니다."))
+
     /**
      * 첨부 계약의 공개 가능한 오류만 [ProblemDetail]로 전달.
      *
