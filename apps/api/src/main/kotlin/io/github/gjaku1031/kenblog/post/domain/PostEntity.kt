@@ -13,7 +13,7 @@ import java.time.LocalDateTime
  * Flyway의 `posts` 행에 대응하는 초안 저장 모델.
  *
  * 시간은 UTC의 [LocalDateTime]으로 저장하며 생성 시 [updatedAt]은 [createdAt]과 같음.
- * 수정 기능은 아직 없으므로 생성 이후 필드를 변경하는 공개 메서드가 없음.
+ * [replaceDraft]는 ID·생성 시각을 유지하며 검증된 초안 필드만 교체함.
  */
 @Entity
 @Table(name = "posts")
@@ -59,5 +59,20 @@ class PostEntity protected constructor() {
         this.body = body
         this.createdAt = createdAt
         this.updatedAt = createdAt
+    }
+
+    /**
+     * [PostService.updateDraft]에서 검증한 전체 초안 내용을 한 트랜잭션에서 교체.
+     *
+     * @param title 정규화한 제목
+     * @param slug 정규화한 slug
+     * @param body 원문 그대로 저장할 본문
+     * @param updatedAt UTC 수정 시각
+     */
+    internal fun replaceDraft(title: String, slug: String, body: String, updatedAt: LocalDateTime) {
+        this.title = title
+        this.slug = slug
+        this.body = body
+        this.updatedAt = updatedAt
     }
 }
