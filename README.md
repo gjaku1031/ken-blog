@@ -15,7 +15,7 @@ docs/          # 실행·설계 안내
 ```text
 io.github.gjaku1031.kenblog
 ├── KenBlogApiApplication.kt
-├── post/       # domain · repository · service
+├── post/       # controller · dto · domain · repository · service
 ├── account/    # domain · repository · service · bootstrap
 ├── auth/       # controller · dto · service
 ├── attachment/ # controller · dto · domain · repository · service · storage
@@ -28,14 +28,14 @@ io.github.gjaku1031.kenblog
 프론트는 GitHub Pages에서 제공하고 브라우저가 Spring API를 호출하는 구조. VM에는 Spring 실행. 공개 API 도메인·HTTPS 주소가 아직 없어 공개 홈은 API 미설정 상태로 배포.
 
 - [프론트와 임시 아키텍처 대문](https://gjaku1031.github.io/ken-blog/)
-- [현재 계획](planning/issues/P1-03.md) · [작업 상태](planning/tasks.md) · [개발 순서](planning/roadmap.md)
-- [코드·문서 규칙](docs/code-conventions.md) · [런타임 안내](docs/runtime.md) · [첨부파일 운영 안내](docs/attachments.md) · [도면 설명](docs/architecture.md)
+- [현재 계획](planning/issues/P1-04A.md) · [작업 상태](planning/tasks.md) · [개발 순서](planning/roadmap.md)
+- [코드·문서 규칙](docs/code-conventions.md) · [런타임 안내](docs/runtime.md) · [관리자 게시글 API](docs/posts.md) · [첨부파일 운영 안내](docs/attachments.md) · [도면 설명](docs/architecture.md)
 
 ## API 직접 실행
 
 필요 환경: JDK 25·Docker와 MySQL 연결 설정. Spring Boot 4.1.1·Kotlin 2.3.21·Maven wrapper 사용.
 
-DB 준비와 환경변수 주입은 [게시글 저장 기반 실행 안내](docs/persistence.md) 참고. 기존 검증 구성은 격리된 MySQL 컨테이너 사용. 로그인 준비와 세션 쿠키 설정은 [인증 실행 안내](docs/authentication.md), 선택적인 OCI Object Storage 설정은 [첨부파일 운영 안내](docs/attachments.md) 참고.
+DB 준비와 환경변수 주입은 [게시글 저장 기반 실행 안내](docs/persistence.md) 참고. 기존 검증 구성은 격리된 MySQL 컨테이너 사용. 로그인 준비와 세션 쿠키 설정은 [인증 실행 안내](docs/authentication.md), 초안 HTTP 계약은 [관리자 게시글 API](docs/posts.md), 선택적인 OCI Object Storage 설정은 [첨부파일 운영 안내](docs/attachments.md) 참고.
 
 ```bash
 cd apps/api
@@ -53,11 +53,16 @@ SERVER_ADDRESS=127.0.0.1 SERVER_PORT=8081 ./mvnw spring-boot:run
 | `/api/v1/auth/login` | 쿠키·CSRF 검증 후 로그인 및 세션 ID 교체 |
 | `/api/v1/auth/me` | 현재 로그인 계정 조회 |
 | `/api/v1/auth/logout` | 인증·CSRF 검증 후 세션 무효화 |
+| `POST /api/v1/admin/posts` | 관리자 초안 생성, `201`과 관리자 상세 Location. CSRF 필요 |
+| `GET /api/v1/admin/posts` | 본문 없는 관리자 요약 목록과 페이지 정보 |
+| `GET /api/v1/admin/posts/{id}` | 관리자 초안 상세와 원문 본문 |
+| `PUT /api/v1/admin/posts/{id}` | 관리자 초안 전체 교체. CSRF 필요 |
+| `DELETE /api/v1/admin/posts/{id}` | 관리자 초안 삭제, `204`. CSRF 필요 |
 | `/api/v1/admin/attachments` | 관리자 이미지 1개 업로드. 세션·ADMIN 역할·CSRF 필요 |
 | `/api/v1/admin/attachments/{id}` | 관리자 첨부 메타데이터 조회·삭제. 삭제에는 CSRF 필요 |
 | `/api/v1/admin/attachments/{id}/content` | READY 이미지의 관리자 다운로드 |
 
-상태 API 명세는 `StatusApi`, 구현은 `StatusController`에서 관리. Spring MVC 오류는 `ApiErrorHandler`의 RFC 9457 `ProblemDetail`로 처리. MySQL·JPA·Flyway와 내부 게시글 초안 저장·조회 제공. Spring Session JDBC 기반 로그인·MySQL 세션 제공. 관리자 첨부 API는 이미지 원본을 비공개 OCI Object Storage에, 상태·소유자 등 메타데이터를 MySQL에 보관. 게시글 HTTP API와 로그인 화면은 아직 없음.
+상태 API 명세는 `StatusApi`, 구현은 `StatusController`에서 관리. Spring MVC 오류는 `ApiErrorHandler`의 RFC 9457 `ProblemDetail`로 처리. MySQL·JPA·Flyway와 관리자 게시글 초안 작성·목록·상세·수정·삭제 제공. Spring Session JDBC 기반 로그인·MySQL 세션 제공. 관리자 첨부 API는 이미지 원본을 비공개 OCI Object Storage에, 상태·소유자 등 메타데이터를 MySQL에 보관. 게시글 출간·공개 조회와 브라우저 관리자 화면은 아직 없음.
 
 ## 정적 프론트 빌드
 
@@ -89,4 +94,4 @@ Pages의 아키텍처 도면 자산도 갱신했으나 공개 API 배포나 브�
 
 계획별 실제 빌드·테스트·브라우저·CI 결과는 [작업 상태](planning/tasks.md)에서 확인. 메모리 사용량은 [런타임 안내](docs/runtime.md)의 측정 조건과 함께 해석.
 
-실제 환경 파일과 `docs/study/`는 Git 및 Pages 산출물에서 제외. 로그인 화면·게시글과 첨부의 연결·공개 이미지·공개 글 캐시·GA 연동과 공개 HTTPS API 연결은 후속 단계.
+실제 환경 파일과 `docs/study/`는 Git 및 Pages 산출물에서 제외. 로그인 화면·게시글 출간·공개 조회·게시글과 첨부의 연결·공개 이미지·공개 글 캐시·GA 연동과 공개 HTTPS API 연결은 후속 단계.

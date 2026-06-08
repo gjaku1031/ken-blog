@@ -1,6 +1,6 @@
 # 관리자 로그인과 MySQL 세션
 
-P1-02는 내부 관리자 로그인을 위한 서버 세션 기반. 공개 회원가입·회원 관리·게시글 작성 HTTP API·로그인 화면은 현재 없음. 초기 계정은 자동 생성되지 않으며 로컬 운영자가 외부 설정을 명시할 때만 한 명 준비. 공개 HTTPS API 주소와 도메인은 아직 미정이므로 외부 로그인 운영 없음.
+P1-02는 내부 관리자 로그인을 위한 서버 세션 기반. 관리자 게시글 초안 API와 이미지 첨부 API는 이후 단계에서 추가. 공개 회원가입·회원 관리·게시글 출간·공개 조회·로그인 화면은 현재 없음. 초기 계정은 자동 생성되지 않으며 로컬 운영자가 외부 설정을 명시할 때만 한 명 준비. 공개 HTTPS API 주소와 도메인은 아직 미정이므로 외부 로그인 운영 없음.
 
 Kotlin 소스는 역할별 패키지에 배치. `account/domain`은 저장 계정과 역할, `account/repository`·`account/service`·`account/bootstrap`은 조회·준비 흐름, `auth/controller`·`auth/dto`·`auth/service`는 HTTP 계약과 인증 처리, `global/config`·`global/security`·`global/error`는 공통 보안 설정과 오류 응답 담당. Spring 진입점은 공통 상위 패키지에 두어 하위 컴포넌트를 탐색.
 
@@ -53,7 +53,7 @@ PY
 
 로그인 전 `/csrf`를 먼저 호출하고 받은 쿠키와 토큰을 로그인에 함께 전송. 로그인 성공 시 세션 ID가 바뀌고 기존 CSRF 토큰도 제거되므로 `/csrf`를 다시 호출한 뒤 로그아웃 등 변경 요청에 사용. 로그아웃 뒤 이전 쿠키로 `/me` 접근 불가. 미인증은 HTTP 401, 역할 부족·CSRF 누락/불일치는 HTTP 403, MySQL 연결 장애는 HTTP 503의 `application/problem+json` 응답. 없는 계정과 틀린 비밀번호의 공개 오류 설명은 동일. 필터 경계 밖의 예외 원문이나 저장된 해시를 응답에 넣지 않음.
 
-`/api/v1/admin/` 아래는 `ADMIN` 역할만 허용. 현재 운영 관리자 기능은 없고, 테스트 전용 경로에서 `USER`의 403을 검증. `/api/v1/status`, `/actuator/health`, OpenAPI·Swagger UI의 공개 GET은 익명으로 접근 가능. 테스트 전용 오류 경로는 운영 JAR에 포함되지 않음.
+`/api/v1/admin/` 아래는 `ADMIN` 역할만 허용. 현재 관리자 기능은 [게시글 초안](posts.md)과 [이미지 첨부](attachments.md) API이며, 테스트 전용 경로에서도 `USER`의 403을 검증. `/api/v1/status`, `/actuator/health`, OpenAPI·Swagger UI의 공개 GET은 익명으로 접근 가능. 테스트 전용 오류 경로는 운영 JAR에 포함되지 않음.
 
 ## 쿠키·CORS와 MySQL
 
