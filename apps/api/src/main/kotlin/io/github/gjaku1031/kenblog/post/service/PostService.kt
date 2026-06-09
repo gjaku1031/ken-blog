@@ -5,6 +5,7 @@ import io.github.gjaku1031.kenblog.post.domain.InvalidPostDraftException
 import io.github.gjaku1031.kenblog.post.domain.InvalidPostRequestException
 import io.github.gjaku1031.kenblog.post.domain.PostEntity
 import io.github.gjaku1031.kenblog.post.domain.PostNotFoundException
+import io.github.gjaku1031.kenblog.post.domain.PostVisibility
 import io.github.gjaku1031.kenblog.post.dto.PostPageResponse
 import io.github.gjaku1031.kenblog.post.repository.PostRepository
 import java.sql.SQLIntegrityConstraintViolationException
@@ -20,7 +21,7 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 /**
- * 초안 입력 계약과 [PostRepository]의 생성·목록·수정·삭제를 트랜잭션으로 묶는 서비스.
+ * 게시글 입력 계약과 [PostRepository]의 생성·목록·수정·삭제·출간 상태 전환을 트랜잭션으로 묶는 서비스.
  *
  * 생성에는 새 [PostEntity]의 null ID와 저장 결과를 사용하며, 조회에는
  * [findByIdOrNull]과 저장소의 파생 쿼리를 사용함.
@@ -56,7 +57,7 @@ class PostService(private val repository: PostRepository) {
     }
 
     /**
-     * 본문을 선택하지 않는 고정 정렬의 관리자 초안 목록을 조회.
+     * 본문을 선택하지 않는 고정 정렬의 관리자 초안·출간 목록을 조회.
      *
      * @param page 0 이상의 페이지 번호
      * @param size 1~100개의 페이지 크기
@@ -73,9 +74,10 @@ class PostService(private val repository: PostRepository) {
     }
 
     /**
-     * 양수 ID의 초안을 찾아 제목·slug·본문 전체를 한 트랜잭션에서 교체.
+     * 양수 ID의 게시글을 찾아 제목·slug·본문 전체를 한 트랜잭션에서 교체.
      *
      * 동일 slug 유지도 DB 고유 제약에 맡기며, 충돌이나 다른 쓰기 실패 시 모든 필드가 롤백됨.
+     * [PostRepository.findLockedById]로 상태 전환과 같은 행을 잠가 출간 필드 덮어쓰기를 방지함.
      *
      * @param id 수정할 양수 식별자
      * @param title 앞뒤 공백을 제거할 새 제목
@@ -90,14 +92,14 @@ class PostService(private val repository: PostRepository) {
     @Transactional
     fun updateDraft(id: Long, title: String, slug: String, body: String): PostEntity {
         if (id <= 0) throw InvalidPostRequestException()
-        val post = repository.findByIdOrNull(id) ?: throw PostNotFoundException()
+        val post = repository.findLockedById(id) ?: throw PostNotFoundException()
         val values = validateDraft(title, slug, body)
         post.replaceDraft(values.title, values.slug, values.body, now())
         return saveDraft(post, values.slug)
     }
 
     /**
-     * 양수 ID의 초안 행만 삭제하고 같은 트랜잭션에서 SQL을 동기화.
+     * 양수 ID의 게시글 행을 잠가 삭제하고 같은 트랜잭션에서 SQL을 동기화.
      *
      * 아직 게시글과 첨부의 연결이 없어 OCI 객체는 건드리지 않음.
      *
@@ -108,13 +110,60 @@ class PostService(private val repository: PostRepository) {
     @Transactional
     fun deleteDraft(id: Long) {
         if (id <= 0) throw InvalidPostRequestException()
-        val post = repository.findByIdOrNull(id) ?: throw PostNotFoundException()
+        val post = repository.findLockedById(id) ?: throw PostNotFoundException()
         repository.delete(post)
         repository.flush()
     }
 
     /**
-     * ID로 저장된 초안을 조회.
+     * 행을 잠근 뒤 지정 범위로 출간·재출간하고 최초 출간 시각을 보존.
+     *
+     * @param id 양수 게시글 ID
+     * @param visibility 공개 또는 로그인 열람 범위
+     * @return 변경된 [PostEntity]
+     * @throws InvalidPostRequestException ID가 양수가 아닐 때
+     * @throws PostNotFoundException 게시글이 없을 때
+     */
+    @Transactional
+    fun publish(id: Long, visibility: PostVisibility): PostEntity {
+        val post = lockedPost(id)
+        post.publish(visibility, now())
+        return repository.saveAndFlush(post)
+    }
+
+    /**
+     * 행을 잠근 뒤 초안으로 철회하며 최초 출간 시각은 보존.
+     *
+     * @param id 양수 게시글 ID
+     * @return 초안 상태의 [PostEntity]
+     * @throws InvalidPostRequestException ID가 양수가 아닐 때
+     * @throws PostNotFoundException 게시글이 없을 때
+     */
+    @Transactional
+    fun unpublish(id: Long): PostEntity {
+        val post = lockedPost(id)
+        post.unpublish(now())
+        return repository.saveAndFlush(post)
+    }
+
+    /**
+     * 행을 잠근 뒤 출간 상태와 최초 출간 시각을 그대로 두고 범위만 변경.
+     *
+     * @param id 양수 게시글 ID
+     * @param visibility 새 공개 범위
+     * @return 변경된 [PostEntity]
+     * @throws InvalidPostRequestException ID가 양수가 아닐 때
+     * @throws PostNotFoundException 게시글이 없을 때
+     */
+    @Transactional
+    fun changeVisibility(id: Long, visibility: PostVisibility): PostEntity {
+        val post = lockedPost(id)
+        post.changeVisibility(visibility, now())
+        return repository.saveAndFlush(post)
+    }
+
+    /**
+     * ID로 저장된 게시글을 조회.
      *
      * @param id 양수 식별자
      * @return [findByIdOrNull]로 찾은 [PostEntity], 없거나 양수가 아니면 `null`
@@ -134,6 +183,19 @@ class PostService(private val repository: PostRepository) {
         return if (normalized.length <= MAX_SLUG_LENGTH && SLUG_PATTERN.matches(normalized)) {
             repository.findBySlug(normalized)
         } else null
+    }
+
+    /**
+     * 출간 상태 변경에서 공통으로 사용할 양수 ID의 잠긴 엔티티를 조회.
+     *
+     * @param id 게시글 ID
+     * @return 잠근 [PostEntity]
+     * @throws InvalidPostRequestException ID가 양수가 아닐 때
+     * @throws PostNotFoundException 게시글이 없을 때
+     */
+    private fun lockedPost(id: Long): PostEntity {
+        if (id <= 0) throw InvalidPostRequestException()
+        return repository.findLockedById(id) ?: throw PostNotFoundException()
     }
 
     /**

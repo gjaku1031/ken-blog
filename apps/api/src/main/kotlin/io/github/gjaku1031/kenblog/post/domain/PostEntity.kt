@@ -3,17 +3,26 @@ package io.github.gjaku1031.kenblog.post.domain
 import io.github.gjaku1031.kenblog.post.service.PostService
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
+import jakarta.persistence.EnumType
+import jakarta.persistence.Enumerated
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.Table
 import java.time.LocalDateTime
 
+/** 게시글의 임시 저장과 공개 출간 여부. */
+enum class PostStatus { DRAFT, PUBLISHED }
+
+/** 출간된 글을 익명 방문자에게도 보일지 결정하는 범위. */
+enum class PostVisibility { PUBLIC, PRIVATE }
+
 /**
- * Flyway의 `posts` 행에 대응하는 초안 저장 모델.
+ * Flyway의 `posts` 행에 대응하는 초안·출간 게시글 저장 모델.
  *
  * 시간은 UTC의 [LocalDateTime]으로 저장하며 생성 시 [updatedAt]은 [createdAt]과 같음.
- * [replaceDraft]는 ID·생성 시각을 유지하며 검증된 초안 필드만 교체함.
+ * [replaceDraft]는 출간 상태를 건드리지 않고 검증된 내용만 교체함.
+ * 최초 [publishedAt]은 철회·재출간·공개 범위 변경에도 유지함.
  */
 @Entity
 @Table(name = "posts")
@@ -41,6 +50,20 @@ class PostEntity protected constructor() {
 
     @Column(name = "updated_at", nullable = false, columnDefinition = "datetime(6)")
     lateinit var updatedAt: LocalDateTime
+        protected set
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 16)
+    var status: PostStatus = PostStatus.DRAFT
+        protected set
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 16)
+    var visibility: PostVisibility = PostVisibility.PRIVATE
+        protected set
+
+    @Column(name = "published_at", columnDefinition = "datetime(6)")
+    var publishedAt: LocalDateTime? = null
         protected set
 
     /**
@@ -74,5 +97,44 @@ class PostEntity protected constructor() {
         this.slug = slug
         this.body = body
         this.updatedAt = updatedAt
+    }
+
+    /**
+     * 출간 또는 재출간하고 최초 UTC 출간 시각을 보존.
+     *
+     * 상태·범위가 이미 같다면 수정 시각도 유지함.
+     *
+     * @param visibility 새 [PostVisibility]
+     * @param now UTC 상태 변경 시각
+     */
+    internal fun publish(visibility: PostVisibility, now: LocalDateTime) {
+        if (status == PostStatus.PUBLISHED && this.visibility == visibility) return
+        if (publishedAt == null) publishedAt = now
+        status = PostStatus.PUBLISHED
+        this.visibility = visibility
+        updatedAt = now
+    }
+
+    /**
+     * 초안으로 되돌리되 [publishedAt]과 설정한 [visibility]를 보존.
+     *
+     * @param now UTC 상태 변경 시각
+     */
+    internal fun unpublish(now: LocalDateTime) {
+        if (status == PostStatus.DRAFT) return
+        status = PostStatus.DRAFT
+        updatedAt = now
+    }
+
+    /**
+     * 출간 상태와 최초 출간 시각을 유지한 채 공개 범위만 변경.
+     *
+     * @param visibility 새 [PostVisibility]
+     * @param now UTC 범위 변경 시각
+     */
+    internal fun changeVisibility(visibility: PostVisibility, now: LocalDateTime) {
+        if (this.visibility == visibility) return
+        this.visibility = visibility
+        updatedAt = now
     }
 }
