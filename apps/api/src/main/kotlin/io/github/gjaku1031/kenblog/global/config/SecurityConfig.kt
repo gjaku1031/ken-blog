@@ -6,6 +6,7 @@ import io.swagger.v3.oas.annotations.enums.SecuritySchemeIn
 import io.swagger.v3.oas.annotations.enums.SecuritySchemeType
 import io.swagger.v3.oas.annotations.security.SecurityScheme
 import org.springframework.beans.factory.annotation.Value
+import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpMethod
@@ -29,6 +30,7 @@ import org.springframework.security.web.csrf.CsrfTokenRepository
 import org.springframework.security.web.csrf.HttpSessionCsrfTokenRepository
 import org.springframework.security.web.savedrequest.NullRequestCache
 import org.springframework.web.cors.CorsConfiguration
+import org.springframework.web.cors.CorsConfigurationSource
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 
 /**
@@ -90,18 +92,18 @@ class SecurityConfig {
         )
 
     /**
-     * 공개 상태 조회는 자격 증명 없이, 인증 경로는 명시한 로컬 origin에만 자격 증명 CORS를 허용.
+     * 공개 상태·게시글 조회는 지정 origin에 GET만 허용하고 인증 origin에만 자격 증명을 허용.
      *
      * @param publicOriginsCsv 공개 상태 조회 허용 origin
      * @param authOriginsCsv 인증 요청을 허용할 명시적 origin; 기본은 빈 목록
-     * @return 필터 단계에서 사용할 경로별 CORS 설정
+     * @return 공개/인증 origin을 게시글 경로에서 구분하는 CORS 설정
      * @throws IllegalStateException origin에 와일드카드 또는 형식 오류가 있을 때
      */
     @Bean
     fun corsConfigurationSource(
         @Value("\${app.cors.allowed-origins}") publicOriginsCsv: String,
         @Value("\${app.auth.cors.allowed-origins}") authOriginsCsv: String,
-    ): UrlBasedCorsConfigurationSource {
+    ): CorsConfigurationSource {
         val publicOrigins = parseOrigins(publicOriginsCsv, allowEmpty = false)
         val authOrigins = parseOrigins(authOriginsCsv, allowEmpty = true)
         val source = UrlBasedCorsConfigurationSource()
@@ -111,6 +113,20 @@ class SecurityConfig {
             allowedHeaders = listOf("Accept")
             allowCredentials = false
         })
+        val publicPosts = CorsConfiguration().apply {
+            allowedOrigins = publicOrigins
+            allowedMethods = listOf("GET")
+            allowedHeaders = listOf("Accept")
+            allowCredentials = false
+            maxAge = 600
+        }
+        val authenticatedPosts = CorsConfiguration().apply {
+            allowedOrigins = authOrigins
+            allowedMethods = listOf("GET")
+            allowedHeaders = listOf("Accept")
+            allowCredentials = true
+            maxAge = 600
+        }
         if (authOrigins.isNotEmpty()) {
             source.registerCorsConfiguration("/api/v1/auth/**", CorsConfiguration().apply {
                 allowedOrigins = authOrigins
@@ -120,7 +136,12 @@ class SecurityConfig {
                 maxAge = 600
             })
         }
-        return source
+        return CorsConfigurationSource { request ->
+            val path = request.servletPath
+            if (path == "/api/v1/posts" || path.startsWith("/api/v1/posts/")) {
+                if (request.getHeader("Origin") in authOrigins) authenticatedPosts else publicPosts
+            } else source.getCorsConfiguration(request)
+        }
     }
 
     /**
@@ -139,7 +160,7 @@ class SecurityConfig {
         writer: SecurityProblemWriter,
         contextRepository: SecurityContextRepository,
         csrfRepository: CsrfTokenRepository,
-        corsSource: UrlBasedCorsConfigurationSource,
+        @Qualifier("corsConfigurationSource") corsSource: CorsConfigurationSource,
     ): SecurityFilterChain = http
         .csrf { it.csrfTokenRepository(csrfRepository) }
         .cors { it.configurationSource(corsSource) }
@@ -155,6 +176,7 @@ class SecurityConfig {
         }
         .authorizeHttpRequests {
             it.requestMatchers(HttpMethod.GET, "/api/v1/status", "/actuator/health", "/v3/api-docs", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+            it.requestMatchers(HttpMethod.GET, "/api/v1/posts", "/api/v1/posts/*").permitAll()
             it.requestMatchers(HttpMethod.GET, "/api/v1/auth/csrf").permitAll()
             it.requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
             it.requestMatchers(HttpMethod.GET, "/api/v1/auth/me").authenticated()
