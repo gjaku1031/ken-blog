@@ -1,8 +1,8 @@
 # 게시글 저장 기반
 
-P1-01은 Spring API 내부에서만 초안을 저장·조회하는 기반. 당시에는 공개 글 작성 HTTP 경로, 출간, 에디터 블록, OCI Object Storage 첨부 기능이 없었음. 이후 관리자 인증과 MySQL 세션은 [별도 계약](authentication.md)으로, 관리자 첨부 기능은 [P1-03 계약](attachments.md)으로 추가. P1-04A에서 내부 게시글 기반에 [관리자 초안 HTTP 계약](posts.md)을 연결. 출간·공개 조회와 첨부의 게시글 연결은 아직 없음.
+P1-01은 Spring API 내부에서만 초안을 저장·조회하는 기반. 당시에는 공개 글 작성 HTTP 경로, 출간, 에디터 블록, OCI Object Storage 첨부 기능이 없었음. 이후 관리자 인증과 MySQL 세션은 [별도 계약](authentication.md)으로, 관리자 첨부 기능은 [P1-03 계약](attachments.md)으로 추가. P1-04A에서 내부 게시글 기반에 [관리자 초안 HTTP 계약](posts.md)을 연결. P1-04B의 출간·권한별 조회는 2026-09-26 격리 검증 완료, main·원격 CI/Pages 반영 예정. 첨부의 게시글 연결은 아직 없음. 실제 근거는 [계획](../planning/issues/P1-04B.md) 참고.
 
-Kotlin 게시글 코드는 `post/domain`의 엔티티·도메인 오류, `post/repository`의 Spring Data JPA 인터페이스, `post/service`의 구체 서비스·입력 검증·트랜잭션, `post/controller`·`post/dto`의 관리자 HTTP 계약·응답으로 분리. Flyway SQL은 기존 `db/migration`에 유지하며 P1-04A로 게시글 표의 변경이나 공개 글 HTTP 경로의 추가 없음.
+Kotlin 게시글 코드는 `post/domain`의 엔티티·도메인 오류, `post/repository`의 Spring Data JPA 인터페이스, `post/service`의 구체 서비스·입력 검증·트랜잭션, `post/controller`·`post/dto`의 관리자·공개 HTTP 계약·응답으로 분리. Flyway SQL은 `db/migration`에 유지. P1-04A에는 게시글 표 변경이 없었고, P1-04B의 V5가 출간 열을 추가하는 계약.
 
 ## 저장 계약
 
@@ -16,9 +16,17 @@ Flyway의 `V1__create_posts.sql`이 MySQL 8.4의 `posts` 표 생성. `id`는 증
 
 P1-04A의 목록은 `created_at DESC, id DESC`로 정렬하고 `id`·`title`·`slug`·`created_at`·`updated_at`만 읽는 JPQL 생성자 투영. 본문 `LONGTEXT`를 목록 페이지마다 조회하지 않음. 수정은 기존 엔티티를 트랜잭션 안에서 찾고 세 필드를 함께 교체한 뒤 flush하여 ID·생성 시각 유지와 전체 롤백 보장. 자기 slug 유지 가능, 다른 글과의 충돌은 DB 고유 제약으로 최종 판정. 수정 버전 열이나 낙관적 잠금은 없어 동시 수정에서는 마지막 커밋 결과가 남을 수 있음. 삭제는 게시글 행만 대상이며 연결하지 않은 OCI 첨부 객체·메타데이터는 정리하지 않음. 상세 HTTP 계약은 [관리자 게시글 API](posts.md) 참고.
 
+### 출간 열과 권한별 조회 — P1-04B 격리 검증 완료
+
+Flyway V5가 `posts`에 `status`(`DRAFT`/`PUBLISHED`), `visibility`(`PUBLIC`/`PRIVATE`), nullable `published_at DATETIME(6)`를 추가. 기존 모든 행의 기본값은 `DRAFT`·`PRIVATE`·`published_at=NULL`로 자동 공개 방지. 상태·공개 범위·출간 시각의 제약과 출간 목록 정렬용 인덱스 포함. 최초 출간 때 `published_at`에 UTC 기록, 철회/재출간/범위 변경/본문 수정에도 유지. HTTP의 `publishedDate`는 그 UTC 시각을 `Asia/Seoul` 날짜로 변환한 값이며 DB 열에는 별도의 KST 날짜를 저장하지 않음.
+
+관리자 목록은 기존 `created_at DESC, id DESC` 순서와 본문 제외를 유지하면서 상태·공개 범위·최초 출간 시각을 선택. 본문 PUT·삭제·출간·철회·공개 범위 변경은 같은 행의 비관적 쓰기 잠금을 사용해 상태 전환과 내용 수정이 서로 오래된 필드를 덮지 않게 구성. 이는 편집 충돌을 사용자에게 알려 주는 버전 관리나 협업 편집 기능을 뜻하지 않음.
+
+공개 목록은 `PUBLISHED`만 대상으로 하고 익명은 `PUBLIC`, 명시적인 `ROLE_USER`/`ROLE_ADMIN`은 `PUBLIC`·`PRIVATE`를 포함. JPQL 생성자 투영이 본문 없이 `id`·`title`·`slug`·`published_at`만 선택하며 `published_at DESC, id DESC` 정렬. SELECT와 COUNT의 권한 조건 일치. 익명의 비공개 slug 직접 조회는 별도 잠금용 생성자 투영으로 본문 열을 읽지 않고 `id`·`slug`·`title`·`published_at`만 제공; 초안과 없는 주소는 404. 이 제목 예외는 직접 주소 잠금에만 적용, 목록·건수에는 비공개 글 제외. 공개·로그인 본문 조회와 잠금 응답 모두 우선 `no-store`이며 Redis 캐시 없음. 상세 HTTP 필드는 [게시글 API](posts.md) 참고.
+
 계정의 `AccountRepository`도 `JpaRepository<UserEntity, Long>`을 확장하고 `findByUsername`만 파생 쿼리로 선언. 구체 `AccountService`는 기존 계정 수와 이름을 확인해 이미 저장된 관리자 해시를 보존하고, 새 관리자 생성에서 `saveAndFlush`로 제약 검사 시점을 유지. `PostService`의 저장과 `AccountService.ensureInitialAdmin`은 기존 `@Transactional`, 게시글 조회와 인증용 계정 조회는 `readOnly = true` 경계 안에서 실행. Spring Session JDBC의 세션 테이블에는 별도 JPA Repository를 만들지 않음.
 
-Flyway가 앱 기동 시 버전 이력을 확인해 미적용 SQL만 실행. V1 게시글, V2 계정, V3 Spring Session JDBC 표·인덱스·속성 외래 키, V4 첨부 메타데이터를 관리. P1-04A 관리자 게시글 API에는 새 표나 Flyway 변경 없음. Hibernate의 `ddl-auto=validate`는 엔티티와 표를 검증하며 표를 만들거나 고치지 않음. 마이그레이션 실패나 DB 접속 실패 시 API 기동 실패. `/actuator/health`에는 DB 연결 상태 반영.
+Flyway가 앱 기동 시 버전 이력을 확인해 미적용 SQL만 실행. V1 게시글, V2 계정, V3 Spring Session JDBC 표·인덱스·속성 외래 키, V4 첨부 메타데이터, P1-04B V5 게시글 출간 열·제약·인덱스를 관리. P1-04A 관리자 게시글 API에는 새 표나 Flyway 변경이 없었음. Hibernate의 `ddl-auto=validate`는 엔티티와 표를 검증하며 표를 만들거나 고치지 않음. 마이그레이션 실패나 DB 접속 실패 시 API 기동 실패. `/actuator/health`에는 DB 연결 상태 반영.
 
 ## 개발 DB 실행
 

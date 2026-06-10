@@ -1,6 +1,6 @@
 # 관리자 로그인과 MySQL 세션
 
-P1-02는 내부 관리자 로그인을 위한 서버 세션 기반. 관리자 게시글 초안 API와 이미지 첨부 API는 이후 단계에서 추가. 공개 회원가입·회원 관리·게시글 출간·공개 조회·로그인 화면은 현재 없음. 초기 계정은 자동 생성되지 않으며 로컬 운영자가 외부 설정을 명시할 때만 한 명 준비. 공개 HTTPS API 주소와 도메인은 아직 미정이므로 외부 로그인 운영 없음.
+P1-02는 내부 관리자 로그인을 위한 서버 세션 기반. 관리자 게시글 초안 API와 이미지 첨부 API는 이후 단계에서 추가. P1-04B의 출간 글 익명/로그인 권한별 조회는 2026-09-26 격리 HTTP 검증 완료, main·원격 CI/Pages 반영 예정. 공개 회원가입·회원 관리·로그인 화면은 현재 없음. 초기 계정은 자동 생성되지 않으며 로컬 운영자가 외부 설정을 명시할 때만 한 명 준비. 공개 HTTPS API 주소와 도메인은 아직 미정이므로 외부 로그인 운영 없음.
 
 Kotlin 소스는 역할별 패키지에 배치. `account/domain`은 저장 계정과 역할, `account/repository`·`account/service`·`account/bootstrap`은 조회·준비 흐름, `auth/controller`·`auth/dto`·`auth/service`는 HTTP 계약과 인증 처리, `global/config`·`global/security`·`global/error`는 공통 보안 설정과 오류 응답 담당. Spring 진입점은 공통 상위 패키지에 두어 하위 컴포넌트를 탐색.
 
@@ -53,13 +53,13 @@ PY
 
 로그인 전 `/csrf`를 먼저 호출하고 받은 쿠키와 토큰을 로그인에 함께 전송. 로그인 성공 시 세션 ID가 바뀌고 기존 CSRF 토큰도 제거되므로 `/csrf`를 다시 호출한 뒤 로그아웃 등 변경 요청에 사용. 로그아웃 뒤 이전 쿠키로 `/me` 접근 불가. 미인증은 HTTP 401, 역할 부족·CSRF 누락/불일치는 HTTP 403, MySQL 연결 장애는 HTTP 503의 `application/problem+json` 응답. 없는 계정과 틀린 비밀번호의 공개 오류 설명은 동일. 필터 경계 밖의 예외 원문이나 저장된 해시를 응답에 넣지 않음.
 
-`/api/v1/admin/` 아래는 `ADMIN` 역할만 허용. 현재 관리자 기능은 [게시글 초안](posts.md)과 [이미지 첨부](attachments.md) API이며, 테스트 전용 경로에서도 `USER`의 403을 검증. `/api/v1/status`, `/actuator/health`, OpenAPI·Swagger UI의 공개 GET은 익명으로 접근 가능. 테스트 전용 오류 경로는 운영 JAR에 포함되지 않음.
+`/api/v1/admin/` 아래는 `ADMIN` 역할만 허용. 관리자 기능은 [게시글 작성·출간](posts.md)과 [이미지 첨부](attachments.md) API이며, 테스트 전용 경로에서도 `USER`의 403을 검증. P1-04B 공개 GET `/api/v1/posts`와 `/api/v1/posts/{slug}`는 익명 접근 허용하되 출간·가시성 필터는 서비스/DB 조회에서 적용. 익명 인증 토큰의 `isAuthenticated`만으로 비공개 읽기를 허용하지 않고 `ROLE_USER`·`ROLE_ADMIN`만 인정. 이 `USER` 읽기 권한은 계정 발급·회원 관리 화면의 완료를 뜻하지 않음. `/api/v1/status`, `/actuator/health`, OpenAPI·Swagger UI의 공개 GET도 익명으로 접근 가능. 테스트 전용 오류 경로는 운영 JAR에 포함되지 않음.
 
 ## 쿠키·CORS와 MySQL
 
 Spring Session JDBC가 기존 MySQL의 `SPRING_SESSION`·`SPRING_SESSION_ATTRIBUTES`에 인증 컨텍스트와 CSRF 토큰을 저장. Flyway V3가 현재 Spring Session 4.1.1 내장 MySQL 스키마를 적용하며 `spring.session.jdbc.initialize-schema=never`로 자동 중복 생성을 막음. 세션 비활동 한도는 마지막 접근부터 30분이며 만료 세션 행은 기본 작업이 매분 정리. 만료 즉시 인증은 거부되고 실제 행 삭제는 이후 정리 시점일 수 있음. API만 재시작해도 DB의 유효 세션을 읽으며, MySQL 연결 장애 시 메모리 세션으로 대체하지 않음. 쿠키 이름은 `KENBLOGSESSION`, `HttpOnly`, `SameSite=Lax`; 기본 `Secure=true`. HTTP 로컬 검증에서만 `SESSION_COOKIE_SECURE=false`를 명시. 쿠키는 호스트 전용이며 공개 도메인 설정 전까지 HTTPS 외부 로그인 없음.
 
-공개 상태 조회는 `APP_CORS_ALLOWED_ORIGINS`에 적힌 정확한 origin의 GET만 허용하고 자격 증명 헤더 없음. 인증 API는 별도 `APP_AUTH_CORS_ALLOWED_ORIGINS`가 비어 있으면 교차 출처 자격 증명 요청 비허용. 같은 호스트의 로컬 정적 화면에서 시험할 때만 예를 들어 `http://127.0.0.1:14000`을 명시. 이 경우 허용 origin의 GET·POST와 `X-CSRF-TOKEN` 헤더에만 자격 증명 CORS 허용. GitHub Pages 기본 도메인과 별도 API 도메인의 타사 쿠키 동작은 공개 HTTPS 도메인 준비 후 검증할 후속 결정.
+공개 상태 조회와 P1-04B 출간 글 GET은 `APP_CORS_ALLOWED_ORIGINS`에 적힌 정확한 origin에서만 허용. 공개 origin에는 자격 증명 CORS 응답을 허용하지 않음. 이는 브라우저의 교차 출처 응답 접근 규칙이며 서버가 전달된 쿠키를 별도로 무시한다는 뜻이 아님. 인증 API와 쿠키가 있는 글 GET은 별도 `APP_AUTH_CORS_ALLOWED_ORIGINS`가 비어 있으면 교차 출처 자격 증명 요청 비허용. 같은 호스트의 로컬 정적 화면에서 시험할 때만 예를 들어 `http://127.0.0.1:14000`을 명시. 인증 origin의 인증 API에는 GET·POST와 `X-CSRF-TOKEN` 헤더에만 자격 증명 CORS 허용하며, 글 GET에도 같은 origin의 자격 증명 허용. 모든 공개/인증 글 조회 성공 응답은 우선 `Cache-Control: no-store`; 비공개 응답에 공개 캐시 사용 없음. GitHub Pages 기본 도메인과 별도 API 도메인의 타사 쿠키 동작은 공개 HTTPS 도메인 준비 후 검증할 후속 결정.
 
 ## 검증
 
