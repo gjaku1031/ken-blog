@@ -30,9 +30,10 @@ import org.springframework.transaction.annotation.Transactional
  * 기존 [createDraft]·[findById]·[findBySlug] 내부 호출 계약을 유지함.
  *
  * @property repository 게시글 영속 저장소
+ * @property cache 커밋 후 이전 PUBLIC 본문 키를 제거하는 선택적 캐시
  */
 @Service
-class PostService(private val repository: PostRepository) {
+class PostService(private val repository: PostRepository, private val cache: PostBodyCache) {
     /**
      * 제목과 slug를 정규화한 후 초안을 원자적으로 저장.
      *
@@ -78,6 +79,7 @@ class PostService(private val repository: PostRepository) {
      *
      * 동일 slug 유지도 DB 고유 제약에 맡기며, 충돌이나 다른 쓰기 실패 시 모든 필드가 롤백됨.
      * [PostRepository.findLockedById]로 상태 전환과 같은 행을 잠가 출간 필드 덮어쓰기를 방지함.
+     * 커밋 뒤 변경 전 본문 버전 키를 best-effort 제거함.
      *
      * @param id 수정할 양수 식별자
      * @param title 앞뒤 공백을 제거할 새 제목
@@ -93,15 +95,17 @@ class PostService(private val repository: PostRepository) {
     fun updateDraft(id: Long, title: String, slug: String, body: String): PostEntity {
         if (id <= 0) throw InvalidPostRequestException()
         val post = repository.findLockedById(id) ?: throw PostNotFoundException()
+        val previousHash = post.bodySha256
         val values = validateDraft(title, slug, body)
         post.replaceDraft(values.title, values.slug, values.body, now())
-        return saveDraft(post, values.slug)
+        return saveDraft(post, values.slug).also { cache.evictAfterCommit(id, previousHash) }
     }
 
     /**
      * 양수 ID의 게시글 행을 잠가 삭제하고 같은 트랜잭션에서 SQL을 동기화.
      *
      * 아직 게시글과 첨부의 연결이 없어 OCI 객체는 건드리지 않음.
+     * 커밋 뒤 이전 본문 버전 키를 best-effort 제거함.
      *
      * @param id 삭제할 식별자
      * @throws InvalidPostRequestException ID가 양수가 아닐 때
@@ -111,12 +115,15 @@ class PostService(private val repository: PostRepository) {
     fun deleteDraft(id: Long) {
         if (id <= 0) throw InvalidPostRequestException()
         val post = repository.findLockedById(id) ?: throw PostNotFoundException()
+        val previousHash = post.bodySha256
         repository.delete(post)
         repository.flush()
+        cache.evictAfterCommit(id, previousHash)
     }
 
     /**
      * 행을 잠근 뒤 지정 범위로 출간·재출간하고 최초 출간 시각을 보존.
+     * 커밋 뒤 변경 전 본문 버전 키를 best-effort 제거함.
      *
      * @param id 양수 게시글 ID
      * @param visibility 공개 또는 로그인 열람 범위
@@ -127,12 +134,14 @@ class PostService(private val repository: PostRepository) {
     @Transactional
     fun publish(id: Long, visibility: PostVisibility): PostEntity {
         val post = lockedPost(id)
+        val previousHash = post.bodySha256
         post.publish(visibility, now())
-        return repository.saveAndFlush(post)
+        return repository.saveAndFlush(post).also { cache.evictAfterCommit(id, previousHash) }
     }
 
     /**
      * 행을 잠근 뒤 초안으로 철회하며 최초 출간 시각은 보존.
+     * 커밋 뒤 변경 전 본문 버전 키를 best-effort 제거함.
      *
      * @param id 양수 게시글 ID
      * @return 초안 상태의 [PostEntity]
@@ -142,12 +151,14 @@ class PostService(private val repository: PostRepository) {
     @Transactional
     fun unpublish(id: Long): PostEntity {
         val post = lockedPost(id)
+        val previousHash = post.bodySha256
         post.unpublish(now())
-        return repository.saveAndFlush(post)
+        return repository.saveAndFlush(post).also { cache.evictAfterCommit(id, previousHash) }
     }
 
     /**
      * 행을 잠근 뒤 출간 상태와 최초 출간 시각을 그대로 두고 범위만 변경.
+     * 커밋 뒤 변경 전 본문 버전 키를 best-effort 제거함.
      *
      * @param id 양수 게시글 ID
      * @param visibility 새 공개 범위
@@ -158,8 +169,9 @@ class PostService(private val repository: PostRepository) {
     @Transactional
     fun changeVisibility(id: Long, visibility: PostVisibility): PostEntity {
         val post = lockedPost(id)
+        val previousHash = post.bodySha256
         post.changeVisibility(visibility, now())
-        return repository.saveAndFlush(post)
+        return repository.saveAndFlush(post).also { cache.evictAfterCommit(id, previousHash) }
     }
 
     /**

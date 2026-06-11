@@ -6,6 +6,7 @@ import io.github.gjaku1031.kenblog.post.domain.PostNotFoundException
 import io.github.gjaku1031.kenblog.post.domain.PostStatus
 import io.github.gjaku1031.kenblog.post.domain.PostVisibility
 import io.github.gjaku1031.kenblog.post.dto.PrivatePostLockRow
+import io.github.gjaku1031.kenblog.post.dto.PublicPostCacheRow
 import io.github.gjaku1031.kenblog.post.dto.PublicPostDetailResponse
 import io.github.gjaku1031.kenblog.post.dto.PublicPostPageResponse
 import io.github.gjaku1031.kenblog.post.dto.PublicPostSummaryResponse
@@ -25,9 +26,10 @@ import org.springframework.transaction.annotation.Transactional
  * 출간된 글의 권한별 DB 필터·최소 잠금 응답과 KST 최초 출간일 변환을 담당.
  *
  * [Authentication.isAuthenticated]는 익명 토큰에도 참일 수 있어 명시적 역할만 신뢰함.
+ * 활성 캐시는 익명 PUBLIC 상세에 한정하고 현재 DB 공개 메타데이터를 먼저 확인함.
  */
 @Service
-class PublicPostService(private val repository: PostRepository) {
+class PublicPostService(private val repository: PostRepository, private val cache: PostBodyCache) {
     /**
      * SELECT와 COUNT 양쪽에서 출간·가시성 조건을 적용한 본문 없는 목록을 조회.
      *
@@ -51,6 +53,7 @@ class PublicPostService(private val repository: PostRepository) {
 
     /**
      * 출간 slug를 조회하고 익명 PRIVATE이면 본문 열 없는 잠금 DTO만 반환.
+     * 캐시 활성 익명 PUBLIC은 먼저 본문 없는 DB 메타데이터로 현재 권한·해시를 확인함.
      *
      * @param slug 정규화할 게시글 주소
      * @param authentication 명시적 USER·ADMIN 역할 검사 대상
@@ -64,6 +67,21 @@ class PublicPostService(private val repository: PostRepository) {
         if (authentication.canReadPrivate()) {
             val post = repository.findBySlugAndStatus(normalized, PostStatus.PUBLISHED) ?: throw PostNotFoundException()
             return post.publicDetail()
+        }
+        if (cache.enabled) {
+            val metadata = repository.findPublicCacheMetadataBySlug(normalized, PostStatus.PUBLISHED, PostVisibility.PUBLIC)
+            if (metadata != null) {
+                cache.read(metadata.id, metadata.bodySha256)?.let { return metadata.publicDetail(it) }
+                val post = repository.findBySlugAndStatusAndVisibility(normalized, PostStatus.PUBLISHED, PostVisibility.PUBLIC)
+                    ?: throw PostNotFoundException()
+                if (post.id == metadata.id && post.bodySha256 == metadata.bodySha256) {
+                    cache.write(metadata.id, metadata.bodySha256, post.body)
+                    return metadata.publicDetail(post.body)
+                }
+                return post.publicDetail()
+            }
+            return repository.findPrivateLockBySlug(normalized, PostStatus.PUBLISHED, PostVisibility.PRIVATE)
+                ?.lockedDetail() ?: throw PostNotFoundException()
         }
         repository.findBySlugAndStatusAndVisibility(normalized, PostStatus.PUBLISHED, PostVisibility.PUBLIC)
             ?.let { return it.publicDetail() }
@@ -80,6 +98,10 @@ class PublicPostService(private val repository: PostRepository) {
     private fun PostEntity.publicDetail(): PublicPostDetailResponse = PublicPostDetailResponse(
         id ?: error("Published post has no ID"), title, slug, publishedAt.kstDate(), locked = false, body = body,
     )
+
+    /** @return 현재 DB 제목·출간일과 유효한 캐시 또는 DB 본문을 결합한 PUBLIC 상세. */
+    private fun PublicPostCacheRow.publicDetail(body: String): PublicPostDetailResponse =
+        PublicPostDetailResponse(id, title, slug, publishedAt.kstDate(), locked = false, body = body)
 
     /** @return 본문을 읽지 않은 익명 PRIVATE 잠금 상세. */
     private fun PrivatePostLockRow.lockedDetail(): PublicPostDetailResponse =

@@ -35,6 +35,18 @@ management:
         include: health
 
 app:
+  cache:
+    redis:
+      enabled: ${CACHE_REDIS_ENABLED:false}
+      host: ${CACHE_REDIS_HOST:}
+      port: ${CACHE_REDIS_PORT:6379}
+      username: ${CACHE_REDIS_USERNAME:}
+      password: ${CACHE_REDIS_PASSWORD:}
+      tls: ${CACHE_REDIS_TLS:true}
+      prefix: ${CACHE_REDIS_PREFIX:ken-blog:public-posts}
+      ttl-seconds: ${CACHE_REDIS_TTL_SECONDS:300}
+      connect-timeout-ms: ${CACHE_REDIS_CONNECT_TIMEOUT_MS:300}
+      command-timeout-ms: ${CACHE_REDIS_COMMAND_TIMEOUT_MS:300}
   attachment:
     storage:
       endpoint: ${OCI_OBJECT_STORAGE_ENDPOINT:}

@@ -4,6 +4,7 @@ import io.github.gjaku1031.kenblog.post.domain.PostEntity
 import io.github.gjaku1031.kenblog.post.domain.PostStatus
 import io.github.gjaku1031.kenblog.post.domain.PostVisibility
 import io.github.gjaku1031.kenblog.post.dto.PrivatePostLockRow
+import io.github.gjaku1031.kenblog.post.dto.PublicPostCacheRow
 import io.github.gjaku1031.kenblog.post.dto.PostSummaryResponse
 import io.github.gjaku1031.kenblog.post.dto.PublishedPostRow
 import io.github.gjaku1031.kenblog.post.service.PostService
@@ -95,6 +96,22 @@ interface PostRepository : JpaRepository<PostEntity, Long> {
      * @return 본문 포함 [PostEntity], 없으면 `null`
      */
     fun findBySlugAndStatusAndVisibility(slug: String, status: PostStatus, visibility: PostVisibility): PostEntity?
+
+    /**
+     * 익명 PUBLIC 상세에서 캐시보다 먼저 현재 공개 범위·해시를 본문 열 없이 조회.
+     *
+     * @param slug 정규화된 주소
+     * @param status 출간 상태
+     * @param visibility 공개 범위
+     * @return 현재 공개 글의 [PublicPostCacheRow], 없으면 `null`
+     */
+    @Query("select new io.github.gjaku1031.kenblog.post.dto.PublicPostCacheRow(p.id, p.title, p.slug, p.publishedAt, p.bodySha256) " +
+        "from PostEntity p where p.slug = :slug and p.status = :status and p.visibility = :visibility")
+    fun findPublicCacheMetadataBySlug(
+        @Param("slug") slug: String,
+        @Param("status") status: PostStatus,
+        @Param("visibility") visibility: PostVisibility,
+    ): PublicPostCacheRow?
 
     /**
      * 익명 PRIVATE 직접 진입에 허용된 최소 열만 선택하고 본문 열을 읽지 않음.

@@ -133,6 +133,23 @@ data class PublishedPostRow(val id: Long, val title: String, val slug: String, v
 data class PrivatePostLockRow(val id: Long, val title: String, val slug: String, val publishedAt: LocalDateTime)
 
 /**
+ * 캐시 활성 시 익명 PUBLIC 조회의 권한·현재 본문 버전을 DB에서 먼저 확인하는 본문 없는 행.
+ *
+ * @property id 키에 사용할 게시글 ID
+ * @property title DB 원본 제목
+ * @property slug DB 원본 주소
+ * @property publishedAt 최초 UTC 출간 시각
+ * @property bodySha256 현재 DB 본문의 UTF-8 SHA-256
+ */
+data class PublicPostCacheRow(
+    val id: Long,
+    val title: String,
+    val slug: String,
+    val publishedAt: LocalDateTime,
+    val bodySha256: String,
+)
+
+/**
  * 권한 필터를 거친 공개 목록의 본문 없는 항목.
  *
  * @property id 게시글 ID
