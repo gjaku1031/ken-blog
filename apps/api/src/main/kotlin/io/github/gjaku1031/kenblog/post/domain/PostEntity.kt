@@ -44,6 +44,10 @@ class PostEntity protected constructor() {
     lateinit var body: String
         protected set
 
+    @Column(name = "body_sha256", nullable = false, length = 64, columnDefinition = "char(64)")
+    lateinit var bodySha256: String
+        protected set
+
     @Column(name = "created_at", nullable = false, columnDefinition = "datetime(6)")
     lateinit var createdAt: LocalDateTime
         protected set
@@ -80,6 +84,7 @@ class PostEntity protected constructor() {
         this.title = title
         this.slug = slug
         this.body = body
+        this.bodySha256 = PostBodyHash.sha256(body)
         this.createdAt = createdAt
         this.updatedAt = createdAt
     }
@@ -96,6 +101,7 @@ class PostEntity protected constructor() {
         this.title = title
         this.slug = slug
         this.body = body
+        this.bodySha256 = PostBodyHash.sha256(body)
         this.updatedAt = updatedAt
     }
 

@@ -1,0 +1,7 @@
+ALTER TABLE posts
+    ADD COLUMN body_sha256 CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NULL;
+
+UPDATE posts SET body_sha256 = LOWER(SHA2(body, 256));
+
+ALTER TABLE posts
+    MODIFY COLUMN body_sha256 CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL;
