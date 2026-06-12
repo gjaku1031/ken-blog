@@ -28,14 +28,14 @@ io.github.gjaku1031.kenblog
 프론트는 GitHub Pages에서 제공하고 브라우저가 Spring API를 호출하는 구조. VM에는 Spring 실행. 공개 API 도메인·HTTPS 주소가 아직 없어 공개 홈은 API 미설정 상태로 배포.
 
 - [프론트와 임시 아키텍처 대문](https://gjaku1031.github.io/ken-blog/)
-- [현재 계획](planning/issues/P1-04B.md) · [작업 상태](planning/tasks.md) · [개발 순서](planning/roadmap.md)
-- [코드·문서 규칙](docs/code-conventions.md) · [런타임 안내](docs/runtime.md) · [관리자 게시글 API](docs/posts.md) · [첨부파일 운영 안내](docs/attachments.md) · [도면 설명](docs/architecture.md)
+- [현재 계획](planning/issues/P1-04.md) · [작업 상태](planning/tasks.md) · [개발 순서](planning/roadmap.md)
+- [코드·문서 규칙](docs/code-conventions.md) · [런타임 안내](docs/runtime.md) · [게시글 API](docs/posts.md) · [선택적 공개 본문 캐시](docs/cache.md) · [첨부파일 운영 안내](docs/attachments.md) · [도면 설명](docs/architecture.md)
 
 ## API 직접 실행
 
 필요 환경: JDK 25·Docker와 MySQL 연결 설정. Spring Boot 4.1.1·Kotlin 2.3.21·Maven wrapper 사용.
 
-DB 준비와 환경변수 주입은 [게시글 저장 기반 실행 안내](docs/persistence.md) 참고. 기존 검증 구성은 격리된 MySQL 컨테이너 사용. 로그인 준비와 세션 쿠키 설정은 [인증 실행 안내](docs/authentication.md), 초안·출간과 권한별 조회 계약은 [게시글 API](docs/posts.md), 선택적인 OCI Object Storage 설정은 [첨부파일 운영 안내](docs/attachments.md) 참고.
+DB 준비와 환경변수 주입은 [게시글 저장 기반 실행 안내](docs/persistence.md) 참고. 기존 검증 구성은 격리된 MySQL 컨테이너 사용. 로그인 준비와 세션 쿠키 설정은 [인증 실행 안내](docs/authentication.md), 초안·출간과 권한별 조회 계약은 [게시글 API](docs/posts.md), 선택적인 Redis Cloud는 [공개 본문 캐시 안내](docs/cache.md), OCI Object Storage 설정은 [첨부파일 운영 안내](docs/attachments.md) 참고.
 
 ```bash
 cd apps/api
@@ -43,7 +43,7 @@ cd apps/api
 SERVER_ADDRESS=127.0.0.1 SERVER_PORT=8081 ./mvnw spring-boot:run
 ```
 
-아래 출간·공개 글 경로는 P1-04B에서 구현·격리 검증 완료. main·원격 CI/Pages 반영은 진행 예정.
+아래 출간·공개 글 경로는 P1-04B에서 구현·격리 검증하고 main·[CI](https://github.com/gjaku1031/ken-blog/actions/runs/36218470775)·[Pages](https://github.com/gjaku1031/ken-blog/actions/runs/36218470745)에 반영 완료. P1-04 공개 본문 캐시는 같은 상세 경로의 선택적 내부 처리이며 새 HTTP 경로 없음.
 
 | 경로 | 제공 내용 |
 |---|---|
@@ -69,7 +69,7 @@ SERVER_ADDRESS=127.0.0.1 SERVER_PORT=8081 ./mvnw spring-boot:run
 | `/api/v1/admin/attachments/{id}` | 관리자 첨부 메타데이터 조회·삭제. 삭제에는 CSRF 필요 |
 | `/api/v1/admin/attachments/{id}/content` | READY 이미지의 관리자 다운로드 |
 
-상태 API 명세는 `StatusApi`, 구현은 `StatusController`에서 관리. Spring MVC 오류는 `ApiErrorHandler`의 RFC 9457 `ProblemDetail`로 처리. MySQL·JPA·Flyway와 관리자 게시글 초안 CRUD 제공. P1-04B의 출간 상태와 권한별 읽기 API는 구현·격리 검증 완료, main·원격 CI/Pages 반영 예정. Spring Session JDBC 기반 로그인·MySQL 세션 제공. 관리자 첨부 API는 이미지 원본을 비공개 OCI Object Storage에, 상태·소유자 등 메타데이터를 MySQL에 보관. 브라우저 공개 글·관리자 화면과 공개 HTTPS API 연결은 아직 없음.
+상태 API 명세는 `StatusApi`, 구현은 `StatusController`에서 관리. Spring MVC 오류는 `ApiErrorHandler`의 RFC 9457 `ProblemDetail`로 처리. MySQL·JPA·Flyway와 관리자 게시글 초안 CRUD, 출간 상태·권한별 읽기 API 제공. P1-04B는 main·CI·Pages 반영 완료. P1-04의 익명 PUBLIC 상세 본문용 선택적 Redis Cloud 캐시는 2026-09-26 격리 JAR·Buildpacks/Compose 검증 완료, main·CI·Pages 반영은 예정. 기본값은 비활성이며 Spring Session JDBC 로그인과 MySQL 세션을 유지. 관리자 첨부 API는 이미지 원본을 비공개 OCI Object Storage에, 상태·소유자 등 메타데이터를 MySQL에 보관. 브라우저 공개 글·관리자 화면과 공개 HTTPS API 연결은 아직 없음.
 
 ## 정적 프론트 빌드
 
@@ -95,10 +95,10 @@ Spring API 이미지는 Buildpacks로 생성. 개발 Compose는 API·MySQL을 �
 
 Pages의 아키텍처 도면 자산도 갱신했으나 공개 API 배포나 브라우저 첨부 UI 연결은 수행하지 않음. 공개 Pages의 API 주소 미설정과 로그인 화면 부재는 유지.
 
-[도면 설명과 원본](docs/architecture.md)은 정적 프론트 배포, 로컬 MySQL 게시글·계정·세션·첨부 메타데이터, 비공개 OCI Object Storage의 관리자 첨부 경로와 후속 공개 HTTPS 연결·공개 글 캐시를 구분.
+[도면 설명과 원본](docs/architecture.md)은 정적 프론트 배포, 로컬 MySQL 게시글·계정·세션·첨부 메타데이터, 비공개 OCI Object Storage의 관리자 첨부 경로, 선택적 Redis Cloud 공개 본문 캐시와 후속 공개 HTTPS 연결을 구분.
 
 ## 검증 기록
 
 계획별 실제 빌드·테스트·브라우저·CI 결과는 [작업 상태](planning/tasks.md)에서 확인. 메모리 사용량은 [런타임 안내](docs/runtime.md)의 측정 조건과 함께 해석.
 
-실제 환경 파일과 `docs/study/`는 Git 및 Pages 산출물에서 제외. 로그인 화면·게시글과 첨부의 연결·공개 이미지·공개 글 캐시·GA 연동과 공개 HTTPS API 연결은 후속 단계. P1-04B API의 출간·공개 조회는 격리 검증 완료, 운영 API 배포와 Pages 화면 연결은 수행하지 않음. 실제 검증과 원격 반영 근거는 [계획](planning/issues/P1-04B.md) 참고.
+실제 환경 파일과 `docs/study/`는 Git 및 Pages 산출물에서 제외. 로그인 화면·게시글과 첨부의 연결·공개 이미지·GA 연동과 공개 HTTPS API 연결은 후속 단계. P1-04B API의 출간·공개 조회는 main 반영 완료이나 운영 API 배포와 Pages 글 화면 연결은 수행하지 않음. P1-04 캐시의 실제 확인 범위는 [계획](planning/issues/P1-04.md)과 [캐시 안내](docs/cache.md) 참고.

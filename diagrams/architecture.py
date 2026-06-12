@@ -1,9 +1,11 @@
-"""P1-03 아키텍처의 같은 배치 라이트·다크 도면을 생성한다."""
+"""P1-04 아키텍처의 같은 배치 라이트·다크 도면을 생성한다."""
 
 from argparse import ArgumentParser
 from html import escape
 from itertools import count
 from pathlib import Path
+import subprocess
+import sys
 import xml.etree.ElementTree as ET
 
 import cairosvg
@@ -143,12 +145,14 @@ def render(icons: Path, output: Path, theme: str):
         caption("공개 HTTPS API · 주소 미정 / 미연결", 505, 174, 10, color["future"])
         caption("Pages 로그인 화면 없음 · API 인증은 로컬 검증", 450, 115, 10)
         caption("JPA·Flyway / Spring Session JDBC", 1040, 195, 10, color["runtime"])
-        caption("첨부 메타데이터 · 로컬 DB :13306", 1030, 100, 10)
+        caption("첨부 메타데이터·본문 해시 · 로컬 DB :13306", 1030, 100, 10)
         caption("HTTPS · 비공개 버킷", 980, -91, 10, color["runtime"])
 
-        with region("후속 단계 · 미구현 / 미연결", (35, -110, 590, 55), color["panel"], color["future"], True):
-            card("Redis Cloud", "공개 글 캐시 예정", 350, -40, "redis", 225)
-        caption("실선: 정적 요청·MySQL 접근·첨부 전송   /   초록 파선: Pages 산출물   /   갈색 파선: 공개 API 예정", 575, -145, 10)
+        with region("외부 Redis Cloud", (35, -110, 590, 55), color["panel"], color["border"]):
+            redis = card("Redis Cloud", "익명 PUBLIC 본문 · 기본 비활성", 350, -40, "redis", 225)
+        api >> Edge(color=color["runtime"], penwidth="1.8", arrowsize="0.75") >> redis
+        caption("설정 시 본문 캐시 · 원본 권한 판단은 MySQL", 455, 91, 10, color["runtime"])
+        caption("실선: 정적 요청·MySQL/OCI 접근·선택적 캐시   /   초록 파선: Pages 산출물   /   갈색 파선: 공개 API 예정", 575, -145, 10)
 
     svg = diagram.dot.pipe(format="svg", renderer="cairo", neato_no_op=2)
     root = ET.fromstring(svg)
@@ -164,7 +168,14 @@ if __name__ == "__main__":
     parser = ArgumentParser()
     parser.add_argument("--icons", required=True, type=Path)
     parser.add_argument("--output", required=True, type=Path)
+    parser.add_argument("--theme", choices=PALETTES)
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
-    for name in PALETTES:
-        render(args.icons, args.output, name)
+    if args.theme:
+        render(args.icons, args.output, args.theme)
+    else:
+        for name in PALETTES:
+            subprocess.run([
+                sys.executable, str(Path(__file__).resolve()),
+                "--icons", str(args.icons), "--output", str(args.output), "--theme", name,
+            ], check=True)

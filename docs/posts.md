@@ -1,6 +1,6 @@
 # 게시글 API: 관리자 작성·출간과 권한별 조회
 
-P1-04A의 관리자 API는 MySQL 게시글 **초안**의 작성·목록·상세·전체 수정·삭제 제공. P1-04B의 출간/철회·공개 범위와 권한별 읽기 API는 2026-09-26 격리 환경에서 구현·검증 완료, main·원격 CI/Pages 반영 예정. 실제 근거는 [계획](../planning/issues/P1-04B.md)에 기록. 브라우저 공개/관리 화면과 게시글-첨부 연결은 미구현. 관리자 요청은 격리 로컬 API의 HTTP 도구나 Swagger에서 사용하며, 공개 Pages 화면의 API 주소는 아직 미설정.
+P1-04A의 관리자 API는 MySQL 게시글 **초안**의 작성·목록·상세·전체 수정·삭제 제공. P1-04B의 출간/철회·공개 범위와 권한별 읽기 API는 2026-09-26 격리 검증 후 main·CI·Pages 반영 완료. 실제 근거는 [계획](../planning/issues/P1-04B.md)에 기록. P1-04의 익명 PUBLIC 상세 본문 캐시는 선택적 내부 처리로 격리 JAR·Buildpacks/Compose 검증 완료, main·CI·Pages 반영은 예정. 브라우저 공개/관리 화면과 게시글-첨부 연결은 미구현. 관리자 요청은 격리 로컬 API의 HTTP 도구나 Swagger에서 사용하며, 공개 Pages 화면의 API 주소는 아직 미설정.
 
 ## 접근과 요청 준비
 
@@ -49,7 +49,13 @@ Flyway V5는 기존 글을 모두 `DRAFT`·`PRIVATE`·출간 시각 없음으로
 
 공개 상세는 `id`, `title`, `slug`, `publishedDate`, `locked`, `body`. 익명의 비공개 slug 직접 요청에만 `locked=true`, `body=null`과 최소 제목·출간일을 제공. 이 제목 노출은 잠금 화면용으로 제한하며 목록·검색·건수에는 비공개 글을 포함하지 않음. 잠금 조회는 DB에서도 본문 열을 선택하지 않음. 공개/로그인 허용 상세는 `locked=false`와 원문 본문. 요약·관련 글·첨부 정보는 이 단계의 공개 DTO에 없음. 익명 판정에서 Spring의 익명 토큰 `isAuthenticated` 값을 신뢰하지 않고 `ROLE_USER`/`ROLE_ADMIN`만 비공개 열람 권한으로 취급.
 
-공개 GET도 우선 `Cache-Control: no-store`; Redis/CDN 캐시 없음. `APP_CORS_ALLOWED_ORIGINS`의 정확한 공개 origin에는 GET 응답 접근을 허용하되 자격 증명 CORS 응답은 허용하지 않음. 이 설정만으로 서버가 전달된 쿠키를 무시하는 것은 아님. 로그인 쿠키가 필요한 교차 출처 GET은 별도 `APP_AUTH_CORS_ALLOWED_ORIGINS`에 명시된 origin에 한해 자격 증명 응답 접근 허용. 공개 HTTPS 주소·타사 쿠키/동일 사이트 배치 검증 전에는 브라우저 로그인 연결 완료로 보지 않음. 분류·태그·검색·프로젝트·과목·리비전 초안·게시글/첨부 연결은 후속 범위.
+공개 GET은 계속 `Cache-Control: no-store`; CDN·브라우저 공유 캐시 사용 없음. P1-04의 Redis Cloud는 아래와 같은 선택적 **서버 내부 본문 캐시**로 HTTP 캐시와 구분. `APP_CORS_ALLOWED_ORIGINS`의 정확한 공개 origin에는 GET 응답 접근을 허용하되 자격 증명 CORS 응답은 허용하지 않음. 이 설정만으로 서버가 전달된 쿠키를 무시하는 것은 아님. 로그인 쿠키가 필요한 교차 출처 GET은 별도 `APP_AUTH_CORS_ALLOWED_ORIGINS`에 명시된 origin에 한해 자격 증명 응답 접근 허용. 공개 HTTPS 주소·타사 쿠키/동일 사이트 배치 검증 전에는 브라우저 로그인 연결 완료로 보지 않음. 분류·태그·검색·프로젝트·과목·리비전 초안·게시글/첨부 연결은 후속 범위.
+
+## 선택적 본문 캐시 — P1-04 격리 검증 완료
+
+익명 `GET /api/v1/posts/{slug}`가 `PUBLISHED`·`PUBLIC`일 때만 MySQL에서 먼저 권한·제목·slug·출간 시각·현재 본문 SHA-256을 확인. 본문 열을 제외한 메타데이터 판정 뒤 Redis Cloud의 전용 키 `{prefix}:v1:post-body:{id}:{bodySha256}`에 일치하는 본문이 있으면 사용. 캐시 값의 UTF-8 크기와 SHA-256을 검증하고, 손상·miss·Redis 오류는 MySQL 원문으로 복귀. 정상 본문이 256 KiB 이하면 빈 문자열도 TTL 300초로 저장. 256 KiB 초과~기존 1 MiB 이하 본문은 정상 제공하되 캐시 생략. SHA-256은 캐시 값의 원본 일치 확인이지 전송 암호화가 아님.
+
+본문 수정은 해시를 바꾸며, 출간 철회·PRIVATE 전환·삭제 때에도 MySQL 권한 판정을 생략하지 않음. 이전 키 삭제는 커밋 후 최선의 노력이며 잔여 키는 재사용 방지·TTL 정리. 로그인 상세·익명 잠금·목록·초안·관리자 요청·세션·첨부는 캐시하지 않음. DB 장애는 캐시 hit가 있더라도 기존 503 경계 유지. 기본값은 캐시 비활성, 외부 Redis 없이 기존 조회 유지. 설정·장애·검증 범위는 [공개 본문 캐시 안내](cache.md) 참고.
 
 ## 오류 경계
 
@@ -71,4 +77,4 @@ ID 0·음수는 `400`; 존재하지 않는 **양수** ID는 `404`. Spring Securi
 
 ## 실제 검증 범위
 
-2026-09-26 격리 JAR·Buildpacks/Compose HTTP에서 기존 V4 초안의 V5 전환 후 비노출, PUBLIC/PRIVATE 권한별 목록·건수, KST 출간일, 익명 PRIVATE 직접 조회의 `body=null`, 실제 목록 SQL의 본문 열 제외 확인. 출간·철회·재출간·반복 요청에서 최초 출간 시각 유지, 동시 PUT·공개 범위 변경의 상태 보존, ADMIN/CSRF·CORS·잘못된 `visibility` 타입(숫자·불리언·배열·`null`) 거부, API 재시작 후 JDBC 세션, DB 중단의 약 30초 후 503과 복구, 로그아웃 확인. 기존 28개 검사 통과는 최종 enum 입력 DTO 정정 **전** 결과이며, 정정 뒤에는 이미지를 다시 빌드해 JAR/Compose HTTP와 Swagger의 필수 문자열 enum을 확인. 검증 자원 정리, 기존 VM 앱·Redis 유지. 원격 CI/Pages와 공개 HTTPS 브라우저 연결은 아직 완료 근거 아님.
+2026-09-26 P1-04B 격리 JAR·Buildpacks/Compose HTTP에서 기존 V4 초안의 V5 전환 후 비노출, PUBLIC/PRIVATE 권한별 목록·건수, KST 출간일, 익명 PRIVATE 직접 조회의 `body=null`, 실제 목록 SQL의 본문 열 제외 확인. 출간·철회·재출간·반복 요청에서 최초 출간 시각 유지, 동시 PUT·공개 범위 변경의 상태 보존, ADMIN/CSRF·CORS·잘못된 `visibility` 타입(숫자·불리언·배열·`null`) 거부, API 재시작 후 JDBC 세션, DB 중단의 약 30초 후 503과 복구, 로그아웃 확인. 기존 28개 검사 통과는 최종 enum 입력 DTO 정정 **전** 결과이며, 정정 뒤에는 이미지를 다시 빌드해 JAR/Compose HTTP와 Swagger의 필수 문자열 enum을 확인. 검증 자원 정리, 기존 VM 앱·Redis 유지. P1-04B main·CI·Pages 성공 확인. P1-04 캐시나 공개 HTTPS 브라우저 연결의 완료 근거로 확장하지 않음.

@@ -5,7 +5,7 @@
 - 설계 원본: 인수인계 첨부 `ken-blog-handoff.zip`의 `HANDOFF.md`, `design/snapshots/{png,html}`, `design/snapshots/states.json`, `design/prototype/`. 아래 `§`는 ZIP 안 `HANDOFF.md`의 절 번호, `[NN]`은 스냅샷 번호.
 - 원본은 화면·상호작용 설계 참고 자료. 현재 사용자 지시와 확정된 Next.js 정적 프론트·Spring Boot/Kotlin·MySQL·Spring Session JDBC·OCI Object Storage 구조가 우선. 원본의 제안 URL·SQL·기술 스택은 그대로 채택할 확정 계약이 아님. 프로토타입의 샘플 글·프로젝트·과목·계정·분석 수치·이미지와 인증/메일 흉내를 운영 데이터나 코드로 복사하지 않음. 근거: §0.3, §0.4, §5.13, §13~14.
 - 상태 표기: **완료**는 현재 구현과 실제 검증 근거가 모두 있는 부분, **일부**는 하위 API/인프라만 있는 부분, **미구현**은 제품 기능이 없는 부분, **외부 조건**은 서비스 소유자의 계정·주소·비밀 설정이 필요한 부분. 새 기능의 완료 표시는 해당 화면/API/권한/실패 경로의 실제 확인 후 변경.
-- 현 기준: GitHub Pages의 Next.js 정적 홈에는 준비 상태·API 연결 안내·아키텍처 도면만 존재. `NEXT_PUBLIC_API_BASE_URL` 공개 HTTPS 값 미설정. Spring API의 상태 응답, MySQL 영속 저장, ADMIN/USER 로그인·로그아웃·현재 사용자·CSRF/JDBC 세션, 관리자 게시글 **초안** 5개 CRUD, 관리자 JPEG/PNG 첨부 4개 경로는 격리 환경에서 검증. P1-04A는 main `8366745` 반영 및 CI·Pages 성공. P1-04B의 출간·권한별 공개 글 조회도 2026-09-26 격리 검증 완료, main 반영 진행. 회원 화면·편집기·관리 화면·검색·분석·실제 공개 배포 연결은 미구현. 근거: `apps/web/app`, `apps/api/src/main`, `planning/issues/P1-01.md`~`P1-04A.md`.
+- 현 기준: GitHub Pages의 Next.js 정적 홈에는 준비 상태·API 연결 안내·아키텍처 도면만 존재. `NEXT_PUBLIC_API_BASE_URL` 공개 HTTPS 값 미설정. Spring API의 상태 응답, MySQL 영속 저장, ADMIN/USER 로그인·로그아웃·현재 사용자·CSRF/JDBC 세션, 관리자 게시글 **초안** 5개 CRUD, 관리자 JPEG/PNG 첨부 4개 경로는 격리 환경에서 검증. P1-04A는 main `8366745` 반영 및 CI·Pages 성공. P1-04B의 출간·권한별 공개 글 조회도 main `93c2145`·CI·Pages 반영 완료. P1-04 공개 본문 캐시는 2026-09-26 격리 검증 완료, main 반영 진행. 회원 화면·편집기·관리 화면·검색·분석·실제 공개 배포 연결은 미구현. 근거: `apps/web/app`, `apps/api/src/main`, `planning/issues/P1-01.md`~`P1-04A.md`.
 - 검증 방식: 기존 검사를 유지하고, 변경에 맞는 빌드·격리 HTTP/SQL·브라우저 상호작용·화면 크기별 육안/접근성 확인을 실제로 수행한 뒤 결과 기록. 원본 §15.2의 신규 자동 테스트 코드 요구는 현재 사용자 지시의 신규 테스트 중단에 종속. 실행 전 항목은 미완료.
 
 ## 전달 순서와 현재 기반
