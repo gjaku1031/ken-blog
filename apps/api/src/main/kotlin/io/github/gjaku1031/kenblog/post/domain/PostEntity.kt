@@ -48,6 +48,10 @@ class PostEntity protected constructor() {
     lateinit var bodySha256: String
         protected set
 
+    @Column(name = "category_id")
+    var categoryId: Long? = null
+        protected set
+
     @Column(name = "created_at", nullable = false, columnDefinition = "datetime(6)")
     lateinit var createdAt: LocalDateTime
         protected set
@@ -142,5 +146,16 @@ class PostEntity protected constructor() {
         if (this.visibility == visibility) return
         this.visibility = visibility
         updatedAt = now
+    }
+
+    /**
+     * 본문·출간 상태를 건드리지 않고 연결한 분류 ID와 수정 시각을 바꿈.
+     *
+     * @param categoryId 현재 존재 확인을 마친 분류 ID 또는 해제를 뜻하는 `null`
+     * @param now UTC 수정 시각
+     */
+    internal fun changeCategory(categoryId: Long?, now: LocalDateTime) {
+        this.categoryId = categoryId
+        this.updatedAt = now
     }
 }
