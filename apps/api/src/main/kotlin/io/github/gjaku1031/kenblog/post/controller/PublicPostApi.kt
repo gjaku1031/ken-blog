@@ -29,6 +29,8 @@ interface PublicPostApi {
      *
      * @param page 0 기반 페이지, 기본 0
      * @param size 1~100 페이지 크기, 기본 10
+     * @param categoryId 선택 분류와 모든 자손을 포함할 양수 ID
+     * @param tag 정규화한 정확 일치 태그
      * @param authentication 현재 세션 인증 또는 익명 토큰
      * @return 캐시하지 않는 [PublicPostPageResponse]
      */
@@ -42,6 +44,8 @@ interface PublicPostApi {
     fun list(
         @RequestParam(defaultValue = "0") page: Int,
         @RequestParam(defaultValue = "10") size: Int,
+        @RequestParam(required = false) categoryId: Long?,
+        @RequestParam(required = false) tag: String?,
         @Parameter(hidden = true) authentication: Authentication?,
     ): ResponseEntity<PublicPostPageResponse>
 

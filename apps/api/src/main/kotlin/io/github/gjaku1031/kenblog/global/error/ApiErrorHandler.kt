@@ -1,11 +1,15 @@
 package io.github.gjaku1031.kenblog.global.error
 
 import io.github.gjaku1031.kenblog.attachment.domain.AttachmentFailure
+import io.github.gjaku1031.kenblog.category.domain.CategoryConflictException
+import io.github.gjaku1031.kenblog.category.domain.CategoryNotFoundException
+import io.github.gjaku1031.kenblog.category.domain.InvalidCategoryRequestException
 import io.github.gjaku1031.kenblog.global.security.isDatabaseConnectionFailure
 import io.github.gjaku1031.kenblog.post.domain.DuplicatePostSlugException
 import io.github.gjaku1031.kenblog.post.domain.InvalidPostDraftException
 import io.github.gjaku1031.kenblog.post.domain.InvalidPostRequestException
 import io.github.gjaku1031.kenblog.post.domain.PostNotFoundException
+import org.springframework.dao.PessimisticLockingFailureException
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
 import org.springframework.http.HttpStatusCode
@@ -26,6 +30,46 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
  */
 @RestControllerAdvice
 class ApiErrorHandler : ResponseEntityExceptionHandler() {
+    /**
+     * 분류 경로·ID의 잘못된 입력을 원문 없이 400으로 변환.
+     *
+     * @param ex 공개 응답에 값을 싣지 않을 분류 입력 오류
+     * @return 고정 설명의 [ProblemDetail]
+     */
+    @ExceptionHandler(InvalidCategoryRequestException::class)
+    fun handleCategoryInput(ex: InvalidCategoryRequestException): ResponseEntity<ProblemDetail> =
+        ResponseEntity.badRequest().body(ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "분류 입력을 확인하세요."))
+
+    /**
+     * 없는 분류 ID를 404로 변환.
+     *
+     * @param ex 내부 분류 ID를 응답에 싣지 않을 조회 오류
+     * @return 고정 설명의 [ProblemDetail]
+     */
+    @ExceptionHandler(CategoryNotFoundException::class)
+    fun handleCategoryNotFound(ex: CategoryNotFoundException): ResponseEntity<ProblemDetail> =
+        ResponseEntity.status(HttpStatus.NOT_FOUND).body(ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, "분류를 찾을 수 없습니다."))
+
+    /**
+     * 고유 경로·FK·잠금 경합의 전체 롤백을 409로 변환.
+     *
+     * @param ex 내부 SQL 원인을 응답에 싣지 않을 충돌
+     * @return 고정 설명의 [ProblemDetail]
+     */
+    @ExceptionHandler(CategoryConflictException::class)
+    fun handleCategoryConflict(ex: CategoryConflictException): ResponseEntity<ProblemDetail> =
+        ResponseEntity.status(HttpStatus.CONFLICT).body(ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, "분류 변경이 충돌했습니다."))
+
+    /**
+     * 분류 삭제와 게시글 변경 등에서 DB가 감지한 잠금 경합·교착을 409로 변환.
+     *
+     * @param ex 원문을 공개하지 않을 트랜잭션 잠금 실패
+     * @return 재시도 가능한 고정 설명의 [ProblemDetail]
+     */
+    @ExceptionHandler(PessimisticLockingFailureException::class)
+    fun handleLockConflict(ex: PessimisticLockingFailureException): ResponseEntity<ProblemDetail> =
+        ResponseEntity.status(HttpStatus.CONFLICT).body(ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, "동시 변경이 충돌했습니다."))
+
     /**
      * 초안·ID·페이지 입력 오류를 원문 없이 HTTP 400으로 변환.
      *

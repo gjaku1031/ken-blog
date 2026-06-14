@@ -16,11 +16,13 @@ class PublicPostController(private val service: PublicPostService) : PublicPostA
      *
      * @param page 0 기반 페이지 번호
      * @param size 페이지 크기
+     * @param categoryId 분류·하위 분류 필터
+     * @param tag 정확 일치 태그 필터
      * @param authentication 현재 인증 또는 익명 토큰
      * @return no-store 공개 목록
      */
-    override fun list(page: Int, size: Int, authentication: Authentication?): ResponseEntity<PublicPostPageResponse> =
-        ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.list(page, size, authentication))
+    override fun list(page: Int, size: Int, categoryId: Long?, tag: String?, authentication: Authentication?): ResponseEntity<PublicPostPageResponse> =
+        ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.list(page, size, authentication, categoryId, tag))
 
     /**
      * 출간 slug를 조회해 허용 본문 또는 익명 잠금 상세를 반환.

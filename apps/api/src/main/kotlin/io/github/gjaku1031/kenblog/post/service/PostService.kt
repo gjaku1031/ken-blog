@@ -1,13 +1,22 @@
 package io.github.gjaku1031.kenblog.post.service
 
+import io.github.gjaku1031.kenblog.category.domain.CategoryConflictException
+import io.github.gjaku1031.kenblog.category.domain.CategoryNotFoundException
+import io.github.gjaku1031.kenblog.category.repository.CategoryRepository
 import io.github.gjaku1031.kenblog.post.domain.DuplicatePostSlugException
 import io.github.gjaku1031.kenblog.post.domain.InvalidPostDraftException
 import io.github.gjaku1031.kenblog.post.domain.InvalidPostRequestException
 import io.github.gjaku1031.kenblog.post.domain.PostEntity
 import io.github.gjaku1031.kenblog.post.domain.PostNotFoundException
 import io.github.gjaku1031.kenblog.post.domain.PostVisibility
+import io.github.gjaku1031.kenblog.post.domain.PostTagEntity
+import io.github.gjaku1031.kenblog.post.domain.TagNames
+import io.github.gjaku1031.kenblog.post.dto.PostDetailResponse
 import io.github.gjaku1031.kenblog.post.dto.PostPageResponse
+import io.github.gjaku1031.kenblog.post.dto.PostSummaryResponse
+import io.github.gjaku1031.kenblog.post.dto.TagCountResponse
 import io.github.gjaku1031.kenblog.post.repository.PostRepository
+import io.github.gjaku1031.kenblog.post.repository.PostTagRepository
 import java.sql.SQLIntegrityConstraintViolationException
 import java.time.Clock
 import java.time.LocalDateTime
@@ -15,6 +24,7 @@ import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
 import java.util.Locale
 import org.springframework.dao.DataIntegrityViolationException
+import org.springframework.dao.PessimisticLockingFailureException
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
@@ -33,7 +43,13 @@ import org.springframework.transaction.annotation.Transactional
  * @property cache 커밋 후 이전 PUBLIC 본문 키를 제거하는 선택적 캐시
  */
 @Service
-class PostService(private val repository: PostRepository, private val cache: PostBodyCache) {
+class PostService(
+    private val repository: PostRepository,
+    private val cache: PostBodyCache,
+    private val categories: CategoryRepository,
+    private val tags: PostTagRepository,
+    private val taxonomy: PostTaxonomyMetadata,
+) {
     /**
      * 제목과 slug를 정규화한 후 초안을 원자적으로 저장.
      *
@@ -71,7 +87,13 @@ class PostService(private val repository: PostRepository, private val cache: Pos
             throw InvalidPostRequestException()
         }
         val result = repository.findAdminSummaries(PageRequest.of(page, size))
-        return PostPageResponse(result.content, page, size, result.totalElements, result.totalPages)
+        val metadata = taxonomy.batch(result.content.map { it.id }, result.content.map { it.categoryId })
+        val items = result.content.map { row ->
+            val view = metadata.getValue(row.id)
+            PostSummaryResponse(row.id, row.title, row.slug, row.createdAt, row.updatedAt,
+                row.status, row.visibility, row.publishedAt, view.category, view.tags)
+        }
+        return PostPageResponse(items, page, size, result.totalElements, result.totalPages)
     }
 
     /**
@@ -184,6 +206,88 @@ class PostService(private val repository: PostRepository, private val cache: Pos
     fun findById(id: Long): PostEntity? = if (id > 0) repository.findByIdOrNull(id) else null
 
     /**
+     * 관리자 ID 상세를 조회 트랜잭션 안에서 분류·정렬 태그와 함께 DTO로 조립.
+     *
+     * @param id 양수 게시글 ID
+     * @return 원문·현재 taxonomy를 포함한 [PostDetailResponse]
+     * @throws InvalidPostRequestException ID가 양수가 아닐 때
+     * @throws PostNotFoundException 게시글이 없을 때
+     */
+    @Transactional(readOnly = true)
+    fun adminDetail(id: Long): PostDetailResponse {
+        if (id <= 0) throw InvalidPostRequestException()
+        return (repository.findByIdOrNull(id) ?: throw PostNotFoundException()).adminDetail()
+    }
+
+    /**
+     * 기존 [createDraft] 계약을 유지하면서 HTTP에는 같은 쓰기 트랜잭션의 taxonomy 포함 상세를 반환.
+     *
+     * @return 커밋할 초안의 [PostDetailResponse]
+     */
+    @Transactional
+    fun createDraftDetail(title: String, slug: String, body: String): PostDetailResponse =
+        createDraft(title, slug, body).adminDetail()
+
+    /** @return 기존 [updateDraft]와 같은 트랜잭션에서 확정한 관리자 상세. */
+    @Transactional
+    fun updateDraftDetail(id: Long, title: String, slug: String, body: String): PostDetailResponse =
+        updateDraft(id, title, slug, body).adminDetail()
+
+    /** @return [publish]가 변경한 행을 같은 잠금 트랜잭션에서 조립한 상세. */
+    @Transactional
+    fun publishDetail(id: Long, visibility: PostVisibility): PostDetailResponse = publish(id, visibility).adminDetail()
+
+    /** @return [unpublish]가 변경한 행을 같은 잠금 트랜잭션에서 조립한 상세. */
+    @Transactional
+    fun unpublishDetail(id: Long): PostDetailResponse = unpublish(id).adminDetail()
+
+    /** @return [changeVisibility]가 변경한 행을 같은 잠금 트랜잭션에서 조립한 상세. */
+    @Transactional
+    fun changeVisibilityDetail(id: Long, visibility: PostVisibility): PostDetailResponse =
+        changeVisibility(id, visibility).adminDetail()
+
+    /** @return 초안을 포함한 모든 게시글의 태그 사용 글 수·이름 정렬 목록. */
+    @Transactional(readOnly = true)
+    fun adminTags(): List<TagCountResponse> = tags.findAdminCounts()
+
+    /**
+     * 대상 분류 공유 잠금 다음 글 배타 잠금 순서로 분류·태그를 원자적으로 전체 교체.
+     *
+     * @param id 양수 게시글 ID
+     * @param categoryId 존재하는 분류 ID 또는 명시적 해제 `null`
+     * @param rawTags 입력 순서를 유지할 문자열 태그
+     * @return 변경된 관리자 상세 [PostDetailResponse]
+     * @throws InvalidPostRequestException 태그·ID 형식이 잘못되었을 때
+     * @throws CategoryNotFoundException 양수 분류 ID가 없을 때
+     * @throws PostNotFoundException 게시글이 없을 때
+     * @throws CategoryConflictException FK 또는 잠금 경합일 때
+     */
+    @Transactional
+    fun replaceTaxonomy(id: Long, categoryId: Long?, rawTags: List<String>): PostDetailResponse {
+        if (id <= 0) throw InvalidPostRequestException()
+        val normalized = TagNames.normalizeAll(rawTags)
+        return try {
+            if (categoryId != null) {
+                if (categoryId <= 0) throw InvalidPostRequestException()
+                categories.findSharedById(categoryId) ?: throw CategoryNotFoundException()
+            }
+            val post = lockedPost(id)
+            if (post.categoryId == categoryId && tags.findNamesByPostId(id) == normalized) return post.adminDetail()
+            post.changeCategory(categoryId, now())
+            repository.saveAndFlush(post)
+            tags.deleteByPostId(id)
+            if (normalized.isNotEmpty()) {
+                tags.saveAllAndFlush(normalized.mapIndexed { index, name -> PostTagEntity(id, index, name) })
+            }
+            post.adminDetail()
+        } catch (ex: DataIntegrityViolationException) {
+            throw CategoryConflictException()
+        } catch (ex: PessimisticLockingFailureException) {
+            throw CategoryConflictException()
+        }
+    }
+
+    /**
      * 입력 slug를 생성 시와 같은 규칙으로 정규화하여 조회.
      *
      * @param slug 조회할 주소
@@ -208,6 +312,14 @@ class PostService(private val repository: PostRepository, private val cache: Pos
     private fun lockedPost(id: Long): PostEntity {
         if (id <= 0) throw InvalidPostRequestException()
         return repository.findLockedById(id) ?: throw PostNotFoundException()
+    }
+
+    /** @return 현재 트랜잭션에서 같은 글의 분류·태그를 결합한 관리자 원문 DTO. */
+    private fun PostEntity.adminDetail(): PostDetailResponse {
+        val postId = id ?: error("Persisted post has no ID")
+        val view = taxonomy.one(postId, categoryId)
+        return PostDetailResponse(postId, title, slug, body, createdAt, updatedAt,
+            status, visibility, publishedAt, view.category, view.tags)
     }
 
     /**

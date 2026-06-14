@@ -4,6 +4,7 @@ import io.github.gjaku1031.kenblog.post.dto.PostDetailResponse
 import io.github.gjaku1031.kenblog.post.dto.PostPageResponse
 import io.github.gjaku1031.kenblog.post.dto.PostWriteRequest
 import io.github.gjaku1031.kenblog.post.dto.PostVisibilityRequest
+import io.github.gjaku1031.kenblog.post.dto.PostTaxonomyRequest
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.enums.ParameterIn
@@ -24,6 +25,7 @@ import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
+import tools.jackson.databind.JsonNode
 
 /**
  * 관리자 게시글 작성·목록·상세·전체 교체·삭제·출간 상태의 HTTP/OpenAPI 계약.
@@ -183,4 +185,30 @@ interface PostApi {
         ApiResponse(responseCode = "503", description = "DB 연결 장애", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
     ])
     fun visibility(@PathVariable("id") id: Long, @RequestBody request: PostVisibilityRequest): ResponseEntity<PostDetailResponse>
+
+    /**
+     * 명시적 null 분류 해제와 문자열 태그 배열의 전체 교체를 한 트랜잭션에서 수행.
+     *
+     * @param id 양수 게시글 ID
+     * @param request 누락·타입을 직접 검증할 JSON 객체
+     * @return 새 분류·태그를 포함한 [PostDetailResponse]
+     */
+    @PatchMapping("/{id}/taxonomy", consumes = [MediaType.APPLICATION_JSON_VALUE], produces = [MediaType.APPLICATION_JSON_VALUE])
+    @Operation(summary = "관리자 게시글 분류·태그 전체 교체", parameters = [Parameter(name = "X-CSRF-TOKEN", `in` = ParameterIn.HEADER, required = true)])
+    @ApiResponses(value = [
+        ApiResponse(responseCode = "200", content = [Content(schema = Schema(implementation = PostDetailResponse::class))]),
+        ApiResponse(responseCode = "400", description = "ID·JSON 타입·태그 입력 오류", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
+        ApiResponse(responseCode = "401", description = "인증 필요", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
+        ApiResponse(responseCode = "403", description = "관리자 권한 또는 CSRF 필요", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
+        ApiResponse(responseCode = "404", description = "게시글 또는 분류 없음", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
+        ApiResponse(responseCode = "409", description = "동시 분류 참조 충돌", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
+        ApiResponse(responseCode = "503", description = "DB 연결 장애", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
+    ])
+    fun taxonomy(
+        @PathVariable("id") id: Long,
+        @RequestBody @io.swagger.v3.oas.annotations.parameters.RequestBody(
+            required = true,
+            content = [Content(schema = Schema(implementation = PostTaxonomyRequest::class))],
+        ) request: JsonNode,
+    ): ResponseEntity<PostDetailResponse>
 }

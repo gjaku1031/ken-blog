@@ -92,7 +92,7 @@ class SecurityConfig {
         )
 
     /**
-     * 공개 상태·게시글 조회는 지정 origin에 GET만 허용하고 인증 origin에만 자격 증명을 허용.
+     * 공개 상태·게시글·분류·태그 조회는 지정 origin에 GET만 허용하고 인증 origin에만 자격 증명을 허용.
      *
      * @param publicOriginsCsv 공개 상태 조회 허용 origin
      * @param authOriginsCsv 인증 요청을 허용할 명시적 origin; 기본은 빈 목록
@@ -138,7 +138,8 @@ class SecurityConfig {
         }
         return CorsConfigurationSource { request ->
             val path = request.servletPath
-            if (path == "/api/v1/posts" || path.startsWith("/api/v1/posts/")) {
+            if (path == "/api/v1/posts" || path.startsWith("/api/v1/posts/") ||
+                path == "/api/v1/categories" || path == "/api/v1/tags") {
                 if (request.getHeader("Origin") in authOrigins) authenticatedPosts else publicPosts
             } else source.getCorsConfiguration(request)
         }
@@ -177,6 +178,7 @@ class SecurityConfig {
         .authorizeHttpRequests {
             it.requestMatchers(HttpMethod.GET, "/api/v1/status", "/actuator/health", "/v3/api-docs", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
             it.requestMatchers(HttpMethod.GET, "/api/v1/posts", "/api/v1/posts/*").permitAll()
+            it.requestMatchers(HttpMethod.GET, "/api/v1/categories", "/api/v1/tags").permitAll()
             it.requestMatchers(HttpMethod.GET, "/api/v1/auth/csrf").permitAll()
             it.requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
             it.requestMatchers(HttpMethod.GET, "/api/v1/auth/me").authenticated()

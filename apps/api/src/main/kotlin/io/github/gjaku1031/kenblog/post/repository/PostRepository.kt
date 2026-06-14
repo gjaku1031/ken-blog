@@ -4,15 +4,17 @@ import io.github.gjaku1031.kenblog.post.domain.PostEntity
 import io.github.gjaku1031.kenblog.post.domain.PostStatus
 import io.github.gjaku1031.kenblog.post.domain.PostVisibility
 import io.github.gjaku1031.kenblog.post.dto.PrivatePostLockRow
+import io.github.gjaku1031.kenblog.post.dto.AdminPostRow
 import io.github.gjaku1031.kenblog.post.dto.PublicPostCacheRow
-import io.github.gjaku1031.kenblog.post.dto.PostSummaryResponse
 import io.github.gjaku1031.kenblog.post.dto.PublishedPostRow
 import io.github.gjaku1031.kenblog.post.service.PostService
+import io.github.gjaku1031.kenblog.category.dto.CategoryPostCountRow
 import jakarta.persistence.LockModeType
 import org.springframework.data.domain.Page
 import org.springframework.data.domain.Pageable
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Lock
+import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 
@@ -46,14 +48,14 @@ interface PostRepository : JpaRepository<PostEntity, Long> {
      * 본문 열을 읽지 않고 관리자 초안·출간 목록의 한 페이지를 생성자 DTO로 조회.
      *
      * @param pageable 검증된 0 기반 페이지와 크기; 정렬은 쿼리에 고정됨
-     * @return 생성 시각·ID 내림차순의 [PostSummaryResponse] 페이지
+     * @return 생성 시각·ID 내림차순의 [AdminPostRow] 페이지
      */
     @Query(
-        value = "select new io.github.gjaku1031.kenblog.post.dto.PostSummaryResponse(p.id, p.title, p.slug, p.createdAt, p.updatedAt, p.status, p.visibility, p.publishedAt) " +
+        value = "select new io.github.gjaku1031.kenblog.post.dto.AdminPostRow(p.id, p.title, p.slug, p.createdAt, p.updatedAt, p.status, p.visibility, p.publishedAt, p.categoryId) " +
             "from PostEntity p order by p.createdAt desc, p.id desc",
         countQuery = "select count(p) from PostEntity p",
     )
-    fun findAdminSummaries(pageable: Pageable): Page<PostSummaryResponse>
+    fun findAdminSummaries(pageable: Pageable): Page<AdminPostRow>
 
     /**
      * 본문 열 없이 출간 글을 권한별로 필터하고 같은 조건으로 전체 건수를 조회.
@@ -61,20 +63,32 @@ interface PostRepository : JpaRepository<PostEntity, Long> {
      * @param published 출간 상태
      * @param publicVisibility 익명에게 노출할 범위
      * @param includePrivate USER 또는 ADMIN 권한이 있는지 여부
+     * @param categoryPath 분류 필터의 정규화된 전체 경로, 없으면 `null`
+     * @param descendantPath 하위 경로까지 포함하는 LIKE 패턴, 필터가 없으면 `null`
+     * @param tag 정확히 일치할 정규화 태그, 없으면 `null`
      * @param pageable 검증된 페이지와 크기
      * @return 최초 출간 시각·ID 내림차순의 [PublishedPostRow] 페이지
      */
     @Query(
-        value = "select new io.github.gjaku1031.kenblog.post.dto.PublishedPostRow(p.id, p.title, p.slug, p.publishedAt) " +
+        value = "select new io.github.gjaku1031.kenblog.post.dto.PublishedPostRow(p.id, p.title, p.slug, p.publishedAt, p.categoryId) " +
             "from PostEntity p where p.status = :published and (:includePrivate = true or p.visibility = :publicVisibility) " +
+            "and (:categoryPath is null or exists (select c.id from CategoryEntity c where c.id = p.categoryId " +
+            "and (c.path = :categoryPath or c.path like :descendantPath))) " +
+            "and (:tag is null or exists (select t.id from PostTagEntity t where t.postId = p.id and t.name = :tag)) " +
             "order by p.publishedAt desc, p.id desc",
         countQuery = "select count(p) from PostEntity p where p.status = :published " +
-            "and (:includePrivate = true or p.visibility = :publicVisibility)",
+            "and (:includePrivate = true or p.visibility = :publicVisibility) " +
+            "and (:categoryPath is null or exists (select c.id from CategoryEntity c where c.id = p.categoryId " +
+            "and (c.path = :categoryPath or c.path like :descendantPath))) " +
+            "and (:tag is null or exists (select t.id from PostTagEntity t where t.postId = p.id and t.name = :tag))",
     )
     fun findPublishedSummaries(
         @Param("published") published: PostStatus,
         @Param("publicVisibility") publicVisibility: PostVisibility,
         @Param("includePrivate") includePrivate: Boolean,
+        @Param("categoryPath") categoryPath: String?,
+        @Param("descendantPath") descendantPath: String?,
+        @Param("tag") tag: String?,
         pageable: Pageable,
     ): Page<PublishedPostRow>
 
@@ -105,7 +119,7 @@ interface PostRepository : JpaRepository<PostEntity, Long> {
      * @param visibility 공개 범위
      * @return 현재 공개 글의 [PublicPostCacheRow], 없으면 `null`
      */
-    @Query("select new io.github.gjaku1031.kenblog.post.dto.PublicPostCacheRow(p.id, p.title, p.slug, p.publishedAt, p.bodySha256) " +
+    @Query("select new io.github.gjaku1031.kenblog.post.dto.PublicPostCacheRow(p.id, p.title, p.slug, p.publishedAt, p.bodySha256, p.categoryId) " +
         "from PostEntity p where p.slug = :slug and p.status = :status and p.visibility = :visibility")
     fun findPublicCacheMetadataBySlug(
         @Param("slug") slug: String,
@@ -128,4 +142,20 @@ interface PostRepository : JpaRepository<PostEntity, Long> {
         @Param("status") status: PostStatus,
         @Param("visibility") visibility: PostVisibility,
     ): PrivatePostLockRow?
+
+    /** @return 관리자 또는 공개 역할 조건에서 분류별 직접 글 수를 계산한 [CategoryPostCountRow] 목록. */
+    @Query("select new io.github.gjaku1031.kenblog.category.dto.CategoryPostCountRow(p.categoryId, count(p)) " +
+        "from PostEntity p where p.categoryId is not null and (:admin = true or " +
+        "(p.status = :published and (:includePrivate = true or p.visibility = :publicVisibility))) group by p.categoryId")
+    fun countByCategoryForRole(
+        @Param("admin") admin: Boolean,
+        @Param("published") published: PostStatus,
+        @Param("publicVisibility") publicVisibility: PostVisibility,
+        @Param("includePrivate") includePrivate: Boolean,
+    ): List<CategoryPostCountRow>
+
+    /** @return 잠긴 분류 하위의 글을 삭제 대상의 부모로 한 SQL에서 옮긴 수. */
+    @Modifying(flushAutomatically = true)
+    @Query("update PostEntity p set p.categoryId = :parentId where p.categoryId in :categoryIds")
+    fun moveCategories(@Param("categoryIds") categoryIds: Collection<Long>, @Param("parentId") parentId: Long?): Int
 }

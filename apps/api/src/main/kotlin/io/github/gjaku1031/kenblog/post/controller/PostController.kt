@@ -1,17 +1,18 @@
 package io.github.gjaku1031.kenblog.post.controller
 
 import io.github.gjaku1031.kenblog.post.domain.InvalidPostRequestException
-import io.github.gjaku1031.kenblog.post.domain.PostEntity
 import io.github.gjaku1031.kenblog.post.domain.PostNotFoundException
 import io.github.gjaku1031.kenblog.post.dto.PostDetailResponse
 import io.github.gjaku1031.kenblog.post.dto.PostPageResponse
 import io.github.gjaku1031.kenblog.post.dto.PostWriteRequest
 import io.github.gjaku1031.kenblog.post.dto.PostVisibilityRequest
+import io.github.gjaku1031.kenblog.post.dto.PostTaxonomyRequest
 import io.github.gjaku1031.kenblog.post.service.PostService
 import java.net.URI
 import org.springframework.http.CacheControl
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.RestController
+import tools.jackson.databind.JsonNode
 
 /** [PostApi]의 관리자 HTTP 계약을 [PostService]와 공개 DTO에 연결. */
 @RestController
@@ -23,7 +24,7 @@ class PostController(private val service: PostService) : PostApi {
      * @return Location과 no-store를 가진 HTTP 201 상세 응답
      */
     override fun create(request: PostWriteRequest): ResponseEntity<PostDetailResponse> {
-        val response = service.createDraft(request.title, request.slug, request.body).detail()
+        val response = service.createDraftDetail(request.title, request.slug, request.body)
         return ResponseEntity.created(URI.create("/api/v1/admin/posts/${response.id}"))
             .cacheControl(CacheControl.noStore()).body(response)
     }
@@ -48,8 +49,7 @@ class PostController(private val service: PostService) : PostApi {
      */
     override fun detail(id: Long): ResponseEntity<PostDetailResponse> {
         if (id <= 0) throw InvalidPostRequestException()
-        val post = service.findById(id) ?: throw PostNotFoundException()
-        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(post.detail())
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.adminDetail(id))
     }
 
     /**
@@ -62,7 +62,7 @@ class PostController(private val service: PostService) : PostApi {
     override fun update(id: Long, request: PostWriteRequest): ResponseEntity<PostDetailResponse> {
         if (id <= 0) throw InvalidPostRequestException()
         return ResponseEntity.ok().cacheControl(CacheControl.noStore())
-            .body(service.updateDraft(id, request.title, request.slug, request.body).detail())
+            .body(service.updateDraftDetail(id, request.title, request.slug, request.body))
     }
 
     /**
@@ -84,7 +84,7 @@ class PostController(private val service: PostService) : PostApi {
      * @return no-store 상세 응답
      */
     override fun publish(id: Long, request: PostVisibilityRequest): ResponseEntity<PostDetailResponse> =
-        ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.publish(id, request.selectedVisibility()).detail())
+        ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.publishDetail(id, request.selectedVisibility()))
 
     /**
      * 초안으로 철회하되 최초 출간 시각을 보존.
@@ -93,7 +93,7 @@ class PostController(private val service: PostService) : PostApi {
      * @return no-store 상세 응답
      */
     override fun unpublish(id: Long): ResponseEntity<PostDetailResponse> =
-        ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.unpublish(id).detail())
+        ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.unpublishDetail(id))
 
     /**
      * 출간 상태를 유지하며 공개 범위만 변경.
@@ -103,10 +103,12 @@ class PostController(private val service: PostService) : PostApi {
      * @return no-store 상세 응답
      */
     override fun visibility(id: Long, request: PostVisibilityRequest): ResponseEntity<PostDetailResponse> =
-        ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.changeVisibility(id, request.selectedVisibility()).detail())
+        ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.changeVisibilityDetail(id, request.selectedVisibility()))
 
-    /** @return JPA 객체를 포함하지 않는 관리자 [PostDetailResponse]. */
-    private fun PostEntity.detail(): PostDetailResponse = PostDetailResponse(
-        id ?: error("Persisted post has no ID"), title, slug, body, createdAt, updatedAt, status, visibility, publishedAt,
-    )
+    /** @return 엄격한 JSON 분류·태그 교체 결과와 no-store 관리자 상세. */
+    override fun taxonomy(id: Long, request: JsonNode): ResponseEntity<PostDetailResponse> {
+        val input = PostTaxonomyRequest.fromJson(request)
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore())
+            .body(service.replaceTaxonomy(id, input.categoryId, input.tags))
+    }
 }

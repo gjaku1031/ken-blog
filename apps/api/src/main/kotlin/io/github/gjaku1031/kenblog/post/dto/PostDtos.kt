@@ -1,5 +1,6 @@
 package io.github.gjaku1031.kenblog.post.dto
 
+import io.github.gjaku1031.kenblog.category.dto.CategoryRefResponse
 import io.github.gjaku1031.kenblog.post.domain.InvalidPostRequestException
 import io.github.gjaku1031.kenblog.post.domain.PostEntity
 import io.github.gjaku1031.kenblog.post.domain.PostStatus
@@ -59,6 +60,8 @@ data class PostVisibilityRequest(
  * @property status 초안 또는 출간 상태
  * @property visibility 출간 시 열람 범위
  * @property publishedAt 최초 UTC 출간 시각; 아직 출간한 적 없으면 `null`
+ * @property category 현재 분류 참조, 미지정이면 `null`
+ * @property tags 입력 순서대로 저장된 정규화 태그
  */
 data class PostDetailResponse(
     val id: Long,
@@ -70,10 +73,12 @@ data class PostDetailResponse(
     val status: PostStatus,
     val visibility: PostVisibility,
     val publishedAt: LocalDateTime?,
+    val category: CategoryRefResponse?,
+    val tags: List<String>,
 )
 
 /**
- * 본문 열을 제외한 관리자 목록 행. [io.github.gjaku1031.kenblog.post.repository.PostRepository.findAdminSummaries]가 직접 생성함.
+ * 본문 열을 제외한 관리자 목록 행. SQL 투영과 일괄 분류·태그 조회를 결합함.
  *
  * @property id 게시글 식별자
  * @property title 저장된 제목
@@ -83,6 +88,8 @@ data class PostDetailResponse(
  * @property status 초안 또는 출간 상태
  * @property visibility 출간 시 열람 범위
  * @property publishedAt 최초 UTC 출간 시각; 아직 출간한 적 없으면 `null`
+ * @property category 현재 분류 참조, 미지정이면 `null`
+ * @property tags 입력 순서대로 저장된 정규화 태그
  */
 data class PostSummaryResponse(
     val id: Long,
@@ -93,6 +100,21 @@ data class PostSummaryResponse(
     val status: PostStatus,
     val visibility: PostVisibility,
     val publishedAt: LocalDateTime?,
+    val category: CategoryRefResponse?,
+    val tags: List<String>,
+)
+
+/** 관리자 페이지 SQL에서 본문·태그를 제외하고 가져온 게시글 기본 행. */
+data class AdminPostRow(
+    val id: Long,
+    val title: String,
+    val slug: String,
+    val createdAt: LocalDateTime,
+    val updatedAt: LocalDateTime,
+    val status: PostStatus,
+    val visibility: PostVisibility,
+    val publishedAt: LocalDateTime?,
+    val categoryId: Long?,
 )
 
 /**
@@ -119,8 +141,9 @@ data class PostPageResponse(
  * @property title 제목
  * @property slug 주소
  * @property publishedAt 최초 UTC 출간 시각
+ * @property categoryId 일괄 분류 메타데이터를 조회할 FK
  */
-data class PublishedPostRow(val id: Long, val title: String, val slug: String, val publishedAt: LocalDateTime)
+data class PublishedPostRow(val id: Long, val title: String, val slug: String, val publishedAt: LocalDateTime, val categoryId: Long?)
 
 /**
  * 익명 비공개 직접 조회에서 본문 열을 읽지 않는 잠금 화면용 최소 SQL 행.
@@ -140,6 +163,7 @@ data class PrivatePostLockRow(val id: Long, val title: String, val slug: String,
  * @property slug DB 원본 주소
  * @property publishedAt 최초 UTC 출간 시각
  * @property bodySha256 현재 DB 본문의 UTF-8 SHA-256
+ * @property categoryId 현재 분류 메타데이터를 조회할 FK
  */
 data class PublicPostCacheRow(
     val id: Long,
@@ -147,6 +171,7 @@ data class PublicPostCacheRow(
     val slug: String,
     val publishedAt: LocalDateTime,
     val bodySha256: String,
+    val categoryId: Long?,
 )
 
 /**
@@ -156,8 +181,17 @@ data class PublicPostCacheRow(
  * @property title 제목
  * @property slug 주소
  * @property publishedDate 최초 출간 시각의 Asia/Seoul 날짜
+ * @property category 현재 분류 참조, 미지정이면 `null`
+ * @property tags 입력 순서대로 저장된 정규화 태그
  */
-data class PublicPostSummaryResponse(val id: Long, val title: String, val slug: String, val publishedDate: LocalDate)
+data class PublicPostSummaryResponse(
+    val id: Long,
+    val title: String,
+    val slug: String,
+    val publishedDate: LocalDate,
+    val category: CategoryRefResponse?,
+    val tags: List<String>,
+)
 
 /**
  * 공개/로그인 열람자 또는 익명 비공개 잠금 화면에 제공하는 상세.
@@ -170,6 +204,8 @@ data class PublicPostSummaryResponse(val id: Long, val title: String, val slug: 
  * @property publishedDate 최초 출간 시각의 Asia/Seoul 날짜
  * @property locked 본문 접근이 잠겨 있는지 여부
  * @property body 접근이 허용된 원문 본문, 잠금 상태면 `null`
+ * @property category 읽을 수 있는 글의 분류 참조; 잠금 상태면 `null`
+ * @property tags 읽을 수 있는 글의 정규화 태그; 잠금 상태면 빈 배열
  */
 data class PublicPostDetailResponse(
     val id: Long,
@@ -178,6 +214,8 @@ data class PublicPostDetailResponse(
     val publishedDate: LocalDate,
     val locked: Boolean,
     val body: String?,
+    val category: CategoryRefResponse?,
+    val tags: List<String>,
 )
 
 /**
