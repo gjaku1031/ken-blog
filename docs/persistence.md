@@ -1,6 +1,6 @@
 # 게시글 저장 기반
 
-P1-01은 Spring API 내부에서만 초안을 저장·조회하는 기반. 당시에는 공개 글 작성 HTTP 경로, 출간, 에디터 블록, OCI Object Storage 첨부 기능이 없었음. 이후 관리자 인증과 MySQL 세션은 [별도 계약](authentication.md)으로, 관리자 첨부 기능은 [P1-03 계약](attachments.md)으로 추가. P1-04A에서 내부 게시글 기반에 [관리자 초안 HTTP 계약](posts.md)을 연결. P1-04B의 출간·권한별 조회는 2026-09-26 격리 검증 후 main·CI·Pages 반영 완료. P1-04의 본문 해시·선택적 캐시는 같은 날 격리 검증 완료, main·CI·Pages 반영 예정. 첨부의 게시글 연결은 아직 없음. 실제 근거는 [계획](../planning/issues/P1-04.md) 참고.
+P1-01은 Spring API 내부에서만 초안을 저장·조회하는 기반. 당시에는 공개 글 작성 HTTP 경로, 출간, 에디터 블록, OCI Object Storage 첨부 기능이 없었음. 이후 관리자 인증과 MySQL 세션은 [별도 계약](authentication.md)으로, 관리자 첨부 기능은 [P1-03 계약](attachments.md)으로 추가. P1-04A에서 내부 게시글 기반에 [관리자 초안 HTTP 계약](posts.md)을 연결. P1-04B의 출간·권한별 조회와 P1-04의 본문 해시·선택적 캐시는 2026-09-26 격리 검증 후 main·CI·Pages 반영 완료. P1-05A의 분류·태그 관계는 같은 날 최종 소스 검사 28개와 격리 JAR HTTP·SQL 검증 완료, 원격 반영 전이며 첨부의 게시글 연결은 아직 없음. 실제 근거는 [P1-04 계획](../planning/issues/P1-04.md)과 [P1-05A 계획](../planning/issues/P1-05A.md) 참고.
 
 Kotlin 게시글 코드는 `post/domain`의 엔티티·도메인 오류, `post/repository`의 Spring Data JPA 인터페이스, `post/service`의 구체 서비스·입력 검증·트랜잭션, `post/controller`·`post/dto`의 관리자·공개 HTTP 계약·응답으로 분리. Flyway SQL은 `db/migration`에 유지. P1-04A에는 게시글 표 변경이 없었고, P1-04B의 V5가 출간 열을 추가하는 계약.
 
@@ -30,9 +30,15 @@ Flyway V6가 `posts.body_sha256` 열을 추가하고 기존 `body`의 SHA-256을
 
 본문 변경 시 키 해시가 달라지고 공개 범위/상태는 MySQL에서 매번 확인. 변경·철회·삭제 뒤 소유 키 제거는 커밋 후 최선의 노력이며, Redis 불능·잔여 키·캐시 손상에서도 DB 원본 조회와 기존 권한/503 경계가 우선. 본문 해시는 캐시 데이터 일치 확인용이며 보안 암호화 수단이 아님. MySQL `posts`가 계속 원본이고 Spring Session JDBC 테이블은 Redis로 이전하지 않음. 상세 동작과 외부 설정은 [캐시 안내](cache.md) 참고.
 
+### 분류·태그 관계 — P1-05A 격리 검증 완료
+
+Flyway V7은 독립 `categories` 표에 부모 외래 키·고유 전체 path·깊이 1~3을 두고 `posts.category_id` nullable 외래 키·인덱스를 추가. 기존 글의 분류는 `null`이며 데이터와 공개 상태를 바꾸지 않음. 별도 `post_tags` 표에는 게시글 외래 키, 한 글 안의 표시 순서, 정규화한 태그명을 저장. 글 삭제 시 태그 연결 행 정리. 분류 삭제는 글 삭제가 아니라 삭제 대상의 부모로 자손 글까지 이동하는 트랜잭션이며, 최상위 삭제는 분류 연결 해제. 분류 이름·경로는 게시글 본문이나 Redis 본문 캐시에 저장하지 않음.
+
+관리자·공개 분류 트리의 직접/하위 건수와 태그 글 수는 각각 초안 포함 여부와 현재 권한 조건으로 DB에서 계산. 공개 필터의 분류 자손·정확한 정규화 태그 조건을 SELECT와 COUNT에 함께 적용하고 목록 본문 열은 계속 제외. 페이지 내 분류·태그는 ID 일괄 조회로 조합하여 항목마다 별도 질의를 반복하지 않음. 공개 2건 페이지 실제 SQL에서 분류 필터, 본문 제외 게시글, 분류 일괄 조회, 태그 일괄 조회를 확인. 기존 V6 Unicode 글의 V7 전환과 부모 이동 삭제·태그 정리·재시작 후 JDBC 세션도 격리 HTTP에서 확인. 세부 API와 전체 검증 범위는 [Tech 분류·태그 안내](taxonomy.md) 참고.
+
 계정의 `AccountRepository`도 `JpaRepository<UserEntity, Long>`을 확장하고 `findByUsername`만 파생 쿼리로 선언. 구체 `AccountService`는 기존 계정 수와 이름을 확인해 이미 저장된 관리자 해시를 보존하고, 새 관리자 생성에서 `saveAndFlush`로 제약 검사 시점을 유지. `PostService`의 저장과 `AccountService.ensureInitialAdmin`은 기존 `@Transactional`, 게시글 조회와 인증용 계정 조회는 `readOnly = true` 경계 안에서 실행. Spring Session JDBC의 세션 테이블에는 별도 JPA Repository를 만들지 않음.
 
-Flyway가 앱 기동 시 버전 이력을 확인해 미적용 SQL만 실행. V1 게시글, V2 계정, V3 Spring Session JDBC 표·인덱스·속성 외래 키, V4 첨부 메타데이터, P1-04B V5 게시글 출간 열·제약·인덱스, P1-04 V6 본문 SHA-256 열·기존 본문 해시 역채움을 관리. P1-04 V6은 격리 검증 완료, main 반영 예정. P1-04A 관리자 게시글 API에는 새 표나 Flyway 변경이 없었음. Hibernate의 `ddl-auto=validate`는 엔티티와 표를 검증하며 표를 만들거나 고치지 않음. 마이그레이션 실패나 DB 접속 실패 시 API 기동 실패. `/actuator/health`에는 DB 연결 상태 반영.
+Flyway가 앱 기동 시 버전 이력을 확인해 미적용 SQL만 실행. V1 게시글, V2 계정, V3 Spring Session JDBC 표·인덱스·속성 외래 키, V4 첨부 메타데이터, P1-04B V5 게시글 출간 열·제약·인덱스, P1-04 V6 본문 SHA-256 열·기존 본문 해시 역채움, P1-05A V7 분류·태그 관계를 관리. V7은 기존 V6 글 보존과 새 DB 적용을 격리 검증했으며 main 반영 전. P1-04A 관리자 게시글 API에는 새 표나 Flyway 변경이 없었음. Hibernate의 `ddl-auto=validate`는 엔티티와 표를 검증하며 표를 만들거나 고치지 않음. 마이그레이션 실패나 DB 접속 실패 시 API 기동 실패. `/actuator/health`에는 DB 연결 상태 반영.
 
 ## 개발 DB 실행
 

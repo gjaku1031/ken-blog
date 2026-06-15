@@ -16,6 +16,7 @@ docs/          # 실행·설계 안내
 io.github.gjaku1031.kenblog
 ├── KenBlogApiApplication.kt
 ├── post/       # controller · dto · domain · repository · service
+├── category/   # controller · dto · domain · repository · service
 ├── account/    # domain · repository · service · bootstrap
 ├── auth/       # controller · dto · service
 ├── attachment/ # controller · dto · domain · repository · service · storage
@@ -23,13 +24,13 @@ io.github.gjaku1031.kenblog
 └── global/     # config · security · error
 ```
 
-`post/repository`·`account/repository`·`attachment/repository`는 Spring Data JPA의 `JpaRepository` 인터페이스를 사용. 업무 흐름과 트랜잭션을 담당하는 Service는 구체 클래스로 유지하고, Swagger Controller 계약은 별도 인터페이스로 선언.
+`post/repository`·`category/repository`·`account/repository`·`attachment/repository`는 Spring Data JPA의 `JpaRepository` 인터페이스를 사용. 업무 흐름과 트랜잭션을 담당하는 Service는 구체 클래스로 유지하고, Swagger Controller 계약은 별도 인터페이스로 선언.
 
 프론트는 GitHub Pages에서 제공하고 브라우저가 Spring API를 호출하는 구조. VM에는 Spring 실행. 공개 API 도메인·HTTPS 주소가 아직 없어 공개 홈은 API 미설정 상태로 배포.
 
 - [프론트와 임시 아키텍처 대문](https://gjaku1031.github.io/ken-blog/)
-- [현재 계획](planning/issues/P1-04.md) · [작업 상태](planning/tasks.md) · [개발 순서](planning/roadmap.md)
-- [코드·문서 규칙](docs/code-conventions.md) · [런타임 안내](docs/runtime.md) · [게시글 API](docs/posts.md) · [선택적 공개 본문 캐시](docs/cache.md) · [첨부파일 운영 안내](docs/attachments.md) · [도면 설명](docs/architecture.md)
+- [현재 계획](planning/issues/P1-05A.md) · [작업 상태](planning/tasks.md) · [개발 순서](planning/roadmap.md)
+- [코드·문서 규칙](docs/code-conventions.md) · [런타임 안내](docs/runtime.md) · [게시글 API](docs/posts.md) · [Tech 분류·태그](docs/taxonomy.md) · [선택적 공개 본문 캐시](docs/cache.md) · [첨부파일 운영 안내](docs/attachments.md) · [도면 설명](docs/architecture.md)
 
 ## API 직접 실행
 
@@ -69,7 +70,9 @@ SERVER_ADDRESS=127.0.0.1 SERVER_PORT=8081 ./mvnw spring-boot:run
 | `/api/v1/admin/attachments/{id}` | 관리자 첨부 메타데이터 조회·삭제. 삭제에는 CSRF 필요 |
 | `/api/v1/admin/attachments/{id}/content` | READY 이미지의 관리자 다운로드 |
 
-상태 API 명세는 `StatusApi`, 구현은 `StatusController`에서 관리. Spring MVC 오류는 `ApiErrorHandler`의 RFC 9457 `ProblemDetail`로 처리. MySQL·JPA·Flyway와 관리자 게시글 초안 CRUD, 출간 상태·권한별 읽기 API 제공. P1-04B는 main·CI·Pages 반영 완료. P1-04의 익명 PUBLIC 상세 본문용 선택적 Redis Cloud 캐시는 2026-09-26 격리 JAR·Buildpacks/Compose 검증 완료, main·CI·Pages 반영은 예정. 기본값은 비활성이며 Spring Session JDBC 로그인과 MySQL 세션을 유지. 관리자 첨부 API는 이미지 원본을 비공개 OCI Object Storage에, 상태·소유자 등 메타데이터를 MySQL에 보관. 브라우저 공개 글·관리자 화면과 공개 HTTPS API 연결은 아직 없음.
+P1-05A에서 추가한 경로는 관리자 분류 생성·전체 트리·부모 이동 삭제(`/api/v1/admin/categories`), 글 분류·태그 전체 교체(`/api/v1/admin/posts/{id}/taxonomy`), 공개 권한별 분류·태그 집계(`/api/v1/categories`, `/api/v1/tags`), 관리자 태그 자동완성(`/api/v1/admin/tags`). 기존 공개 글 목록에는 선택적 `categoryId`·`tag` 필터 추가. 입력·권한·삭제·공개 개수 규칙과 2026-09-26 격리 JAR HTTP·SQL·캐시 활성 호환 검증 범위는 [Tech 분류·태그 계약](docs/taxonomy.md)에 기록. main·CI·Pages 반영은 예정.
+
+상태 API 명세는 `StatusApi`, 구현은 `StatusController`에서 관리. Spring MVC 오류는 `ApiErrorHandler`의 RFC 9457 `ProblemDetail`로 처리. MySQL·JPA·Flyway와 관리자 게시글 초안 CRUD, 출간 상태·권한별 읽기 API 제공. P1-04B는 main·CI·Pages 반영 완료. P1-04의 익명 PUBLIC 상세 본문용 선택적 Redis Cloud 캐시는 2026-09-26 격리 JAR·Buildpacks/Compose 검증 후 main `2ca2169`·[CI](https://github.com/gjaku1031/ken-blog/actions/runs/36220258568)·[Pages](https://github.com/gjaku1031/ken-blog/actions/runs/36220258654) 반영 완료. 기본값은 비활성이며 Spring Session JDBC 로그인과 MySQL 세션을 유지. P1-05A Tech 분류·태그와 권한별 탐색 API는 최종 소스의 기존 검사 28개와 격리 HTTP·SQL 검증을 통과했으며 원격 반영 전. 관리자 첨부 API는 이미지 원본을 비공개 OCI Object Storage에, 상태·소유자 등 메타데이터를 MySQL에 보관. 브라우저 공개 글·관리자 화면과 공개 HTTPS API 연결은 아직 없음.
 
 ## 정적 프론트 빌드
 

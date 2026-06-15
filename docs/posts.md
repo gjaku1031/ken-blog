@@ -1,6 +1,6 @@
 # 게시글 API: 관리자 작성·출간과 권한별 조회
 
-P1-04A의 관리자 API는 MySQL 게시글 **초안**의 작성·목록·상세·전체 수정·삭제 제공. P1-04B의 출간/철회·공개 범위와 권한별 읽기 API는 2026-09-26 격리 검증 후 main·CI·Pages 반영 완료. 실제 근거는 [계획](../planning/issues/P1-04B.md)에 기록. P1-04의 익명 PUBLIC 상세 본문 캐시는 선택적 내부 처리로 격리 JAR·Buildpacks/Compose 검증 완료, main·CI·Pages 반영은 예정. 브라우저 공개/관리 화면과 게시글-첨부 연결은 미구현. 관리자 요청은 격리 로컬 API의 HTTP 도구나 Swagger에서 사용하며, 공개 Pages 화면의 API 주소는 아직 미설정.
+P1-04A의 관리자 API는 MySQL 게시글 **초안**의 작성·목록·상세·전체 수정·삭제 제공. P1-04B의 출간/철회·공개 범위와 권한별 읽기 API는 2026-09-26 격리 검증 후 main·CI·Pages 반영 완료. 실제 근거는 [계획](../planning/issues/P1-04B.md)에 기록. P1-04의 익명 PUBLIC 상세 본문 캐시도 격리 JAR·Buildpacks/Compose 검증 후 main·CI·Pages 반영 완료. P1-05A의 Tech 분류·태그·필터 API는 기존 검사 28개와 격리 JAR HTTP·SQL·공개 본문 캐시 활성 호환 검증 통과, 원격 반영 전. 브라우저 공개/관리 화면과 게시글-첨부 연결은 미구현. 관리자 요청은 격리 로컬 API의 HTTP 도구나 Swagger에서 사용하며, 공개 Pages 화면의 API 주소는 아직 미설정.
 
 ## 접근과 요청 준비
 
@@ -16,7 +16,7 @@ P1-04A의 관리자 API는 MySQL 게시글 **초안**의 작성·목록·상세�
 
 POST와 PUT의 JSON 필드 세 개는 모두 필수이며 OpenAPI에도 required·non-null로 표시. 필드 누락이나 명시적 `null`은 `400`; `body: ""`는 빈 초안 본문으로 허용. PUT은 일부 필드만 바꾸는 PATCH가 아니며, 기존 제목·slug를 유지하려면 그 값도 다시 전송해야 함. `Location`은 공개 글 주소가 아닌 **관리자 상세 조회 상대 경로**.
 
-상세 응답 필드는 `id`, `title`, `slug`, `body`, `createdAt`, `updatedAt`, `status`, `visibility`, `publishedAt`. `status`는 `DRAFT`/`PUBLISHED`, `visibility`는 `PUBLIC`/`PRIVATE`. 처음 출간 전 `publishedAt`은 `null`. 관리자 목록은 `{ "items": [...], "page": 0, "size": 20, "totalElements": 0, "totalPages": 0 }` 형태이며 각 항목에는 `body`만 없음. JPA 엔티티나 Spring `Page` 내부 형식을 JSON으로 직접 노출하지 않음. 목록 정렬은 `createdAt DESC, id DESC`로 고정. `page`는 0 이상, `size`는 1~100이며 `page × size`가 `Int.MAX_VALUE`를 넘는 과도한 offset도 잘못된 페이지 값으로 `400`. 입력은 유효하지만 데이터 범위 밖인 페이지는 빈 `items`와 `200` 반환. 목록 SQL은 요약 열만 선택하므로 최대 1 MiB 본문을 각 항목마다 읽지 않음.
+관리자 상세 응답 필드는 `id`, `title`, `slug`, `body`, `createdAt`, `updatedAt`, `status`, `visibility`, `publishedAt`에 P1-05A의 `category`, `tags`를 추가. `status`는 `DRAFT`/`PUBLISHED`, `visibility`는 `PUBLIC`/`PRIVATE`. 처음 출간 전 `publishedAt`은 `null`. 관리자 목록은 `{ "items": [...], "page": 0, "size": 20, "totalElements": 0, "totalPages": 0 }` 형태이며 각 항목에는 `body`가 없음. JPA 엔티티나 Spring `Page` 내부 형식을 JSON으로 직접 노출하지 않음. 목록 정렬은 `createdAt DESC, id DESC`로 고정. `page`는 0 이상, `size`는 1~100이며 `page × size`가 `Int.MAX_VALUE`를 넘는 과도한 offset도 잘못된 페이지 값으로 `400`. 입력은 유효하지만 데이터 범위 밖인 페이지는 빈 `items`와 `200` 반환. 목록 SQL은 요약 열만 선택하므로 최대 1 MiB 본문을 각 항목마다 읽지 않음.
 
 ## 입력과 저장 규칙
 
@@ -45,17 +45,23 @@ Flyway V5는 기존 글을 모두 `DRAFT`·`PRIVATE`·출간 시각 없음으로
 | `GET /api/v1/posts?page=0&size=10` | 익명은 `PUBLISHED`·`PUBLIC`만, 로그인 `USER`/`ADMIN`은 `PUBLISHED` 전체. `items`, `page`, `size`, `totalElements`, `totalPages` 반환 |
 | `GET /api/v1/posts/{slug}` | 공개 글 또는 로그인 `USER`/`ADMIN`의 비공개 글은 본문 포함. 익명의 `PRIVATE` 직접 주소는 잠금 상세. 없는 글·초안은 `404` |
 
-공개 목록 항목은 `id`, `title`, `slug`, `publishedDate`만 포함. `publishedDate`는 최초 UTC `publishedAt`을 `Asia/Seoul` 날짜로 변환한 `YYYY-MM-DD`; 관리자 `publishedAt` 원시 UTC 시각과 구분. 목록은 본문 열을 선택하지 않고 `publishedAt DESC, id DESC` 고정 정렬. SQL 목록과 전체 건수에 같은 상태·권한 조건을 적용. 기본 `page=0`, `size=10`; page 0 이상, size 1~100, `page × size ≤ Int.MAX_VALUE`. 데이터 범위를 넘는 유효 페이지는 `200`·빈 `items`, 잘못된 페이지는 `400`.
+공개 목록 항목은 `id`, `title`, `slug`, `publishedDate`와 P1-05A의 `category`, `tags`를 포함. `publishedDate`는 최초 UTC `publishedAt`을 `Asia/Seoul` 날짜로 변환한 `YYYY-MM-DD`; 관리자 `publishedAt` 원시 UTC 시각과 구분. 목록은 본문 열을 선택하지 않고 `publishedAt DESC, id DESC` 고정 정렬. SQL 목록과 전체 건수에 같은 상태·권한 조건을 적용. 기본 `page=0`, `size=10`; page 0 이상, size 1~100, `page × size ≤ Int.MAX_VALUE`. 데이터 범위를 넘는 유효 페이지는 `200`·빈 `items`, 잘못된 페이지는 `400`.
 
 공개 상세는 `id`, `title`, `slug`, `publishedDate`, `locked`, `body`. 익명의 비공개 slug 직접 요청에만 `locked=true`, `body=null`과 최소 제목·출간일을 제공. 이 제목 노출은 잠금 화면용으로 제한하며 목록·검색·건수에는 비공개 글을 포함하지 않음. 잠금 조회는 DB에서도 본문 열을 선택하지 않음. 공개/로그인 허용 상세는 `locked=false`와 원문 본문. 요약·관련 글·첨부 정보는 이 단계의 공개 DTO에 없음. 익명 판정에서 Spring의 익명 토큰 `isAuthenticated` 값을 신뢰하지 않고 `ROLE_USER`/`ROLE_ADMIN`만 비공개 열람 권한으로 취급.
 
-공개 GET은 계속 `Cache-Control: no-store`; CDN·브라우저 공유 캐시 사용 없음. P1-04의 Redis Cloud는 아래와 같은 선택적 **서버 내부 본문 캐시**로 HTTP 캐시와 구분. `APP_CORS_ALLOWED_ORIGINS`의 정확한 공개 origin에는 GET 응답 접근을 허용하되 자격 증명 CORS 응답은 허용하지 않음. 이 설정만으로 서버가 전달된 쿠키를 무시하는 것은 아님. 로그인 쿠키가 필요한 교차 출처 GET은 별도 `APP_AUTH_CORS_ALLOWED_ORIGINS`에 명시된 origin에 한해 자격 증명 응답 접근 허용. 공개 HTTPS 주소·타사 쿠키/동일 사이트 배치 검증 전에는 브라우저 로그인 연결 완료로 보지 않음. 분류·태그·검색·프로젝트·과목·리비전 초안·게시글/첨부 연결은 후속 범위.
+공개 GET은 계속 `Cache-Control: no-store`; CDN·브라우저 공유 캐시 사용 없음. P1-04의 Redis Cloud는 아래와 같은 선택적 **서버 내부 본문 캐시**로 HTTP 캐시와 구분. `APP_CORS_ALLOWED_ORIGINS`의 정확한 공개 origin에는 GET 응답 접근을 허용하되 자격 증명 CORS 응답은 허용하지 않음. 이 설정만으로 서버가 전달된 쿠키를 무시하는 것은 아님. 로그인 쿠키가 필요한 교차 출처 GET은 별도 `APP_AUTH_CORS_ALLOWED_ORIGINS`에 명시된 origin에 한해 자격 증명 응답 접근 허용. 공개 HTTPS 주소·타사 쿠키/동일 사이트 배치 검증 전에는 브라우저 로그인 연결 완료로 보지 않음. 분류·태그의 격리 HTTP 계약은 [P1-05A 안내](taxonomy.md)에 기록하고, 검색·프로젝트·과목·리비전 초안·게시글/첨부 연결은 후속 범위.
 
 ## 선택적 본문 캐시 — P1-04 격리 검증 완료
 
 익명 `GET /api/v1/posts/{slug}`가 `PUBLISHED`·`PUBLIC`일 때만 MySQL에서 먼저 권한·제목·slug·출간 시각·현재 본문 SHA-256을 확인. 본문 열을 제외한 메타데이터 판정 뒤 Redis Cloud의 전용 키 `{prefix}:v1:post-body:{id}:{bodySha256}`에 일치하는 본문이 있으면 사용. 캐시 값의 UTF-8 크기와 SHA-256을 검증하고, 손상·miss·Redis 오류는 MySQL 원문으로 복귀. 정상 본문이 256 KiB 이하면 빈 문자열도 TTL 300초로 저장. 256 KiB 초과~기존 1 MiB 이하 본문은 정상 제공하되 캐시 생략. SHA-256은 캐시 값의 원본 일치 확인이지 전송 암호화가 아님.
 
 본문 수정은 해시를 바꾸며, 출간 철회·PRIVATE 전환·삭제 때에도 MySQL 권한 판정을 생략하지 않음. 이전 키 삭제는 커밋 후 최선의 노력이며 잔여 키는 재사용 방지·TTL 정리. 로그인 상세·익명 잠금·목록·초안·관리자 요청·세션·첨부는 캐시하지 않음. DB 장애는 캐시 hit가 있더라도 기존 503 경계 유지. 기본값은 캐시 비활성, 외부 Redis 없이 기존 조회 유지. 설정·장애·검증 범위는 [공개 본문 캐시 안내](cache.md) 참고.
+
+## Tech 분류·태그 — P1-05A 격리 HTTP·SQL 검증 완료
+
+기존 관리자 POST·PUT의 `title`·`slug`·`body` 세 필드 계약은 유지. 별도 관리자 `PATCH /api/v1/admin/posts/{id}/taxonomy`가 필수 `categoryId`(정수 또는 명시적 `null`이면 해제)와 필수 `tags:string[]`를 한 번에 교체하고 성공 시 `200` 관리자 상세를 반환하는 계약. 문자열 숫자·소수·불리언 등 JSON 타입 오류와 누락·잘못된 태그 배열은 `400`. 유효한 ADMIN 세션·현재 CSRF 토큰 필요. 분류는 독립 경로로 만들고 삭제 시 글을 해당 분류의 부모로 옮기는 계약. 목록·상세에 `category:{id,path,name,depth}|null` 참조와 순서 있는 `tags:string[]`를 추가하되, 익명 PRIVATE 잠금 응답은 `category=null`, `tags=[]`, `body=null` 유지. 본문 Redis 캐시는 taxonomy를 저장하지 않아 현재 DB 메타데이터를 매번 사용.
+
+공개 `GET /api/v1/posts`의 선택적 `categoryId`는 해당 분류와 자손 전체, 선택적 `tag`는 정규화한 이름의 정확 일치, 두 필터는 AND. 기존 출간·역할별 공개 범위와 정렬·페이지 규칙을 SELECT·COUNT 모두에 적용하며 본문 제외 SQL 유지. 빈 폴더·권한별 분류 건수와 태그 사용 글 수는 공개 `GET /api/v1/categories`·`GET /api/v1/tags`, 관리자 분류·태그 경로에서 제공. 요청 예시와 삭제·비공개 경계 및 실제 검증은 [Tech 분류·태그 안내](taxonomy.md) 참고. 공개 Pages의 분류 화면은 아직 없음.
 
 ## 오류 경계
 
@@ -78,3 +84,5 @@ ID 0·음수는 `400`; 존재하지 않는 **양수** ID는 `404`. Spring Securi
 ## 실제 검증 범위
 
 2026-09-26 P1-04B 격리 JAR·Buildpacks/Compose HTTP에서 기존 V4 초안의 V5 전환 후 비노출, PUBLIC/PRIVATE 권한별 목록·건수, KST 출간일, 익명 PRIVATE 직접 조회의 `body=null`, 실제 목록 SQL의 본문 열 제외 확인. 출간·철회·재출간·반복 요청에서 최초 출간 시각 유지, 동시 PUT·공개 범위 변경의 상태 보존, ADMIN/CSRF·CORS·잘못된 `visibility` 타입(숫자·불리언·배열·`null`) 거부, API 재시작 후 JDBC 세션, DB 중단의 약 30초 후 503과 복구, 로그아웃 확인. 기존 28개 검사 통과는 최종 enum 입력 DTO 정정 **전** 결과이며, 정정 뒤에는 이미지를 다시 빌드해 JAR/Compose HTTP와 Swagger의 필수 문자열 enum을 확인. 검증 자원 정리, 기존 VM 앱·Redis 유지. P1-04B main·CI·Pages 성공 확인. P1-04 캐시나 공개 HTTPS 브라우저 연결의 완료 근거로 확장하지 않음.
+
+2026-09-26 P1-05A 최종 소스의 기존 검사 28개 통과. 격리 JAR HTTP에서 분류·태그 필수 JSON 타입과 정규화, ADMIN·CSRF, 익명/회원/관리자의 필터·건수·잠금 응답, 분류 삭제의 글 부모 이동, 병렬 생성·삭제/할당 충돌, 재시작 후 JDBC 세션을 확인. 공개 2건 페이지 SQL은 본문 제외 글 조회와 분류·태그 일괄 조회를 확인. Redis 공개 본문 캐시 hit 중 taxonomy 변경·분류 삭제가 현재 메타데이터로 반영되고 PRIVATE 전환에서 본문·taxonomy가 잠기는 흐름도 확인. 새 Buildpacks 이미지는 이 단계에서 만들지 않았으며 main·CI·Pages 반영 전. 상세 근거는 [Tech 분류·태그 안내](taxonomy.md) 참고.

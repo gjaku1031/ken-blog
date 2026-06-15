@@ -2,7 +2,7 @@
 
 - P1-04A 관리자 초안 API: 구현·격리 검증·main·CI·Pages 완료. [상세](issues/P1-04A.md).
 - 2026-09-26부터 남은 로드맵 자율 진행. 계획·검증·기능별 커밋·main 직접 push 유지. 학습 문서 추가/갱신 중단.
-- 현재: [P1-04B 출간·공개 범위·권한별 조회](issues/P1-04B.md) main·CI·Pages 완료. 다음 [P1-04 공개 본문 캐시](issues/P1-04.md) 구현·격리 검증 완료, main·CI·Pages 반영 진행. 이후 Tech 분류·태그·화면·Projects/Notes·에디터·운영 검증 순차 진행. [전체 전달 체크리스트](delivery-checklist.md)의 기능은 완료 증거가 있을 때만 완료 표시.
+- 현재: [P1-04B 출간·공개 범위·권한별 조회](issues/P1-04B.md) main·CI·Pages 완료. [P1-04 공개 본문 캐시](issues/P1-04.md) main·CI·Pages 완료. 현재 [P1-05A Tech 분류·태그](issues/P1-05A.md) 구현·격리 검증 완료, main 반영 진행. 이후 Tech 분류·태그·화면·Projects/Notes·에디터·운영 검증 순차 진행. [전체 전달 체크리스트](delivery-checklist.md)의 기능은 완료 증거가 있을 때만 완료 표시.
 
 ## 검증 경계
 

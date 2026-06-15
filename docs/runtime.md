@@ -1,6 +1,6 @@
 # 정적 프론트와 로컬 API 실행
 
-현재 프론트는 GitHub Pages에 올리는 Next.js 정적 파일. 브라우저가 공개 상태 API를 직접 호출하는 구조. Spring API는 Cloud Native Buildpacks의 JVM 이미지로 생성하고, 이 문서의 Compose는 API·개발 MySQL을 실행. [게시글 저장 기반](persistence.md)은 API 내부 기능이며 [관리자 로그인](authentication.md)은 MySQL에 저장하는 서버 세션 기반. 관리자 이미지 첨부는 [비공개 OCI Object Storage](attachments.md)에 선택적으로 연결. P1-04의 [Redis Cloud 공개 본문 캐시](cache.md)는 기본 비활성으로 격리 검증 완료, main 반영 예정이며 Compose에 Redis 서비스를 추가하지 않음.
+현재 프론트는 GitHub Pages에 올리는 Next.js 정적 파일. 브라우저가 공개 상태 API를 직접 호출하는 구조. Spring API는 Cloud Native Buildpacks의 JVM 이미지로 생성하고, 이 문서의 Compose는 API·개발 MySQL을 실행. [게시글 저장 기반](persistence.md)은 API 내부 기능이며 [관리자 로그인](authentication.md)은 MySQL에 저장하는 서버 세션 기반. 관리자 이미지 첨부는 [비공개 OCI Object Storage](attachments.md)에 선택적으로 연결. P1-04의 [Redis Cloud 공개 본문 캐시](cache.md)는 기본 비활성으로 격리 검증·main·CI·Pages 반영 완료이며 Compose에 Redis 서비스를 추가하지 않음.
 
 ## Spring 이미지와 API 실행
 
@@ -74,7 +74,7 @@ Spring CORS는 `/api/v1/status`의 지정 origin과 공개 GET 및 OPTIONS 사�
 
 2026-09-25 P1-03 격리 검증에서는 Java SDK의 OCI Object Storage 실제 PNG·JPEG 업로드·다운로드·삭제, 실패 후 상태 정리, Buildpacks Compose API·MySQL 기동, DB 중단·복구를 확인. 실행별 첨부 객체 접두사는 정리 후 비어 있음. 응답 상태와 인위적 장애 주입의 범위는 [첨부파일 운영 안내](attachments.md)에 기록. 새 API를 공개 HTTPS 주소에 배포하거나 기존 앱을 교체한 결과는 아님.
 
-2026-09-26 P1-04 최종 소스의 기존 검사 28개 통과. 격리 Buildpacks·Compose 이미지에서는 V6 본문 해시, JDBC 로그인·세션 ID 교체, 외부 Redis Cloud의 공개 본문 키·TTL과 비공개 전환 뒤 차단·키 제거, 글 삭제를 확인. 초기 냉간 연결 실패 시 HTTP는 DB 원문으로 우회했고 짧은 유예 뒤 캐시 연결에 성공. 최종 JAR에서는 캐시 miss·hit, 해시 불일치, Redis 중단 시 DB fallback·복구, API 재시작 후 기존 JDBC 세션, 비공개 전환·삭제도 확인. 검증 전용 JAR·MySQL·Redis·이미지 프로젝트·볼륨과 Cloud 소유 prefix는 제거. 기존 VM 앱·Redis의 ID·이미지·시작 시각은 유지. main·CI·Pages 반영 및 공개 HTTPS API 배포는 아직 없음.
+2026-09-26 P1-04 최종 소스의 기존 검사 28개 통과. 격리 Buildpacks·Compose 이미지에서는 V6 본문 해시, JDBC 로그인·세션 ID 교체, 외부 Redis Cloud의 공개 본문 키·TTL과 비공개 전환 뒤 차단·키 제거, 글 삭제를 확인. 초기 냉간 연결 실패 시 HTTP는 DB 원문으로 우회했고 짧은 유예 뒤 캐시 연결에 성공. 최종 JAR에서는 캐시 miss·hit, 해시 불일치, Redis 중단 시 DB fallback·복구, API 재시작 후 기존 JDBC 세션, 비공개 전환·삭제도 확인. 검증 전용 JAR·MySQL·Redis·이미지 프로젝트·볼륨과 Cloud 소유 prefix는 제거. 기존 VM 앱·Redis의 ID·이미지·시작 시각은 유지. main·[CI](https://github.com/gjaku1031/ken-blog/actions/runs/36220258568)·[Pages](https://github.com/gjaku1031/ken-blog/actions/runs/36220258654) 반영 완료. 공개 HTTPS API 배포는 아직 없음.
 
 ## 메모리 한도와 검증 범위
 

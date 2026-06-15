@@ -38,7 +38,7 @@ Compose에는 Redis 컨테이너·호스트 포트·볼륨을 추가하지 않�
 
 기존 외부 설정의 사전 확인에서 Redis Cloud `PING`의 `PONG`, 전용 임시 prefix의 TTL `SET`·`GET`·`DEL`은 성공했으나 그 설정은 `CACHE_REDIS_TLS=false`인 **평문 연결**. 연결된 클라이언트의 `PING` 10회 중앙값은 2.45ms, 최댓값은 2.5ms; Docker 기동 시간은 제외한 명령 수치일 뿐 API 캐시 성능이나 사용자 지연 개선의 증거가 아님. TLS 지원 여부는 제공 환경에서 별도 확인이 필요하고, 해시 검사는 평문 전송을 암호화하지 않음.
 
-2026-09-26 최종 소스의 기존 검사 28개 통과. 격리 Buildpacks·Compose 이미지에서는 V6 반영, JDBC 로그인과 세션 ID 교체, 실제 Redis Cloud 공개 본문 키와 TTL, 비공개 전환 뒤 키 제거·본문 차단, 게시글 삭제를 확인. 첫 냉간 연결이 실패하더라도 HTTP는 Redis 연결을 기다리지 않고 DB 본문을 반환했으며 5초 유예 후 재연결에서 실제 캐시 키가 생성됨. 최종 JAR에서는 캐시 miss·hit, 손상 값의 해시 불일치, Redis 중단 시 DB fallback(해당 요청 15.1ms)·복구, API 재시작 후 기존 JDBC 세션 유지, 비공개 전환 무효화와 삭제를 확인. 이 15.1ms는 단일 장애 요청의 관찰값이며 장기 지연 보장 아님. 검증 전용 JAR·MySQL·Redis·이미지 프로젝트·볼륨과 Cloud 소유 prefix는 정리했으며 기존 VM 앱·Redis의 ID·이미지·시작 시각은 유지. main·CI·Pages 반영은 아직 예정이며 공개 HTTPS API 배포도 수행하지 않음.
+2026-09-26 최종 소스의 기존 검사 28개 통과. 격리 Buildpacks·Compose 이미지에서는 V6 반영, JDBC 로그인과 세션 ID 교체, 실제 Redis Cloud 공개 본문 키와 TTL, 비공개 전환 뒤 키 제거·본문 차단, 게시글 삭제를 확인. 첫 냉간 연결이 실패하더라도 HTTP는 Redis 연결을 기다리지 않고 DB 본문을 반환했으며 5초 유예 후 재연결에서 실제 캐시 키가 생성됨. 최종 JAR에서는 캐시 miss·hit, 손상 값의 해시 불일치, Redis 중단 시 DB fallback(해당 요청 15.1ms)·복구, API 재시작 후 기존 JDBC 세션 유지, 비공개 전환 무효화와 삭제를 확인. 이 15.1ms는 단일 장애 요청의 관찰값이며 장기 지연 보장 아님. 검증 전용 JAR·MySQL·Redis·이미지 프로젝트·볼륨과 Cloud 소유 prefix는 정리했으며 기존 VM 앱·Redis의 ID·이미지·시작 시각은 유지. main `2ca2169`·[CI](https://github.com/gjaku1031/ken-blog/actions/runs/36220258568)·[Pages](https://github.com/gjaku1031/ken-blog/actions/runs/36220258654) 반영 완료. 공개 HTTPS API 배포는 수행하지 않음.
 
 백그라운드 연결 변경 **이전** JAR에서 DB 직접 조회와 Redis Cloud 캐시를 각각 10회 측정한 요청 중앙값은 1,050바이트 본문 12.26ms/20.51ms, 128 KiB 본문 15.42ms/21.50ms. 이 환경과 표본에서는 Cloud 경로가 더 느렸음. 변경 후 성능을 나타내거나 다른 부하에서의 개선·회귀를 보장하지 않으며 캐시 기본값은 비활성으로 유지.
 
