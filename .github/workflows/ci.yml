@@ -109,10 +109,14 @@ jobs:
           import urllib.request
 
           html = open('home.html', encoding='utf-8').read()
-          assert '<title>Ken Blog</title>' in html
+          assert '<title>ken.blog</title>' in html
           assert '공개 API 주소가 아직 설정되지 않았습니다.' in html
           assert '/ken-blog/architecture/architecture.svg' in html
           assert '/ken-blog/architecture/architecture.dark.svg' in html
+          for route in ('tech/', 'post/', 'login/', 'projects/', 'notes/'):
+              with urllib.request.urlopen('http://127.0.0.1:18080/ken-blog/' + route) as response:
+                  assert response.status == 200
+                  assert '<title>ken.blog</title>' in response.read().decode('utf-8')
           asset = re.search(r'/ken-blog/_next/static/[^" ]+\.js', html)
           assert asset is not None
           with urllib.request.urlopen('http://127.0.0.1:18080' + asset.group()) as response:
