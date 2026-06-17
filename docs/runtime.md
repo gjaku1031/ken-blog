@@ -1,6 +1,6 @@
 # 정적 프론트와 로컬 API 실행
 
-현재 프론트는 GitHub Pages에 올리는 Next.js 정적 파일. 브라우저가 공개 상태 API를 직접 호출하는 구조. Spring API는 Cloud Native Buildpacks의 JVM 이미지로 생성하고, 이 문서의 Compose는 API·개발 MySQL을 실행. [게시글 저장 기반](persistence.md)은 API 내부 기능이며 [관리자 로그인](authentication.md)은 MySQL에 저장하는 서버 세션 기반. 관리자 이미지 첨부는 [비공개 OCI Object Storage](attachments.md)에 선택적으로 연결. P1-04의 [Redis Cloud 공개 본문 캐시](cache.md)는 기본 비활성으로 격리 검증·main·CI·Pages 반영 완료이며 Compose에 Redis 서비스를 추가하지 않음.
+현재 프론트는 GitHub Pages에 올리는 Next.js 정적 파일. 브라우저가 Spring의 공개 글·분류·태그 및 인증 API를 직접 호출하는 구조. 공개 HTTPS API 주소는 아직 미설정. Spring API는 Cloud Native Buildpacks의 JVM 이미지로 생성하고, 이 문서의 Compose는 API·개발 MySQL을 실행. [게시글 저장 기반](persistence.md)은 API 내부 기능이며 [관리자 로그인](authentication.md)은 MySQL에 저장하는 서버 세션 기반. 관리자 이미지 첨부는 [비공개 OCI Object Storage](attachments.md)에 선택적으로 연결. P1-04의 [Redis Cloud 공개 본문 캐시](cache.md)는 기본 비활성으로 격리 검증·main·CI·Pages 반영 완료이며 Compose에 Redis 서비스를 추가하지 않음.
 
 ## Spring 이미지와 API 실행
 
@@ -43,16 +43,20 @@ npm ci
 NEXT_PUBLIC_BASE_PATH=/ken-blog NEXT_PUBLIC_API_BASE_URL= npm run build
 ```
 
-현재 공개 HTTPS API 주소가 없으므로 Pages 배포 빌드는 위처럼 API URL을 비움. 화면은 `공개 API 주소가 아직 설정되지 않았습니다.`를 표시. `http://127.0.0.1:18081`은 같은 VM의 로컬 검증에만 사용하며 Pages 방문자의 브라우저에서 접근할 수 없음. HTTPS Pages에서 HTTP API를 설정해도 브라우저의 혼합 콘텐츠 규칙에 따라 연결 불가. 공개 연결은 후속 HTTPS API 주소 마련 후 별도 빌드·배포 대상.
+현재 공개 HTTPS API 주소가 없으므로 Pages 배포 빌드는 위처럼 API URL을 비움. 로컬 미설정 빌드의 Home·Tech·글 상세는 API 요청 없이 구성 안내를 표시하고 실제 글 0건으로 오인시키지 않음을 확인. `http://127.0.0.1:18081`은 같은 VM의 로컬 검증에만 사용하며 Pages 방문자의 브라우저에서 접근할 수 없음. HTTPS Pages에서 HTTP API를 설정해도 브라우저의 혼합 콘텐츠 규칙에 따라 연결 불가. 공개 연결은 후속 HTTPS API 주소 마련 후 별도 빌드·배포 대상.
 
 ## 로컬의 두 origin 검증
 
-API를 로컬 정적 사이트 `http://127.0.0.1:14000`에서 읽으려면 허용 origin을 추가하여 Compose 시작:
+P2-01 화면은 정적 서버 `http://127.0.0.1:14000`과 API `http://127.0.0.1:18081`의 **포트가 다른 두 origin**에서 격리 검증. 두 주소의 호스트는 모두 `127.0.0.1`로 통일하고 한쪽만 `localhost`로 바꾸지 않음. 같은 호스트의 host-only `KENBLOGSESSION` 쿠키를 사용하지만 포트가 다르므로 정확한 origin CORS 설정이 필요. 로컬 HTTP 로그인 시험에서만 `Secure` 쿠키를 끄고, 초기 ADMIN/USER 계정과 DB는 [인증 안내](authentication.md)에 따라 별도로 준비. 현재 소스로 API 이미지를 재빌드한 뒤 아래 예시처럼 실행:
 
 ```sh
 APP_CORS_ALLOWED_ORIGINS=https://gjaku1031.github.io,http://127.0.0.1:14000 \
+  APP_AUTH_CORS_ALLOWED_ORIGINS=http://127.0.0.1:14000 \
+  SESSION_COOKIE_SECURE=false \
   docker compose -p ken-blog-p102 up -d --no-build
 ```
+
+`APP_CORS_ALLOWED_ORIGINS`는 상태 API와 공개 GET의 origin, `APP_AUTH_CORS_ALLOWED_ORIGINS`는 쿠키가 필요한 인증 API와 회원 글·분류·태그 GET의 credential 허용 origin. 같은 로컬 origin을 두 설정에 적되 Pages 공개 origin에는 인증 허용을 추가하지 않음. 익명 공개 조회 요청은 브라우저에서 쿠키를 제외하고, 로그인 후 회원 조회에서만 자격 증명을 포함하는 P2-01 계약. `SESSION_COOKIE_SECURE=false`는 이 HTTP 로컬 환경 한정이며 공개 HTTPS 환경의 기본 `true`를 바꾸지 않음.
 
 그다음 웹을 로컬 테스트 주소로 재빌드하고 `out/`을 `/ken-blog` 경로에 배치:
 
@@ -60,15 +64,17 @@ APP_CORS_ALLOWED_ORIGINS=https://gjaku1031.github.io,http://127.0.0.1:14000 \
 cd apps/web
 NEXT_PUBLIC_BASE_PATH=/ken-blog \
   NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:18081 npm run build
-mkdir -p /tmp/ken-blog-p102-site/ken-blog
-cp -a out/. /tmp/ken-blog-p102-site/ken-blog/
+mkdir -p /tmp/ken-blog-p201-site/ken-blog
+cp -a out/. /tmp/ken-blog-p201-site/ken-blog/
 python3 -m http.server 14000 --bind 127.0.0.1 \
-  --directory /tmp/ken-blog-p102-site
+  --directory /tmp/ken-blog-p201-site
 ```
 
-같은 호스트의 브라우저에서 `http://127.0.0.1:14000/ken-blog/` 확인. API가 실행 중이면 정상 안내, `docker compose -p ken-blog-p102 stop api` 후 새로고침하면 연결 실패 안내. 복구는 `docker compose -p ken-blog-p102 start api`. 정적 파일 서버는 실행한 터미널에서 `Ctrl+C`로 종료.
+같은 호스트의 브라우저에서 `http://127.0.0.1:14000/ken-blog/` 확인. P2-01의 `trailingSlash` 정적 빌드는 `/ken-blog/tech/`, `/ken-blog/post/?slug=글주소`, `/ken-blog/login/` 직접 열기·새로고침을 지원. `/ken-blog/projects/`와 `/ken-blog/notes/`는 준비 화면. 글 slug는 경로 매개변수가 아니라 `/post/`의 쿼리이며 URL 인코딩 필요. API 중단·복구는 격리 검증 프로젝트에서만 수행하고 정적 파일 서버는 실행한 터미널에서 `Ctrl+C`로 종료.
 
-Spring CORS는 `/api/v1/status`의 지정 origin과 공개 GET 및 OPTIONS 사전 요청만 허용. 기본 origin은 `https://gjaku1031.github.io`; 로컬 origin은 위처럼 실행 시 명시적으로 추가. 현재 정적 화면의 상태 조회는 자격 증명을 보내지 않으며 API는 상태 경로에 자격 증명 허용 CORS 헤더를 반환하지 않음. 인증 API의 자격 증명 CORS는 별도 `APP_AUTH_CORS_ALLOWED_ORIGINS`로만 명시 허용하며 기본 비허용. CORS는 브라우저의 읽기 정책으로, API 인증이나 네트워크 방화벽을 대체하지 않음.
+Spring CORS는 `/api/v1/status`의 지정 origin과 공개 GET을 허용하며 상태 경로에는 credential 허용 헤더가 없음. 인증 API의 자격 증명 CORS는 별도 `APP_AUTH_CORS_ALLOWED_ORIGINS`로만 명시 허용하며 기본 비허용. 동일한 로컬 origin을 두 목록에 넣으면 글·분류·태그 GET에는 credential 허용 CORS 응답을 받을 수 있지만, 익명 공개 fetch가 쿠키를 보낼지는 브라우저 코드의 요청 설정이 결정. CORS는 브라우저의 응답 읽기 정책이며 API 인증이나 네트워크 방화벽을 대체하지 않음. 공개 Pages에는 API HTTPS 주소가 아직 없어 이 로컬 로그인 결과를 실사이트 로그인 완료로 해석하지 않음.
+
+2026-09-26 P2-01 소스의 두 번째 정적 빌드·타입 검사와 기존 npm 검사 7개 통과. 격리 Chrome에서 6개 정적 경로의 직접 접근, Tech 첫 10건에서 전체 14건으로 추가 로드, 분류·태그 URL 필터의 새로고침·뒤로가기와 빈 결과, 익명 PRIVATE 잠금·회원 로그인 후 본문, 잘못된 비밀번호와 로그아웃, Markdown의 표·코드·읽기 전용 할 일·위험 링크와 외부 이미지 차단을 확인. Home·Tech·본문·로그인의 라이트·다크 접근성 검사 8회에서 위반 0건. 320~1440px의 주요 화면에서 페이지 가로 넘침 0이고, 320px의 긴 코드와 8열 표는 키보드로 내부 가로 스크롤 가능. 키보드 본문 건너뛰기, 테마 선택의 새로고침 후 유지, 외부 `returnTo` 차단 확인. 인증 본문 응답을 지연한 뒤 로그아웃해도 PRIVATE 본문이 다시 나타나지 않았고, 격리 API 중단의 연결 오류와 재시작 후 재시도 복구를 확인. 브라우저의 미처리 오류는 없었음. 별도 API 주소 미설정 정적 빌드에서 Home·Tech·글 상세의 구성 안내, API 네트워크 요청 없음, 홈 도면의 두 테마 자산 로드를 확인. 현재 GitHub Actions 변수 목록도 비어 있어 Pages의 빌드 입력은 API 미설정 상태. 새 main·CI·Pages 반영이나 기존 운영 API 교체의 근거는 아님.
 
 2026-09-25 별도 검증 프로젝트에서 Spring Session JDBC를 포함한 Buildpacks 이미지 생성 성공. MySQL·API만 기동해 `/actuator/health`와 `/api/v1/status` `UP` 확인. 같은 MySQL에 재연결한 실행 JAR에서 Flyway V1~V3가 중복 적용되지 않았고, API 재시작 후 유효 세션 복원도 확인. 검증용 MySQL의 중단·복구와 만료 행 정리는 [관리자 로그인](authentication.md)에 기록. 검증 프로젝트의 컨테이너·네트워크·전용 볼륨·임시 비밀 파일은 제거했으며 기존 8080 앱·Redis는 유지.
 

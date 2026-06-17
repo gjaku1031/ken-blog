@@ -1,6 +1,6 @@
 # Tech 분류·태그와 권한별 탐색
 
-P1-05A는 게시글에 최대 3단계 Tech 분류와 순서 있는 태그를 연결하고, 같은 권한 기준으로 분류 수·태그 수·글 목록을 조회하는 단계. 2026-09-26 최종 소스의 기존 검사 28개와 격리 JAR HTTP·SQL·공개 본문 캐시 활성 호환 검증 통과. 검증 자원 정리 완료, main·CI·Pages 반영은 예정이며 [계획](../planning/issues/P1-05A.md)에 결과를 기록. 기존 글은 분류가 없는 상태로 유지하며 샘플 분류·태그를 자동 생성하지 않음. 브라우저 분류 화면과 공개 HTTPS API 연결은 후속 범위.
+P1-05A는 게시글에 최대 3단계 Tech 분류와 순서 있는 태그를 연결하고, 같은 권한 기준으로 분류 수·태그 수·글 목록을 조회하는 단계. 2026-09-26 최종 소스의 기존 검사 28개와 격리 JAR HTTP·SQL·공개 본문 캐시 활성 호환 검증 통과. 검증 자원 정리 후 main `e147f10`·[CI](https://github.com/gjaku1031/ken-blog/actions/runs/36221577967)·[Pages](https://github.com/gjaku1031/ken-blog/actions/runs/36221578032) 반영 완료. 기존 글은 분류가 없는 상태로 유지하며 샘플 분류·태그를 자동 생성하지 않음. 브라우저 분류 화면과 공개 HTTPS API 연결은 별도 범위.
 
 | 경로 | 접근·성공 응답 |
 | --- | --- |
@@ -50,4 +50,4 @@ P1-05A는 게시글에 최대 3단계 Tech 분류와 순서 있는 태그를 연
 
 2026-09-26 기존 검사 28개 통과. 격리 MySQL·JAR API HTTP에서 기존 V6 Unicode 글의 V7 전환·기존 내용 보존과 새 DB V7 기동, 엄격한 JSON 타입·한글 경로·깊이·중복·ADMIN/USER/익명·CSRF·Swagger 필수/nullable `int64`와 `array<string>` 계약 확인. 중간 노드 재사용·실패 롤백, 빈 폴더·권한별 직접/하위 수, 태그 정규화·중복 제거·순서·빈 배열, 익명 PRIVATE 잠금의 `category=null`·`tags=[]`, 분류·태그 AND 필터와 페이지 SELECT/COUNT 일치 확인. 중분류·대분류 삭제 시 자손 글·초안을 부모/`null`로 이동하면서 본문·최초 출간일 보존, 게시글 삭제 시 태그 제거, 병렬 경로 생성·삭제/할당 경합의 오류 응답과 API 재시작 뒤 JDBC 세션 유지 확인. 공개 2건 페이지의 실제 SQL은 분류 필터 조회, 본문 제외 게시글 조회, 분류 일괄 조회, `post_tags` 한 번 조회로 확인. CORS·`no-store`도 확인.
 
-기존 Redis Cloud 공개 본문 캐시를 활성화한 격리 HTTP에서는 hit 상태의 taxonomy PATCH 뒤 현재 분류·태그가 즉시 반영되고, 분류 삭제 뒤 `category=null`·태그 보존 확인. 캐시 hit에도 본문 SQL은 제외되고, PRIVATE 전환 뒤 이전 키 제거와 본문·분류·태그 잠금, 최초 출간일 보존 확인. 소유 JAR·MySQL·Redis·볼륨은 제거했으며 기존 배포의 ID·이미지·시작 시각은 유지. 이번 P1-05A에서 새 Buildpacks 이미지를 빌드한 결과는 없고 main·CI·Pages 반영도 아직 없음. 공개 Pages의 Tech 탐색 UI·검색·Projects/Notes·편집기 화면은 이 API 단계의 완료 조건에 포함하지 않음.
+기존 Redis Cloud 공개 본문 캐시를 활성화한 격리 HTTP에서는 hit 상태의 taxonomy PATCH 뒤 현재 분류·태그가 즉시 반영되고, 분류 삭제 뒤 `category=null`·태그 보존 확인. 캐시 hit에도 본문 SQL은 제외되고, PRIVATE 전환 뒤 이전 키 제거와 본문·분류·태그 잠금, 최초 출간일 보존 확인. 소유 JAR·MySQL·Redis·볼륨은 제거했으며 기존 배포의 ID·이미지·시작 시각은 유지. 이번 P1-05A에서 새 Buildpacks 이미지를 빌드한 결과는 없음. 소스 작성 시각인 2026-06-14~15와 실제 검증·main 반영일인 2026-09-26은 구분. 공개 Pages의 Tech 탐색 UI·검색·Projects/Notes·편집기 화면은 이 API 단계의 완료 조건에 포함하지 않음.

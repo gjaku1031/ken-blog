@@ -28,8 +28,8 @@ io.github.gjaku1031.kenblog
 
 프론트는 GitHub Pages에서 제공하고 브라우저가 Spring API를 호출하는 구조. VM에는 Spring 실행. 공개 API 도메인·HTTPS 주소가 아직 없어 공개 홈은 API 미설정 상태로 배포.
 
-- [프론트와 임시 아키텍처 대문](https://gjaku1031.github.io/ken-blog/)
-- [현재 계획](planning/issues/P1-05A.md) · [작업 상태](planning/tasks.md) · [개발 순서](planning/roadmap.md)
+- [정적 프론트와 아키텍처 도면](https://gjaku1031.github.io/ken-blog/)
+- [현재 계획](planning/issues/P2-01.md) · [작업 상태](planning/tasks.md) · [개발 순서](planning/roadmap.md)
 - [코드·문서 규칙](docs/code-conventions.md) · [런타임 안내](docs/runtime.md) · [게시글 API](docs/posts.md) · [Tech 분류·태그](docs/taxonomy.md) · [선택적 공개 본문 캐시](docs/cache.md) · [첨부파일 운영 안내](docs/attachments.md) · [도면 설명](docs/architecture.md)
 
 ## API 직접 실행
@@ -70,9 +70,9 @@ SERVER_ADDRESS=127.0.0.1 SERVER_PORT=8081 ./mvnw spring-boot:run
 | `/api/v1/admin/attachments/{id}` | 관리자 첨부 메타데이터 조회·삭제. 삭제에는 CSRF 필요 |
 | `/api/v1/admin/attachments/{id}/content` | READY 이미지의 관리자 다운로드 |
 
-P1-05A에서 추가한 경로는 관리자 분류 생성·전체 트리·부모 이동 삭제(`/api/v1/admin/categories`), 글 분류·태그 전체 교체(`/api/v1/admin/posts/{id}/taxonomy`), 공개 권한별 분류·태그 집계(`/api/v1/categories`, `/api/v1/tags`), 관리자 태그 자동완성(`/api/v1/admin/tags`). 기존 공개 글 목록에는 선택적 `categoryId`·`tag` 필터 추가. 입력·권한·삭제·공개 개수 규칙과 2026-09-26 격리 JAR HTTP·SQL·캐시 활성 호환 검증 범위는 [Tech 분류·태그 계약](docs/taxonomy.md)에 기록. main·CI·Pages 반영은 예정.
+P1-05A에서 추가한 경로는 관리자 분류 생성·전체 트리·부모 이동 삭제(`/api/v1/admin/categories`), 글 분류·태그 전체 교체(`/api/v1/admin/posts/{id}/taxonomy`), 공개 권한별 분류·태그 집계(`/api/v1/categories`, `/api/v1/tags`), 관리자 태그 자동완성(`/api/v1/admin/tags`). 기존 공개 글 목록에는 선택적 `categoryId`·`tag` 필터 추가. 입력·권한·삭제·공개 개수 규칙과 2026-09-26 격리 JAR HTTP·SQL·캐시 활성 호환 검증 범위는 [Tech 분류·태그 계약](docs/taxonomy.md)에 기록. main `e147f10`·[CI](https://github.com/gjaku1031/ken-blog/actions/runs/36221577967)·[Pages](https://github.com/gjaku1031/ken-blog/actions/runs/36221578032) 반영 완료.
 
-상태 API 명세는 `StatusApi`, 구현은 `StatusController`에서 관리. Spring MVC 오류는 `ApiErrorHandler`의 RFC 9457 `ProblemDetail`로 처리. MySQL·JPA·Flyway와 관리자 게시글 초안 CRUD, 출간 상태·권한별 읽기 API 제공. P1-04B는 main·CI·Pages 반영 완료. P1-04의 익명 PUBLIC 상세 본문용 선택적 Redis Cloud 캐시는 2026-09-26 격리 JAR·Buildpacks/Compose 검증 후 main `2ca2169`·[CI](https://github.com/gjaku1031/ken-blog/actions/runs/36220258568)·[Pages](https://github.com/gjaku1031/ken-blog/actions/runs/36220258654) 반영 완료. 기본값은 비활성이며 Spring Session JDBC 로그인과 MySQL 세션을 유지. P1-05A Tech 분류·태그와 권한별 탐색 API는 최종 소스의 기존 검사 28개와 격리 HTTP·SQL 검증을 통과했으며 원격 반영 전. 관리자 첨부 API는 이미지 원본을 비공개 OCI Object Storage에, 상태·소유자 등 메타데이터를 MySQL에 보관. 브라우저 공개 글·관리자 화면과 공개 HTTPS API 연결은 아직 없음.
+상태 API 명세는 `StatusApi`, 구현은 `StatusController`에서 관리. Spring MVC 오류는 `ApiErrorHandler`의 RFC 9457 `ProblemDetail`로 처리. MySQL·JPA·Flyway와 관리자 게시글 초안 CRUD, 출간 상태·권한별 읽기 API 제공. P1-04B와 P1-05A는 main·CI·Pages 반영 완료. P1-04의 익명 PUBLIC 상세 본문용 선택적 Redis Cloud 캐시는 2026-09-26 격리 JAR·Buildpacks/Compose 검증 후 main `2ca2169`·[CI](https://github.com/gjaku1031/ken-blog/actions/runs/36220258568)·[Pages](https://github.com/gjaku1031/ken-blog/actions/runs/36220258654) 반영 완료. 기본값은 비활성이며 Spring Session JDBC 로그인과 MySQL 세션을 유지. 관리자 첨부 API는 이미지 원본을 비공개 OCI Object Storage에, 상태·소유자 등 메타데이터를 MySQL에 보관. P2-01의 Tech 탐색·로그인 화면은 로컬 Chrome 기능·장애·접근성 및 API 주소 미설정 빌드 검증 완료. main·CI·Pages 반영 전이며 공개 HTTPS API 주소와 실사이트 로그인 연결은 아직 없음.
 
 ## 정적 프론트 빌드
 
@@ -83,20 +83,22 @@ cd apps/web
 npm ci
 npm test
 npm run typecheck
-NEXT_PUBLIC_BASE_PATH=/ken-blog npm run build
+NEXT_PUBLIC_BASE_PATH=/ken-blog NEXT_PUBLIC_API_BASE_URL= npm run build
 ```
 
-`out/`을 정적 호스팅에 게시. GitHub Actions도 같은 정적 산출물을 Pages에 배포하며 Next 서버는 실행하지 않음. 기본 주소가 비어 있는 빌드도 정상 완료되고 홈에 미설정 안내 표시.
+`out/`을 정적 호스팅에 게시. GitHub Actions도 같은 정적 산출물을 Pages에 배포하며 Next 서버는 실행하지 않음. 공개 API 주소를 비운 빌드에서 Home·Tech·글 상세는 미설정 안내를 표시하며 실제 글 0건으로 처리하거나 API에 요청하지 않음을 로컬에서 확인.
 
 `NEXT_PUBLIC_API_BASE_URL`은 브라우저가 접근할 공개 API 주소. 빌드 시 JavaScript에 포함되므로 비밀값 저장 금지. 현재 공개 배포에는 설정하지 않음. HTTPS Pages에서 HTTP API 호출은 허용하지 않으며 실제 API의 HTTPS 준비 후 주소를 설정하고 다시 빌드해야 함.
 
 `NEXT_PUBLIC_BASE_PATH`는 프로젝트 하위 경로이며 Pages 배포 값은 `/ken-blog`. 환경변수 예시는 [apps/web/.env.example](apps/web/.env.example), 로컬 정적 서버·API 연결 및 CORS 확인 절차는 [런타임 안내](docs/runtime.md) 참고.
 
+P2-01에서 정적 `/tech/`, `/post/?slug=...`, `/login/` 화면과 공통 헤더·푸터·라이트/다크 테마를 구현. Noto Sans KR·IBM Plex Mono를 사용하며 Projects/Notes는 준비 화면. Pages의 `/ken-blog` basePath와 끝 슬래시 경로를 유지하고, 글 주소는 정적 `/post/` 페이지의 `slug` 쿼리로 선택. Home/Tech는 실제 공개 목록·분류·태그 API로 10개씩 조회하고 추가 로드·URL 필터·로딩·빈 결과·API 미설정·통신 실패를 구분. 글 상세는 읽기 전용 기본 Markdown/GFM을 표시하고 raw HTML 실행과 외부 이미지 자동 요청을 제외하며 할 일 항목은 읽기 전용. 로그인 화면은 로컬 JDBC 세션 API의 CSRF→로그인→현재 사용자→로그아웃 흐름에 연결하고 쿠키·토큰의 브라우저 영구 저장 없음. 2026-09-26 정적 빌드·타입 검사와 기존 npm 검사 7개, Chrome의 탐색·본문·로그인·로그아웃·세션 만료·늦은 응답 폐기·API 장애 복구·API 주소 미설정 안내 통과. 주요 화면의 라이트·다크 접근성 검사 8회 위반 0건. main·CI·Pages 반영은 예정. 관리자 편집, 검색·GA·공개 이미지와 고급 Markdown은 후속 범위.
+
 ## Spring 컨테이너와 배포 범위
 
 Spring API 이미지는 Buildpacks로 생성. 개발 Compose는 API·MySQL을 실행하며 Web Docker 구성 없음. 포트는 로컬 주소에만 연결. 이 구성은 새 프로젝트의 격리 검증용이며 기존 VM 앱·Redis를 교체한 상태가 아님. 공개 HTTPS API 배포는 아직 수행하지 않음.
 
-Pages의 아키텍처 도면 자산도 갱신했으나 공개 API 배포나 브라우저 첨부 UI 연결은 수행하지 않음. 공개 Pages의 API 주소 미설정과 로그인 화면 부재는 유지.
+Pages의 아키텍처 도면 자산은 유지. P2-01 화면 추가 후에도 공개 API 배포와 브라우저 첨부 UI 연결은 후속 단계이고, 공개 Pages의 API 주소는 계속 미설정. 로그인 화면의 정적 제공과 실사이트 로그인 성공은 별도 상태.
 
 [도면 설명과 원본](docs/architecture.md)은 정적 프론트 배포, 로컬 MySQL 게시글·계정·세션·첨부 메타데이터, 비공개 OCI Object Storage의 관리자 첨부 경로, 선택적 Redis Cloud 공개 본문 캐시와 후속 공개 HTTPS 연결을 구분.
 
@@ -104,4 +106,4 @@ Pages의 아키텍처 도면 자산도 갱신했으나 공개 API 배포나 브�
 
 계획별 실제 빌드·테스트·브라우저·CI 결과는 [작업 상태](planning/tasks.md)에서 확인. 메모리 사용량은 [런타임 안내](docs/runtime.md)의 측정 조건과 함께 해석.
 
-실제 환경 파일과 `docs/study/`는 Git 및 Pages 산출물에서 제외. 로그인 화면·게시글과 첨부의 연결·공개 이미지·GA 연동과 공개 HTTPS API 연결은 후속 단계. P1-04B API의 출간·공개 조회는 main 반영 완료이나 운영 API 배포와 Pages 글 화면 연결은 수행하지 않음. P1-04 캐시의 실제 확인 범위는 [계획](planning/issues/P1-04.md)과 [캐시 안내](docs/cache.md) 참고.
+실제 환경 파일과 `docs/study/`는 Git 및 Pages 산출물에서 제외. 게시글과 첨부의 연결·공개 이미지·GA 연동과 공개 HTTPS API 연결은 후속 단계. P1-04B API의 출간·공개 조회는 main 반영 완료이나 운영 API 배포와 Pages의 실제 데이터 연결은 수행하지 않음. P1-04 캐시의 실제 확인 범위는 [계획](planning/issues/P1-04.md)과 [캐시 안내](docs/cache.md) 참고.

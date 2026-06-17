@@ -1,6 +1,6 @@
 # 관리자 로그인과 MySQL 세션
 
-P1-02는 내부 관리자 로그인을 위한 서버 세션 기반. 관리자 게시글 초안 API와 이미지 첨부 API는 이후 단계에서 추가. P1-04B의 출간 글 익명/로그인 권한별 조회와 P1-04의 선택적 Redis Cloud 공개 본문 캐시는 2026-09-26 격리 검증 후 main·CI·Pages 반영 완료. 캐시는 계정·세션·CSRF를 받지 않음. P1-05A 분류·태그 공개 GET의 권한·CORS 확장은 같은 날 격리 HTTP 검증 완료, main 반영 전. 공개 회원가입·회원 관리·로그인 화면은 현재 없음. 초기 계정은 자동 생성되지 않으며 로컬 운영자가 외부 설정을 명시할 때만 한 명 준비. 공개 HTTPS API 주소와 도메인은 아직 미정이므로 외부 로그인 운영 없음.
+P1-02는 내부 관리자 로그인을 위한 서버 세션 기반. 관리자 게시글 초안 API와 이미지 첨부 API는 이후 단계에서 추가. P1-04B의 출간 글 익명/로그인 권한별 조회와 P1-04의 선택적 Redis Cloud 공개 본문 캐시는 2026-09-26 격리 검증 후 main·CI·Pages 반영 완료. 캐시는 계정·세션·CSRF를 받지 않음. P1-05A 분류·태그 공개 GET의 권한·CORS 확장도 같은 날 격리 HTTP 검증 후 main·CI·Pages 반영 완료. 공개 회원가입·회원 관리 화면은 현재 없음. P2-01의 정적 로그인 화면은 로컬 브라우저 인증·만료·늦은 응답 검증 완료, 원격 반영 전. 초기 계정은 자동 생성되지 않으며 로컬 운영자가 외부 설정을 명시할 때만 한 명 준비. 공개 HTTPS API 주소와 도메인은 아직 미정이므로 외부 로그인 운영 없음.
 
 Kotlin 소스는 역할별 패키지에 배치. `account/domain`은 저장 계정과 역할, `account/repository`·`account/service`·`account/bootstrap`은 조회·준비 흐름, `auth/controller`·`auth/dto`·`auth/service`는 HTTP 계약과 인증 처리, `global/config`·`global/security`·`global/error`는 공통 보안 설정과 오류 응답 담당. Spring 진입점은 공통 상위 패키지에 두어 하위 컴포넌트를 탐색.
 
@@ -62,6 +62,14 @@ Spring Session JDBC가 기존 MySQL의 `SPRING_SESSION`·`SPRING_SESSION_ATTRIBU
 Redis Cloud 캐시의 기본값은 비활성. 활성화해도 각 익명 상세의 `PUBLISHED`·`PUBLIC` 판단은 MySQL에서 수행하며 비공개/회원 상세·관리자 응답·세션/CSRF·계정 정보는 Redis 조회/저장 대상이 아님. Redis 중단은 DB 원본 본문 조회로 돌아가고, MySQL 중단은 캐시만으로 권한을 판단하지 않아 기존 503 경계 유지. 외부 캐시 설정과 확인 범위는 [캐시 안내](cache.md) 참고.
 
 공개 상태 조회와 P1-04B 출간 글 GET은 `APP_CORS_ALLOWED_ORIGINS`에 적힌 정확한 origin에서만 허용. P1-05A 공개 분류·태그 GET에도 같은 origin 규칙 적용. 공개 origin에는 자격 증명 CORS 응답을 허용하지 않음. 이는 브라우저의 교차 출처 응답 접근 규칙이며 서버가 전달된 쿠키를 별도로 무시한다는 뜻이 아님. 인증 API와 쿠키가 있는 글·분류·태그 GET은 별도 `APP_AUTH_CORS_ALLOWED_ORIGINS`가 비어 있으면 교차 출처 자격 증명 요청 비허용. 같은 호스트의 로컬 정적 화면에서 시험할 때만 예를 들어 `http://127.0.0.1:14000`을 명시. 인증 origin의 인증 API에는 GET·POST와 `X-CSRF-TOKEN` 헤더에만 자격 증명 CORS 허용하며, 글·분류·태그 GET에도 같은 origin의 자격 증명 허용. 공개/인증 글·분류·태그 조회 성공 응답은 `Cache-Control: no-store`; 비공개 응답에 공개 캐시 사용 없음. P1-05A의 CORS·no-store는 격리 HTTP에서 확인. GitHub Pages 기본 도메인과 별도 API 도메인의 타사 쿠키 동작은 공개 HTTPS 도메인 준비 후 검증할 후속 결정.
+
+## P2-01 로컬 브라우저 연결
+
+정적 화면 `http://127.0.0.1:14000/ken-blog/`과 API `http://127.0.0.1:18081`은 포트가 달라 서로 다른 origin. 호스트는 둘 다 `127.0.0.1`로 유지해야 호스트 전용 세션 쿠키를 공유. API를 로컬 HTTP로 실행할 때에만 `SESSION_COOKIE_SECURE=false`를 설정하고, `APP_CORS_ALLOWED_ORIGINS`에는 공개 GET용 로컬 origin, `APP_AUTH_CORS_ALLOWED_ORIGINS`에는 로그인과 회원 읽기용 같은 origin을 명시. 정확한 빌드·실행 예시는 [런타임 안내](runtime.md) 참고. 공개 Pages origin을 인증 허용 목록에 추가한 결과나 공개 HTTPS 로그인 성공은 아직 없음.
+
+P2-01 화면은 익명 글·분류·태그 조회에 쿠키를 보내지 않고, 로그인 화면에서 `GET /api/v1/auth/csrf`로 세션 쿠키와 토큰을 받은 뒤 쿠키와 `X-CSRF-TOKEN` 헤더를 포함해 로그인 요청. 로그인 응답으로 사용자 상태를 갱신하고 새 세션의 CSRF 토큰을 다시 받은 뒤, 회원 글 조회 전 `/me`로 세션 유효성을 재확인. 회원 조회에만 자격 증명을 포함. 로그아웃에도 새 세션의 CSRF 토큰을 전송. 로그인 실패·로그아웃·세션 만료 401에서는 화면의 회원 전용 본문과 사용자 정보를 제거하고 이전 요청의 늦은 응답이 다시 표시되지 않도록 구성. 서버 로그아웃에 실패하면 화면 데이터는 먼저 지우되 세션 폐기 실패를 별도 안내. 비밀번호·CSRF 토큰·세션 ID를 브라우저 영구 저장소에 넣지 않으며 JWT를 사용하지 않음.
+
+2026-09-26 격리 Chrome에서 잘못된 비밀번호의 거부, USER의 CSRF 로그인과 원래 PRIVATE 글로 복귀, 로그아웃 후 본문 제거, ADMIN 로그인 확인. 실제 JDBC 세션 만료 시각을 앞당긴 뒤 탭 복귀의 `/me` 재확인으로 잠금 화면 전환 확인. 자연 상태에서 30분을 기다린 만료 검증은 아님. 인증된 본문 응답을 받았지만 반환을 지연한 상태에서 로그아웃해도 PRIVATE 본문이 다시 표시되지 않는 것을 화면 변화 관찰로 확인. 격리 API 중단 시 연결 오류와 재시작 후 화면 재시도 복구도 확인. 공개 HTTPS API 연결·실사이트 로그인 성공으로 해석하지 않음.
 
 ## 검증
 
