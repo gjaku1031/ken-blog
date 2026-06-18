@@ -1,0 +1,21 @@
+CREATE TABLE editor_drafts (
+    id BIGINT NOT NULL AUTO_INCREMENT,
+    post_id BIGINT NULL,
+    base_updated_at DATETIME(6) NULL,
+    revision BIGINT NOT NULL DEFAULT 0,
+    title VARCHAR(200) NOT NULL,
+    slug VARCHAR(160) NOT NULL,
+    body LONGTEXT NOT NULL,
+    category_id BIGINT NULL,
+    tags_snapshot VARCHAR(1024) NOT NULL,
+    visibility VARCHAR(16) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    created_at DATETIME(6) NOT NULL,
+    updated_at DATETIME(6) NOT NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT uk_editor_drafts_post UNIQUE (post_id),
+    CONSTRAINT fk_editor_drafts_post FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
+    CONSTRAINT ck_editor_drafts_base CHECK ((post_id IS NULL AND base_updated_at IS NULL) OR (post_id IS NOT NULL AND base_updated_at IS NOT NULL)),
+    CONSTRAINT ck_editor_drafts_revision CHECK (revision >= 0),
+    CONSTRAINT ck_editor_drafts_visibility CHECK (visibility IN ('PUBLIC', 'PRIVATE')),
+    INDEX ix_editor_drafts_updated (updated_at DESC, id DESC)
+) ENGINE=InnoDB DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci;
