@@ -4,6 +4,9 @@ import io.github.gjaku1031.kenblog.attachment.domain.AttachmentFailure
 import io.github.gjaku1031.kenblog.category.domain.CategoryConflictException
 import io.github.gjaku1031.kenblog.category.domain.CategoryNotFoundException
 import io.github.gjaku1031.kenblog.category.domain.InvalidCategoryRequestException
+import io.github.gjaku1031.kenblog.draft.domain.EditorDraftConflictException
+import io.github.gjaku1031.kenblog.draft.domain.EditorDraftNotFoundException
+import io.github.gjaku1031.kenblog.draft.domain.InvalidEditorDraftRequestException
 import io.github.gjaku1031.kenblog.global.security.isDatabaseConnectionFailure
 import io.github.gjaku1031.kenblog.post.domain.DuplicatePostSlugException
 import io.github.gjaku1031.kenblog.post.domain.InvalidPostDraftException
@@ -30,6 +33,23 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
  */
 @RestControllerAdvice
 class ApiErrorHandler : ResponseEntityExceptionHandler() {
+    /** @return 편집본 JSON·ID·revision 오류의 고정 HTTP 400 본문. */
+    @ExceptionHandler(InvalidEditorDraftRequestException::class)
+    fun handleEditorDraftInput(ex: InvalidEditorDraftRequestException): ResponseEntity<ProblemDetail> =
+        ResponseEntity.badRequest().body(ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "편집본 입력을 확인하세요."))
+
+    /** @return 삭제되거나 존재하지 않는 편집본의 고정 HTTP 404 본문. */
+    @ExceptionHandler(EditorDraftNotFoundException::class)
+    fun handleEditorDraftNotFound(ex: EditorDraftNotFoundException): ResponseEntity<ProblemDetail> =
+        ResponseEntity.status(HttpStatus.NOT_FOUND)
+            .body(ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, "편집본을 찾을 수 없습니다."))
+
+    /** @return 오래된 revision·원본 또는 동시 저장 충돌의 고정 HTTP 409 본문. */
+    @ExceptionHandler(EditorDraftConflictException::class)
+    fun handleEditorDraftConflict(ex: EditorDraftConflictException): ResponseEntity<ProblemDetail> =
+        ResponseEntity.status(HttpStatus.CONFLICT)
+            .body(ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, "편집본 변경이 충돌했습니다."))
+
     /**
      * 분류 경로·ID의 잘못된 입력을 원문 없이 400으로 변환.
      *
