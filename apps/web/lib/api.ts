@@ -79,7 +79,7 @@ function apiUrl(path: string): URL {
 export async function apiRequest(
   path: string,
   credentials: RequestCredentials,
-  options: { method?: "GET" | "POST"; body?: unknown; csrf?: { headerName: string; token: string }; signal?: AbortSignal } = {},
+  options: { method?: "GET" | "POST" | "PUT" | "DELETE"; body?: unknown; csrf?: { headerName: string; token: string }; signal?: AbortSignal } = {},
 ): Promise<unknown> {
   const url = apiUrl(path);
   const controller = new AbortController();

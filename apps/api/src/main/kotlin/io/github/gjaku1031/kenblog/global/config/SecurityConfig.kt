@@ -93,7 +93,8 @@ class SecurityConfig {
 
     /**
      * 공개 상태·게시글·분류·태그 조회는 지정 origin에 GET만 허용하고 인증 origin에만 자격 증명을 허용.
-     * 편집본 관리자 경로는 인증 origin에만 credential GET·POST·PUT·DELETE를 등록.
+     * 관리자 게시글·분류·태그 읽기는 인증 origin의 credential GET에 한정하고,
+     * 편집본 관리자 경로는 기존 credential GET·POST·PUT·DELETE를 유지.
      *
      * @param publicOriginsCsv 공개 상태 조회 허용 origin
      * @param authOriginsCsv 인증 요청을 허용할 명시적 origin; 기본은 빈 목록
@@ -145,6 +146,18 @@ class SecurityConfig {
             }
             source.registerCorsConfiguration("/api/v1/admin/editor-drafts", editorDraftCors)
             source.registerCorsConfiguration("/api/v1/admin/editor-drafts/**", editorDraftCors)
+            val adminReadCors = CorsConfiguration().apply {
+                allowedOrigins = authOrigins
+                allowedMethods = listOf("GET")
+                allowedHeaders = listOf("Accept")
+                allowCredentials = true
+                maxAge = 600
+            }
+            source.registerCorsConfiguration("/api/v1/admin/posts", adminReadCors)
+            source.registerCorsConfiguration("/api/v1/admin/posts/**", adminReadCors)
+            source.registerCorsConfiguration("/api/v1/admin/categories", adminReadCors)
+            source.registerCorsConfiguration("/api/v1/admin/categories/**", adminReadCors)
+            source.registerCorsConfiguration("/api/v1/admin/tags", adminReadCors)
         }
         return CorsConfigurationSource { request ->
             val path = request.servletPath
