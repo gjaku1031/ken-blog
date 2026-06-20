@@ -141,7 +141,9 @@ function FeedInstance({ mode, categoryId, tag }: { mode: FeedMode; categoryId: n
   return <div className="content-grid">
     <section className="feed-column" aria-labelledby="feed-title">
       <div className="section-heading">{mode === "home" ? <h2 id="feed-title">최근 Tech 글</h2> : <h1 id="feed-title">Tech</h1>}
-        {state.status === "ready" && <span className="mono feed-total">{state.total}개</span>}</div>
+        {state.status === "ready" && <span className="mono feed-total">{state.total}개</span>}
+        {mode === "tech" && auth.status === "authenticated" && auth.user?.role === "ADMIN" &&
+          <Link href="/write/" className="feed-write-link">+ 새 글</Link>}</div>
       {(categoryId !== null || tag !== null) && <div className="active-filters"><span>선택한 필터</span>
         {categoryId !== null && <Link href={filterHref(mode, null, tag)}>{categoryPath(state.categories, categoryId) ?? "선택한 분류"} ×</Link>}
         {tag !== null && <Link href={filterHref(mode, categoryId, null)}>#{tag} ×</Link>}

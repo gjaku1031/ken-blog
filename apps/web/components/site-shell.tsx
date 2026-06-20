@@ -21,6 +21,7 @@ function DrillLogo() {
 /** 정적 라우트에 공유하는 네비게이션·테마·세션 표시·푸터. */
 export function SiteShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const currentPath = (pathname.startsWith(basePath) ? pathname.slice(basePath.length) : pathname) || "/";
   const auth = useAuth();
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [logoutError, setLogoutError] = useState("");
@@ -44,8 +45,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
 
   /** 클라이언트 이동과 Pages basePath를 모두 고려해 현재 메뉴를 표시한다. */
   function isCurrent(path: string) {
-    const current = (pathname.startsWith(basePath) ? pathname.slice(basePath.length) : pathname) || "/";
-    return current === path || (path !== "/" && current.startsWith(path));
+    return currentPath === path || (path !== "/" && currentPath.startsWith(path));
   }
 
   /** 먼저 화면 세션을 비운 뒤 서버 세션 삭제 오류만 공개 안내로 표시한다. */
@@ -65,6 +65,10 @@ export function SiteShell({ children }: { children: ReactNode }) {
             <Link key={href} href={href} aria-current={isCurrent(href) ? "page" : undefined}>{label}</Link>)}
         </nav>
         <div className="header-actions">
+          {auth.status === "authenticated" && auth.user?.role === "ADMIN" && <>
+            <Link href="/admin/drafts/" className="header-text-button">임시저장</Link>
+            <Link href="/write/" className="header-text-button">글쓰기</Link>
+          </>}
           <button type="button" className="icon-button" onClick={toggleTheme}
             aria-label={theme === "light" ? "다크 모드로 전환" : "라이트 모드로 전환"} title={theme === "light" ? "다크 모드" : "라이트 모드"}>
             {theme === "light" ? "☾" : "☀"}
@@ -78,9 +82,9 @@ export function SiteShell({ children }: { children: ReactNode }) {
       {logoutError && <p className="header-alert" role="alert">{logoutError}</p>}
     </header>
     <div className="site-content">{children}</div>
-    <footer className="site-footer"><span>© 2026 ken.blog</span><div>
+    {!currentPath.startsWith("/write/") && <footer className="site-footer"><span>© 2026 ken.blog</span><div>
       <a href="https://github.com/gjaku1031/ken-blog" target="_blank" rel="noreferrer noopener">GitHub</a>
       <Link href="/login/">관리자</Link>
-    </div></footer>
+    </div></footer>}
   </div>;
 }

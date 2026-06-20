@@ -11,7 +11,7 @@ type DetailState = { status: "loading" | "ready" | "error"; post: PostDetail | n
 
 /** 같은 세션 세대의 실제 공개 상세와 익명 접근 범위를 함께 확인한다. */
 function ReaderInstance({ slug }: { slug: string }) {
-  const { status, readCredentials, expire } = useAuth();
+  const { status, user, readCredentials, expire } = useAuth();
   const [state, setState] = useState<DetailState>({ status: "loading", post: null, privatePost: false, error: "" });
   const [retry, setRetry] = useState(0);
 
@@ -47,7 +47,9 @@ function ReaderInstance({ slug }: { slug: string }) {
       <div className="post-overline">Tech{state.post.category ? ` · ${state.post.category.path.replaceAll("/", " › ")}` : ""}</div>
       <h1>{state.post.title}</h1>
       <div className="detail-meta"><time className="mono" dateTime={state.post.publishedDate}>{state.post.publishedDate.replaceAll("-", ".")}</time>
-        <span aria-label="열람 범위">{state.privatePost ? "로그인 회원 공개" : "전체 공개"}</span></div>
+        <span aria-label="열람 범위">{state.privatePost ? "로그인 회원 공개" : "전체 공개"}</span>
+        {status === "authenticated" && user?.role === "ADMIN" &&
+          <Link href={`/write/?postId=${state.post.id}`}>편집본 만들기</Link>}</div>
       {!state.post.locked && <div className="tag-list detail-tags">{state.post.tags.map((name) => <Link key={name}
         href={`/tech/?tag=${encodeURIComponent(name)}`}>#{name}</Link>)}</div>}
       {state.post.locked ? <div className="locked-post card"><h2>로그인이 필요한 글입니다</h2>
