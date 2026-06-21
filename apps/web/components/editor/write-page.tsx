@@ -79,6 +79,7 @@ function WriteInstance({ route }: { route: Route }) {
   const routeKey = route.kind === "new" || route.kind === "invalid" ? route.kind : `${route.kind}:${route.id}`;
   const loadedRoute = useRef<string | null>(null);
   const controllers = useRef(new Set<AbortController>());
+  const writeGeneration = useRef(0);
   const busyLock = useRef(false);
   const allowRouteSwitch = useRef(false);
   const draftId = useRef<number | null>(null);
@@ -105,18 +106,43 @@ function WriteInstance({ route }: { route: Route }) {
   dirtyRef.current = dirty;
 
   /** 로드와 쓰기 요청을 세션 인스턴스가 사라질 때 모두 취소한다. */
-  useEffect(() => () => { controllers.current.forEach((controller) => controller.abort()); controllers.current.clear(); }, []);
+  useEffect(() => () => {
+    writeGeneration.current += 1;
+    controllers.current.forEach((controller) => controller.abort()); controllers.current.clear();
+  }, []);
+
+  /** 현재 주소·요청 세대에 속한 쓰기 응답만 원고 식별자와 화면을 변경할 수 있다. */
+  function assertCurrentWrite(signal: AbortSignal, generation: number) {
+    if (signal.aborted || generation !== writeGeneration.current) throw new DOMException("요청이 취소되었습니다", "AbortError");
+  }
 
   /** ADMIN 확인 후 편집본·원본 또는 새 글과 관리자 taxonomy를 같은 세션에서 읽는다. */
   useEffect(() => {
-    if (auth.status !== "authenticated" || auth.user?.role !== "ADMIN" || route.kind === "invalid" ||
+    if (auth.status !== "authenticated" || auth.user?.role !== "ADMIN" ||
       loadedRoute.current === routeKey) return;
     if (loadedRoute.current !== null && dirtyRef.current && !allowRouteSwitch.current) {
       setMessage("저장하지 않은 원고를 유지하고 원래 편집 주소로 돌아왔습니다.");
       router.replace(routeHref(loadedRoute.current), { scroll: false });
       return;
     }
+    if (route.kind === "invalid") {
+      writeGeneration.current += 1;
+      controllers.current.forEach((pending) => pending.abort()); controllers.current.clear();
+      busyLock.current = false; setBusy(null); setShowPublish(false);
+      loadedRoute.current = routeKey;
+      const cleared = blankForm(); formRef.current = cleared; setForm(cleared);
+      draftId.current = null; revision.current = null; original.current = { postId: null, baseUpdatedAt: null };
+      versionRef.current = 0; setVersion(0); setSavedVersion(0);
+      return;
+    }
     allowRouteSwitch.current = false;
+    writeGeneration.current += 1;
+    controllers.current.forEach((pending) => pending.abort()); controllers.current.clear();
+    busyLock.current = false; setBusy(null); setShowPublish(false);
+    draftId.current = null; revision.current = null;
+    original.current = { postId: null, baseUpdatedAt: null };
+    const cleared = blankForm();
+    formRef.current = cleared; setForm(cleared); versionRef.current = 0; setVersion(0); setSavedVersion(0);
     loadedRoute.current = routeKey;
     const controller = new AbortController();
     controllers.current.add(controller);
@@ -127,21 +153,25 @@ function WriteInstance({ route }: { route: Route }) {
           auth.adminRead("/api/v1/admin/categories", controller.signal),
           auth.adminRead("/api/v1/admin/tags", controller.signal),
         ]);
+        if (controller.signal.aborted) return;
         const nextCategories = parseAdminCategories(categoryValue);
         const nextTags = parseAdminTags(tagValue);
         let nextForm: Form;
         if (route.kind === "draft") {
           const detail = parseDraftDetail(await auth.adminRead(`/api/v1/admin/editor-drafts/${route.id}`, controller.signal));
+          if (controller.signal.aborted) return;
           draftId.current = detail.id; revision.current = detail.revision;
           original.current = { postId: detail.postId, baseUpdatedAt: detail.baseUpdatedAt };
           nextForm = formFromDraft(detail); setSavedAt(detail.updatedAt);
         } else if (route.kind === "post") {
           const page = parseDraftPage(await auth.adminRead(`/api/v1/admin/editor-drafts?postId=${route.id}&page=0&size=10`, controller.signal));
+          if (controller.signal.aborted) return;
           if (page.items.length) {
             if (!controller.signal.aborted) { setCategories(nextCategories); setKnownTags(nextTags); setExisting(page.items[0]); setScreen("existing"); }
             return;
           }
           const post = parseAdminPost(await auth.adminRead(`/api/v1/admin/posts/${route.id}`, controller.signal));
+          if (controller.signal.aborted) return;
           draftId.current = null; revision.current = null;
           original.current = { postId: post.id, baseUpdatedAt: post.updatedAt };
           nextForm = formFromPost(post); setSavedAt("");
@@ -196,7 +226,7 @@ function WriteInstance({ route }: { route: Route }) {
   }, [dirty]);
 
   /** 편집본을 만들거나 현재 revision 조건으로 전체 필드를 교체한다. */
-  async function persist(signal: AbortSignal): Promise<{ id: number; revision: number; sentVersion: number }> {
+  async function persist(signal: AbortSignal, generation: number): Promise<{ id: number; revision: number; sentVersion: number }> {
     const snapshot = formRef.current;
     const sentVersion = versionRef.current;
     const values = draftValues({ title: snapshot.title, slug: snapshot.slug,
@@ -207,6 +237,7 @@ function WriteInstance({ route }: { route: Route }) {
       { postId: original.current.postId, baseUpdatedAt: original.current.baseUpdatedAt, ...values }, signal) :
       await auth.adminWrite("PUT", `/api/v1/admin/editor-drafts/${currentId}`,
         { revision: revision.current, ...values }, signal);
+    assertCurrentWrite(signal, generation);
     const saved = parseDraftDetail(response);
     draftId.current = saved.id; revision.current = saved.revision; original.current = { postId: saved.postId, baseUpdatedAt: saved.baseUpdatedAt };
     setSavedVersion(sentVersion); setSavedAt(saved.updatedAt);
@@ -222,14 +253,16 @@ function WriteInstance({ route }: { route: Route }) {
   async function save() {
     if (busyLock.current) return;
     busyLock.current = true; setBusy("save"); setMessage("");
+    const generation = writeGeneration.current;
     const controller = new AbortController(); controllers.current.add(controller);
     try {
-      const saved = await persist(controller.signal);
+      const saved = await persist(controller.signal, generation);
+      assertCurrentWrite(controller.signal, generation);
       setMessage(saved.sentVersion === versionRef.current ? "편집본을 저장했습니다." :
         "요청 시점의 원고를 저장했습니다. 저장 중 추가한 내용은 아직 저장되지 않았습니다.");
     }
-    catch (error) { if (!controller.signal.aborted) setMessage(writeError(error)); }
-    finally { controllers.current.delete(controller); busyLock.current = false; setBusy(null); }
+    catch (error) { if (!controller.signal.aborted && generation === writeGeneration.current) setMessage(writeError(error)); }
+    finally { controllers.current.delete(controller); if (generation === writeGeneration.current) { busyLock.current = false; setBusy(null); } }
   }
 
   /** 최신 저장 revision을 확보한 후에만 원자적 출간을 요청한다. */
@@ -242,21 +275,24 @@ function WriteInstance({ route }: { route: Route }) {
       setMessage("출간하려면 제목·글 주소·본문 크기를 확인해 주세요."); setShowPublish(false); return;
     }
     busyLock.current = true; setBusy("publish"); setMessage("");
+    const generation = writeGeneration.current;
     const controller = new AbortController(); controllers.current.add(controller);
     try {
       const saved = draftId.current === null || versionRef.current !== savedVersion ?
-        await persist(controller.signal) : { id: draftId.current, revision: revision.current, sentVersion: versionRef.current };
+        await persist(controller.signal, generation) : { id: draftId.current, revision: revision.current, sentVersion: versionRef.current };
+      assertCurrentWrite(controller.signal, generation);
       if (saved.id === null || saved.revision === null) throw new ApiFailure("response");
       if (saved.sentVersion !== versionRef.current) {
         setMessage("저장 중 추가로 입력한 내용이 있습니다. 다시 출간해 주세요."); return;
       }
       const response = await auth.adminWrite("POST", `/api/v1/admin/editor-drafts/${saved.id}/publish`,
         { revision: saved.revision }, controller.signal);
+      assertCurrentWrite(controller.signal, generation);
       if (!response || typeof response !== "object" || typeof (response as { slug?: unknown }).slug !== "string") throw new ApiFailure("response");
       setShowPublish(false);
       router.replace(`/post/?slug=${encodeURIComponent((response as { slug: string }).slug)}`);
-    } catch (error) { if (!controller.signal.aborted) setMessage(writeError(error)); }
-    finally { controllers.current.delete(controller); busyLock.current = false; setBusy(null); }
+    } catch (error) { if (!controller.signal.aborted && generation === writeGeneration.current) setMessage(writeError(error)); }
+    finally { controllers.current.delete(controller); if (generation === writeGeneration.current) { busyLock.current = false; setBusy(null); } }
   }
 
   /** 기존 태그 집계와 입력을 비교해 유효한 새 태그만 추가한다. */
