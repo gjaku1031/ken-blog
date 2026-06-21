@@ -53,7 +53,7 @@ PY
 
 로그인 전 `/csrf`를 먼저 호출하고 받은 쿠키와 토큰을 로그인에 함께 전송. 로그인 성공 시 세션 ID가 바뀌고 기존 CSRF 토큰도 제거되므로 `/csrf`를 다시 호출한 뒤 로그아웃 등 변경 요청에 사용. 로그아웃 뒤 이전 쿠키로 `/me` 접근 불가. 미인증은 HTTP 401, 역할 부족·CSRF 누락/불일치는 HTTP 403, MySQL 연결 장애는 HTTP 503의 `application/problem+json` 응답. 없는 계정과 틀린 비밀번호의 공개 오류 설명은 동일. 필터 경계 밖의 예외 원문이나 저장된 해시를 응답에 넣지 않음.
 
-`/api/v1/admin/` 아래는 `ADMIN` 역할만 허용. 관리자 기능은 [게시글 작성·출간](posts.md)과 [이미지 첨부](attachments.md) API이며, P2-02A의 [별도 편집본 API](editor-drafts.md)는 격리 검증 완료·main 반영 전. 테스트 전용 경로에서도 `USER`의 403을 검증. P1-04B 공개 GET `/api/v1/posts`와 `/api/v1/posts/{slug}`는 익명 접근 허용하되 출간·가시성 필터는 서비스/DB 조회에서 적용. 익명 인증 토큰의 `isAuthenticated`만으로 비공개 읽기를 허용하지 않고 `ROLE_USER`·`ROLE_ADMIN`만 인정. 이 `USER` 읽기 권한은 계정 발급·회원 관리 화면의 완료를 뜻하지 않음. `/api/v1/status`, `/actuator/health`, OpenAPI·Swagger UI의 공개 GET도 익명으로 접근 가능. 테스트 전용 오류 경로는 운영 JAR에 포함되지 않음.
+`/api/v1/admin/` 아래는 `ADMIN` 역할만 허용. 관리자 기능은 [게시글 작성·출간](posts.md)과 [이미지 첨부](attachments.md) API이며, P2-02A의 [별도 편집본 API](editor-drafts.md)는 격리 검증 후 main·CI·Pages 반영 완료. 테스트 전용 경로에서도 `USER`의 403을 검증. P1-04B 공개 GET `/api/v1/posts`와 `/api/v1/posts/{slug}`는 익명 접근 허용하되 출간·가시성 필터는 서비스/DB 조회에서 적용. 익명 인증 토큰의 `isAuthenticated`만으로 비공개 읽기를 허용하지 않고 `ROLE_USER`·`ROLE_ADMIN`만 인정. 이 `USER` 읽기 권한은 계정 발급·회원 관리 화면의 완료를 뜻하지 않음. `/api/v1/status`, `/actuator/health`, OpenAPI·Swagger UI의 공개 GET도 익명으로 접근 가능. 테스트 전용 오류 경로는 운영 JAR에 포함되지 않음.
 
 ## 쿠키·CORS와 MySQL
 
@@ -63,7 +63,10 @@ Redis Cloud 캐시의 기본값은 비활성. 활성화해도 각 익명 상세�
 
 공개 상태 조회와 P1-04B 출간 글 GET은 `APP_CORS_ALLOWED_ORIGINS`에 적힌 정확한 origin에서만 허용. P1-05A 공개 분류·태그 GET에도 같은 origin 규칙 적용. 공개 origin에는 자격 증명 CORS 응답을 허용하지 않음. 이는 브라우저의 교차 출처 응답 접근 규칙이며 서버가 전달된 쿠키를 별도로 무시한다는 뜻이 아님. 인증 API와 쿠키가 있는 글·분류·태그 GET은 별도 `APP_AUTH_CORS_ALLOWED_ORIGINS`가 비어 있으면 교차 출처 자격 증명 요청 비허용. 같은 호스트의 로컬 정적 화면에서 시험할 때만 예를 들어 `http://127.0.0.1:14000`을 명시. 인증 origin의 인증 API에는 GET·POST와 `X-CSRF-TOKEN` 헤더에만 자격 증명 CORS 허용하며, 글·분류·태그 GET에도 같은 origin의 자격 증명 허용. 공개/인증 글·분류·태그 조회 성공 응답은 `Cache-Control: no-store`; 비공개 응답에 공개 캐시 사용 없음. P1-05A의 CORS·no-store는 격리 HTTP에서 확인. GitHub Pages 기본 도메인과 별도 API 도메인의 타사 쿠키 동작은 공개 HTTPS 도메인 준비 후 검증할 후속 결정.
 
-P2-02A 편집본 API는 `/api/v1/admin/editor-drafts` 아래 GET·POST·PUT·DELETE와 출간 POST를 `ADMIN` 세션에만 허용. 쓰기에는 기존 CSRF 보호, 성공 응답에는 `no-store` 적용. `APP_AUTH_CORS_ALLOWED_ORIGINS`의 정확한 origin에만 자격 증명 CORS를 허용하고, 공개 origin의 관리자 편집본 GET 접근은 허용하지 않음. 2026-09-26 격리 HTTP에서 익명·USER 차단, ADMIN/CSRF, 명시 인증 origin의 자격 증명 CORS와 공개 전용 origin의 편집본 거부를 확인. 브라우저 관리자 편집기는 이번 범위 밖이며 공개 Pages origin을 인증 허용 목록에 넣지 않음. main·CI·Pages 반영 및 공개 HTTPS API 배포는 아직 없음.
+P2-02A 편집본 API는 `/api/v1/admin/editor-drafts` 아래 GET·POST·PUT·DELETE와 출간 POST를 `ADMIN` 세션에만 허용. 쓰기에는 기존 CSRF 보호, 성공 응답에는 `no-store` 적용. `APP_AUTH_CORS_ALLOWED_ORIGINS`의 정확한 origin에만 자격 증명 CORS를 허용하고, 공개 origin의 관리자 편집본 GET 접근은 허용하지 않음. 2026-09-26 격리 HTTP에서 익명·USER 차단, ADMIN/CSRF, 명시 인증 origin의 자격 증명 CORS와 공개 전용 origin의 편집본 거부를 확인. main `19b884a`·[CI](https://github.com/gjaku1031/ken-blog/actions/runs/36224536190)·[Pages](https://github.com/gjaku1031/ken-blog/actions/runs/36224536203) 반영 완료. 공개 Pages origin을 인증 허용 목록에 넣지 않았고 공개 HTTPS API 배포도 없음.
+
+
+P2-02B의 `/write/`와 `/admin/drafts/`는 ADMIN 세션을 확인하고, 익명은 안전한 내부 `returnTo`를 거쳐 로그인으로 이동하며 USER에게는 권한 안내를 표시하는 계약. 수동 저장·삭제·출간은 현재 CSRF 토큰을 사용. 로그아웃·세션 만료·계정 전환 때 편집 중인 관리자 원문과 늦게 도착한 응답을 화면에서 폐기하며 원고·쿠키·CSRF 토큰을 `localStorage`에 저장하지 않음. 기존 편집본 경로의 CORS는 유지. 관리자 글 목록·상세와 관리자 분류·태그 GET의 자격 증명 CORS는 정확히 지정한 인증 origin에만 추가. 2026-09-26 API `clean verify`에서 기존 검사 28개 통과, 격리 JAR GET의 인증 origin credential 응답 확인. 같은 경로의 POST·PUT·PATCH·DELETE와 공개 전용 origin GET의 preflight는 `403` 확인. 이 추가 조회 CORS는 `USER` 권한을 허용하는 변경이 아님. 격리 Chrome에서는 SQL의 CSRF 속성을 제거한 쓰기 `403` 뒤 원고 보존·재시도 성공, 세션 만료 뒤 원고 제거, 지연된 편집본 상세 응답의 로그아웃 뒤 폐기를 확인. 화면의 전체 검증 상태는 [편집 화면](editor.md) 참고. 공개 HTTPS API와 실사이트 인증 연결은 없음.
 
 ## P2-01 로컬 브라우저 연결
 
