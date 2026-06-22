@@ -1,0 +1,52 @@
+.markdown-body .markdown-details {
+  max-width: 100%;
+  margin: 18px 0;
+  padding: 8px 14px;
+  border: 1px solid var(--line2);
+  border-radius: 8px;
+  background: var(--soft);
+}
+
+.markdown-body .markdown-details > summary {
+  position: relative;
+  padding-right: 56px;
+  cursor: pointer;
+  color: var(--text);
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.markdown-body .markdown-details > summary::after {
+  position: absolute;
+  right: 0;
+  top: 0;
+  content: "펼치기";
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.markdown-body .markdown-details[open] > summary::after {
+  content: "접기";
+}
+
+.markdown-body .markdown-details > summary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+.markdown-body .markdown-details-content {
+  margin-top: 12px;
+  margin-left: 3px;
+  padding-left: 14px;
+  border-left: 2px solid var(--line);
+}
+
+.markdown-body .markdown-details-content > :last-child {
+  margin-bottom: 0;
+}
+
+.markdown-body .markdown-details .markdown-details {
+  margin: 12px 0;
+  background: var(--card);
+}
