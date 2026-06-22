@@ -191,7 +191,7 @@ button:disabled { cursor: not-allowed; opacity: .6; }
 .editor-preview-trigger:hover { outline: 1px solid var(--line2); }
 .editor-preview-trigger:focus-visible { outline: 3px solid var(--accent); }
 .editor-raw { border: 1px dashed var(--line2); border-radius: 7px; padding: 10px 12px; background: var(--soft); }
-.editor-raw strong { display: block; color: var(--muted); font-size: 12px; font-weight: 600; }
+.editor-raw strong { display: block; color: var(--text2); font-size: 12px; font-weight: 600; }
 .editor-raw pre { max-height: 180px; overflow: auto; margin: 7px 0 0; color: var(--text2); font-size: 12px; white-space: pre-wrap; overflow-wrap: anywhere; }
 .editor-rule { display: block; width: 100%; border: 0; border-top: 1px solid var(--line2); background: transparent; color: transparent; height: 22px; }
 .editor-rule:focus-visible { outline: 3px solid var(--accent); }

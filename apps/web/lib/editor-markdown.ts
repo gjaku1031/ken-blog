@@ -1,12 +1,13 @@
 import { unified } from "unified";
 import remarkParse from "remark-parse";
 import remarkGfm from "remark-gfm";
+import { parseEditableTable, serializeTable, type TableAlignment, type TableData } from "@/lib/editor-table";
 
 /** 편집 가능한 기본 문법과 원문 그대로 잠그는 미지원 문법. */
-export type BlockType = "p" | "h1" | "h2" | "h3" | "ul" | "ol" | "todo" | "quote" | "code" | "hr" | "raw";
+export type BlockType = "p" | "h1" | "h2" | "h3" | "ul" | "ol" | "todo" | "quote" | "code" | "hr" | "table" | "raw";
 export type EditorBlock = {
   id: string; type: BlockType; text: string; raw: string; after: string; dirty: boolean;
-  lang?: string; done?: boolean; ordinal?: number;
+  lang?: string; done?: boolean; ordinal?: number; table?: TableData;
 };
 export type MarkdownDocument = { head: string; blocks: EditorBlock[]; newline: "\n" | "\r\n" };
 
@@ -49,7 +50,7 @@ function detailsRanges(source: string): Array<{ start: number; end: number }> {
 }
 
 type SourceNode = { type: string; position?: { start: { offset?: number }; end: { offset?: number } }; children?: SourceNode[];
-  ordered?: boolean; checked?: boolean | null; lang?: string | null };
+  ordered?: boolean; checked?: boolean | null; lang?: string | null; align?: TableAlignment[] };
 type Span = { start: number; end: number; node: SourceNode; forcedRaw?: boolean };
 
 /** 단일 줄의 단순 목록만 각 항목으로 펼치고, 복잡한 목록은 하나의 원문 블록으로 둔다. */
@@ -115,6 +116,10 @@ export function parseEditorMarkdown(source: string): MarkdownDocument {
 function decodeBlock(raw: string, after: string, node: SourceNode, forcedRaw: boolean): EditorBlock {
   const base: EditorBlock = { id: blockId(), type: "raw", text: raw, raw, after, dirty: false };
   if (forcedRaw) return base;
+  if (node.type === "table") {
+    const table = parseEditableTable(raw, node.children?.[0]?.children?.length ?? 0, node.children?.length ?? 0, node.align);
+    if (table) return { ...base, type: "table", text: "", table };
+  }
   if (node.type === "paragraph" && !/^\s*(?:\$\$|!\[)/i.test(raw) && !/<details\b/i.test(raw) &&
     !node.children?.some((child) => child.type === "image" || child.type === "imageReference")) return { ...base, type: "p" };
   if (node.type === "heading") {
@@ -166,6 +171,7 @@ export function blockMarkdown(block: EditorBlock, newline = "\n"): string {
     case "todo": result = `- [${block.done ? "x" : " "}] ${escapedParagraph(text.replace(/\n/g, " "))}`; break;
     case "quote": result = `> ${escapedParagraph(text.replace(/\n/g, " "))}`; break;
     case "hr": result = "---"; break;
+    case "table": result = block.table ? serializeTable(block.table) : block.raw; break;
     case "code": {
       const longest = Math.max(2, ...Array.from(text.matchAll(/`+/g), (match) => match[0].length));
       const fence = "`".repeat(longest + 1);
@@ -188,8 +194,10 @@ export function ensureBlockBoundaries(document: MarkdownDocument): MarkdownDocum
     const next = document.blocks[index + 1];
     if (!next) return block;
     const needed = block.type === next.type && ["ul", "ol", "todo"].includes(block.type) ? 1 : 2;
-    const present = block.after.match(/\r?\n/g)?.length ?? 0;
-    return present >= needed ? block : { ...block, after: document.newline.repeat(needed) };
+    // HTML·들여쓴 코드의 raw slice가 개행으로 끝나기도 하므로 after만 세면 원문 빈 줄을 늘린다.
+    const whitespace = (blockMarkdown(block, document.newline) + block.after).match(/[ \t\r\n]*$/)?.[0] ?? "";
+    const present = whitespace.match(/\r?\n/g)?.length ?? 0;
+    return present >= needed ? block : { ...block, after: block.after + document.newline.repeat(needed - present) };
   });
   return { ...document, blocks };
 }

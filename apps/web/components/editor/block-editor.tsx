@@ -3,11 +3,13 @@
 import { useEffect, useRef, useState, type DragEvent, type KeyboardEvent } from "react";
 import { SafeMarkdown } from "@/components/safe-markdown";
 import { blockMarkdown, emptyBlock, ensureBlockBoundaries, type BlockType, type EditorBlock, type MarkdownDocument } from "@/lib/editor-markdown";
+import { emptyTable, parsePipeHeaderCommand, TABLE_MAX_COLUMNS, TABLE_MAX_CELL_LENGTH } from "@/lib/editor-table";
+import { TableBlock } from "@/components/editor/table-block";
 
 type Props = { value: MarkdownDocument; onChange: (next: MarkdownDocument) => void; disabled?: boolean; focusFirstSignal?: number };
 type FocusTarget = { id: string; offset: number | "end" };
 const blockNames: Record<BlockType, string> = { p: "문단", h1: "제목 1", h2: "제목 2", h3: "제목 3",
-  ul: "글머리 목록", ol: "번호 목록", todo: "할 일", quote: "인용", code: "코드", hr: "구분선", raw: "원문" };
+  ul: "글머리 목록", ol: "번호 목록", todo: "할 일", quote: "인용", code: "코드", hr: "구분선", table: "표", raw: "원문" };
 const shortcuts: Record<string, BlockType> = { "#": "h1", "##": "h2", "###": "h3", "-": "ul", "*": "ul",
   "1.": "ol", "[]": "todo", "[ ]": "todo", "|": "quote" };
 
@@ -15,6 +17,7 @@ const shortcuts: Record<string, BlockType> = { "#": "h1", "##": "h2", "###": "h3
 export function BlockEditor({ value, onChange, disabled = false, focusFirstSignal = 0 }: Props) {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [focusTarget, setFocusTarget] = useState<FocusTarget | null>(null);
+  const [tableFocus, setTableFocus] = useState<{ id: string; serial: number } | null>(null);
   const refs = useRef(new Map<string, HTMLElement>());
   const composing = useRef(false);
   const compositionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -65,6 +68,48 @@ export function BlockEditor({ value, onChange, disabled = false, focusFirstSigna
     activate(added.id, offset);
   }
 
+  /** 명확한 명령으로 현재 문단을 표로 바꾸고 마지막 표 뒤에는 빈 문단을 둔다. */
+  function replaceWithTable(index: number, headers?: string[]) {
+    const blocks = [...value.blocks];
+    const original = blocks[index];
+    const table = { ...original, type: "table" as const, text: "", table: emptyTable(headers), dirty: true };
+    blocks[index] = table;
+    if (index === blocks.length - 1) {
+      table.after = value.newline.repeat(2);
+      blocks.push({ ...emptyBlock("p", value.newline), after: original.after });
+    }
+    onChange(ensureBlockBoundaries({ ...value, blocks }));
+    setActiveId(null);
+    setTableFocus({ id: table.id, serial: (tableFocus?.serial ?? 0) + 1 });
+  }
+
+  /** 도구 버튼으로 선택 블록 뒤에 새 표와 이어 쓸 문단을 넣는다. */
+  function addTable() {
+    if (disabled) return;
+    const blocks = [...value.blocks];
+    if (!blocks.length) {
+      const table = { ...emptyBlock("table", value.newline), table: emptyTable(), after: value.newline.repeat(2) };
+      blocks.push(table, { ...emptyBlock("p", value.newline), after: "" });
+      onChange({ ...value, blocks });
+      setTableFocus({ id: table.id, serial: (tableFocus?.serial ?? 0) + 1 });
+      return;
+    }
+    const selected = blocks.findIndex((block) => block.id === activeId);
+    const index = selected >= 0 ? selected : blocks.length - 1;
+    const previous = blocks[index];
+    if (previous.type === "p" && !previous.text && !previous.raw) { replaceWithTable(index); return; }
+    const table = { ...emptyBlock("table", value.newline), table: emptyTable(), after: previous.after };
+    blocks[index] = { ...previous, after: value.newline.repeat(2) };
+    blocks.splice(index + 1, 0, table);
+    if (index + 1 === blocks.length - 1) {
+      table.after = value.newline.repeat(2);
+      blocks.push({ ...emptyBlock("p", value.newline), after: previous.after });
+    }
+    onChange(ensureBlockBoundaries({ ...value, blocks }));
+    setActiveId(null);
+    setTableFocus({ id: table.id, serial: (tableFocus?.serial ?? 0) + 1 });
+  }
+
   /** 선택한 블록을 삭제하되 남은 글과 원문 구분자를 보존한다. */
   function removeAt(index: number) {
     const blocks = [...value.blocks];
@@ -101,6 +146,13 @@ export function BlockEditor({ value, onChange, disabled = false, focusFirstSigna
       if (type) { event.preventDefault(); edit(block.id, (old) => ({ ...old, type, text: "", dirty: true })); activate(block.id, 0); return; }
     }
     if (event.key === "Enter" && !event.shiftKey && !event.altKey) {
+      if (block.type === "p" && start === end && end === text.length && (text === "/표" || text === "/table")) {
+        event.preventDefault(); replaceWithTable(index); return;
+      }
+      const headers = block.type === "p" && start === end && end === text.length ? parsePipeHeaderCommand(text) : null;
+      if (headers && headers.length <= TABLE_MAX_COLUMNS && headers.every((header) => header.length <= TABLE_MAX_CELL_LENGTH)) {
+        event.preventDefault(); replaceWithTable(index, headers); return;
+      }
       if (block.type === "code") {
         if (event.ctrlKey || event.metaKey) { event.preventDefault(); insertAfter(index, "p"); }
         return;
@@ -146,7 +198,7 @@ export function BlockEditor({ value, onChange, disabled = false, focusFirstSigna
       if (index > 0) {
         event.preventDefault();
         const previous = value.blocks[index - 1];
-        if (["raw", "code", "hr"].includes(previous.type)) { activate(previous.id); return; }
+        if (["raw", "code", "hr", "table"].includes(previous.type)) { activate(previous.id); return; }
         const joined = previous.text + text;
         const blocks = [...value.blocks];
         blocks[index - 1] = { ...previous, text: joined, dirty: true, after: block.after };
@@ -170,14 +222,8 @@ export function BlockEditor({ value, onChange, disabled = false, focusFirstSigna
     const separators = blocks.map((block) => block.after);
     const [moved] = blocks.splice(from, 1);
     blocks.splice(to, 0, moved);
-    // 구분자는 블록이 아닌 문서 위치에 남기고, 부족한 경계만 명확하게 보강한다.
-    onChange(ensureBlockBoundaries({ ...value, blocks: blocks.map((block, index) => {
-      const next = blocks[index + 1];
-      const minimum = next && block.type === next.type && ["ul", "ol", "todo"].includes(block.type) ? 1 : 2;
-      const separator = next && (separators[index].match(/\r?\n/g)?.length ?? 0) < minimum ?
-        value.newline.repeat(minimum) : separators[index];
-      return { ...block, after: separator };
-    }) }));
+    // 구분자는 문서 위치에 두고 부족한 개행은 raw 꼬리까지 고려하는 공통 함수에서 보강한다.
+    onChange(ensureBlockBoundaries({ ...value, blocks: blocks.map((block, index) => ({ ...block, after: separators[index] })) }));
     activate(moved.id);
   }
 
@@ -199,10 +245,21 @@ export function BlockEditor({ value, onChange, disabled = false, focusFirstSigna
         <button type="button" disabled={disabled || index === 0} onClick={() => move(index, index - 1)} aria-label={`${index + 1}번 블록 위로 이동`}>↑</button>
         <button type="button" disabled={disabled || index === value.blocks.length - 1} onClick={() => move(index, index + 1)} aria-label={`${index + 1}번 블록 아래로 이동`}>↓</button>
       </div>
-      {block.type === "raw" ? <div className="editor-raw" tabIndex={0} ref={(node) => { if (node) refs.current.set(block.id, node); }}
-        onKeyDown={(event) => { if (event.key === "ArrowUp" && index > 0) { event.preventDefault(); activate(value.blocks[index - 1].id); }
+      {block.type === "table" && block.table ? <TableBlock value={block.table} disabled={disabled}
+        focusFirst={tableFocus?.id === block.id ? tableFocus.serial : 0}
+        rootRef={(node) => { if (node) refs.current.set(block.id, node); else refs.current.delete(block.id); }}
+        onChange={(table) => edit(block.id, (old) => ({ ...old, table, dirty: true }))}
+        onDelete={() => removeAt(index)}
+        moveAbove={() => { if (index > 0) activate(value.blocks[index - 1].id); }}
+        moveBelow={() => { if (index + 1 < value.blocks.length) activate(value.blocks[index + 1].id, 0); }} /> :
+      block.type === "raw" ? <div className="editor-raw" tabIndex={0} role="group"
+        aria-label="원문 보존 블록. 위아래 화살표로 이웃 블록 이동"
+        ref={(node) => { if (node) refs.current.set(block.id, node); }}
+        onKeyDown={(event) => { if (event.target !== event.currentTarget) return;
+          if (event.key === "ArrowUp" && index > 0) { event.preventDefault(); activate(value.blocks[index - 1].id); }
           if (event.key === "ArrowDown" && index + 1 < value.blocks.length) { event.preventDefault(); activate(value.blocks[index + 1].id, 0); } }}>
-        <strong>원문 보존 · 이 형식은 아직 편집할 수 없습니다</strong><pre>{block.raw}</pre></div> :
+        <strong>원문 보존 · 이 형식은 아직 편집할 수 없습니다</strong>
+        <pre tabIndex={0} role="group" aria-label={`${index + 1}번 원문 내용, 스크롤 가능`}>{block.raw}</pre></div> :
         block.type === "hr" ? <button type="button" className="editor-rule" ref={(node) => { if (node) refs.current.set(block.id, node); }}
           disabled={disabled} onKeyDown={(event) => { if (event.key === "Delete" || event.key === "Backspace") { event.preventDefault(); removeAt(index); }
             if (event.key === "ArrowUp" && index > 0) { event.preventDefault(); activate(value.blocks[index - 1].id); }
@@ -244,5 +301,6 @@ export function BlockEditor({ value, onChange, disabled = false, focusFirstSigna
       if (!value.blocks.length) { const block = emptyBlock("p", value.newline); onChange({ ...value, blocks: [block] }); activate(block.id, 0); }
       else insertAfter(value.blocks.length - 1, "p");
     }}>+ 문단 추가</button>
+    <button type="button" className="editor-add" disabled={disabled} onClick={addTable}>+ 표 추가</button>
   </div>;
 }

@@ -363,7 +363,7 @@ function WriteInstance({ route }: { route: Route }) {
     </div>
     <BlockEditor value={form.document} disabled={busy === "publish"} focusFirstSignal={focusFirstSignal}
       onChange={(next) => changeForm((current) => ({ ...current, document: next }))} />
-    <p className="write-hint">기본 블록을 편집할 수 있습니다. 표·이미지·접기 등은 원문 그대로 보존합니다. 제목·목록·인용에서는 Shift+Enter 줄바꿈을 사용하지 않습니다.</p>
+    <p className="write-hint">기본 블록과 명확한 표를 편집할 수 있습니다. 복잡한 표·이미지·접기는 원문 그대로 보존합니다. 제목·목록·인용에서는 Shift+Enter 줄바꿈을 사용하지 않습니다.</p>
     {message && <p className="write-message" role="status">{message}</p>}
     <div className="write-spacer" />
     <div className="write-toolbar"><span className="write-save-state" aria-live="polite">{busy === "save" ? "저장 중…" :
