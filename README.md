@@ -30,8 +30,8 @@ io.github.gjaku1031.kenblog
 프론트는 GitHub Pages에서 제공하고 브라우저가 Spring API를 호출하는 구조. VM에는 Spring 실행. 공개 API 도메인·HTTPS 주소가 아직 없어 공개 홈은 API 미설정 상태로 배포.
 
 - [정적 프론트와 아키텍처 도면](https://gjaku1031.github.io/ken-blog/)
-- [현재 계획](planning/issues/P2-02B.md) · [작업 상태](planning/tasks.md) · [개발 순서](planning/roadmap.md)
-- [코드·문서 규칙](docs/code-conventions.md) · [런타임 안내](docs/runtime.md) · [게시글 API](docs/posts.md) · [관리자 편집본 API](docs/editor-drafts.md) · [관리자 편집 화면](docs/editor.md) · [Tech 분류·태그](docs/taxonomy.md) · [선택적 공개 본문 캐시](docs/cache.md) · [첨부파일 운영 안내](docs/attachments.md) · [도면 설명](docs/architecture.md)
+- [현재 계획](planning/issues/P2-02C.md) · [작업 상태](planning/tasks.md) · [개발 순서](planning/roadmap.md)
+- [코드·문서 규칙](docs/code-conventions.md) · [런타임 안내](docs/runtime.md) · [게시글 API](docs/posts.md) · [관리자 편집본 API](docs/editor-drafts.md) · [관리자 편집 화면](docs/editor.md) · [Markdown 읽기](docs/markdown.md) · [Tech 분류·태그](docs/taxonomy.md) · [선택적 공개 본문 캐시](docs/cache.md) · [첨부파일 운영 안내](docs/attachments.md) · [도면 설명](docs/architecture.md)
 
 ## API 직접 실행
 
@@ -95,9 +95,11 @@ NEXT_PUBLIC_BASE_PATH=/ken-blog NEXT_PUBLIC_API_BASE_URL= npm run build
 
 `NEXT_PUBLIC_BASE_PATH`는 프로젝트 하위 경로이며 Pages 배포 값은 `/ken-blog`. 환경변수 예시는 [apps/web/.env.example](apps/web/.env.example), 로컬 정적 서버·API 연결 및 CORS 확인 절차는 [런타임 안내](docs/runtime.md) 참고.
 
-P2-01에서 정적 `/tech/`, `/post/?slug=...`, `/login/` 화면과 공통 헤더·푸터·라이트/다크 테마를 구현. Noto Sans KR·IBM Plex Mono를 사용하며 Projects/Notes는 준비 화면. Pages의 `/ken-blog` basePath와 끝 슬래시 경로를 유지하고, 글 주소는 정적 `/post/` 페이지의 `slug` 쿼리로 선택. Home/Tech는 실제 공개 목록·분류·태그 API로 10개씩 조회하고 추가 로드·URL 필터·로딩·빈 결과·API 미설정·통신 실패를 구분. 글 상세는 읽기 전용 기본 Markdown/GFM을 표시하고 raw HTML 실행과 외부 이미지 자동 요청을 제외하며 할 일 항목은 읽기 전용. 로그인 화면은 로컬 JDBC 세션 API의 CSRF→로그인→현재 사용자→로그아웃 흐름에 연결하고 쿠키·토큰의 브라우저 영구 저장 없음. 2026-09-26 정적 빌드·타입 검사와 기존 npm 검사 7개, Chrome의 탐색·본문·로그인·로그아웃·세션 만료·늦은 응답 폐기·API 장애 복구·API 주소 미설정 안내 통과. 주요 화면의 라이트·다크 접근성 검사 8회 위반 0건. main·CI·Pages 반영 완료. 관리자 편집, 검색·GA·공개 이미지와 고급 Markdown은 후속 범위.
+P2-01에서 정적 `/tech/`, `/post/?slug=...`, `/login/` 화면과 공통 헤더·푸터·라이트/다크 테마를 구현. Noto Sans KR·IBM Plex Mono를 사용하며 Projects/Notes는 준비 화면. Pages의 `/ken-blog` basePath와 끝 슬래시 경로를 유지하고, 글 주소는 정적 `/post/` 페이지의 `slug` 쿼리로 선택. Home/Tech는 실제 공개 목록·분류·태그 API로 10개씩 조회하고 추가 로드·URL 필터·로딩·빈 결과·API 미설정·통신 실패를 구분. 글 상세는 읽기 전용 기본 Markdown/GFM을 표시하고 raw HTML 실행과 외부 이미지 자동 요청을 제외하며 할 일 항목은 읽기 전용. 로그인 화면은 로컬 JDBC 세션 API의 CSRF→로그인→현재 사용자→로그아웃 흐름에 연결하고 쿠키·토큰의 브라우저 영구 저장 없음. 2026-09-26 정적 빌드·타입 검사와 기존 npm 검사 7개, Chrome의 탐색·본문·로그인·로그아웃·세션 만료·늦은 응답 폐기·API 장애 복구·API 주소 미설정 안내 통과. 주요 화면의 라이트·다크 접근성 검사 8회 위반 0건. main·CI·Pages 반영 완료. 관리자 편집은 P2-02B에서 추가됐고, 검색·GA·공개 이미지와 고급 Markdown의 다른 기능은 후속 범위.
 
-P2-02B는 정적 `/write/`에서 새 글·기존 글·저장된 편집본을 이어 쓰고, `/admin/drafts/`에서 편집본을 조회·삭제하는 관리자 화면. 기본 블록 편집과 명시적 수동 저장, 저장된 revision을 이용한 출간을 [관리자 편집 화면](docs/editor.md)에 정리. 2026-09-26 기존 API 검사 28개·웹 검사 7개·타입 검사·정적 빌드 통과. 격리 Chrome에서 새 글 저장→새로고침→출간, 기존 공개 원문과 미지원 Markdown 원문 보존, 저장 중 추가 입력·충돌·CSRF 거부·세션 만료·늦은 응답, 목록 페이지·삭제와 키보드·화면 너비를 확인. 격리 MySQL·API 중단에서 입력 유지와 복구 후 저장도 확인. API 주소 미설정 별도 빌드에서도 관리자 화면 안내·요청 0건·가짜 데이터 없음 확인. main·CI·Pages 반영 전. 공개 Pages의 API 주소는 여전히 비어 있어 실사이트 관리자 작성·출간 연결도 미완료.
+P2-02B는 정적 `/write/`에서 새 글·기존 글·저장된 편집본을 이어 쓰고, `/admin/drafts/`에서 편집본을 조회·삭제하는 관리자 화면. 기본 블록 편집과 명시적 수동 저장, 저장된 revision을 이용한 출간을 [관리자 편집 화면](docs/editor.md)에 정리. 2026-09-26 기존 API 검사 28개·웹 검사 7개·타입 검사·정적 빌드 통과. 격리 Chrome에서 새 글 저장→새로고침→출간, 기존 공개 원문과 미지원 Markdown 원문 보존, 저장 중 추가 입력·충돌·CSRF 거부·세션 만료·늦은 응답, 목록 페이지·삭제와 키보드·화면 너비를 확인. 격리 MySQL·API 중단에서 입력 유지와 복구 후 저장도 확인. API 주소 미설정 별도 빌드에서도 관리자 화면 안내·요청 0건·가짜 데이터 없음 확인. main `814715c`·[CI](https://github.com/gjaku1031/ken-blog/actions/runs/36226398228)·[Pages](https://github.com/gjaku1031/ken-blog/actions/runs/36226398232) 반영 완료. 공개 Pages의 API 주소는 여전히 비어 있어 실사이트 관리자 작성·출간 연결도 미완료.
+
+P2-02C에서는 GFM 표의 셀 단위 편집과 명시적인 `<details>`·`<summary>`의 안전한 읽기 표시를 확장. 불명확한 접기 문법은 HTML을 실행하지 않는 원문 표시로 돌리는 계약은 [Markdown 읽기](docs/markdown.md) 참고. 2026-09-26 격리 브라우저에서 표 생성·수정·저장·재열기·출간, 중첩 접기와 원문 보존, 지연 저장 응답 중 편집본 경로 전환을 확인. 최종 소스의 설정된 빌드와 API 주소 미설정 정적 빌드 통과. 검사한 읽기·관리자 편집 화면의 라이트·다크 Axe 위반 0건이며 원문 코드 블록의 키보드 스크롤, 두 표의 이동 후 셀 초점·저장 복원도 확인. API 미설정 브라우저에서는 Home·글쓰기·편집본 목록의 안내, API 요청 0건·가짜 원고 0건 확인. 전체 접근성 완료 선언은 아님. main·CI·Pages 반영은 아직 전이며 공개 Pages의 API HTTPS 주소도 여전히 미설정.
 
 ## Spring 컨테이너와 배포 범위
 
