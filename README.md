@@ -30,7 +30,7 @@ io.github.gjaku1031.kenblog
 프론트는 GitHub Pages에서 제공하고 브라우저가 Spring API를 호출하는 구조. VM에는 Spring 실행. 공개 API 도메인·HTTPS 주소가 아직 없어 공개 홈은 API 미설정 상태로 배포.
 
 - [정적 프론트와 아키텍처 도면](https://gjaku1031.github.io/ken-blog/)
-- [현재 계획](planning/issues/P2-02C.md) · [작업 상태](planning/tasks.md) · [개발 순서](planning/roadmap.md)
+- [현재 계획](planning/issues/P2-02D.md) · [작업 상태](planning/tasks.md) · [개발 순서](planning/roadmap.md)
 - [코드·문서 규칙](docs/code-conventions.md) · [런타임 안내](docs/runtime.md) · [게시글 API](docs/posts.md) · [관리자 편집본 API](docs/editor-drafts.md) · [관리자 편집 화면](docs/editor.md) · [Markdown 읽기](docs/markdown.md) · [Tech 분류·태그](docs/taxonomy.md) · [선택적 공개 본문 캐시](docs/cache.md) · [첨부파일 운영 안내](docs/attachments.md) · [도면 설명](docs/architecture.md)
 
 ## API 직접 실행
@@ -99,7 +99,9 @@ P2-01에서 정적 `/tech/`, `/post/?slug=...`, `/login/` 화면과 공통 헤�
 
 P2-02B는 정적 `/write/`에서 새 글·기존 글·저장된 편집본을 이어 쓰고, `/admin/drafts/`에서 편집본을 조회·삭제하는 관리자 화면. 기본 블록 편집과 명시적 수동 저장, 저장된 revision을 이용한 출간을 [관리자 편집 화면](docs/editor.md)에 정리. 2026-09-26 기존 API 검사 28개·웹 검사 7개·타입 검사·정적 빌드 통과. 격리 Chrome에서 새 글 저장→새로고침→출간, 기존 공개 원문과 미지원 Markdown 원문 보존, 저장 중 추가 입력·충돌·CSRF 거부·세션 만료·늦은 응답, 목록 페이지·삭제와 키보드·화면 너비를 확인. 격리 MySQL·API 중단에서 입력 유지와 복구 후 저장도 확인. API 주소 미설정 별도 빌드에서도 관리자 화면 안내·요청 0건·가짜 데이터 없음 확인. main `814715c`·[CI](https://github.com/gjaku1031/ken-blog/actions/runs/36226398228)·[Pages](https://github.com/gjaku1031/ken-blog/actions/runs/36226398232) 반영 완료. 공개 Pages의 API 주소는 여전히 비어 있어 실사이트 관리자 작성·출간 연결도 미완료.
 
-P2-02C에서는 GFM 표의 셀 단위 편집과 명시적인 `<details>`·`<summary>`의 안전한 읽기 표시를 확장. 불명확한 접기 문법은 HTML을 실행하지 않는 원문 표시로 돌리는 계약은 [Markdown 읽기](docs/markdown.md) 참고. 2026-09-26 격리 브라우저에서 표 생성·수정·저장·재열기·출간, 중첩 접기와 원문 보존, 지연 저장 응답 중 편집본 경로 전환을 확인. 최종 소스의 설정된 빌드와 API 주소 미설정 정적 빌드 통과. 검사한 읽기·관리자 편집 화면의 라이트·다크 Axe 위반 0건이며 원문 코드 블록의 키보드 스크롤, 두 표의 이동 후 셀 초점·저장 복원도 확인. API 미설정 브라우저에서는 Home·글쓰기·편집본 목록의 안내, API 요청 0건·가짜 원고 0건 확인. 전체 접근성 완료 선언은 아님. main·CI·Pages 반영은 아직 전이며 공개 Pages의 API HTTPS 주소도 여전히 미설정.
+P2-02C에서는 GFM 표의 셀 단위 편집과 명시적인 `<details>`·`<summary>`의 안전한 읽기 표시를 확장. 불명확한 접기 문법은 HTML을 실행하지 않는 원문 표시로 돌리는 계약은 [Markdown 읽기](docs/markdown.md) 참고. 2026-09-26 격리 브라우저에서 표 생성·수정·저장·재열기·출간, 중첩 접기와 원문 보존, 지연 저장 응답 중 편집본 경로 전환을 확인. 최종 소스의 설정된 빌드와 API 주소 미설정 정적 빌드 통과. 검사한 읽기·관리자 편집 화면의 라이트·다크 Axe 위반 0건이며 원문 코드 블록의 키보드 스크롤, 두 표의 이동 후 셀 초점·저장 복원도 확인. API 미설정 브라우저에서는 Home·글쓰기·편집본 목록의 안내, API 요청 0건·가짜 원고 0건 확인. 전체 접근성 완료 선언은 아님. main `01964c8`·[CI](https://github.com/gjaku1031/ken-blog/actions/runs/36228126312)·[Pages](https://github.com/gjaku1031/ken-blog/actions/runs/36228126314) 반영 완료. 공개 Pages의 API HTTPS 주소는 여전히 미설정.
+
+P2-02D는 한 단계의 명확한 접기를 제목과 내부 문서로 편집하고 그룹째 이동·삭제·해제하는 후속 작업. 중첩·속성·닫힘이 불명확한 접기는 원문 보존 유지. `> `·`/접기`·`/toggle` 생성, 바로 아래 텍스트 입력 블록의 Tab 편입·내부 텍스트 입력 블록의 Shift+Tab 꺼내기와 표·원문 블록용 이동 버튼은 [관리자 편집 화면](docs/editor.md) 참고. 2026-09-26 최종 소스의 타입 검사·기존 웹 검사 7개·API 설정 및 미설정 정적 빌드 통과. 격리 브라우저에서 접기 생성·그룹 이동·저장·재열기·출간과 원문 보존을 확인했고, 검사한 글쓰기 화면은 라이트·다크 일곱 너비에서 넘침 및 Axe 위반 0건. 내부 표 셀의 Tab은 다음 셀로 이동하고 접기 밖으로 나가지 않았음. API 미설정 브라우저의 Home·글쓰기·편집본 목록 안내, API 호출 0건·가짜 데이터 0건 확인. main·CI·Pages 반영은 아직 전이며 공개 Pages의 API HTTPS 연결도 없음.
 
 ## Spring 컨테이너와 배포 범위
 
