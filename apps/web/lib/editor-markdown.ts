@@ -2,12 +2,18 @@ import { unified } from "unified";
 import remarkParse from "remark-parse";
 import remarkGfm from "remark-gfm";
 import { parseEditableTable, serializeTable, type TableAlignment, type TableData } from "@/lib/editor-table";
+import { escapeToggleTitle, splitEditableToggle } from "@/lib/editor-toggle";
 
 /** 편집 가능한 기본 문법과 원문 그대로 잠그는 미지원 문법. */
-export type BlockType = "p" | "h1" | "h2" | "h3" | "ul" | "ol" | "todo" | "quote" | "code" | "hr" | "table" | "raw";
+export type BlockType = "p" | "h1" | "h2" | "h3" | "ul" | "ol" | "todo" | "quote" | "code" | "hr" | "table" | "toggle" | "raw";
+/** 접기 wrapper의 원래 경계와 안쪽 한 단계 문서를 독립적으로 보존한다. */
+export type ToggleData = {
+  beforeTitle: string; titleRaw: string; originalTitle: string; afterTitle: string;
+  inner: MarkdownDocument; suffix: string;
+};
 export type EditorBlock = {
   id: string; type: BlockType; text: string; raw: string; after: string; dirty: boolean;
-  lang?: string; done?: boolean; ordinal?: number; table?: TableData;
+  lang?: string; done?: boolean; ordinal?: number; table?: TableData; toggle?: ToggleData;
 };
 export type MarkdownDocument = { head: string; blocks: EditorBlock[]; newline: "\n" | "\r\n" };
 
@@ -20,6 +26,16 @@ export function blockId(): string { nextId += 1; return `editor-block-${nextId}`
 /** 원문 이외 필드는 편집 가능한 새 문단으로 초기화한다. */
 export function emptyBlock(type: BlockType = "p", newline = "\n"): EditorBlock {
   return { id: blockId(), type, text: "", raw: "", after: newline, dirty: true };
+}
+
+/** 제목과 안쪽 빈 문단을 포함한 한 단계 접기를 새로 만든다. */
+export function emptyToggleBlock(newline = "\n"): EditorBlock {
+  const child = { ...emptyBlock("p", newline), after: "" };
+  return { ...emptyBlock("toggle", newline), after: newline.repeat(2), toggle: {
+    beforeTitle: `<details>${newline}<summary>`, titleRaw: "", originalTitle: "", afterTitle: "</summary>",
+    inner: { head: newline.repeat(2), blocks: [child], newline: newline === "\r\n" ? "\r\n" : "\n" },
+    suffix: `${newline.repeat(2)}</details>`,
+  } };
 }
 
 /** 펜스 안의 HTML을 건드리지 않고 중첩 details 전부를 원문 보호 범위로 찾는다. */
@@ -70,7 +86,7 @@ function listSpans(node: SourceNode, source: string): Span[] | null {
 }
 
 /** 지원하지 않는 문법의 소스 위치를 포함해 Markdown 원문을 편집 블록으로 분리한다. */
-export function parseEditorMarkdown(source: string): MarkdownDocument {
+export function parseEditorMarkdown(source: string, depth = 0): MarkdownDocument {
   const root = parser.parse(source);
   const protectedRanges = detailsRanges(source);
   const children = root.children as SourceNode[];
@@ -106,16 +122,23 @@ export function parseEditorMarkdown(source: string): MarkdownDocument {
   const blocks = normalized.map((span, index) => {
     const raw = source.slice(span.start, span.end);
     const after = source.slice(span.end, normalized[index + 1]?.start ?? source.length);
-    return decodeBlock(raw, after, span.node, Boolean(span.forcedRaw));
+    return decodeBlock(raw, after, span.node, Boolean(span.forcedRaw), depth);
   });
   if (!blocks.length && !source) blocks.push({ ...emptyBlock(), after: "" });
   return { head, blocks, newline: source.includes("\r\n") ? "\r\n" : "\n" };
 }
 
 /** AST 분류를 원문 문법으로 재확인하고 모호한 구간은 읽기 전용으로 둔다. */
-function decodeBlock(raw: string, after: string, node: SourceNode, forcedRaw: boolean): EditorBlock {
+function decodeBlock(raw: string, after: string, node: SourceNode, forcedRaw: boolean, depth: number): EditorBlock {
   const base: EditorBlock = { id: blockId(), type: "raw", text: raw, raw, after, dirty: false };
-  if (forcedRaw) return base;
+  if (forcedRaw) {
+    const source = depth === 0 ? splitEditableToggle(raw) : null;
+    if (!source) return base;
+    return { ...base, type: "toggle", text: source.title, toggle: {
+      beforeTitle: source.beforeTitle, titleRaw: source.titleRaw, originalTitle: source.title,
+      afterTitle: source.afterTitle, inner: parseEditorMarkdown(source.innerSource, 1), suffix: source.suffix,
+    } };
+  }
   if (node.type === "table") {
     const table = parseEditableTable(raw, node.children?.[0]?.children?.length ?? 0, node.children?.length ?? 0, node.align);
     if (table) return { ...base, type: "table", text: "", table };
@@ -172,6 +195,16 @@ export function blockMarkdown(block: EditorBlock, newline = "\n"): string {
     case "quote": result = `> ${escapedParagraph(text.replace(/\n/g, " "))}`; break;
     case "hr": result = "---"; break;
     case "table": result = block.table ? serializeTable(block.table) : block.raw; break;
+    case "toggle": {
+      if (!block.toggle) return block.raw;
+      const inner = serializeEditorMarkdown(block.toggle.inner);
+      const seam = inner + (block.toggle.suffix.match(/^[ \t\r\n]*/)?.[0] ?? "");
+      // 원래 빈 접기에 처음 본문을 넣을 때만 닫힘 태그와 내용이 한 줄에 붙지 않게 한다.
+      const boundary = inner.trim() && !/\r?\n[ \t]*$/.test(seam) ? block.toggle.inner.newline : "";
+      return block.toggle.beforeTitle +
+        (block.text === block.toggle.originalTitle ? block.toggle.titleRaw : escapeToggleTitle(block.text)) +
+        block.toggle.afterTitle + inner + boundary + block.toggle.suffix;
+    }
     case "code": {
       const longest = Math.max(2, ...Array.from(text.matchAll(/`+/g), (match) => match[0].length));
       const fence = "`".repeat(longest + 1);

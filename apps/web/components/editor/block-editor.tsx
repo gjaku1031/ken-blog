@@ -1,23 +1,31 @@
 "use client";
 
-import { useEffect, useRef, useState, type DragEvent, type KeyboardEvent } from "react";
+import { useEffect, useId, useRef, useState, type DragEvent, type KeyboardEvent } from "react";
 import { SafeMarkdown } from "@/components/safe-markdown";
-import { blockMarkdown, emptyBlock, ensureBlockBoundaries, type BlockType, type EditorBlock, type MarkdownDocument } from "@/lib/editor-markdown";
+import { blockMarkdown, emptyBlock, emptyToggleBlock, ensureBlockBoundaries, type BlockType, type EditorBlock, type MarkdownDocument } from "@/lib/editor-markdown";
 import { emptyTable, parsePipeHeaderCommand, TABLE_MAX_COLUMNS, TABLE_MAX_CELL_LENGTH } from "@/lib/editor-table";
 import { TableBlock } from "@/components/editor/table-block";
+import { ToggleBlock } from "@/components/editor/toggle-block";
 
-type Props = { value: MarkdownDocument; onChange: (next: MarkdownDocument) => void; disabled?: boolean; focusFirstSignal?: number };
+type Props = { value: MarkdownDocument; onChange: (next: MarkdownDocument) => void; disabled?: boolean;
+  focusFirstSignal?: number; focusBlock?: { id: string; serial: number }; depth?: 0 | 1; onOutdentFrom?: (index: number) => void };
 type FocusTarget = { id: string; offset: number | "end" };
 const blockNames: Record<BlockType, string> = { p: "문단", h1: "제목 1", h2: "제목 2", h3: "제목 3",
-  ul: "글머리 목록", ol: "번호 목록", todo: "할 일", quote: "인용", code: "코드", hr: "구분선", table: "표", raw: "원문" };
+  ul: "글머리 목록", ol: "번호 목록", todo: "할 일", quote: "인용", code: "코드", hr: "구분선", table: "표", toggle: "접기", raw: "원문" };
 const shortcuts: Record<string, BlockType> = { "#": "h1", "##": "h2", "###": "h3", "-": "ul", "*": "ul",
   "1.": "ol", "[]": "todo", "[ ]": "todo", "|": "quote" };
+const DRAG_FORMAT = "application/x-ken-blog-editor-block";
 
 /** 기본 블록을 키보드와 마우스로 편집하고 원문 블록은 읽기 전용으로 보존한다. */
-export function BlockEditor({ value, onChange, disabled = false, focusFirstSignal = 0 }: Props) {
+export function BlockEditor({ value, onChange, disabled = false, focusFirstSignal = 0,
+  focusBlock, depth = 0, onOutdentFrom }: Props) {
+  const editorToken = useId();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [focusTarget, setFocusTarget] = useState<FocusTarget | null>(null);
   const [tableFocus, setTableFocus] = useState<{ id: string; serial: number } | null>(null);
+  const [toggleTitleFocus, setToggleTitleFocus] = useState<{ id: string; serial: number } | null>(null);
+  const [toggleChildFocus, setToggleChildFocus] = useState<{ toggleId: string; id: string; serial: number } | null>(null);
+  const [toggleFirstFocus, setToggleFirstFocus] = useState<{ id: string; serial: number } | null>(null);
   const refs = useRef(new Map<string, HTMLElement>());
   const composing = useRef(false);
   const compositionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -38,6 +46,8 @@ export function BlockEditor({ value, onChange, disabled = false, focusFirstSigna
 
   /** 제목에서 Enter·아래 화살표를 누르면 첫 본문 블록의 앞에 커서를 둔다. */
   useEffect(() => { if (focusFirstSignal > 0 && value.blocks[0]) activate(value.blocks[0].id, 0); }, [focusFirstSignal]);
+  /** 상위 접기에서 옮긴 자식 블록의 정확한 포커스를 되찾는다. */
+  useEffect(() => { if (focusBlock) activate(focusBlock.id, 0); }, [focusBlock?.serial]);
 
   /** 조합 중 keydown이 한글 마지막 글자를 분리하지 않게 모든 구조 키를 통과시킨다. */
   function isComposing(event: KeyboardEvent<HTMLTextAreaElement>): boolean {
@@ -110,6 +120,99 @@ export function BlockEditor({ value, onChange, disabled = false, focusFirstSigna
     setTableFocus({ id: table.id, serial: (tableFocus?.serial ?? 0) + 1 });
   }
 
+  /** 빈 문단을 접기 그룹으로 바꾸고 마지막 그룹 뒤에는 이어 쓸 문단을 둔다. */
+  function replaceWithToggle(index: number) {
+    if (depth !== 0) return;
+    const blocks = [...value.blocks];
+    const original = blocks[index];
+    const toggle = { ...emptyToggleBlock(value.newline), id: original.id, after: original.after };
+    blocks[index] = toggle;
+    if (index === blocks.length - 1) {
+      toggle.after = value.newline.repeat(2);
+      blocks.push({ ...emptyBlock("p", value.newline), after: original.after });
+    }
+    onChange(ensureBlockBoundaries({ ...value, blocks }));
+    setActiveId(null);
+    setToggleTitleFocus({ id: toggle.id, serial: (toggleTitleFocus?.serial ?? 0) + 1 });
+  }
+
+  /** 선택 블록 뒤에 새 접기 그룹을 넣어 제목부터 입력하게 한다. */
+  function addToggle() {
+    if (disabled || depth !== 0) return;
+    if (!value.blocks.length) {
+      const toggle = emptyToggleBlock(value.newline);
+      onChange({ ...value, blocks: [toggle, { ...emptyBlock("p", value.newline), after: "" }] });
+      setToggleTitleFocus({ id: toggle.id, serial: (toggleTitleFocus?.serial ?? 0) + 1 });
+      return;
+    }
+    const selected = value.blocks.findIndex((block) => block.id === activeId);
+    const index = selected >= 0 ? selected : value.blocks.length - 1;
+    const previous = value.blocks[index];
+    if (previous.type === "p" && !previous.text && !previous.raw) { replaceWithToggle(index); return; }
+    const blocks = [...value.blocks];
+    const toggle = { ...emptyToggleBlock(value.newline), after: previous.after };
+    blocks[index] = { ...previous, after: value.newline.repeat(2) };
+    blocks.splice(index + 1, 0, toggle);
+    if (index + 1 === blocks.length - 1) {
+      toggle.after = value.newline.repeat(2);
+      blocks.push({ ...emptyBlock("p", value.newline), after: previous.after });
+    }
+    onChange(ensureBlockBoundaries({ ...value, blocks }));
+    setToggleTitleFocus({ id: toggle.id, serial: (toggleTitleFocus?.serial ?? 0) + 1 });
+  }
+
+  /** 접기 wrapper만 없애고 모든 자식 블록을 같은 순서로 상위 문서에 남긴다. */
+  function unwrapToggle(index: number) {
+    const group = value.blocks[index];
+    if (disabled || group.type !== "toggle" || !group.toggle) return;
+    const children = group.toggle.inner.blocks.length ? group.toggle.inner.blocks : [emptyBlock("p", value.newline)];
+    const moved = children.map((child, position) => position === children.length - 1 ? { ...child, after: group.after } : child);
+    const blocks = [...value.blocks];
+    blocks.splice(index, 1, ...moved);
+    onChange(ensureBlockBoundaries({ ...value, blocks }));
+    activate(moved[0].id, 0);
+  }
+
+  /** 현재 자식부터 뒤 형제까지 밖으로 빼고 남은 접기·본문의 순서를 유지한다. */
+  function outdentFrom(groupIndex: number, childIndex: number) {
+    const group = value.blocks[groupIndex];
+    if (disabled || group.type !== "toggle" || !group.toggle) return;
+    const inner = group.toggle.inner;
+    const moved = inner.blocks.slice(childIndex);
+    if (!moved.length) return;
+    const kept = inner.blocks.slice(0, childIndex);
+    const remaining = kept.length ? kept : [{ ...emptyBlock("p", value.newline), after: "" }];
+    const updated = { ...group, dirty: true, after: value.newline.repeat(2), toggle: {
+      ...group.toggle, inner: ensureBlockBoundaries({ ...inner, blocks: remaining }),
+    } };
+    const outside = moved.map((child, position) => position === moved.length - 1 ? { ...child, after: group.after } : child);
+    const blocks = [...value.blocks];
+    blocks.splice(groupIndex, 1, updated, ...outside);
+    onChange(ensureBlockBoundaries({ ...value, blocks }));
+    activate(outside[0].id, 0);
+  }
+
+  /** 바로 위 접기에 현재 블록 하나를 편입하며 나머지 상위 순서를 유지한다. */
+  function indentIntoPrevious(index: number) {
+    if (disabled || depth !== 0 || index < 1) return;
+    const group = value.blocks[index - 1];
+    const current = value.blocks[index];
+    if (group.type !== "toggle" || !group.toggle || current.type === "toggle") return;
+    const inner = group.toggle.inner;
+    const onlyPlaceholder = inner.blocks.length === 1 && inner.blocks[0].type === "p" &&
+      !inner.blocks[0].text && !inner.blocks[0].raw;
+    const child = { ...current, after: value.newline.repeat(2) };
+    const children = onlyPlaceholder ? [child] : [...inner.blocks, child];
+    const updated = { ...group, dirty: true, after: current.after, toggle: {
+      ...group.toggle, inner: ensureBlockBoundaries({ ...inner, blocks: children }),
+    } };
+    const blocks = [...value.blocks];
+    blocks.splice(index - 1, 2, updated);
+    onChange(ensureBlockBoundaries({ ...value, blocks }));
+    setActiveId(null);
+    setToggleChildFocus({ toggleId: group.id, id: child.id, serial: (toggleChildFocus?.serial ?? 0) + 1 });
+  }
+
   /** 선택한 블록을 삭제하되 남은 글과 원문 구분자를 보존한다. */
   function removeAt(index: number) {
     const blocks = [...value.blocks];
@@ -141,11 +244,25 @@ export function BlockEditor({ value, onChange, disabled = false, focusFirstSigna
     const end = input.selectionEnd;
     const text = input.value;
     if (event.key === "Escape") { event.preventDefault(); setActiveId(null); setFocusTarget({ id: block.id, offset: 0 }); return; }
+    if (event.key === "Tab" && !event.ctrlKey && !event.altKey && !event.metaKey) {
+      if (event.shiftKey && depth === 1 && onOutdentFrom) { event.preventDefault(); onOutdentFrom(index); return; }
+      if (!event.shiftKey && depth === 0 && value.blocks[index - 1]?.type === "toggle" && block.type !== "toggle") {
+        event.preventDefault(); indentIntoPrevious(index); return;
+      }
+    }
     if (event.key === " " && block.type === "p" && start === end && end === text.length) {
+      if (text === ">" && depth === 0) { event.preventDefault(); replaceWithToggle(index); return; }
       const type = shortcuts[text];
       if (type) { event.preventDefault(); edit(block.id, (old) => ({ ...old, type, text: "", dirty: true })); activate(block.id, 0); return; }
     }
     if (event.key === "Enter" && !event.shiftKey && !event.altKey) {
+      if (block.type === "p" && depth === 0 && start === end && end === text.length &&
+        (text === "/접기" || text === "/toggle")) {
+        event.preventDefault(); replaceWithToggle(index); return;
+      }
+      if (depth === 1 && block.type === "p" && !text && start === end && onOutdentFrom) {
+        event.preventDefault(); onOutdentFrom(index); return;
+      }
       if (block.type === "p" && start === end && end === text.length && (text === "/표" || text === "/table")) {
         event.preventDefault(); replaceWithTable(index); return;
       }
@@ -198,7 +315,7 @@ export function BlockEditor({ value, onChange, disabled = false, focusFirstSigna
       if (index > 0) {
         event.preventDefault();
         const previous = value.blocks[index - 1];
-        if (["raw", "code", "hr", "table"].includes(previous.type)) { activate(previous.id); return; }
+        if (["raw", "code", "hr", "table", "toggle"].includes(previous.type)) { activate(previous.id); return; }
         const joined = previous.text + text;
         const blocks = [...value.blocks];
         blocks[index - 1] = { ...previous, text: joined, dirty: true, after: block.after };
@@ -217,7 +334,7 @@ export function BlockEditor({ value, onChange, disabled = false, focusFirstSigna
 
   /** 손잡이나 버튼으로 순서를 바꾸되 원문 블록 내용은 편집하지 않는다. */
   function move(from: number, to: number) {
-    if (from === to || from < 0 || to < 0 || to >= value.blocks.length) return;
+    if (disabled || from === to || from < 0 || to < 0 || to >= value.blocks.length) return;
     const blocks = [...value.blocks];
     const separators = blocks.map((block) => block.after);
     const [moved] = blocks.splice(from, 1);
@@ -230,22 +347,62 @@ export function BlockEditor({ value, onChange, disabled = false, focusFirstSigna
   /** HTML Drag and Drop 식별자를 오직 현재 화면 블록에서만 받는다. */
   function onDrop(event: DragEvent<HTMLElement>, index: number) {
     event.preventDefault();
-    const from = value.blocks.findIndex((block) => block.id === dragId.current);
-    if (from !== -1) move(from, index);
+    event.stopPropagation();
+    const id = dragId.current;
     dragId.current = null;
+    if (disabled) return;
+    if (!id || event.dataTransfer.getData(DRAG_FORMAT) !== `${editorToken}:${id}`) return;
+    const from = value.blocks.findIndex((block) => block.id === id);
+    if (from !== -1) move(from, index);
   }
 
   return <div className="block-editor" aria-label="글 본문 편집기">
     {value.blocks.map((block, index) => <div key={block.id} className={`editor-block editor-${block.type}`}
-      onDragOver={(event) => event.preventDefault()} onDrop={(event) => onDrop(event, index)}>
-      <div className="block-controls" aria-label={`${index + 1}번 블록 이동`}>
+      onDragOver={(event) => { event.preventDefault(); event.stopPropagation(); }} onDrop={(event) => onDrop(event, index)}>
+      <div className={`block-controls${depth === 1 || (depth === 0 && index > 0 && value.blocks[index - 1].type === "toggle") ? " block-controls-transfer" : ""}`}
+        aria-label={`${index + 1}번 블록 이동`}>
         <button type="button" className="drag-handle" disabled={disabled} draggable={!disabled} onDragStart={(event) => {
-          dragId.current = block.id; event.dataTransfer.setData("text/plain", block.id); event.dataTransfer.effectAllowed = "move";
+          event.stopPropagation();
+          if (disabled) { event.preventDefault(); return; }
+          dragId.current = block.id;
+          event.dataTransfer.setData(DRAG_FORMAT, `${editorToken}:${block.id}`);
+          event.dataTransfer.effectAllowed = "move";
+        }} onDragEnd={(event) => {
+          event.stopPropagation(); dragId.current = null;
         }} aria-label={`${index + 1}번 블록 끌어 이동`}>⋮⋮</button>
         <button type="button" disabled={disabled || index === 0} onClick={() => move(index, index - 1)} aria-label={`${index + 1}번 블록 위로 이동`}>↑</button>
         <button type="button" disabled={disabled || index === value.blocks.length - 1} onClick={() => move(index, index + 1)} aria-label={`${index + 1}번 블록 아래로 이동`}>↓</button>
+        {depth === 1 && onOutdentFrom && <button type="button" disabled={disabled} onClick={() => onOutdentFrom(index)}
+          aria-label={`${index + 1}번 블록부터 접기 밖으로 빼기`}>↤</button>}
+        {depth === 0 && index > 0 && value.blocks[index - 1].type === "toggle" && block.type !== "toggle" &&
+          <button type="button" disabled={disabled} onClick={() => indentIntoPrevious(index)}
+            aria-label={`${index + 1}번 블록을 위 접기 안으로 넣기`}>↦</button>}
       </div>
-      {block.type === "table" && block.table ? <TableBlock value={block.table} disabled={disabled}
+      {block.type === "toggle" && block.toggle && depth === 0 ? <ToggleBlock id={block.id} title={block.text} disabled={disabled}
+        focusTitle={toggleTitleFocus?.id === block.id ? toggleTitleFocus.serial : 0}
+        rootRef={(node) => { if (node) refs.current.set(block.id, node); else refs.current.delete(block.id); }}
+        onTitle={(title) => edit(block.id, (old) => ({ ...old, text: title, dirty: true }))}
+        onTitleEnter={() => {
+          const inner = block.toggle?.inner;
+          if (!block.text && inner && !inner.blocks.some((child) => blockMarkdown(child, inner.newline).trim())) {
+            unwrapToggle(index); return;
+          }
+          if (inner && !inner.blocks.length) edit(block.id, (old) => old.toggle ? { ...old, dirty: true,
+            toggle: { ...old.toggle, inner: { ...old.toggle.inner,
+              blocks: [{ ...emptyBlock("p", inner.newline), after: "" }] } } } : old);
+          setToggleFirstFocus({ id: block.id, serial: (toggleFirstFocus?.serial ?? 0) + 1 });
+        }}
+        onUnwrap={() => unwrapToggle(index)} onDelete={() => removeAt(index)}
+        moveAbove={() => { if (index > 0) activate(value.blocks[index - 1].id); }}
+        moveBelow={() => { if (index + 1 < value.blocks.length) activate(value.blocks[index + 1].id, 0); }}>
+        <BlockEditor value={block.toggle.inner} disabled={disabled} depth={1}
+          focusFirstSignal={toggleFirstFocus?.id === block.id ? toggleFirstFocus.serial : 0}
+          focusBlock={toggleChildFocus?.toggleId === block.id ? { id: toggleChildFocus.id, serial: toggleChildFocus.serial } : undefined}
+          onChange={(inner) => edit(block.id, (old) => old.toggle ? { ...old, dirty: true,
+            toggle: { ...old.toggle, inner } } : old)}
+          onOutdentFrom={(childIndex) => outdentFrom(index, childIndex)} />
+      </ToggleBlock> :
+      block.type === "table" && block.table ? <TableBlock value={block.table} disabled={disabled}
         focusFirst={tableFocus?.id === block.id ? tableFocus.serial : 0}
         rootRef={(node) => { if (node) refs.current.set(block.id, node); else refs.current.delete(block.id); }}
         onChange={(table) => edit(block.id, (old) => ({ ...old, table, dirty: true }))}
@@ -302,5 +459,6 @@ export function BlockEditor({ value, onChange, disabled = false, focusFirstSigna
       else insertAfter(value.blocks.length - 1, "p");
     }}>+ 문단 추가</button>
     <button type="button" className="editor-add" disabled={disabled} onClick={addTable}>+ 표 추가</button>
+    {depth === 0 && <button type="button" className="editor-add" disabled={disabled} onClick={addToggle}>+ 접기 추가</button>}
   </div>;
 }

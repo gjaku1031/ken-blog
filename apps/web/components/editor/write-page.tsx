@@ -363,7 +363,7 @@ function WriteInstance({ route }: { route: Route }) {
     </div>
     <BlockEditor value={form.document} disabled={busy === "publish"} focusFirstSignal={focusFirstSignal}
       onChange={(next) => changeForm((current) => ({ ...current, document: next }))} />
-    <p className="write-hint">기본 블록과 명확한 표를 편집할 수 있습니다. 복잡한 표·이미지·접기는 원문 그대로 보존합니다. 제목·목록·인용에서는 Shift+Enter 줄바꿈을 사용하지 않습니다.</p>
+    <p className="write-hint">기본 블록·명확한 표·한 단계 접기를 편집할 수 있습니다. `&gt; ` 또는 /접기로 만들고, 제목 Enter로 안쪽에 들어갑니다. 위 접기 바로 아래의 문단은 Tab으로 안에 넣고, 안쪽 문단은 Shift+Tab이나 빈 문단 Enter로 그 위치부터 밖으로 나옵니다. 중첩 접기·복잡한 표·이미지는 원문 그대로 보존합니다.</p>
     {message && <p className="write-message" role="status">{message}</p>}
     <div className="write-spacer" />
     <div className="write-toolbar"><span className="write-save-state" aria-live="polite">{busy === "save" ? "저장 중…" :

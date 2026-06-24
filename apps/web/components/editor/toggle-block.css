@@ -1,0 +1,11 @@
+.editor-toggle-block { min-width: 0; max-width: 100%; border: 1px solid var(--line2); border-radius: 8px; background: var(--card); padding: 12px; }
+.editor-toggle-title { display: grid; gap: 5px; }
+.editor-toggle-title label { color: var(--text2); font-size: 12px; font-weight: 700; }
+.editor-toggle-title input { width: 100%; min-height: 40px; min-width: 0; border: 1px solid var(--line2); border-radius: 6px; padding: 7px 10px; background: var(--card); color: var(--text); }
+.editor-toggle-inner { min-width: 0; margin: 12px 0 0 8px; padding-left: 16px; border-left: 2px solid var(--line2); }
+.editor-toggle-inner .block-editor { padding-bottom: 6px; }
+.editor-toggle-actions { display: flex; flex-wrap: wrap; gap: 7px; margin: 7px 0 0 22px; }
+.editor-toggle-actions button { min-height: 35px; border: 1px solid var(--line2); border-radius: 6px; padding: 5px 10px; background: var(--card); color: var(--text2); font-size: 12px; }
+.editor-toggle-actions button:hover:not(:disabled) { background: var(--soft); }
+.editor-toggle-actions button:disabled { opacity: .55; }
+@media (max-width: 600px) { .editor-toggle-block { padding: 9px; } .editor-toggle-inner { margin-left: 3px; padding-left: 10px; } .editor-toggle-actions { margin-left: 12px; } }
