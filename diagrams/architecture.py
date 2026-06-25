@@ -1,4 +1,4 @@
-"""P1-04 아키텍처의 같은 배치 라이트·다크 도면을 생성한다."""
+"""현재 배치와 계획된 이미지 권한 경계의 라이트·다크 도면을 생성한다."""
 
 from argparse import ArgumentParser
 from html import escape
@@ -107,13 +107,13 @@ def render(icons: Path, output: Path, theme: str):
 
         browser = card("방문자", "브라우저", 105, 420, width=165)
         with region("GitHub Pages · 공개 정적 화면", (275, 220, 685, 520)):
-            pages = card("GitHub Pages", "HTML·JS·도면 제공", 475, 420, "github", 250)
+            pages = card("GitHub Pages", "글·로그인·편집 화면", 475, 420, "github", 250)
             card("Next.js · static export", "서버 프로세스 없음", 475, 310, "nextjs", 250)
         with region("OCI ARM64 VM · 로컬 검증 환경", (735, 80, 1165, 520)):
             card("OCI Compute", "호스트 24 GB", 940, 420, "oci-vm", 245)
             card("Docker Compose", "API·MySQL 수동 기동", 940, 335, "docker", 245)
-            api = card("Spring Boot · API", "쿠키 세션 · 로컬 :18081", 940, 250, "spring", 255)
-            mysql = card("MySQL 8.4.11", "게시글·계정·세션 저장", 940, 145, "mysql", 225)
+            api = card("Spring Boot · API", "세션·권한 판단 · 로컬 :18081", 940, 250, "spring", 255)
+            mysql = card("MySQL 8.4.11", "글·계정·세션·첨부 정보", 940, 145, "mysql", 225)
         with region("OCI Object Storage · 비공개 버킷", (620, -110, 1165, 55)):
             storage = card("OCI Object Storage", "관리자 이미지 원본", 840, -40, "oci-object-storage", 260)
 
@@ -143,10 +143,10 @@ def render(icons: Path, output: Path, theme: str):
         caption("GET 정적 파일", 270, 455, 10, color["runtime"])
         caption("out 업로드", 460, 580, 10, color["delivery"])
         caption("공개 HTTPS API · 주소 미정 / 미연결", 505, 174, 10, color["future"])
-        caption("Pages 로그인 화면 없음 · API 인증은 로컬 검증", 450, 115, 10)
-        caption("JPA·Flyway / Spring Session JDBC", 1040, 195, 10, color["runtime"])
-        caption("첨부 메타데이터·본문 해시 · 로컬 DB :13306", 1030, 100, 10)
-        caption("HTTPS · 비공개 버킷", 980, -91, 10, color["runtime"])
+        caption("Pages 로그인·편집 UI 제공 · 공개 API 미연결", 450, 115, 10)
+        caption("JPA·Flyway / JDBC 세션·이미지 권한 판단", 1040, 195, 10, color["runtime"])
+        caption("V7 분류·V8 편집본 / V9 이미지 연결 격리 검증", 1030, 100, 10)
+        caption("HTTPS · 비공개 버킷 / 권한별 읽기 검증", 980, -91, 10, color["runtime"])
 
         with region("외부 Redis Cloud", (35, -110, 590, 55), color["panel"], color["border"]):
             redis = card("Redis Cloud", "익명 PUBLIC 본문 · 기본 비활성", 350, -40, "redis", 225)

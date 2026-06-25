@@ -30,7 +30,7 @@ io.github.gjaku1031.kenblog
 프론트는 GitHub Pages에서 제공하고 브라우저가 Spring API를 호출하는 구조. VM에는 Spring 실행. 공개 API 도메인·HTTPS 주소가 아직 없어 공개 홈은 API 미설정 상태로 배포.
 
 - [정적 프론트와 아키텍처 도면](https://gjaku1031.github.io/ken-blog/)
-- [현재 계획](planning/issues/P2-02D.md) · [작업 상태](planning/tasks.md) · [개발 순서](planning/roadmap.md)
+- [현재 계획](planning/issues/P2-03A.md) · [작업 상태](planning/tasks.md) · [개발 순서](planning/roadmap.md)
 - [코드·문서 규칙](docs/code-conventions.md) · [런타임 안내](docs/runtime.md) · [게시글 API](docs/posts.md) · [관리자 편집본 API](docs/editor-drafts.md) · [관리자 편집 화면](docs/editor.md) · [Markdown 읽기](docs/markdown.md) · [Tech 분류·태그](docs/taxonomy.md) · [선택적 공개 본문 캐시](docs/cache.md) · [첨부파일 운영 안내](docs/attachments.md) · [도면 설명](docs/architecture.md)
 
 ## API 직접 실행
@@ -101,7 +101,9 @@ P2-02B는 정적 `/write/`에서 새 글·기존 글·저장된 편집본을 이
 
 P2-02C에서는 GFM 표의 셀 단위 편집과 명시적인 `<details>`·`<summary>`의 안전한 읽기 표시를 확장. 불명확한 접기 문법은 HTML을 실행하지 않는 원문 표시로 돌리는 계약은 [Markdown 읽기](docs/markdown.md) 참고. 2026-09-26 격리 브라우저에서 표 생성·수정·저장·재열기·출간, 중첩 접기와 원문 보존, 지연 저장 응답 중 편집본 경로 전환을 확인. 최종 소스의 설정된 빌드와 API 주소 미설정 정적 빌드 통과. 검사한 읽기·관리자 편집 화면의 라이트·다크 Axe 위반 0건이며 원문 코드 블록의 키보드 스크롤, 두 표의 이동 후 셀 초점·저장 복원도 확인. API 미설정 브라우저에서는 Home·글쓰기·편집본 목록의 안내, API 요청 0건·가짜 원고 0건 확인. 전체 접근성 완료 선언은 아님. main `01964c8`·[CI](https://github.com/gjaku1031/ken-blog/actions/runs/36228126312)·[Pages](https://github.com/gjaku1031/ken-blog/actions/runs/36228126314) 반영 완료. 공개 Pages의 API HTTPS 주소는 여전히 미설정.
 
-P2-02D는 한 단계의 명확한 접기를 제목과 내부 문서로 편집하고 그룹째 이동·삭제·해제하는 후속 작업. 중첩·속성·닫힘이 불명확한 접기는 원문 보존 유지. `> `·`/접기`·`/toggle` 생성, 바로 아래 텍스트 입력 블록의 Tab 편입·내부 텍스트 입력 블록의 Shift+Tab 꺼내기와 표·원문 블록용 이동 버튼은 [관리자 편집 화면](docs/editor.md) 참고. 2026-09-26 최종 소스의 타입 검사·기존 웹 검사 7개·API 설정 및 미설정 정적 빌드 통과. 격리 브라우저에서 접기 생성·그룹 이동·저장·재열기·출간과 원문 보존을 확인했고, 검사한 글쓰기 화면은 라이트·다크 일곱 너비에서 넘침 및 Axe 위반 0건. 내부 표 셀의 Tab은 다음 셀로 이동하고 접기 밖으로 나가지 않았음. API 미설정 브라우저의 Home·글쓰기·편집본 목록 안내, API 호출 0건·가짜 데이터 0건 확인. main·CI·Pages 반영은 아직 전이며 공개 Pages의 API HTTPS 연결도 없음.
+P2-02D는 한 단계의 명확한 접기를 제목과 내부 문서로 편집하고 그룹째 이동·삭제·해제하는 기능. 중첩·속성·닫힘이 불명확한 접기는 원문 보존 유지. `> `·`/접기`·`/toggle` 생성, 바로 아래 텍스트 입력 블록의 Tab 편입·내부 텍스트 입력 블록의 Shift+Tab 꺼내기와 표·원문 블록용 이동 버튼은 [관리자 편집 화면](docs/editor.md) 참고. 2026-09-26 최종 소스의 타입 검사·기존 웹 검사 7개·API 설정 및 미설정 정적 빌드 통과. 격리 브라우저에서 접기 생성·그룹 이동·저장·재열기·출간과 원문 보존을 확인했고, 검사한 글쓰기 화면은 라이트·다크 일곱 너비에서 넘침 및 Axe 위반 0건. 내부 표 셀의 Tab은 다음 셀로 이동하고 접기 밖으로 나가지 않았음. API 미설정 브라우저의 Home·글쓰기·편집본 목록 안내, API 호출 0건·가짜 데이터 0건 확인. main `9dc415d`·[CI](https://github.com/gjaku1031/ken-blog/actions/runs/36229191294)·[Pages](https://github.com/gjaku1031/ken-blog/actions/runs/36229191303) 반영 완료. 공개 Pages의 API HTTPS 연결은 여전히 없음.
+
+P2-03A는 관리자 게시글·편집본에 이미지 ID를 명시적으로 연결하고, Spring이 현재 글 권한을 확인해 비공개 OCI Object Storage 원본을 전달하는 API 작업. Flyway V9 관계, 기존 글·편집본 수정에서 `attachmentIds` 생략 시 연결 보존, 명시적 빈 배열의 연결 해제, 연결 중인 첨부 삭제 거부를 구현. 권한별 이미지 GET은 글 ID와 첨부 ID를 사용하며 공개 API HTTPS와 브라우저 이미지 입력·표시는 이 단계에서 제공하지 않음. [첨부 계약](docs/attachments.md)과 [계획](planning/issues/P2-03A.md) 참고. 2026-09-26 격리 Maven 기존 API 검사 28개와 웹 검사 7개·타입 검사·정적 빌드 통과. 기존 V8 데이터와 JDBC 세션을 V9로 보존했고 실제 OCI PNG/JPEG 바이트 일치·권한별 읽기·연결/삭제 경합·편집본 출간 전환을 HTTP/SQL로 확인. 격리 MySQL 장애의 이미지 `503`·복구 뒤 동일 세션 유지와 새 DB의 V1~V9 기동·로그인·글 생성까지 확인. 검증 소유 글·편집본·첨부/OCI 객체와 JAR·MySQL 컨테이너·볼륨 정리 완료. 기존 VM 앱·Redis의 ID·이미지·시작 시각은 유지. main·CI·Pages 반영 전.
 
 ## Spring 컨테이너와 배포 범위
 
@@ -109,10 +111,10 @@ Spring API 이미지는 Buildpacks로 생성. 개발 Compose는 API·MySQL을 �
 
 Pages의 아키텍처 도면 자산은 유지. P2-01 화면 추가 후에도 공개 API 배포와 브라우저 첨부 UI 연결은 후속 단계이고, 공개 Pages의 API 주소는 계속 미설정. 로그인 화면의 정적 제공과 실사이트 로그인 성공은 별도 상태.
 
-[도면 설명과 원본](docs/architecture.md)은 정적 프론트 배포, 로컬 MySQL 게시글·계정·세션·첨부 메타데이터, 비공개 OCI Object Storage의 관리자 첨부 경로, 선택적 Redis Cloud 공개 본문 캐시와 후속 공개 HTTPS 연결을 구분.
+[도면 설명과 원본](docs/architecture.md)은 정적 프론트 배포, 로컬 MySQL 게시글·계정·세션·첨부 메타데이터와 V7 분류·V8 편집본, 비공개 OCI Object Storage의 관리자 첨부 경로와 격리 검증한 V9 이미지 연결·권한별 전달, 선택적 Redis Cloud 공개 본문 캐시와 후속 공개 HTTPS 연결을 구분.
 
 ## 검증 기록
 
 계획별 실제 빌드·테스트·브라우저·CI 결과는 [작업 상태](planning/tasks.md)에서 확인. 메모리 사용량은 [런타임 안내](docs/runtime.md)의 측정 조건과 함께 해석.
 
-실제 환경 파일과 `docs/study/`는 Git 및 Pages 산출물에서 제외. 게시글과 첨부의 연결·공개 이미지·GA 연동과 공개 HTTPS API 연결은 후속 단계. P1-04B API의 출간·공개 조회는 main 반영 완료이나 운영 API 배포와 Pages의 실제 데이터 연결은 수행하지 않음. P1-04 캐시의 실제 확인 범위는 [계획](planning/issues/P1-04.md)과 [캐시 안내](docs/cache.md) 참고.
+실제 환경 파일과 `docs/study/`는 Git 및 Pages 산출물에서 제외. 게시글과 첨부의 연결·권한별 이미지 API는 P2-03A 격리 검증 범위이며 브라우저 이미지 입력·표시·GA 연동과 공개 HTTPS API 연결은 후속 단계. P1-04B API의 출간·공개 조회는 main 반영 완료이나 운영 API 배포와 Pages의 실제 데이터 연결은 수행하지 않음. P1-04 캐시의 실제 확인 범위는 [계획](planning/issues/P1-04.md)과 [캐시 안내](docs/cache.md) 참고.

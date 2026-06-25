@@ -87,6 +87,12 @@ P2-02B의 정적 관리자 경로는 `/ken-blog/write/`와 `/ken-blog/admin/draf
 
 2026-09-26 P1-04 최종 소스의 기존 검사 28개 통과. 격리 Buildpacks·Compose 이미지에서는 V6 본문 해시, JDBC 로그인·세션 ID 교체, 외부 Redis Cloud의 공개 본문 키·TTL과 비공개 전환 뒤 차단·키 제거, 글 삭제를 확인. 초기 냉간 연결 실패 시 HTTP는 DB 원문으로 우회했고 짧은 유예 뒤 캐시 연결에 성공. 최종 JAR에서는 캐시 miss·hit, 해시 불일치, Redis 중단 시 DB fallback·복구, API 재시작 후 기존 JDBC 세션, 비공개 전환·삭제도 확인. 검증 전용 JAR·MySQL·Redis·이미지 프로젝트·볼륨과 Cloud 소유 prefix는 제거. 기존 VM 앱·Redis의 ID·이미지·시작 시각은 유지. main·[CI](https://github.com/gjaku1031/ken-blog/actions/runs/36220258568)·[Pages](https://github.com/gjaku1031/ken-blog/actions/runs/36220258654) 반영 완료. 공개 HTTPS API 배포는 아직 없음.
 
+## P2-03A 이미지 연결 실행 경계 — 격리 검증 진행
+
+P2-03A는 기존 API·MySQL Compose와 비공개 OCI Object Storage 설정을 사용하고 Flyway V9에 글·편집본 이미지 연결 관계를 추가. 별도 저장소 서비스·웹 컨테이너·Redis 이미지 캐시·버킷 공개 정책·VM 자동 배포는 없음. 새 `/api/v1/posts/{postId}/attachments/{id}/content`는 글 ID와 이미지 ID를 받아 현재 MySQL에서 출간·범위·연결·READY를 확인한 뒤 Spring이 OCI 원본을 전달. 관리자 첨부 GET/POST/DELETE의 브라우저 CORS는 `APP_AUTH_CORS_ALLOWED_ORIGINS`에 명시한 정확한 인증 origin만 자격 증명 허용, 쓰기에는 기존 세션·CSRF 필요. 공개 전용 origin은 관리자 첨부 접근 대상이 아님. 기존 V8 데이터·JDBC 세션의 V9 전환, 실제 OCI PNG/JPEG 바이트·권한별 이미지 읽기, 연결/삭제 경합과 편집본 출간을 격리 HTTP·SQL로 확인. 격리 MySQL 중단 중 익명·인증 이미지 모두 `503 ProblemDetail`, 복구 뒤 기존 JDBC 세션·이미지 복원을 확인. 별도 새 DB의 V1~V9·관리자 준비·로그인·글 생성 HTTP도 확인. 검증 소유 글·편집본·첨부의 연결을 해제하고 첨부 DELETE `204`·OCI HEAD `404`·정확한 소유 접두사 목록 0·메타데이터 0을 확인. 소유 JAR·MySQL 컨테이너·볼륨 제거 후 기존 VM 앱·Redis의 ID·이미지·시작 시각 동일성 확인. main·CI·Pages 반영 전.
+
+로컬의 `http://127.0.0.1:14000`과 `http://127.0.0.1:18081`은 origin이 달라도 동일 host의 같은 site이므로 `SameSite=Lax` 세션 검증이 가능. 반면 GitHub Pages와 향후 API 도메인이 교차 site이면 이 로컬 결과만으로 쿠키가 PRIVATE 이미지 요청에 전송된다고 볼 수 없음. 공개 HTTPS API 도메인과 쿠키·CSRF·자격 증명 정책을 별도로 확정해야 하며 현재 Pages 빌드의 API URL은 비어 있음. 공개 이미지 블록과 관리자 업로드 UI는 P2-03B 후속 범위. 기존 VM 앱·Redis·버킷 정책은 이 계획으로 교체하지 않음.
+
 ## 메모리 한도와 검증 범위
 
 API Compose 메모리 한도는 1 GiB. 이는 컨테이너 상한이며 사용량이나 호스트 전체 점유량이 아님. 아래는 **이전 P0-04 상태**에서 2026-09-25 ARM64·24 GB VM, Docker 29.8.1, Compose 5.5.1로 `ken-blog-p004` API 컨테이너 하나만 기동해 `docker stats --no-stream`으로 측정한 기록. 기존 앱과 Redis는 별도 컨테이너로 계속 실행 중이었으나 아래 값에 포함하지 않음.
