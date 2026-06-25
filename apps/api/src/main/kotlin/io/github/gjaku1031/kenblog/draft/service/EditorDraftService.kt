@@ -1,5 +1,6 @@
 package io.github.gjaku1031.kenblog.draft.service
 
+import io.github.gjaku1031.kenblog.attachment.service.AttachmentLinkService
 import io.github.gjaku1031.kenblog.category.domain.CategoryNotFoundException
 import io.github.gjaku1031.kenblog.category.repository.CategoryRepository
 import io.github.gjaku1031.kenblog.draft.domain.EditorDraftConflictException
@@ -40,6 +41,7 @@ class EditorDraftService(
     private val posts: PostRepository,
     private val categories: CategoryRepository,
     private val postService: PostService,
+    private val attachmentLinks: AttachmentLinkService,
 ) {
     /**
      * 빈 제목·미완성 slug를 허용한 독립 편집본을 생성.
@@ -52,13 +54,18 @@ class EditorDraftService(
     @Transactional
     fun create(request: EditorDraftCreateRequest): EditorDraftDetailResponse = conflicts {
         lockCategory(request.categoryId)
+        var inheritedIds: List<Long> = emptyList()
         if (request.postId != null) {
             val original = posts.findLockedById(request.postId) ?: throw PostNotFoundException()
             if (original.updatedAt != request.baseUpdatedAt || drafts.findLockedByPostId(request.postId) != null) {
                 throw EditorDraftConflictException()
             }
+            if (request.attachmentIds == null) inheritedIds = attachmentLinks.postIds(request.postId)
         }
-        drafts.saveAndFlush(EditorDraftEntity(request.postId, request.baseUpdatedAt, request.values(), now())).response()
+        val draft = drafts.saveAndFlush(EditorDraftEntity(request.postId, request.baseUpdatedAt, request.values(), now()))
+        val draftId = draft.id ?: error("Persisted editor draft has no ID")
+        attachmentLinks.replaceDraft(draftId, request.attachmentIds ?: inheritedIds)
+        draft.response(attachmentLinks.draftIds(draftId))
     }
 
     /**
@@ -83,7 +90,7 @@ class EditorDraftService(
     @Transactional(readOnly = true)
     fun detail(id: Long): EditorDraftDetailResponse {
         validId(id)
-        return (drafts.findByIdOrNull(id) ?: throw EditorDraftNotFoundException()).response()
+        return (drafts.findByIdOrNull(id) ?: throw EditorDraftNotFoundException()).response(attachmentLinks.draftIds(id))
     }
 
     /**
@@ -100,7 +107,9 @@ class EditorDraftService(
         val draft = lockDraftAfterPost(id)
         if (draft.revision != request.revision) throw EditorDraftConflictException()
         draft.replace(request.values(), now())
-        drafts.saveAndFlush(draft).response()
+        drafts.saveAndFlush(draft)
+        if (request.attachmentIds != null) attachmentLinks.replaceDraft(id, request.attachmentIds)
+        draft.response(attachmentLinks.currentDraftIds(id))
     }
 
     /**
@@ -142,6 +151,7 @@ class EditorDraftService(
             else postService.updateDraft(original.id ?: error("Persisted post has no ID"), draft.title, draft.slug, draft.body)
         val postId = post.id ?: error("Persisted post has no ID")
         postService.replaceTaxonomy(postId, draft.categoryId, draft.tags())
+        attachmentLinks.publishDraft(postId, id)
         postService.publish(postId, draft.visibility)
         drafts.delete(draft)
         drafts.flush()

@@ -51,7 +51,9 @@ interface PostApi {
         ApiResponse(responseCode = "409", description = "slug 중복", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
         ApiResponse(responseCode = "503", description = "DB 연결 장애", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
     ])
-    fun create(@RequestBody request: PostWriteRequest): ResponseEntity<PostDetailResponse>
+    fun create(@RequestBody @io.swagger.v3.oas.annotations.parameters.RequestBody(
+        required = true, content = [Content(schema = Schema(implementation = PostWriteRequest::class))],
+    ) request: JsonNode): ResponseEntity<PostDetailResponse>
 
     /**
      * 초안·출간 글의 본문을 제외하고 생성 시각·ID 내림차순의 한 페이지를 조회.
@@ -110,7 +112,9 @@ interface PostApi {
         ApiResponse(responseCode = "409", description = "slug 중복", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
         ApiResponse(responseCode = "503", description = "DB 연결 장애", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
     ])
-    fun update(@PathVariable("id") id: Long, @RequestBody request: PostWriteRequest): ResponseEntity<PostDetailResponse>
+    fun update(@PathVariable("id") id: Long, @RequestBody @io.swagger.v3.oas.annotations.parameters.RequestBody(
+        required = true, content = [Content(schema = Schema(implementation = PostWriteRequest::class))],
+    ) request: JsonNode): ResponseEntity<PostDetailResponse>
 
     /**
      * 양수 ID의 게시글 행을 삭제하며 첨부 객체는 건드리지 않음.

@@ -1,5 +1,6 @@
 package io.github.gjaku1031.kenblog.post.service
 
+import io.github.gjaku1031.kenblog.attachment.service.AttachmentLinkService
 import io.github.gjaku1031.kenblog.category.domain.CategoryConflictException
 import io.github.gjaku1031.kenblog.category.domain.CategoryNotFoundException
 import io.github.gjaku1031.kenblog.category.repository.CategoryRepository
@@ -49,6 +50,7 @@ class PostService(
     private val categories: CategoryRepository,
     private val tags: PostTagRepository,
     private val taxonomy: PostTaxonomyMetadata,
+    private val attachmentLinks: AttachmentLinkService,
 ) {
     /**
      * 제목과 slug를 정규화한 후 초안을 원자적으로 저장.
@@ -126,7 +128,7 @@ class PostService(
     /**
      * 양수 ID의 게시글 행을 잠가 삭제하고 같은 트랜잭션에서 SQL을 동기화.
      *
-     * 아직 게시글과 첨부의 연결이 없어 OCI 객체는 건드리지 않음.
+     * FK로 연결 행만 함께 제거하며 OCI 객체는 건드리지 않음.
      * 커밋 뒤 이전 본문 버전 키를 best-effort 제거함.
      *
      * @param id 삭제할 식별자
@@ -220,18 +222,34 @@ class PostService(
     }
 
     /**
-     * 기존 [createDraft] 계약을 유지하면서 HTTP에는 같은 쓰기 트랜잭션의 taxonomy 포함 상세를 반환.
+     * 기존 [createDraft] 계약을 유지하며 새 글의 이미지 연결을 같은 트랜잭션에 저장.
+     * 생략·null 목록은 빈 연결, 명시적 목록은 READY 확인 후 선언함.
      *
-     * @return 커밋할 초안의 [PostDetailResponse]
+     * @param attachmentIds 선택적 첨부 ID 전체 목록
+     * @return taxonomy와 이미지 연결을 포함한 커밋 예정 [PostDetailResponse]
+     * @throws io.github.gjaku1031.kenblog.attachment.domain.AttachmentFailure ID가 없거나 READY가 아닐 때
      */
     @Transactional
-    fun createDraftDetail(title: String, slug: String, body: String): PostDetailResponse =
-        createDraft(title, slug, body).adminDetail()
+    fun createDraftDetail(title: String, slug: String, body: String, attachmentIds: List<Long>? = null): PostDetailResponse {
+        val post = createDraft(title, slug, body)
+        attachmentLinks.replacePost(post.id ?: error("Persisted post has no ID"), attachmentIds ?: emptyList())
+        return post.adminDetail()
+    }
 
-    /** @return 기존 [updateDraft]와 같은 트랜잭션에서 확정한 관리자 상세. */
+    /**
+     * [updateDraft]와 같은 트랜잭션에서 연결을 선택적으로 교체하고 관리자 상세를 조립.
+     * 생략·null은 기존 연결 유지, 빈 목록은 전부 해제함.
+     *
+     * @param attachmentIds 선택적 첨부 ID 전체 목록
+     * @return 기존 또는 교체된 연결을 포함한 커밋 예정 [PostDetailResponse]
+     * @throws io.github.gjaku1031.kenblog.attachment.domain.AttachmentFailure ID가 없거나 READY가 아닐 때
+     */
     @Transactional
-    fun updateDraftDetail(id: Long, title: String, slug: String, body: String): PostDetailResponse =
-        updateDraft(id, title, slug, body).adminDetail()
+    fun updateDraftDetail(id: Long, title: String, slug: String, body: String, attachmentIds: List<Long>? = null): PostDetailResponse {
+        val post = updateDraft(id, title, slug, body)
+        if (attachmentIds != null) attachmentLinks.replacePost(id, attachmentIds)
+        return post.adminDetail()
+    }
 
     /** @return [publish]가 변경한 행을 같은 잠금 트랜잭션에서 조립한 상세. */
     @Transactional
@@ -319,7 +337,7 @@ class PostService(
         val postId = id ?: error("Persisted post has no ID")
         val view = taxonomy.one(postId, categoryId)
         return PostDetailResponse(postId, title, slug, body, createdAt, updatedAt,
-            status, visibility, publishedAt, view.category, view.tags)
+            status, visibility, publishedAt, view.category, view.tags, attachmentLinks.postIds(postId))
     }
 
     /**

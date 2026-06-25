@@ -27,6 +27,7 @@ data class AttachmentSnapshot(val objectKey: String, val response: AttachmentRes
 class AttachmentMetadataService(
     private val attachments: AttachmentRepository,
     private val accounts: AccountRepository,
+    private val links: AttachmentLinkService,
 ) {
     /**
      * 인증 계정에 연결된 PENDING 행을 객체 업로드보다 먼저 확정.
@@ -75,6 +76,7 @@ class AttachmentMetadataService(
     /**
      * READY 또는 오래된 PENDING 행을 DELETING으로 변경하고 객체 key를 반환.
      *
+     * 글·편집본에 연결된 첨부는 동일 행 잠금 안에서 409로 거부함.
      * 활성 PENDING은 SDK 요청 제한 30초보다 긴 2분 동안 삭제를 거부함.
      * 오래된 PENDING의 행은 늦은 PUT을 추적하도록 삭제 후에도 유예함.
      *
@@ -86,6 +88,7 @@ class AttachmentMetadataService(
     fun beginDelete(id: Long): AttachmentSnapshot {
         val entity = if (id > 0) attachments.findLockedById(id) else null
         entity ?: throw notFound()
+        if (links.isReferenced(id)) throw AttachmentFailure(HttpStatus.CONFLICT, "글이나 편집본에서 사용 중인 첨부입니다.")
         if (entity.status == AttachmentStatus.PENDING) {
             if (entity.createdAt.isAfter(now().minusMinutes(PENDING_GRACE_MINUTES))) throw conflict()
             entity.markDeleting(now(), retainForUncertainWrite = true)

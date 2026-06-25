@@ -105,7 +105,7 @@ interface AttachmentApi {
         ApiResponse(responseCode = "401", description = "인증 필요", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
         ApiResponse(responseCode = "403", description = "관리자 권한 또는 CSRF 필요", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
         ApiResponse(responseCode = "404", description = "첨부 없음", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
-        ApiResponse(responseCode = "409", description = "업로드 중 또는 삭제 정리 유예", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
+        ApiResponse(responseCode = "409", description = "글·편집본에서 사용 중, 업로드 중 또는 삭제 정리 유예", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
         ApiResponse(responseCode = "503", description = "저장소 또는 DB 장애", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
     ])
     fun delete(@PathVariable id: Long): ResponseEntity<Void>

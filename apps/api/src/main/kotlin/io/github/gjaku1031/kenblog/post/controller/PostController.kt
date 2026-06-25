@@ -4,7 +4,7 @@ import io.github.gjaku1031.kenblog.post.domain.InvalidPostRequestException
 import io.github.gjaku1031.kenblog.post.domain.PostNotFoundException
 import io.github.gjaku1031.kenblog.post.dto.PostDetailResponse
 import io.github.gjaku1031.kenblog.post.dto.PostPageResponse
-import io.github.gjaku1031.kenblog.post.dto.PostWriteRequest
+import io.github.gjaku1031.kenblog.post.dto.PostWriteRequests
 import io.github.gjaku1031.kenblog.post.dto.PostVisibilityRequest
 import io.github.gjaku1031.kenblog.post.dto.PostTaxonomyRequest
 import io.github.gjaku1031.kenblog.post.service.PostService
@@ -23,8 +23,9 @@ class PostController(private val service: PostService) : PostApi {
      * @param request 전체 초안 입력
      * @return Location과 no-store를 가진 HTTP 201 상세 응답
      */
-    override fun create(request: PostWriteRequest): ResponseEntity<PostDetailResponse> {
-        val response = service.createDraftDetail(request.title, request.slug, request.body)
+    override fun create(request: JsonNode): ResponseEntity<PostDetailResponse> {
+        val input = PostWriteRequests.fromJson(request)
+        val response = service.createDraftDetail(input.title, input.slug, input.body, input.attachmentIds)
         return ResponseEntity.created(URI.create("/api/v1/admin/posts/${response.id}"))
             .cacheControl(CacheControl.noStore()).body(response)
     }
@@ -59,10 +60,11 @@ class PostController(private val service: PostService) : PostApi {
      * @param request 새 제목·slug·본문
      * @return no-store 상세 응답
      */
-    override fun update(id: Long, request: PostWriteRequest): ResponseEntity<PostDetailResponse> {
+    override fun update(id: Long, request: JsonNode): ResponseEntity<PostDetailResponse> {
         if (id <= 0) throw InvalidPostRequestException()
+        val input = PostWriteRequests.fromJson(request)
         return ResponseEntity.ok().cacheControl(CacheControl.noStore())
-            .body(service.updateDraftDetail(id, request.title, request.slug, request.body))
+            .body(service.updateDraftDetail(id, input.title, input.slug, input.body, input.attachmentIds))
     }
 
     /**

@@ -158,6 +158,15 @@ class SecurityConfig {
             source.registerCorsConfiguration("/api/v1/admin/categories", adminReadCors)
             source.registerCorsConfiguration("/api/v1/admin/categories/**", adminReadCors)
             source.registerCorsConfiguration("/api/v1/admin/tags", adminReadCors)
+            val adminAttachmentsCors = CorsConfiguration().apply {
+                allowedOrigins = authOrigins
+                allowedMethods = listOf("GET", "POST", "DELETE")
+                allowedHeaders = listOf("Accept", "Content-Type", "X-CSRF-TOKEN")
+                allowCredentials = true
+                maxAge = 600
+            }
+            source.registerCorsConfiguration("/api/v1/admin/attachments", adminAttachmentsCors)
+            source.registerCorsConfiguration("/api/v1/admin/attachments/**", adminAttachmentsCors)
         }
         return CorsConfigurationSource { request ->
             val path = request.servletPath
@@ -201,6 +210,7 @@ class SecurityConfig {
         .authorizeHttpRequests {
             it.requestMatchers(HttpMethod.GET, "/api/v1/status", "/actuator/health", "/v3/api-docs", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
             it.requestMatchers(HttpMethod.GET, "/api/v1/posts", "/api/v1/posts/*").permitAll()
+            it.requestMatchers(HttpMethod.GET, "/api/v1/posts/*/attachments/*/content").permitAll()
             it.requestMatchers(HttpMethod.GET, "/api/v1/categories", "/api/v1/tags").permitAll()
             it.requestMatchers(HttpMethod.GET, "/api/v1/auth/csrf").permitAll()
             it.requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
