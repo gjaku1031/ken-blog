@@ -1,6 +1,6 @@
 # 관리자 이미지 첨부 운영 안내
 
-P1-03의 첨부 기능은 관리자 전용 이미지 원본을 **OCI Object Storage의 기존 비공개 버킷**에 저장하고, 첨부 ID·object key·파일 정보·업로드 계정·처리 상태를 새 프로젝트의 MySQL `attachments` 테이블에 기록. P2-03A에서는 글·편집본과 이미지의 명시적 연결 및 Spring 경유 권한별 읽기를 추가해 2026-09-26 실제 OCI·격리 HTTP 검증을 통과. DB 장애·복구와 새 DB 검증·소유 자원 정리도 통과했으며 main·CI·Pages 반영 전. Pages의 이미지 업로드·본문 표시는 P2-03B 후속 범위. 기존 VM 앱·Redis와 공개 Pages 배포는 이 기능으로 교체되지 않음.
+P1-03의 첨부 기능은 관리자 전용 이미지 원본을 **OCI Object Storage의 기존 비공개 버킷**에 저장하고, 첨부 ID·object key·파일 정보·업로드 계정·처리 상태를 새 프로젝트의 MySQL `attachments` 테이블에 기록. P2-03A에서는 글·편집본과 이미지의 명시적 연결 및 Spring 경유 권한별 읽기를 추가해 2026-09-26 실제 OCI·격리 HTTP 검증을 통과. DB 장애·복구와 새 DB 검증·소유 자원 정리도 통과했으며 main `5fd3e32`·[CI](https://github.com/gjaku1031/ken-blog/actions/runs/36230515666)·[Pages](https://github.com/gjaku1031/ken-blog/actions/runs/36230515657) 반영 완료. 이미지 업로드·본문 표시는 P2-03B의 격리 검증을 완료한 정적 화면 범위이며 main 반영 전. 기존 VM 앱·Redis와 공개 Pages 배포는 이 기능으로 교체되지 않음.
 
 ## 외부 설정과 실행 경계
 
@@ -40,11 +40,19 @@ Flyway V9는 `post_attachments`·`editor_draft_attachments` 관계를 관리. �
 
 `GET /api/v1/posts/{postId}/attachments/{id}/content`는 **slug가 아닌 게시글 ID**를 사용. 요청마다 MySQL에서 글의 `PUBLISHED` 상태·`PUBLIC` 또는 로그인 USER/ADMIN 열람권·해당 글 연결·첨부 READY를 확인한 뒤에만 Spring이 비공개 OCI 원본을 읽음. 초안·없는 글/첨부·미연결·권한 없는 읽기는 모두 `404`; 관리자 미리보기는 기존 관리자 content 경로 유지. 이미지 응답은 `private, no-store`, `inline`, 판별 MIME·길이·`nosniff`를 적용하고 업로드 계정·object key·원본 파일명은 노출하지 않음. OCI 스트림 열기 실패는 HTTP 헤더 확정 전 `503 ProblemDetail`로 처리하되, 전송 시작 뒤 권한 변경을 소급 취소하거나 이미 보낸 헤더를 오류 응답으로 교체하지는 못함. 이미지 권한은 Redis 본문 캐시나 Markdown 문자열로 판단하지 않음.
 
-참조 중인 첨부 DELETE는 `409`로 거부하고, READY 확인·참조 검사·DELETING 전환과 연결 변경 사이를 첨부 행 잠금으로 보호. 글·편집본 삭제는 관계 행만 제거하고 OCI 객체는 남김. 자동 고아 객체 정리 없음. 운영자는 해당 글/편집본의 연결을 명시적으로 해제한 뒤 기존 관리자 DELETE로 정확한 첨부 ID만 정리. 후속 화면의 canonical 본문 표기는 `attachment:<양수 ID>`이며 OCI endpoint·버킷·object key·서명 URL을 본문에 저장하지 않음. 실제 브라우저 입력·표시는 P2-03B 대상.
+참조 중인 첨부 DELETE는 `409`로 거부하고, READY 확인·참조 검사·DELETING 전환과 연결 변경 사이를 첨부 행 잠금으로 보호. 글·편집본 삭제는 관계 행만 제거하고 OCI 객체는 남김. 자동 고아 객체 정리 없음. 운영자는 해당 글/편집본의 연결을 명시적으로 해제한 뒤 기존 관리자 DELETE로 정확한 첨부 ID만 정리. 후속 화면의 canonical 본문 표기는 `attachment:<양수 ID>`이며 OCI endpoint·버킷·object key·서명 URL을 본문에 저장하지 않음. 브라우저 입력·표시는 P2-03B 구현·검증 중.
 
 공개 API HTTPS 주소 미설정 상태. 로컬의 같은 `127.0.0.1` 호스트·다른 포트에서 `SameSite=Lax` 쿠키를 시험하는 일은 교차 site Pages에서 PRIVATE 이미지나 관리자 첨부를 읽는다는 근거가 아님. 관리자 첨부 CORS는 명시된 인증 origin의 GET/POST/DELETE에만 자격 증명과 필요한 CSRF 헤더를 허용하며 공개 전용 origin에는 관리자 접근 없음.
 
-2026-09-26 격리 Maven 기존 API 검사 28개·웹 검사 7개/타입 검사/정적 빌드 통과. 기존 V8 DB에서 V9로 옮겨 원문과 JDBC 세션을 보존했고, 별도 새 DB에서도 V1~V9·관리자 준비·로그인·글 생성을 실제 HTTP로 확인. 실제 OCI PNG/JPEG의 HTTP 바이트 일치, PUBLIC 익명·PRIVATE USER/ADMIN 읽기, 미연결·미허용 `404`, 엄격한 ID 입력과 일괄 롤백, 편집본 저장 동안 원본 연결 불변·출간 시 연결 전환을 확인. 저장/출간의 제어된 HTTP·SQL 경합에서는 출간된 본문과 연결 ID가 같은 최신 revision에 일치. 사용 중 삭제 `409`, 삭제 잠금 대기 후 DELETING 재확인 `409`, 동시 연결/삭제의 일관성, 저장소 객체 부재 `503`과 복구, CORS·CSRF를 확인. 격리 MySQL 중단 중 익명·인증 이미지 모두 `503 ProblemDetail`, 복구 후 같은 JDBC 세션과 이미지 읽기 복원도 확인. 기존 운영 앱·Redis/버킷 정책과 공개 Pages API 연결을 변경한 결과는 아니며, 검증 소유 글·편집본의 연결 해제/삭제 뒤 첨부 DELETE `204`, 각 OCI HEAD `404`, 정확한 소유 접두사 목록 0·메타데이터 0을 확인하고 소유 JAR·MySQL 컨테이너·볼륨을 제거. 기존 VM 앱·Redis ID·이미지·시작 시각은 동일. main·CI·Pages 반영 전.
+2026-09-26 격리 Maven 기존 API 검사 28개·웹 검사 7개/타입 검사/정적 빌드 통과. 기존 V8 DB에서 V9로 옮겨 원문과 JDBC 세션을 보존했고, 별도 새 DB에서도 V1~V9·관리자 준비·로그인·글 생성을 실제 HTTP로 확인. 실제 OCI PNG/JPEG의 HTTP 바이트 일치, PUBLIC 익명·PRIVATE USER/ADMIN 읽기, 미연결·미허용 `404`, 엄격한 ID 입력과 일괄 롤백, 편집본 저장 동안 원본 연결 불변·출간 시 연결 전환을 확인. 저장/출간의 제어된 HTTP·SQL 경합에서는 출간된 본문과 연결 ID가 같은 최신 revision에 일치. 사용 중 삭제 `409`, 삭제 잠금 대기 후 DELETING 재확인 `409`, 동시 연결/삭제의 일관성, 저장소 객체 부재 `503`과 복구, CORS·CSRF를 확인. 격리 MySQL 중단 중 익명·인증 이미지 모두 `503 ProblemDetail`, 복구 후 같은 JDBC 세션과 이미지 읽기 복원도 확인. 기존 운영 앱·Redis/버킷 정책과 공개 Pages API 연결을 변경한 결과는 아니며, 검증 소유 글·편집본의 연결 해제/삭제 뒤 첨부 DELETE `204`, 각 OCI HEAD `404`, 정확한 소유 접두사 목록 0·메타데이터 0을 확인하고 소유 JAR·MySQL 컨테이너·볼륨을 제거. 기존 VM 앱·Redis ID·이미지·시작 시각은 동일. main `5fd3e32`·[CI](https://github.com/gjaku1031/ken-blog/actions/runs/36230515666)·[Pages](https://github.com/gjaku1031/ken-blog/actions/runs/36230515657) 반영 완료.
+
+## P2-03B 브라우저 사용 경계 — 격리 브라우저 검증·자원 정리 완료
+
+관리자 글쓰기의 파일 선택·드롭·이미지 붙여넣기는 기존 multipart `file` 업로드 API를 사용. 요청에는 ADMIN JDBC 세션 쿠키와 현재 `X-CSRF-TOKEN` 필요. 서버가 JPEG/PNG 시그니처·디코딩과 크기를 검증하고 READY 응답의 ID만 문서 이미지 블록에 삽입. 진행 중 저장·출간 중단 안내, 실패·취소 뒤 자동 재업로드 없음. 원고나 로그인 상태를 바꾼 뒤 돌아온 성공 응답은 새 문서에 삽입하지 않음.
+
+편집기는 실제 Markdown 이미지 노드에서 ID를 수집해 글·편집본 저장에 `attachmentIds` **전체 목록**을 명시적으로 보냄. 지원 이미지가 없으면 `[]`를 전송해 이전 연결을 해제하며, 목록은 최대 100개. 코드·일반 문장·링크의 ID는 새 연결로 취급하지 않음. 같은 ID를 둘 이상의 지원 이미지가 사용하면 문서의 마지막 참조가 사라질 때 목록에서 제외. 이 목록 제거는 해당 글의 읽기 권한 철회이며 OCI 객체 삭제가 아님. 글/편집본 삭제도 객체를 자동 삭제하지 않음. 업로드 취소나 응답 불확실 상황에서 미참조 객체가 남을 수 있으므로, 자동 일괄 정리 없이 아래의 정확한 소유 접두사·ID 점검 절차 사용.
+
+관리자 미리보기는 관리자 content 경로, 출간 글 본문은 글 ID와 첨부 ID의 권한별 content 경로를 사용. Spring의 현재 권한 판정 뒤 JPEG/PNG 바이트를 받으며 버킷 직접 URL·서명 URL·외부 이미지 URL은 브라우저에 제공하지 않음. 새 화면은 허용 MIME/크기·API origin·혼합 콘텐츠·redirect를 확인하고 blob URL을 사용한 뒤 해제. 공개 HTTPS API 주소와 교차 site `SameSite=Lax` 쿠키 정책은 미정이며 Pages에서 로그인·PRIVATE 이미지를 읽는 기능은 아직 없음. 2026-09-26 완료한 격리 브라우저 검증에서 파일 선택·격리 클립보드 Ctrl+V·합성 DataTransfer 드롭의 실제 OCI 업로드와 문서 이미지 저장·재열기·출간을 확인. 한 단계 접기 안 이미지를 포함한 총 3개 중 문서 참조 1개를 제거한 뒤 나머지 연결 2개와 제거된 객체의 OCI READY 상태를 확인. 물리적 드롭·운영체제 클립보드의 일반 환경 검증은 아직 아님. 업로드 결과 지연 중 경로 전환·취소 시 다른 문서 삽입 없음, 주입한 업로드/이미지 `503`과 CSRF `403`의 원고 유지·명시적 재시도, 잘못된 형식·과대 파일의 사전 거부 확인. 일곱 너비 라이트·다크 이미지 화면 넘침 0, 검사한 네 화면 Axe 위반 0건·미처리 오류 0건. API 미설정 별도 정적 빌드의 요청 0건·가짜 이미지 0건 확인. 검증 소유 post·draft·연결·첨부를 정리하고 모든 OCI key HEAD `404`와 정확한 소유 접두사 비움을 확인. 전용 API·MySQL·볼륨 제거 뒤 기존 앱·Redis ID·이미지·시작 시각 불변. main 반영 전.
 
 ## MySQL 상태와 중간 실패
 
