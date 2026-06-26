@@ -1,24 +1,27 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type DragEvent, type KeyboardEvent } from "react";
+import { useEffect, useId, useRef, useState, type ClipboardEvent, type DragEvent, type KeyboardEvent } from "react";
 import { SafeMarkdown } from "@/components/safe-markdown";
-import { blockMarkdown, emptyBlock, emptyToggleBlock, ensureBlockBoundaries, type BlockType, type EditorBlock, type MarkdownDocument } from "@/lib/editor-markdown";
+import { blockMarkdown, emptyBlock, emptyImageBlock, emptyToggleBlock, ensureBlockBoundaries, type BlockType, type EditorBlock, type MarkdownDocument } from "@/lib/editor-markdown";
+import type { ImageData } from "@/lib/editor-image";
 import { emptyTable, parsePipeHeaderCommand, TABLE_MAX_COLUMNS, TABLE_MAX_CELL_LENGTH } from "@/lib/editor-table";
 import { TableBlock } from "@/components/editor/table-block";
 import { ToggleBlock } from "@/components/editor/toggle-block";
+import { ImageBlock } from "@/components/editor/image-block";
 
 type Props = { value: MarkdownDocument; onChange: (next: MarkdownDocument) => void; disabled?: boolean;
-  focusFirstSignal?: number; focusBlock?: { id: string; serial: number }; depth?: 0 | 1; onOutdentFrom?: (index: number) => void };
+  focusFirstSignal?: number; focusBlock?: { id: string; serial: number }; depth?: 0 | 1; onOutdentFrom?: (index: number) => void;
+  onImageFile?: (file: File) => Promise<ImageData | null>; onImageReject?: (message: string) => void };
 type FocusTarget = { id: string; offset: number | "end" };
 const blockNames: Record<BlockType, string> = { p: "문단", h1: "제목 1", h2: "제목 2", h3: "제목 3",
-  ul: "글머리 목록", ol: "번호 목록", todo: "할 일", quote: "인용", code: "코드", hr: "구분선", table: "표", toggle: "접기", raw: "원문" };
+  ul: "글머리 목록", ol: "번호 목록", todo: "할 일", quote: "인용", code: "코드", hr: "구분선", table: "표", toggle: "접기", image: "이미지", raw: "원문" };
 const shortcuts: Record<string, BlockType> = { "#": "h1", "##": "h2", "###": "h3", "-": "ul", "*": "ul",
   "1.": "ol", "[]": "todo", "[ ]": "todo", "|": "quote" };
 const DRAG_FORMAT = "application/x-ken-blog-editor-block";
 
 /** 기본 블록을 키보드와 마우스로 편집하고 원문 블록은 읽기 전용으로 보존한다. */
 export function BlockEditor({ value, onChange, disabled = false, focusFirstSignal = 0,
-  focusBlock, depth = 0, onOutdentFrom }: Props) {
+  focusBlock, depth = 0, onOutdentFrom, onImageFile, onImageReject }: Props) {
   const editorToken = useId();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [focusTarget, setFocusTarget] = useState<FocusTarget | null>(null);
@@ -30,6 +33,9 @@ export function BlockEditor({ value, onChange, disabled = false, focusFirstSigna
   const composing = useRef(false);
   const compositionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const dragId = useRef<string | null>(null);
+  const fileInput = useRef<HTMLInputElement | null>(null);
+  const latest = useRef(value);
+  latest.current = value;
   useEffect(() => () => { if (compositionTimer.current) clearTimeout(compositionTimer.current); }, []);
 
   /** 상태가 적용된 뒤 커서를 지정한 블록의 정확한 위치로 돌린다. */
@@ -118,6 +124,39 @@ export function BlockEditor({ value, onChange, disabled = false, focusFirstSigna
     onChange(ensureBlockBoundaries({ ...value, blocks }));
     setActiveId(null);
     setTableFocus({ id: table.id, serial: (tableFocus?.serial ?? 0) + 1 });
+  }
+
+  /** 업로드가 끝난 시점의 최신 원고에 이미지를 삽입하고 다음 문단을 유지한다. */
+  function insertUploaded(image: ImageData, targetId: string | null) {
+    const current = latest.current;
+    const blocks = [...current.blocks];
+    const index = targetId ? blocks.findIndex((block) => block.id === targetId) : blocks.length - 1;
+    if (targetId && index < 0) return;
+    const picture = emptyImageBlock(image, current.newline);
+    if (index < 0) {
+      blocks.push({ ...picture, after: current.newline.repeat(2) }, emptyBlock("p", current.newline));
+    } else {
+      const previous = blocks[index];
+      if (previous.type === "p" && !previous.text && !previous.raw) {
+        blocks[index] = { ...picture, after: previous.after };
+      } else {
+        blocks[index] = { ...previous, after: current.newline.repeat(2) };
+        blocks.splice(index + 1, 0, { ...picture, after: previous.after });
+      }
+      if (index === current.blocks.length - 1) {
+        const last = blocks.at(-1)!;
+        blocks[blocks.length - 1] = { ...last, after: current.newline.repeat(2) };
+        blocks.push({ ...emptyBlock("p", current.newline), after: previous.after });
+      }
+    }
+    onChange(ensureBlockBoundaries({ ...current, blocks }));
+    activate(picture.id);
+  }
+
+  /** 파일 선택·드롭·클립보드 이미지를 같은 관리자 업로드 작업으로 연결한다. */
+  function acceptImageFile(file: File, targetId = activeId) {
+    if (disabled || !onImageFile) return;
+    void onImageFile(file).then((image) => { if (image) insertUploaded(image, targetId); });
   }
 
   /** 빈 문단을 접기 그룹으로 바꾸고 마지막 그룹 뒤에는 이어 쓸 문단을 둔다. */
@@ -315,7 +354,7 @@ export function BlockEditor({ value, onChange, disabled = false, focusFirstSigna
       if (index > 0) {
         event.preventDefault();
         const previous = value.blocks[index - 1];
-        if (["raw", "code", "hr", "table", "toggle"].includes(previous.type)) { activate(previous.id); return; }
+        if (["raw", "code", "hr", "table", "toggle", "image"].includes(previous.type)) { activate(previous.id); return; }
         const joined = previous.text + text;
         const blocks = [...value.blocks];
         blocks[index - 1] = { ...previous, text: joined, dirty: true, after: block.after };
@@ -346,6 +385,13 @@ export function BlockEditor({ value, onChange, disabled = false, focusFirstSigna
 
   /** HTML Drag and Drop 식별자를 오직 현재 화면 블록에서만 받는다. */
   function onDrop(event: DragEvent<HTMLElement>, index: number) {
+    if (event.dataTransfer.files.length) {
+      event.preventDefault(); event.stopPropagation();
+      dragId.current = null;
+      if (event.dataTransfer.files.length !== 1) { onImageReject?.("이미지는 한 번에 한 파일씩 올려 주세요."); return; }
+      if (!disabled) acceptImageFile(event.dataTransfer.files[0], value.blocks[index]?.id ?? null);
+      return;
+    }
     event.preventDefault();
     event.stopPropagation();
     const id = dragId.current;
@@ -356,8 +402,21 @@ export function BlockEditor({ value, onChange, disabled = false, focusFirstSigna
     if (from !== -1) move(from, index);
   }
 
-  return <div className="block-editor" aria-label="글 본문 편집기">
-    {value.blocks.map((block, index) => <div key={block.id} className={`editor-block editor-${block.type}`}
+  return <div className="block-editor" aria-label="글 본문 편집기"
+    onPasteCapture={(event: ClipboardEvent<HTMLDivElement>) => {
+      if ((event.target as Element).closest(".block-editor") !== event.currentTarget) return;
+      const file = Array.from(event.clipboardData.files).find((item) => item.type.startsWith("image/"));
+      if (file && !disabled && onImageFile) { event.preventDefault(); event.stopPropagation();
+        if (event.clipboardData.files.length !== 1) { onImageReject?.("이미지는 한 번에 한 파일씩 붙여넣어 주세요."); return; }
+        const id = (event.target as Element).closest<HTMLElement>(".editor-block")?.dataset.blockId ?? activeId;
+        acceptImageFile(file, id); }
+    }}
+    onDragOver={(event) => { if (event.dataTransfer.types.includes("Files")) event.preventDefault(); }}
+    onDrop={(event) => { if (!event.dataTransfer.files.length) return;
+      event.preventDefault(); event.stopPropagation();
+      if (event.dataTransfer.files.length !== 1) { onImageReject?.("이미지는 한 번에 한 파일씩 올려 주세요."); return; }
+      if (!disabled) acceptImageFile(event.dataTransfer.files[0]); }}>
+    {value.blocks.map((block, index) => <div key={block.id} data-block-id={block.id} className={`editor-block editor-${block.type}`}
       onDragOver={(event) => { event.preventDefault(); event.stopPropagation(); }} onDrop={(event) => onDrop(event, index)}>
       <div className={`block-controls${depth === 1 || (depth === 0 && index > 0 && value.blocks[index - 1].type === "toggle") ? " block-controls-transfer" : ""}`}
         aria-label={`${index + 1}번 블록 이동`}>
@@ -396,6 +455,7 @@ export function BlockEditor({ value, onChange, disabled = false, focusFirstSigna
         moveAbove={() => { if (index > 0) activate(value.blocks[index - 1].id); }}
         moveBelow={() => { if (index + 1 < value.blocks.length) activate(value.blocks[index + 1].id, 0); }}>
         <BlockEditor value={block.toggle.inner} disabled={disabled} depth={1}
+          onImageFile={onImageFile} onImageReject={onImageReject}
           focusFirstSignal={toggleFirstFocus?.id === block.id ? toggleFirstFocus.serial : 0}
           focusBlock={toggleChildFocus?.toggleId === block.id ? { id: toggleChildFocus.id, serial: toggleChildFocus.serial } : undefined}
           onChange={(inner) => edit(block.id, (old) => old.toggle ? { ...old, dirty: true,
@@ -406,6 +466,12 @@ export function BlockEditor({ value, onChange, disabled = false, focusFirstSigna
         focusFirst={tableFocus?.id === block.id ? tableFocus.serial : 0}
         rootRef={(node) => { if (node) refs.current.set(block.id, node); else refs.current.delete(block.id); }}
         onChange={(table) => edit(block.id, (old) => ({ ...old, table, dirty: true }))}
+        onDelete={() => removeAt(index)}
+        moveAbove={() => { if (index > 0) activate(value.blocks[index - 1].id); }}
+        moveBelow={() => { if (index + 1 < value.blocks.length) activate(value.blocks[index + 1].id, 0); }} /> :
+      block.type === "image" && block.image ? <ImageBlock image={block.image} disabled={disabled}
+        rootRef={(node) => { if (node) refs.current.set(block.id, node); else refs.current.delete(block.id); }}
+        onChange={(image) => edit(block.id, (old) => ({ ...old, image, dirty: true }))}
         onDelete={() => removeAt(index)}
         moveAbove={() => { if (index > 0) activate(value.blocks[index - 1].id); }}
         moveBelow={() => { if (index + 1 < value.blocks.length) activate(value.blocks[index + 1].id, 0); }} /> :
@@ -443,7 +509,7 @@ export function BlockEditor({ value, onChange, disabled = false, focusFirstSigna
               }, 0); }}
               onKeyDown={(event) => handleKey(event, block, index)} />
           </div> : <div className="editor-preview">
-            <div inert><SafeMarkdown body={blockMarkdown(block, value.newline)} /></div>
+            <div inert><SafeMarkdown body={blockMarkdown(block, value.newline)} source={{ kind: "admin" }} /></div>
             <button type="button" className="editor-preview-trigger" disabled={disabled} ref={(node) => { if (node) refs.current.set(block.id, node); }}
               aria-label={`${index + 1}번 ${blockNames[block.type]} 블록 편집: ${block.text.slice(0, 80) || "빈 블록"}`}
               onClick={() => activate(block.id)} onKeyDown={(event) => {
@@ -459,6 +525,10 @@ export function BlockEditor({ value, onChange, disabled = false, focusFirstSigna
       else insertAfter(value.blocks.length - 1, "p");
     }}>+ 문단 추가</button>
     <button type="button" className="editor-add" disabled={disabled} onClick={addTable}>+ 표 추가</button>
+    {onImageFile && <><input ref={fileInput} className="sr-only" type="file" accept="image/jpeg,image/png"
+      aria-label="JPEG 또는 PNG 이미지 선택" disabled={disabled} onChange={(event) => {
+        const file = event.target.files?.[0]; if (file) acceptImageFile(file); event.target.value = "";
+      }} /><button type="button" className="editor-add" disabled={disabled} onClick={() => fileInput.current?.click()}>+ 이미지 추가</button></>}
     {depth === 0 && <button type="button" className="editor-add" disabled={disabled} onClick={addToggle}>+ 접기 추가</button>}
   </div>;
 }

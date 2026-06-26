@@ -55,7 +55,7 @@ function ReaderInstance({ slug }: { slug: string }) {
       {state.post.locked ? <div className="locked-post card"><h2>로그인이 필요한 글입니다</h2>
         <p>제목과 날짜만 볼 수 있습니다. 본문과 분류·태그는 로그인 후 표시됩니다.</p>
         <Link className="primary-button" href={`/login/?returnTo=${encodeURIComponent(`/post/?slug=${slug}`)}`}>로그인</Link></div> :
-        <SafeMarkdown body={state.post.body ?? ""} />}
+        <SafeMarkdown body={state.post.body ?? ""} source={{ kind: "post", postId: state.post.id }} />}
     </article>}
   </main>;
 }

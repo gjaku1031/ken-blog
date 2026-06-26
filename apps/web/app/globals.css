@@ -137,6 +137,15 @@ button:disabled { cursor: not-allowed; opacity: .6; }
 .markdown-body th { background: var(--soft); }
 .markdown-body input[type="checkbox"] { accent-color: var(--accent); }
 .blocked-image { display: inline-block; border: 1px dashed var(--line2); border-radius: 6px; padding: 6px 10px; color: var(--muted); font-size: 13px; }
+.attachment-paragraph { margin: 20px 0; }
+.attachment-image { display: block; max-width: 100%; color: var(--text2); }
+.attachment-align-left { margin-right: auto; }
+.attachment-align-center { margin-left: auto; margin-right: auto; }
+.attachment-align-right { margin-left: auto; }
+.attachment-image img { display: block; width: 100%; height: auto; border-radius: 7px; }
+.attachment-caption { display: block; margin-top: 6px; text-align: center; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+.attachment-image .blocked-image { display: block; }
+.attachment-image .blocked-image button { margin-left: 8px; border: 0; background: transparent; color: var(--accent-d); text-decoration: underline; cursor: pointer; }
 .login-page { display: grid; place-items: center; min-height: calc(100vh - 137px); padding: 36px 20px; }
 .login-card { width: min(100%, 400px); padding: 35px; }
 .login-card h1 { margin: 0 0 20px; font-size: 26px; }

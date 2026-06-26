@@ -7,12 +7,13 @@ import { ApiFailure, apiFailureMessage, type CategoryNode, type TagCount } from 
 import { draftValues, parseAdminCategories, parseAdminPost, parseAdminTags, parseDraftDetail, parseDraftPage,
   positiveId, type AdminPost, type DraftDetail, type DraftSummary, type DraftValues } from "@/lib/editor-drafts";
 import { parseEditorMarkdown, serializeEditorMarkdown, type MarkdownDocument } from "@/lib/editor-markdown";
+import { collectAttachmentIds, type ImageData } from "@/lib/editor-image";
 import { useAuth } from "@/components/auth-provider";
 import { BlockEditor } from "./block-editor";
 import { PublishSheet } from "./publish-sheet";
 
 type Route = { kind: "new" } | { kind: "post" | "draft"; id: number } | { kind: "invalid" };
-type Form = Omit<DraftValues, "body"> & { document: MarkdownDocument };
+type Form = Omit<DraftValues, "body" | "attachmentIds"> & { document: MarkdownDocument };
 type Screen = "loading" | "ready" | "existing" | "error";
 
 /** 정적 검색 쿼리에서 중복·동시 ID와 안전하지 않은 숫자를 거부한다. */
@@ -65,6 +66,7 @@ function categoryOptions(nodes: CategoryNode[]): Array<{ id: number; label: stri
 
 /** 저장 실패는 현재 원고를 유지하고 재시도 가능한 설명으로만 변환한다. */
 function writeError(error: unknown): string {
+  if (error instanceof Error && error.message === "attachment-limit") return "본문 이미지는 최대 100개까지 연결할 수 있습니다. 이미지를 줄인 뒤 다시 저장해 주세요.";
   if (error instanceof ApiFailure && error.status === 409) return "다른 수정과 충돌했습니다. 현재 입력은 유지됩니다. 다른 탭의 편집본 또는 원문을 확인한 뒤 다시 조회해 주세요.";
   if (error instanceof ApiFailure && error.status === 400) return "제목·주소·본문·태그의 형식과 길이를 확인해 주세요. 현재 입력은 유지됩니다.";
   if (error instanceof ApiFailure && error.status === 404) return "편집본·원본 글 또는 선택한 분류를 찾을 수 없습니다. 현재 입력은 유지됩니다.";
@@ -81,6 +83,8 @@ function WriteInstance({ route }: { route: Route }) {
   const controllers = useRef(new Set<AbortController>());
   const writeGeneration = useRef(0);
   const busyLock = useRef(false);
+  const uploadLock = useRef(false);
+  const uploadController = useRef<AbortController | null>(null);
   const allowRouteSwitch = useRef(false);
   const draftId = useRef<number | null>(null);
   const revision = useRef<number | null>(null);
@@ -98,6 +102,7 @@ function WriteInstance({ route }: { route: Route }) {
   const [message, setMessage] = useState("");
   const [savedAt, setSavedAt] = useState("");
   const [busy, setBusy] = useState<"save" | "publish" | null>(null);
+  const [uploading, setUploading] = useState(false);
   const [showPublish, setShowPublish] = useState(false);
   const [retry, setRetry] = useState(0);
   const [focusFirstSignal, setFocusFirstSignal] = useState(0);
@@ -129,6 +134,8 @@ function WriteInstance({ route }: { route: Route }) {
       writeGeneration.current += 1;
       controllers.current.forEach((pending) => pending.abort()); controllers.current.clear();
       busyLock.current = false; setBusy(null); setShowPublish(false);
+      uploadLock.current = false; setUploading(false);
+      uploadController.current = null;
       loadedRoute.current = routeKey;
       const cleared = blankForm(); formRef.current = cleared; setForm(cleared);
       draftId.current = null; revision.current = null; original.current = { postId: null, baseUpdatedAt: null };
@@ -139,6 +146,8 @@ function WriteInstance({ route }: { route: Route }) {
     writeGeneration.current += 1;
     controllers.current.forEach((pending) => pending.abort()); controllers.current.clear();
     busyLock.current = false; setBusy(null); setShowPublish(false);
+    uploadLock.current = false; setUploading(false);
+    uploadController.current = null;
     draftId.current = null; revision.current = null;
     original.current = { postId: null, baseUpdatedAt: null };
     const cleared = blankForm();
@@ -198,6 +207,32 @@ function WriteInstance({ route }: { route: Route }) {
     setMessage("");
   }, []);
 
+  /** 한 파일의 READY 응답만 현재 원고에 돌려주고 전환·취소된 업로드를 버린다. */
+  async function uploadImage(file: File): Promise<ImageData | null> {
+    if (uploadLock.current || busyLock.current) { setMessage("진행 중인 작업을 마친 뒤 이미지를 다시 선택해 주세요."); return null; }
+    if ((file.type !== "image/jpeg" && file.type !== "image/png") || file.size === 0 || file.size > 10 * 1024 * 1024) {
+      setMessage("JPEG 또는 PNG 이미지 한 파일을 10MiB 이하로 선택해 주세요."); return null;
+    }
+    uploadLock.current = true; setUploading(true); setMessage("이미지를 업로드하고 있습니다. 원고 저장과 출간은 완료 후 가능합니다.");
+    const generation = writeGeneration.current;
+    const controller = new AbortController(); controllers.current.add(controller);
+    uploadController.current = controller;
+    try {
+      const uploaded = await auth.adminUpload(file, controller.signal);
+      assertCurrentWrite(controller.signal, generation);
+      setMessage("이미지를 본문에 넣었습니다. 저장하면 이 글의 읽기 권한과 연결됩니다.");
+      return { attachmentId: uploaded.id, caption: "", width: 100, align: "center" };
+    } catch (error) {
+      if (!controller.signal.aborted && generation === writeGeneration.current) setMessage(
+        error instanceof ApiFailure && error.status === 503 ? "이미지 저장소 또는 API 연결이 일시적으로 불가능합니다. 파일을 다시 선택해 주세요." : writeError(error));
+      return null;
+    } finally {
+      controllers.current.delete(controller);
+      if (uploadController.current === controller) uploadController.current = null;
+      if (generation === writeGeneration.current) { uploadLock.current = false; setUploading(false); }
+    }
+  }
+
   /** 브라우저 이탈과 앱 내부 링크 이동에서 미저장 원고 손실을 확인한다. */
   useEffect(() => {
     if (!dirty) return;
@@ -229,8 +264,11 @@ function WriteInstance({ route }: { route: Route }) {
   async function persist(signal: AbortSignal, generation: number): Promise<{ id: number; revision: number; sentVersion: number }> {
     const snapshot = formRef.current;
     const sentVersion = versionRef.current;
+    const body = serializeEditorMarkdown(snapshot.document);
+    const attachmentIds = collectAttachmentIds(body);
+    if (attachmentIds.length > 100) throw new Error("attachment-limit");
     const values = draftValues({ title: snapshot.title, slug: snapshot.slug,
-      body: serializeEditorMarkdown(snapshot.document), categoryId: snapshot.categoryId,
+      body, attachmentIds, categoryId: snapshot.categoryId,
       tags: snapshot.tags, visibility: snapshot.visibility });
     const currentId = draftId.current;
     const response = currentId === null ? await auth.adminWrite("POST", "/api/v1/admin/editor-drafts",
@@ -251,6 +289,7 @@ function WriteInstance({ route }: { route: Route }) {
 
   /** 저장 버튼을 한 번만 실행하고 늦은 수정은 편집 상태로 남긴다. */
   async function save() {
+    if (uploadLock.current) { setMessage("이미지 업로드가 끝난 뒤 저장해 주세요. 원고는 유지됩니다."); return; }
     if (busyLock.current) return;
     busyLock.current = true; setBusy("save"); setMessage("");
     const generation = writeGeneration.current;
@@ -267,6 +306,7 @@ function WriteInstance({ route }: { route: Route }) {
 
   /** 최신 저장 revision을 확보한 후에만 원자적 출간을 요청한다. */
   async function publish() {
+    if (uploadLock.current) { setMessage("이미지 업로드가 끝난 뒤 출간해 주세요. 원고는 유지됩니다."); return; }
     if (busyLock.current) return;
     const snapshot = formRef.current;
     if (!snapshot.title.trim() || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(snapshot.slug) ||
@@ -361,17 +401,21 @@ function WriteInstance({ route }: { route: Route }) {
         <option key={tag.name} value={tag.name} />)}</datalist>
       <button type="button" className="small-button" onClick={addTag} disabled={busy === "publish"}>추가</button>
     </div>
-    <BlockEditor value={form.document} disabled={busy === "publish"} focusFirstSignal={focusFirstSignal}
+    <BlockEditor value={form.document} disabled={busy === "publish" || uploading} focusFirstSignal={focusFirstSignal}
+      onImageFile={uploadImage} onImageReject={setMessage}
       onChange={(next) => changeForm((current) => ({ ...current, document: next }))} />
-    <p className="write-hint">기본 블록·명확한 표·한 단계 접기를 편집할 수 있습니다. `&gt; ` 또는 /접기로 만들고, 제목 Enter로 안쪽에 들어갑니다. 위 접기 바로 아래의 문단은 Tab으로 안에 넣고, 안쪽 문단은 Shift+Tab이나 빈 문단 Enter로 그 위치부터 밖으로 나옵니다. 중첩 접기·복잡한 표·이미지는 원문 그대로 보존합니다.</p>
+    <p className="write-hint">기본 블록·명확한 표·한 단계 접기·첨부 이미지를 편집할 수 있습니다. JPEG/PNG 파일 선택·드롭·붙여넣기로 이미지를 추가합니다. 이미지 제거는 문서 연결만 해제하며 저장 후 해당 글의 읽기 권한이 철회됩니다. 중첩 접기와 지원하지 않는 이미지는 원문 그대로 보존합니다.</p>
     {message && <p className="write-message" role="status">{message}</p>}
     <div className="write-spacer" />
-    <div className="write-toolbar"><span className="write-save-state" aria-live="polite">{busy === "save" ? "저장 중…" :
+    <div className="write-toolbar"><span className="write-save-state" aria-live="polite">{uploading ? "이미지 업로드 중…" : busy === "save" ? "저장 중…" :
       busy === "publish" ? "출간 중…" : dirty ? "저장하지 않은 변경" : savedAt ? `임시저장됨 · ${savedTime(savedAt)} KST` : "아직 저장하지 않음"}</span>
+      {uploading && <button type="button" className="small-button" onClick={() => {
+        uploadController.current?.abort(); setMessage("이미지 업로드를 취소했습니다. 원고는 유지됩니다.");
+      }}>업로드 취소</button>}
       <Link href="/admin/drafts/" className="write-drafts-link">임시저장 목록</Link>
-      <button type="button" className="small-button" onClick={() => void save()} disabled={busy !== null}>임시저장</button>
-      <button type="button" className="primary-button" onClick={() => setShowPublish(true)} disabled={busy !== null}>출간하기</button></div>
-    {showPublish && <PublishSheet title={form.title} slug={form.slug} visibility={form.visibility} busy={busy !== null} error={message}
+      <button type="button" className="small-button" onClick={() => void save()} disabled={busy !== null || uploading}>임시저장</button>
+      <button type="button" className="primary-button" onClick={() => setShowPublish(true)} disabled={busy !== null || uploading}>출간하기</button></div>
+    {showPublish && <PublishSheet title={form.title} slug={form.slug} visibility={form.visibility} busy={busy !== null || uploading} error={message}
       onSlug={(slug) => changeForm((current) => ({ ...current, slug }))}
       onVisibility={(visibility) => changeForm((current) => ({ ...current, visibility }))}
       onClose={() => setShowPublish(false)} onPublish={() => void publish()} />}

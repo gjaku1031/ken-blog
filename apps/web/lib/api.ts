@@ -59,7 +59,7 @@ export function apiFailureMessage(error: unknown): string {
 }
 
 /** 공개 빌드 변수의 원본 주소를 검사하고 API 절대 URL을 만든다. */
-function apiUrl(path: string): URL {
+export function apiUrl(path: string): URL {
   const base = process.env.NEXT_PUBLIC_API_BASE_URL?.trim();
   if (!base) throw new ApiFailure("config");
   try {

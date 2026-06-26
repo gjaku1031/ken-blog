@@ -2,10 +2,11 @@ import { unified } from "unified";
 import remarkParse from "remark-parse";
 import remarkGfm from "remark-gfm";
 import { parseEditableTable, serializeTable, type TableAlignment, type TableData } from "@/lib/editor-table";
+import { parseAttachmentId, parseImageAlt, serializeImageBlock, type ImageData } from "@/lib/editor-image";
 import { escapeToggleTitle, splitEditableToggle } from "@/lib/editor-toggle";
 
 /** 편집 가능한 기본 문법과 원문 그대로 잠그는 미지원 문법. */
-export type BlockType = "p" | "h1" | "h2" | "h3" | "ul" | "ol" | "todo" | "quote" | "code" | "hr" | "table" | "toggle" | "raw";
+export type BlockType = "p" | "h1" | "h2" | "h3" | "ul" | "ol" | "todo" | "quote" | "code" | "hr" | "table" | "toggle" | "image" | "raw";
 /** 접기 wrapper의 원래 경계와 안쪽 한 단계 문서를 독립적으로 보존한다. */
 export type ToggleData = {
   beforeTitle: string; titleRaw: string; originalTitle: string; afterTitle: string;
@@ -13,7 +14,7 @@ export type ToggleData = {
 };
 export type EditorBlock = {
   id: string; type: BlockType; text: string; raw: string; after: string; dirty: boolean;
-  lang?: string; done?: boolean; ordinal?: number; table?: TableData; toggle?: ToggleData;
+  lang?: string; done?: boolean; ordinal?: number; table?: TableData; toggle?: ToggleData; image?: ImageData;
 };
 export type MarkdownDocument = { head: string; blocks: EditorBlock[]; newline: "\n" | "\r\n" };
 
@@ -26,6 +27,11 @@ export function blockId(): string { nextId += 1; return `editor-block-${nextId}`
 /** 원문 이외 필드는 편집 가능한 새 문단으로 초기화한다. */
 export function emptyBlock(type: BlockType = "p", newline = "\n"): EditorBlock {
   return { id: blockId(), type, text: "", raw: "", after: newline, dirty: true };
+}
+
+/** 업로드를 마친 READY 첨부를 새 canonical 이미지 블록으로 삽입한다. */
+export function emptyImageBlock(image: ImageData, newline = "\n"): EditorBlock {
+  return { ...emptyBlock("image", newline), after: newline.repeat(2), image };
 }
 
 /** 제목과 안쪽 빈 문단을 포함한 한 단계 접기를 새로 만든다. */
@@ -66,6 +72,7 @@ function detailsRanges(source: string): Array<{ start: number; end: number }> {
 }
 
 type SourceNode = { type: string; position?: { start: { offset?: number }; end: { offset?: number } }; children?: SourceNode[];
+  url?: string; alt?: string;
   ordered?: boolean; checked?: boolean | null; lang?: string | null; align?: TableAlignment[] };
 type Span = { start: number; end: number; node: SourceNode; forcedRaw?: boolean };
 
@@ -83,6 +90,25 @@ function listSpans(node: SourceNode, source: string): Span[] | null {
     spans.push({ start, end, node: { ...item, type: node.ordered ? "orderedItem" : "unorderedItem" } });
   }
   return spans;
+}
+
+/**
+ * Alt가 디코딩된 뒤에도 literal pipe와 메타 구분자를 혼동하지 않도록 원문 경계를 확인한다.
+ * 새 직렬화는 설명 속 pipe를 이스케이프하고 마지막 두 구분자만 이스케이프하지 않는다.
+ */
+function standaloneImageAlt(raw: string, attachmentId: number, alt: string): boolean {
+  const ending = `](attachment:${attachmentId})`;
+  if (!raw.startsWith("![") || !raw.endsWith(ending)) return false;
+  const source = raw.slice(2, -ending.length);
+  if (/[\r\n]/.test(source)) return false;
+  if (!alt.includes("|")) return true;
+  const pipes: number[] = [];
+  for (let index = 0; index < source.length; index += 1) {
+    if (source[index] === "\\") { index += 1; continue; }
+    if (source[index] === "|") pipes.push(index);
+  }
+  if (pipes.length < 2) return false;
+  return /^\|w=(20|[2-9]\d|100)\|a=(left|center|right)$/.test(source.slice(pipes[pipes.length - 2]));
 }
 
 /** 지원하지 않는 문법의 소스 위치를 포함해 Markdown 원문을 편집 블록으로 분리한다. */
@@ -143,6 +169,14 @@ function decodeBlock(raw: string, after: string, node: SourceNode, forcedRaw: bo
     const table = parseEditableTable(raw, node.children?.[0]?.children?.length ?? 0, node.children?.length ?? 0, node.align);
     if (table) return { ...base, type: "table", text: "", table };
   }
+  if (node.type === "paragraph" && node.children?.length === 1 && node.children[0].type === "image") {
+    const image = node.children[0];
+    const attachmentId = parseAttachmentId(image.url ?? "");
+    const alt = parseImageAlt(image.alt ?? "");
+    if (attachmentId !== null && alt && standaloneImageAlt(raw, attachmentId, image.alt ?? "")) {
+      return { ...base, type: "image", text: "", image: { attachmentId, ...alt } };
+    }
+  }
   if (node.type === "paragraph" && !/^\s*(?:\$\$|!\[)/i.test(raw) && !/<details\b/i.test(raw) &&
     !node.children?.some((child) => child.type === "image" || child.type === "imageReference")) return { ...base, type: "p" };
   if (node.type === "heading") {
@@ -195,6 +229,7 @@ export function blockMarkdown(block: EditorBlock, newline = "\n"): string {
     case "quote": result = `> ${escapedParagraph(text.replace(/\n/g, " "))}`; break;
     case "hr": result = "---"; break;
     case "table": result = block.table ? serializeTable(block.table) : block.raw; break;
+    case "image": result = block.image ? serializeImageBlock(block.image) : block.raw; break;
     case "toggle": {
       if (!block.toggle) return block.raw;
       const inner = serializeEditorMarkdown(block.toggle.inner);
