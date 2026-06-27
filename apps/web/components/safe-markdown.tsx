@@ -6,6 +6,7 @@ import { remarkSafeDetails } from "../lib/markdown-details";
 import { parseAttachmentId, parseImageAlt } from "../lib/editor-image";
 import { AttachmentImage, type AttachmentSource } from "./attachment-image";
 import { MarkdownDetails, MarkdownSummary } from "./markdown-details";
+import { CodeBlock } from "./code-block";
 
 /** 실행 가능한 스킴과 프로토콜 상대 주소를 막고 안전한 글 링크만 남긴다. */
 function safeUrl(value: string, key: string): string {
@@ -46,8 +47,17 @@ export function SafeMarkdown({ body, source }: { body: string; source?: Attachme
       },
       /** GFM 할 일은 상태를 보여 주되 읽기 화면에서 편집할 수 없게 한다. */
       input({ type, checked }) { return <input type={type} checked={checked} disabled readOnly aria-label={checked ? "완료된 항목" : "미완료 항목"} />; },
-      /** 긴 코드 블록에 키보드 초점을 허용하되 반복되는 랜드마크를 만들지 않는다. */
-      pre({ node: _node, ...props }) { return <pre {...props} tabIndex={0} role="group" aria-label="코드 블록, 가로로 스크롤 가능" />; },
+      /** HAST 코드의 실제 텍스트와 언어만 읽어 강조하고 변환 불가 구조는 원문을 남긴다. */
+      pre({ node, ...props }) {
+        const codeNode = node?.children.find((child) => child.type === "element" && child.tagName === "code");
+        if (!codeNode || codeNode.type !== "element" || !codeNode.children.every((child) => child.type === "text"))
+          return <pre {...props} tabIndex={0} role="group" aria-label="코드 블록, 가로로 스크롤 가능" />;
+        const code = codeNode.children.map((child) => child.type === "text" ? child.value : "").join("");
+        const className = codeNode.properties.className;
+        const classes = Array.isArray(className) ? className.filter((item): item is string => typeof item === "string") : [];
+        const language = classes.find((item) => item.startsWith("language-"))?.slice(9);
+        return <CodeBlock code={code} language={language} />;
+      },
       /** 표 의미는 유지하고 가로로 긴 표에도 키보드 초점을 허용한다. */
       table({ node: _node, ...props }) { return <table {...props} tabIndex={0} />; },
     }}>{body}</Markdown></div>;

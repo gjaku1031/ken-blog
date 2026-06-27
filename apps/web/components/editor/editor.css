@@ -1,0 +1,29 @@
+.editor-code-options {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 4px 10px;
+}
+
+.editor-code-options input {
+  width: min(100%, 280px);
+  min-width: 0;
+  min-height: 36px;
+  border: 1px solid var(--line2);
+  border-radius: 6px;
+  padding: 5px 9px;
+  background: var(--card);
+  color: var(--text);
+  font: 13px var(--font-mono), monospace;
+}
+
+.editor-code-options input:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
+.editor-code-options input[aria-invalid="true"] { border-color: var(--danger); }
+.editor-code-help, .editor-code-error { grid-column: 1 / -1; font-size: 12px; }
+.editor-code-help { color: var(--muted); }
+.editor-code-error { color: var(--danger); }
+
+@media (max-width: 420px) {
+  .editor-code-options { grid-template-columns: minmax(0, 1fr); }
+  .editor-code-options input { width: 100%; }
+}

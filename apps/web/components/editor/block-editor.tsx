@@ -8,6 +8,7 @@ import { emptyTable, parsePipeHeaderCommand, TABLE_MAX_COLUMNS, TABLE_MAX_CELL_L
 import { TableBlock } from "@/components/editor/table-block";
 import { ToggleBlock } from "@/components/editor/toggle-block";
 import { ImageBlock } from "@/components/editor/image-block";
+import "./editor.css";
 
 type Props = { value: MarkdownDocument; onChange: (next: MarkdownDocument) => void; disabled?: boolean;
   focusFirstSignal?: number; focusBlock?: { id: string; serial: number }; depth?: 0 | 1; onOutdentFrom?: (index: number) => void;
@@ -18,6 +19,8 @@ const blockNames: Record<BlockType, string> = { p: "문단", h1: "제목 1", h2:
 const shortcuts: Record<string, BlockType> = { "#": "h1", "##": "h2", "###": "h3", "-": "ul", "*": "ul",
   "1.": "ol", "[]": "todo", "[ ]": "todo", "|": "quote" };
 const DRAG_FORMAT = "application/x-ken-blog-editor-block";
+const CODE_LANGUAGES = ["kotlin", "java", "javascript", "typescript", "json", "sql", "bash", "yaml", "python", "css", "html", "markdown"];
+const CODE_LANGUAGE_PATTERN = /^[A-Za-z0-9_-]{0,32}$/;
 
 /** 기본 블록을 키보드와 마우스로 편집하고 원문 블록은 읽기 전용으로 보존한다. */
 export function BlockEditor({ value, onChange, disabled = false, focusFirstSignal = 0,
@@ -29,6 +32,7 @@ export function BlockEditor({ value, onChange, disabled = false, focusFirstSigna
   const [toggleTitleFocus, setToggleTitleFocus] = useState<{ id: string; serial: number } | null>(null);
   const [toggleChildFocus, setToggleChildFocus] = useState<{ toggleId: string; id: string; serial: number } | null>(null);
   const [toggleFirstFocus, setToggleFirstFocus] = useState<{ id: string; serial: number } | null>(null);
+  const [languageError, setLanguageError] = useState<{ id: string; message: string } | null>(null);
   const refs = useRef(new Map<string, HTMLElement>());
   const composing = useRef(false);
   const compositionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -64,6 +68,21 @@ export function BlockEditor({ value, onChange, disabled = false, focusFirstSigna
   function edit(id: string, change: (block: EditorBlock) => EditorBlock) {
     if (disabled) return;
     onChange(ensureBlockBoundaries({ ...value, blocks: value.blocks.map((block) => block.id === id ? change(block) : block) }));
+  }
+
+  /** 기존 미지정·알 수 없는 언어값은 유지하되 새 입력만 제한된 ASCII와 Mermaid 제외 규칙으로 교체한다. */
+  function changeCodeLanguage(id: string, language: string) {
+    if (disabled) return;
+    if (!CODE_LANGUAGE_PATTERN.test(language)) {
+      setLanguageError({ id, message: "언어 이름은 영문·숫자·하이픈·밑줄만 32자까지 입력할 수 있습니다." });
+      return;
+    }
+    if (language.toLowerCase() === "mermaid") {
+      setLanguageError({ id, message: "Mermaid는 코드 블록 언어로 선택할 수 없습니다." });
+      return;
+    }
+    setLanguageError(null);
+    edit(id, (old) => ({ ...old, lang: language, dirty: true }));
   }
 
   /** 블록 변경 후 새 커서 위치를 요청한다. */
@@ -322,9 +341,12 @@ export function BlockEditor({ value, onChange, disabled = false, focusFirstSigna
         blocks.splice(index + 1, 0, next);
         onChange(ensureBlockBoundaries({ ...value, blocks })); activate(next.id, 0); return;
       }
-      const codeCommand = /^```([^`\s]*)$/.exec(text);
-      if (block.type === "p" && start === end && codeCommand && codeCommand[1].toLowerCase() !== "mermaid") {
-        event.preventDefault(); edit(block.id, (old) => ({ ...old, type: "code", lang: codeCommand[1], text: "", dirty: true }));
+      const codeCommand = /^```([A-Za-z0-9_-]{0,32})$/.exec(text);
+      if (block.type === "p" && !event.ctrlKey && !event.metaKey && start === end && end === text.length &&
+        codeCommand && codeCommand[0] === text &&
+        codeCommand[1].toLowerCase() !== "mermaid") {
+        event.preventDefault(); edit(block.id, (old) => ({ ...old, type: "code", lang: codeCommand[1], text: "",
+          codeFence: { character: "`", length: 3, openingIndent: "", closingIndent: "" }, dirty: true }));
         activate(block.id, 0); return;
       }
       event.preventDefault();
@@ -489,7 +511,29 @@ export function BlockEditor({ value, onChange, disabled = false, focusFirstSigna
             if (event.key === "ArrowDown" && index + 1 < value.blocks.length) { event.preventDefault(); activate(value.blocks[index + 1].id, 0); } }}
           aria-label="구분선 블록. Delete 키로 삭제">────────</button> :
           activeId === block.id ? <div className="block-input-wrap">
-            {block.type === "code" && <label htmlFor={`${block.id}-text`}>코드 {block.lang || "text"} · Ctrl/⌘ Enter로 아래 문단</label>}
+            {block.type === "code" && <div className="editor-code-options">
+              <label htmlFor={`${block.id}-language`}>코드 언어</label>
+              <input id={`${block.id}-language`} type="text" list={`${block.id}-languages`} autoComplete="off"
+                value={block.lang ?? ""} disabled={disabled} aria-invalid={languageError?.id === block.id}
+                aria-describedby={`${block.id}-language-help${languageError?.id === block.id ? ` ${block.id}-language-error` : ""}`}
+                onChange={(event) => changeCodeLanguage(block.id, event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.nativeEvent.isComposing) return;
+                  if (event.key === "Escape") {
+                    event.preventDefault(); setActiveId(null); setFocusTarget({ id: block.id, offset: 0 });
+                  } else if (event.key === "Enter") {
+                    event.preventDefault();
+                    if (event.ctrlKey || event.metaKey) insertAfter(index, "p");
+                    else refs.current.get(block.id)?.focus();
+                  }
+                }} />
+              <datalist id={`${block.id}-languages`}>{CODE_LANGUAGES.map((language) =>
+                <option key={language} value={language} />)}</datalist>
+              <span id={`${block.id}-language-help`} className="editor-code-help">언어를 비우면 일반 코드로 표시합니다. Ctrl/⌘ Enter로 아래 문단을 추가합니다.</span>
+              {languageError?.id === block.id && <span id={`${block.id}-language-error`} className="editor-code-error" role="alert">
+                {languageError.message}</span>}
+            </div>}
+            {block.type === "code" && <label htmlFor={`${block.id}-text`}>코드 내용</label>}
             <textarea id={`${block.id}-text`} ref={(node) => { if (node) refs.current.set(block.id, node); }}
               aria-label={`${index + 1}번 ${blockNames[block.type]} 블록`} rows={Math.max(1, block.text.split("\n").length)}
               value={block.text} disabled={disabled} placeholder={block.type === "p" ? "내용을 입력하세요" : "블록 내용을 입력하세요"}

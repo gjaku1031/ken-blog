@@ -12,9 +12,12 @@ export type ToggleData = {
   beforeTitle: string; titleRaw: string; originalTitle: string; afterTitle: string;
   inner: MarkdownDocument; suffix: string;
 };
+/** 기존 fenced code를 편집할 때 구분 문자·길이·양쪽 들여쓰기를 유지하는 값. */
+export type CodeFenceData = { character: "`" | "~"; length: number; openingIndent: string; closingIndent: string };
 export type EditorBlock = {
   id: string; type: BlockType; text: string; raw: string; after: string; dirty: boolean;
-  lang?: string; done?: boolean; ordinal?: number; table?: TableData; toggle?: ToggleData; image?: ImageData;
+  lang?: string; codeFence?: CodeFenceData; done?: boolean; ordinal?: number;
+  table?: TableData; toggle?: ToggleData; image?: ImageData;
 };
 export type MarkdownDocument = { head: string; blocks: EditorBlock[]; newline: "\n" | "\r\n" };
 
@@ -193,11 +196,13 @@ function decodeBlock(raw: string, after: string, node: SourceNode, forcedRaw: bo
     if (match) return { ...base, type: "quote", text: match[1] };
   }
   if (node.type === "code") {
-    const match = /^ {0,3}(`{3,}|~{3,})([^\r\n]*)\r?\n([\s\S]*?)\r?\n {0,3}(`{3,}|~{3,})[ \t]*$/.exec(raw);
-    const lang = match?.[2].trim() ?? "";
-    if (match && match[1][0] === match[4][0] && match[4].length >= match[1].length &&
+    const match = /^( {0,3})(`{3,}|~{3,})([^\r\n]*)\r?\n(?:([\s\S]*?)\r?\n)?( {0,3})(`{3,}|~{3,})[ \t]*$/.exec(raw);
+    const lang = match?.[3].trim() ?? "";
+    if (match && match[2][0] === match[6][0] && match[6].length >= match[2].length &&
       /^[A-Za-z0-9_-]*$/.test(lang) && lang.toLowerCase() !== "mermaid") {
-      return { ...base, type: "code", text: match[3], lang };
+      return { ...base, type: "code", text: match[4] ?? "", lang,
+        codeFence: { character: match[2][0] as CodeFenceData["character"], length: match[2].length,
+          openingIndent: match[1], closingIndent: match[5] } };
     }
   }
   if (node.type === "thematicBreak") return { ...base, type: "hr", text: "" };
@@ -241,9 +246,16 @@ export function blockMarkdown(block: EditorBlock, newline = "\n"): string {
         block.toggle.afterTitle + inner + boundary + block.toggle.suffix;
     }
     case "code": {
-      const longest = Math.max(2, ...Array.from(text.matchAll(/`+/g), (match) => match[0].length));
-      const fence = "`".repeat(longest + 1);
-      result = `${fence}${block.lang ?? ""}\n${text}\n${fence}`;
+      const character = block.codeFence?.character ?? "`";
+      let longest = 0;
+      let run = 0;
+      for (const current of text) {
+        run = current === character ? run + 1 : 0;
+        if (run > longest) longest = run;
+      }
+      const fence = character.repeat(Math.max(3, block.codeFence?.length ?? 3, longest + 1));
+      result = `${block.codeFence?.openingIndent ?? ""}${fence}${block.lang ?? ""}\n${text}\n` +
+        `${block.codeFence?.closingIndent ?? ""}${fence}`;
       break;
     }
     default: result = block.raw;
