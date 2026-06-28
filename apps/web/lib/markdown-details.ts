@@ -1,7 +1,5 @@
 import type { Root, RootContent } from "mdast";
-import remarkGfm from "remark-gfm";
-import remarkParse from "remark-parse";
-import { unified } from "unified";
+import { mathSourceMask, parseMathMarkdown } from "./math-syntax";
 
 type Boundary = "details-open" | "details-close" | "summary-open" | "summary-close";
 type Replacement = { start: number; end: number; boundary?: Boundary; fallback?: string };
@@ -66,6 +64,8 @@ function codeMask(source: string): Uint8Array {
     paragraphStart = match.index + match[0].length;
   }
   markInlineCode(paragraphStart, source.length);
+  const mathMask = mathSourceMask(source);
+  for (let index = 0; index < mask.length; index++) if (mathMask[index]) mask[index] = 1;
   return mask;
 }
 
@@ -275,7 +275,7 @@ export function remarkSafeDetails() {
       from = item.end;
     });
     modified += source.slice(from);
-    const parsed = unified().use(remarkParse).use(remarkGfm).parse(modified) as Root;
+    const parsed = parseMathMarkdown(modified);
     const grouped = groupNodes(parsed, replacements, prefix, source);
     root.children = grouped?.children ?? [{ type: "code", value: source }];
   };

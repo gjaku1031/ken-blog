@@ -404,7 +404,7 @@ function WriteInstance({ route }: { route: Route }) {
     <BlockEditor value={form.document} disabled={busy === "publish" || uploading} focusFirstSignal={focusFirstSignal}
       onImageFile={uploadImage} onImageReject={setMessage}
       onChange={(next) => changeForm((current) => ({ ...current, document: next }))} />
-    <p className="write-hint">기본 블록·명확한 표·한 단계 접기·첨부 이미지를 편집할 수 있습니다. JPEG/PNG 파일 선택·드롭·붙여넣기로 이미지를 추가합니다. 이미지 제거는 문서 연결만 해제하며 저장 후 해당 글의 읽기 권한이 철회됩니다. 중첩 접기와 지원하지 않는 이미지는 원문 그대로 보존합니다.</p>
+    <p className="write-hint">기본 블록·명확한 표·한 단계 접기·첨부 이미지·독립 수식을 편집할 수 있습니다. 문단 전체에 $$를 입력하고 끝에서 Enter를 누르면 수식 블록으로 바뀝니다. JPEG/PNG 파일 선택·드롭·붙여넣기로 이미지를 추가합니다. 이미지 제거는 문서 연결만 해제하며 저장 후 해당 글의 읽기 권한이 철회됩니다. 중첩 접기와 지원하지 않는 구문은 원문 그대로 보존합니다.</p>
     {message && <p className="write-message" role="status">{message}</p>}
     <div className="write-spacer" />
     <div className="write-toolbar"><span className="write-save-state" aria-live="polite">{uploading ? "이미지 업로드 중…" : busy === "save" ? "저장 중…" :

@@ -1,8 +1,6 @@
-import { unified } from "unified";
-import remarkParse from "remark-parse";
-import remarkGfm from "remark-gfm";
 import type { Root } from "mdast";
 import { remarkSafeDetails } from "./markdown-details";
+import { parseMathMarkdown } from "./math-syntax";
 
 /** 내부 첨부 이미지의 대체 설명·상대 너비·정렬을 담는 편집 값. */
 export type ImageData = {
@@ -16,7 +14,6 @@ type ImageNode = {
   type: string; url?: string; alt?: string; identifier?: string; children?: ImageNode[];
 };
 
-const parser = unified().use(remarkParse).use(remarkGfm);
 const attachmentUrl = /^attachment:([1-9]\d*)$/;
 const metadata = /^([\s\S]*)\|w=(20|[2-9]\d|100)\|a=(left|center|right)$/;
 const markdownPunctuation = /[!"#$%'()*+,\-./:;=?@\[\]^_`{|}~]/;
@@ -61,7 +58,7 @@ function referenceKey(identifier: string): string { return identifier.trim().rep
 /** AST에서 자식 노드를 먼저 수집해 안전 접기 안의 정의도 같은 문서에서 해석한다. */
 function walk(node: ImageNode, visit: (node: ImageNode) => void): void {
   visit(node);
-  if (node.type === "code" || node.type === "inlineCode" || node.type === "html") return;
+  if (node.type === "code" || node.type === "inlineCode" || node.type === "html" || node.type.startsWith("kenMath")) return;
   for (const child of node.children ?? []) walk(child, visit);
 }
 
@@ -73,7 +70,7 @@ function walk(node: ImageNode, visit: (node: ImageNode) => void): void {
  * @return 중복을 제거한 첨부 ID 오름차순 목록; 100개 상한은 저장 UI가 검사한다.
  */
 export function collectAttachmentIds(body: string): number[] {
-  const root = parser.parse(body) as Root;
+  const root = parseMathMarkdown(body) as Root;
   remarkSafeDetails()(root, { value: body });
   const tree = root as unknown as ImageNode;
   const definitions = new Map<string, string>();

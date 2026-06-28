@@ -137,6 +137,17 @@ button:disabled { cursor: not-allowed; opacity: .6; }
 .markdown-body .code-block pre { margin: 0; border-radius: 0; background: var(--code-bg); color: var(--code-fg); white-space: pre; overflow-wrap: normal; word-break: normal; }
 .markdown-body code { font-family: var(--font-mono), monospace; font-size: .87em; }
 .markdown-body :not(pre) > code { background: var(--soft); color: var(--inline-fg); border-radius: 4px; padding: 2px 4px; }
+.math-inline { display: inline-block; max-width: min(100%, calc(100vw - 48px)); overflow-x: auto; vertical-align: middle; color: var(--text); white-space: nowrap; }
+.math-inline .math-fallback { font-family: var(--font-mono), monospace; font-size: .86em; }
+.math-display { max-width: 100%; margin: 22px 0; padding: 16px 18px; overflow-x: auto; border: 1px solid var(--line2); border-radius: 8px; background: var(--soft); color: var(--text); text-align: center; }
+.math-display .math-fallback { display: block; white-space: pre-wrap; text-align: left; font-family: var(--font-mono), monospace; font-size: .9em; overflow-wrap: anywhere; }
+.math-display .math-rendered { display: inline-block; min-width: max-content; }
+.math-rendered[hidden] { display: none; }
+.math-rendered mstyle[mathcolor="#cc0000"] { color: var(--danger); }
+.math-notice { display: block; margin-top: 8px; color: var(--muted); font-size: 12px; }
+.math-inline .math-notice { display: inline; margin: 0 0 0 5px; }
+.math-notice.math-error { color: var(--danger); }
+.math-notice button { margin-left: 8px; border: 0; background: transparent; color: var(--accent-d); text-decoration: underline; }
 .markdown-body table { display: block; overflow-x: auto; border-collapse: collapse; max-width: 100%; font-size: 14px; }
 .markdown-body th, .markdown-body td { border: 1px solid var(--line2); padding: 7px 11px; min-width: 80px; }
 .markdown-body th { background: var(--soft); }

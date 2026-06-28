@@ -1,12 +1,10 @@
-import { unified } from "unified";
-import remarkParse from "remark-parse";
-import remarkGfm from "remark-gfm";
 import { parseEditableTable, serializeTable, type TableAlignment, type TableData } from "@/lib/editor-table";
 import { parseAttachmentId, parseImageAlt, serializeImageBlock, type ImageData } from "@/lib/editor-image";
 import { escapeToggleTitle, splitEditableToggle } from "@/lib/editor-toggle";
+import { mathSourceMask, parseMathMarkdown } from "@/lib/math-syntax";
 
 /** 편집 가능한 기본 문법과 원문 그대로 잠그는 미지원 문법. */
-export type BlockType = "p" | "h1" | "h2" | "h3" | "ul" | "ol" | "todo" | "quote" | "code" | "hr" | "table" | "toggle" | "image" | "raw";
+export type BlockType = "p" | "h1" | "h2" | "h3" | "ul" | "ol" | "todo" | "quote" | "code" | "math" | "hr" | "table" | "toggle" | "image" | "raw";
 /** 접기 wrapper의 원래 경계와 안쪽 한 단계 문서를 독립적으로 보존한다. */
 export type ToggleData = {
   beforeTitle: string; titleRaw: string; originalTitle: string; afterTitle: string;
@@ -21,7 +19,6 @@ export type EditorBlock = {
 };
 export type MarkdownDocument = { head: string; blocks: EditorBlock[]; newline: "\n" | "\r\n" };
 
-const parser = unified().use(remarkParse).use(remarkGfm);
 let nextId = 0;
 
 /** 브라우저 수명 안에서 블록 이동·포커스에 사용할 식별자를 만든다. */
@@ -51,12 +48,14 @@ export function emptyToggleBlock(newline = "\n"): EditorBlock {
 function detailsRanges(source: string): Array<{ start: number; end: number }> {
   const result: Array<{ start: number; end: number }> = [];
   const lines = source.match(/.*(?:\r?\n|$)/g) ?? [];
+  const mathMask = mathSourceMask(source);
   let offset = 0;
   let fence: { char: string; count: number } | null = null;
   let depth = 0;
   let start = 0;
   for (const line of lines) {
     if (!line) continue;
+    if (mathMask[offset]) { offset += line.length; continue; }
     const marker = /^ {0,3}(`{3,}|~{3,})/.exec(line);
     if (marker) {
       const chars = marker[1];
@@ -75,7 +74,7 @@ function detailsRanges(source: string): Array<{ start: number; end: number }> {
 }
 
 type SourceNode = { type: string; position?: { start: { offset?: number }; end: { offset?: number } }; children?: SourceNode[];
-  url?: string; alt?: string;
+  url?: string; alt?: string; value?: string;
   ordered?: boolean; checked?: boolean | null; lang?: string | null; align?: TableAlignment[] };
 type Span = { start: number; end: number; node: SourceNode; forcedRaw?: boolean };
 
@@ -116,7 +115,7 @@ function standaloneImageAlt(raw: string, attachmentId: number, alt: string): boo
 
 /** 지원하지 않는 문법의 소스 위치를 포함해 Markdown 원문을 편집 블록으로 분리한다. */
 export function parseEditorMarkdown(source: string, depth = 0): MarkdownDocument {
-  const root = parser.parse(source);
+  const root = parseMathMarkdown(source);
   const protectedRanges = detailsRanges(source);
   const children = root.children as SourceNode[];
   const spans: Span[] = [];
@@ -168,6 +167,7 @@ function decodeBlock(raw: string, after: string, node: SourceNode, forcedRaw: bo
       afterTitle: source.afterTitle, inner: parseEditorMarkdown(source.innerSource, 1), suffix: source.suffix,
     } };
   }
+  if (node.type === "kenMathBlock") return { ...base, type: "math", text: (node.value ?? "").replace(/\r\n/g, "\n") };
   if (node.type === "table") {
     const table = parseEditableTable(raw, node.children?.[0]?.children?.length ?? 0, node.children?.length ?? 0, node.align);
     if (table) return { ...base, type: "table", text: "", table };
@@ -258,6 +258,7 @@ export function blockMarkdown(block: EditorBlock, newline = "\n"): string {
         `${block.codeFence?.closingIndent ?? ""}${fence}`;
       break;
     }
+    case "math": result = `$$\n${text}\n$$`; break;
     default: result = block.raw;
   }
   return result.replace(/\n/g, newline);

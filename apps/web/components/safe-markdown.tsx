@@ -3,10 +3,12 @@
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { remarkSafeDetails } from "../lib/markdown-details";
+import { remarkMathSyntax } from "../lib/math-syntax";
 import { parseAttachmentId, parseImageAlt } from "../lib/editor-image";
 import { AttachmentImage, type AttachmentSource } from "./attachment-image";
 import { MarkdownDetails, MarkdownSummary } from "./markdown-details";
 import { CodeBlock } from "./code-block";
+import { MathExpression } from "./math-expression";
 
 /** 실행 가능한 스킴과 프로토콜 상대 주소를 막고 안전한 글 링크만 남긴다. */
 function safeUrl(value: string, key: string): string {
@@ -21,12 +23,26 @@ function safeUrl(value: string, key: string): string {
 
 /** 명시적인 안전한 접기만 표시하고 다른 raw HTML과 이미지 자동 요청을 차단한 GFM 읽기 전용 렌더러. */
 export function SafeMarkdown({ body, source }: { body: string; source?: AttachmentSource }) {
-  return <div className="markdown-body"><Markdown remarkPlugins={[remarkGfm, remarkSafeDetails]} skipHtml urlTransform={safeUrl}
+  return <div className="markdown-body"><Markdown remarkPlugins={[remarkGfm, remarkMathSyntax, remarkSafeDetails]} skipHtml urlTransform={safeUrl}
     components={{
       /** 원문 HTML 속성 없이 접기 구조만 표시한다. */
       details({ children }) { return <MarkdownDetails>{children}</MarkdownDetails>; },
       /** 기본 키보드 조작과 접근성 의미를 가진 제목을 사용한다. */
       summary({ children }) { return <MarkdownSummary>{children}</MarkdownSummary>; },
+      /** 파서가 표시한 단일 텍스트 수식만 KaTeX에 전달한다. */
+      span({ node, children }) {
+        const classes = node?.properties.className;
+        const math = Array.isArray(classes) && classes.includes("ken-math-inline") &&
+          node?.children.length === 1 && node.children[0].type === "text" ? node.children[0].value : null;
+        return math !== null ? <MathExpression source={math} display={false} /> : <span>{children}</span>;
+      },
+      /** 독립 수식은 문단 밖의 블록으로 만들고 원문만 MathML 렌더러에 전달한다. */
+      div({ node, children }) {
+        const classes = node?.properties.className;
+        const math = Array.isArray(classes) && classes.includes("ken-math-block") &&
+          node?.children.length === 1 && node.children[0].type === "text" ? node.children[0].value : null;
+        return math !== null ? <MathExpression source={math} display /> : <div>{children}</div>;
+      },
       /** 단독 이미지의 폭과 정렬 래퍼를 문단 자리에 두어 유효한 HTML을 만든다. */
       p({ node, children }) {
         const standalone = node?.children.length === 1 && node.children[0].type === "element" && node.children[0].tagName === "img";
