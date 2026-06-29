@@ -16,7 +16,7 @@ type Props = { value: MarkdownDocument; onChange: (next: MarkdownDocument) => vo
 type FocusTarget = { id: string; offset: number | "end" };
 /** 편집과 미리보기 조작에 쓰는 블록 종류별 한국어 이름. */
 const blockNames: Record<BlockType, string> = { p: "문단", h1: "제목 1", h2: "제목 2", h3: "제목 3",
-  ul: "글머리 목록", ol: "번호 목록", todo: "할 일", quote: "인용", code: "코드", math: "수식", hr: "구분선", table: "표", toggle: "접기", image: "이미지", raw: "원문" };
+  ul: "글머리 목록", ol: "번호 목록", todo: "할 일", quote: "인용", code: "코드", math: "수식", mermaid: "도식", hr: "구분선", table: "표", toggle: "접기", image: "이미지", raw: "원문" };
 const shortcuts: Record<string, BlockType> = { "#": "h1", "##": "h2", "###": "h3", "-": "ul", "*": "ul",
   "1.": "ol", "[]": "todo", "[ ]": "todo", "|": "quote" };
 const DRAG_FORMAT = "application/x-ken-blog-editor-block";
@@ -294,7 +294,7 @@ export function BlockEditor({ value, onChange, disabled = false, focusFirstSigna
     activate(blocks[Math.max(0, index - 1)].id);
   }
 
-  /** 커서·조합 상태를 확인해 수식 생성, 개행, 블록 이동을 원문 손실 없이 처리한다. */
+  /** 커서·조합 상태를 확인해 수식·도식 생성과 개행·블록 이동을 원문 손실 없이 처리한다. */
   function handleKey(event: KeyboardEvent<HTMLTextAreaElement>, block: EditorBlock, index: number) {
     if (disabled) return;
     if (isComposing(event)) return;
@@ -329,7 +329,7 @@ export function BlockEditor({ value, onChange, disabled = false, focusFirstSigna
       if (headers && headers.length <= TABLE_MAX_COLUMNS && headers.every((header) => header.length <= TABLE_MAX_CELL_LENGTH)) {
         event.preventDefault(); replaceWithTable(index, headers); return;
       }
-      if (block.type === "code" || block.type === "math") {
+      if (block.type === "code" || block.type === "math" || block.type === "mermaid") {
         if (event.ctrlKey || event.metaKey) { event.preventDefault(); insertAfter(index, "p"); }
         return;
       }
@@ -344,6 +344,11 @@ export function BlockEditor({ value, onChange, disabled = false, focusFirstSigna
       }
       if (block.type === "p" && start === end && end === text.length && text === "$$") {
         event.preventDefault(); edit(block.id, (old) => ({ ...old, type: "math", text: "", dirty: true }));
+        activate(block.id, 0); return;
+      }
+      if (block.type === "p" && start === end && end === text.length && text === "```mermaid") {
+        event.preventDefault(); edit(block.id, (old) => ({ ...old, type: "mermaid", lang: "mermaid", text: "",
+          codeFence: { character: "`", length: 3, openingIndent: "", closingIndent: "" }, dirty: true }));
         activate(block.id, 0); return;
       }
       const codeCommand = /^```([A-Za-z0-9_-]{0,32})$/.exec(text);
@@ -369,21 +374,21 @@ export function BlockEditor({ value, onChange, disabled = false, focusFirstSigna
       blocks.splice(index + 1, 0, added);
       onChange(ensureBlockBoundaries({ ...value, blocks })); activate(added.id, 0); return;
     }
-    if (event.key === "Enter" && event.shiftKey && block.type !== "p" && block.type !== "code" && block.type !== "math") {
+    if (event.key === "Enter" && event.shiftKey && block.type !== "p" && block.type !== "code" && block.type !== "math" && block.type !== "mermaid") {
       event.preventDefault(); return;
     }
     if (event.key === "Backspace" && start === 0 && end === 0) {
-      if (block.type !== "p" && block.type !== "code" && block.type !== "math") {
+      if (block.type !== "p" && block.type !== "code" && block.type !== "math" && block.type !== "mermaid") {
         event.preventDefault(); edit(block.id, (old) => ({ ...old, type: "p", dirty: true })); activate(block.id, 0); return;
       }
-      // 수식은 삭제 버튼으로만 제거해 시작 경계에서 조용히 문단으로 바꾸지 않는다.
-      if (block.type === "math") { event.preventDefault(); return; }
+      // 수식·도식은 삭제 버튼으로만 제거해 시작 경계에서 조용히 문단으로 바꾸지 않는다.
+      if (block.type === "math" || block.type === "mermaid") { event.preventDefault(); return; }
       if (block.type === "code") return;
       if (!text) { event.preventDefault(); if (index > 0) removeAt(index); return; }
       if (index > 0) {
         event.preventDefault();
         const previous = value.blocks[index - 1];
-        if (["raw", "code", "math", "hr", "table", "toggle", "image"].includes(previous.type)) { activate(previous.id); return; }
+        if (["raw", "code", "math", "mermaid", "hr", "table", "toggle", "image"].includes(previous.type)) { activate(previous.id); return; }
         const joined = previous.text + text;
         const blocks = [...value.blocks];
         blocks[index - 1] = { ...previous, text: joined, dirty: true, after: block.after };
@@ -542,9 +547,10 @@ export function BlockEditor({ value, onChange, disabled = false, focusFirstSigna
             </div>}
             {block.type === "code" && <label htmlFor={`${block.id}-text`}>코드 내용</label>}
             {block.type === "math" && <label htmlFor={`${block.id}-text`}>수식 원문</label>}
+            {block.type === "mermaid" && <label htmlFor={`${block.id}-text`}>Mermaid 도식 원문</label>}
             <textarea id={`${block.id}-text`} ref={(node) => { if (node) refs.current.set(block.id, node); }}
               aria-label={`${index + 1}번 ${blockNames[block.type]} 블록`} rows={Math.max(1, block.text.split("\n").length)}
-              aria-describedby={block.type === "math" ? `${block.id}-math-help` : undefined}
+              aria-describedby={block.type === "math" ? `${block.id}-math-help` : block.type === "mermaid" ? `${block.id}-mermaid-help` : undefined}
               value={block.text} disabled={disabled} placeholder={block.type === "p" ? "내용을 입력하세요" : "블록 내용을 입력하세요"}
               onChange={(event) => {
                 const nextText = event.target.value;
@@ -567,9 +573,17 @@ export function BlockEditor({ value, onChange, disabled = false, focusFirstSigna
                 if (window.confirm("수식 블록과 내용을 삭제할까요?")) removeAt(index);
               }}>수식 삭제</button>
             </div>}
+            {block.type === "mermaid" && <div className="editor-mermaid-actions">
+              <span id={`${block.id}-mermaid-help`} className="editor-mermaid-help">Mermaid 원문 입력 · Enter 줄바꿈 · Esc 미리보기 · Ctrl/⌘ Enter 아래 문단</span>
+              <button type="button" disabled={disabled} onClick={() => {
+                if (window.confirm("도식 블록과 내용을 삭제할까요?")) removeAt(index);
+              }}>도식 삭제</button>
+            </div>}
           </div> : <div className="editor-preview">
             <div inert>{block.type === "math" && !block.text ?
               <span className="editor-math-empty">빈 수식 · 클릭하여 편집</span> :
+              block.type === "mermaid" && !block.text ?
+              <span className="editor-mermaid-empty">빈 도식 · 클릭하여 편집</span> :
               <SafeMarkdown body={blockMarkdown(block, value.newline)} source={{ kind: "admin" }} />}</div>
             <button type="button" className="editor-preview-trigger" disabled={disabled} ref={(node) => { if (node) refs.current.set(block.id, node); }}
               aria-label={`${index + 1}번 ${blockNames[block.type]} 블록 편집: ${block.text.slice(0, 80) || "빈 블록"}`}

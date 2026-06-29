@@ -135,6 +135,15 @@ button:disabled { cursor: not-allowed; opacity: .6; }
 .code-block-heading span:first-child { min-width: 0; margin-right: auto; font-weight: 700; color: #e6e8eb; overflow-wrap: anywhere; }
 .code-block-heading button { border: 0; background: transparent; color: #81e6cf; text-decoration: underline; }
 .markdown-body .code-block pre { margin: 0; border-radius: 0; background: var(--code-bg); color: var(--code-fg); white-space: pre; overflow-wrap: normal; word-break: normal; }
+.mermaid-block { max-width: 100%; margin: 22px 0; overflow: hidden; border: 1px solid var(--line2); border-radius: 8px; background: var(--card); }
+.mermaid-heading { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; min-height: 38px; padding: 6px 14px; border-bottom: 1px solid var(--line2); color: var(--text2); font-size: 12px; }
+.mermaid-heading span { margin-right: auto; font-weight: 700; color: var(--text); }
+.mermaid-heading button { border: 0; border-radius: 4px; padding: 2px 5px; background: transparent; color: var(--accent-d); text-decoration: underline; }
+.mermaid-heading button[aria-pressed="true"] { background: var(--tint); color: var(--text); text-decoration: none; font-weight: 700; }
+.mermaid-preview { max-width: 100%; overflow: auto; padding: 16px; }
+.mermaid-preview img { display: block; width: max(100%, 600px); max-width: none; height: auto; }
+.mermaid-notice { margin: 0; padding: 12px 16px; color: var(--text2); font-size: 13px; }
+.markdown-body .mermaid-block pre { margin: 0; border-radius: 0; white-space: pre; overflow-wrap: normal; word-break: normal; }
 .markdown-body code { font-family: var(--font-mono), monospace; font-size: .87em; }
 .markdown-body :not(pre) > code { background: var(--soft); color: var(--inline-fg); border-radius: 4px; padding: 2px 4px; }
 .math-inline { display: inline-block; max-width: min(100%, calc(100vw - 48px)); overflow-x: auto; vertical-align: middle; color: var(--text); white-space: nowrap; }

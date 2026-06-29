@@ -3,6 +3,8 @@ import { mathSourceMask, parseMathMarkdown } from "./math-syntax";
 
 type Boundary = "details-open" | "details-close" | "summary-open" | "summary-close";
 type Replacement = { start: number; end: number; boundary?: Boundary; fallback?: string };
+type OffsetShift = { originalStart: number; originalEnd: number; modifiedStart: number; modifiedEnd: number };
+type PositionedNode = { position?: { start: { offset?: number }; end: { offset?: number } }; children?: PositionedNode[] };
 type Frame = { summarySeen: boolean; summaryOpen: boolean; contentStart: number };
 type SafeNode = RootContent & { children: RootContent[]; data: { hName: string } };
 
@@ -181,6 +183,56 @@ function markerIndex(node: RootContent, prefix: string): number | null {
   return match ? Number(match[1]) : null;
 }
 
+/** 접기 마커 치환 전후의 길이 차이로 바뀐 offset을 원문 위치로 되돌린다. */
+function originalOffset(offset: number, shifts: OffsetShift[], endBoundary: boolean): number {
+  let left = 0;
+  let right = shifts.length;
+  while (left < right) {
+    const middle = (left + right) >>> 1;
+    if (shifts[middle].modifiedStart <= offset) left = middle + 1;
+    else right = middle;
+  }
+  const shift = shifts[left - 1];
+  if (!shift) return offset;
+  if (offset === shift.modifiedStart) return shift.originalStart;
+  if (offset < shift.modifiedEnd) return endBoundary ? shift.originalEnd : shift.originalStart;
+  return offset + shift.originalEnd - shift.modifiedEnd;
+}
+
+/** 원본의 CRLF도 한 줄로 세며 각 줄의 시작 offset을 모은다. */
+function lineStarts(source: string): number[] {
+  const starts = [0];
+  for (let index = 0; index < source.length; index++) if (source[index] === "\n") starts.push(index + 1);
+  return starts;
+}
+
+/** 원본 offset으로 unist의 행·열·offset을 다시 계산한다. */
+function sourcePoint(starts: number[], offset: number): { line: number; column: number; offset: number } {
+  let left = 0;
+  let right = starts.length;
+  while (left < right) {
+    const middle = (left + right) >>> 1;
+    if (starts[middle] <= offset) left = middle + 1;
+    else right = middle;
+  }
+  return { line: left, column: offset - starts[left - 1] + 1, offset };
+}
+
+/** 수식 파서가 복원한 수정 문자열 위치를 다시 실제 게시글 원문 위치로 옮긴다. */
+function restoreSourcePositions(root: Root, source: string, shifts: OffsetShift[]): void {
+  const starts = lineStarts(source);
+  const visit = (node: PositionedNode) => {
+    const start = node.position?.start.offset;
+    const end = node.position?.end.offset;
+    if (start !== undefined && end !== undefined) {
+      node.position = { start: sourcePoint(starts, originalOffset(start, shifts, false)),
+        end: sourcePoint(starts, originalOffset(end, shifts, true)) };
+    }
+    for (const child of node.children ?? []) visit(child);
+  };
+  visit(root as PositionedNode);
+}
+
 /** 원래의 참조 링크·각주 정의를 공유하는 단일 AST 안에서 안전한 접기 노드를 조립한다. */
 function groupNodes(root: Root, replacements: Replacement[], prefix: string, source: string): Root | null {
   const output: RootContent[] = [];
@@ -270,12 +322,18 @@ export function remarkSafeDetails() {
     const prefix = markerPrefix(source);
     let modified = "";
     let from = 0;
+    const shifts: OffsetShift[] = [];
     replacements.forEach((item, index) => {
-      modified += source.slice(from, item.start) + `\n\n${prefix}${index}END\n\n`;
+      modified += source.slice(from, item.start);
+      const modifiedStart = modified.length;
+      modified += `\n\n${prefix}${index}END\n\n`;
+      shifts.push({ originalStart: item.start, originalEnd: item.end,
+        modifiedStart, modifiedEnd: modified.length });
       from = item.end;
     });
     modified += source.slice(from);
     const parsed = parseMathMarkdown(modified);
+    restoreSourcePositions(parsed, source, shifts);
     const grouped = groupNodes(parsed, replacements, prefix, source);
     root.children = grouped?.children ?? [{ type: "code", value: source }];
   };

@@ -9,6 +9,19 @@ import { AttachmentImage, type AttachmentSource } from "./attachment-image";
 import { MarkdownDetails, MarkdownSummary } from "./markdown-details";
 import { CodeBlock } from "./code-block";
 import { MathExpression } from "./math-expression";
+import { MermaidBlock } from "./mermaid-block";
+
+/** 원문 위치의 열림·닫힘 fence와 정확한 소문자 mermaid 정보 문자열을 검사한다. */
+function exactMermaidFence(body: string, start?: number, end?: number): boolean {
+  if (start === undefined || end === undefined) return false;
+  const lines = body.slice(start, end).split(/\r\n|\r|\n/);
+  const opening = /^ {0,3}(`{3,}|~{3,})mermaid$/.exec(lines[0] ?? "");
+  if (!opening) return false;
+  let last = lines.length - 1;
+  while (last > 0 && !lines[last].trim()) last--;
+  const closing = /^ {0,3}(`+|~+)[ \t]*$/.exec(lines[last] ?? "");
+  return !!closing && closing[1][0] === opening[1][0] && closing[1].length >= opening[1].length;
+}
 
 /** 실행 가능한 스킴과 프로토콜 상대 주소를 막고 안전한 글 링크만 남긴다. */
 function safeUrl(value: string, key: string): string {
@@ -72,6 +85,8 @@ export function SafeMarkdown({ body, source }: { body: string; source?: Attachme
         const className = codeNode.properties.className;
         const classes = Array.isArray(className) ? className.filter((item): item is string => typeof item === "string") : [];
         const language = classes.find((item) => item.startsWith("language-"))?.slice(9);
+        if (language === "mermaid" && exactMermaidFence(body, node?.position?.start?.offset, node?.position?.end?.offset))
+          return <MermaidBlock source={code} />;
         return <CodeBlock code={code} language={language} />;
       },
       /** 표 의미는 유지하고 가로로 긴 표에도 키보드 초점을 허용한다. */

@@ -23,12 +23,12 @@
 .editor-code-help { color: var(--muted); }
 .editor-code-error { color: var(--danger); }
 
-.editor-math textarea { min-height: 110px; font-family: var(--font-mono), monospace; }
-.editor-math-actions { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px 12px; }
-.editor-math-help { color: var(--muted); font-size: 12px; }
-.editor-math-actions button { border: 1px solid var(--line2); border-radius: 6px; padding: 5px 9px; background: var(--card); color: var(--text); }
-.editor-math-actions button:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
-.editor-math-empty { display: block; min-height: 35px; padding: 6px 0; color: var(--muted); }
+.editor-math textarea, .editor-mermaid textarea { min-height: 110px; font-family: var(--font-mono), monospace; }
+.editor-math-actions, .editor-mermaid-actions { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px 12px; }
+.editor-math-help, .editor-mermaid-help { color: var(--muted); font-size: 12px; }
+.editor-math-actions button, .editor-mermaid-actions button { border: 1px solid var(--line2); border-radius: 6px; padding: 5px 9px; background: var(--card); color: var(--text); }
+.editor-math-actions button:focus-visible, .editor-mermaid-actions button:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
+.editor-math-empty, .editor-mermaid-empty { display: block; min-height: 35px; padding: 6px 0; color: var(--muted); }
 
 @media (max-width: 420px) {
   .editor-code-options { grid-template-columns: minmax(0, 1fr); }

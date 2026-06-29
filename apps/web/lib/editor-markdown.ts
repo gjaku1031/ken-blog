@@ -4,14 +4,15 @@ import { escapeToggleTitle, splitEditableToggle } from "@/lib/editor-toggle";
 import { mathSourceMask, parseMathMarkdown } from "@/lib/math-syntax";
 
 /** 편집 가능한 기본 문법과 원문 그대로 잠그는 미지원 문법. */
-export type BlockType = "p" | "h1" | "h2" | "h3" | "ul" | "ol" | "todo" | "quote" | "code" | "math" | "hr" | "table" | "toggle" | "image" | "raw";
+export type BlockType = "p" | "h1" | "h2" | "h3" | "ul" | "ol" | "todo" | "quote" | "code" | "mermaid" | "math" | "hr" | "table" | "toggle" | "image" | "raw";
 /** 접기 wrapper의 원래 경계와 안쪽 한 단계 문서를 독립적으로 보존한다. */
 export type ToggleData = {
   beforeTitle: string; titleRaw: string; originalTitle: string; afterTitle: string;
   inner: MarkdownDocument; suffix: string;
 };
-/** 기존 fenced code를 편집할 때 구분 문자·길이·양쪽 들여쓰기를 유지하는 값. */
-export type CodeFenceData = { character: "`" | "~"; length: number; openingIndent: string; closingIndent: string };
+/** 기존 fenced code를 편집할 때 구분 문자·길이·들여쓰기·종료 공백을 유지하는 값. */
+export type CodeFenceData = { character: "`" | "~"; length: number; openingIndent: string;
+  closingIndent: string; closingTrailing?: string };
 export type EditorBlock = {
   id: string; type: BlockType; text: string; raw: string; after: string; dirty: boolean;
   lang?: string; codeFence?: CodeFenceData; done?: boolean; ordinal?: number;
@@ -196,13 +197,19 @@ function decodeBlock(raw: string, after: string, node: SourceNode, forcedRaw: bo
     if (match) return { ...base, type: "quote", text: match[1] };
   }
   if (node.type === "code") {
-    const match = /^( {0,3})(`{3,}|~{3,})([^\r\n]*)\r?\n(?:([\s\S]*?)\r?\n)?( {0,3})(`{3,}|~{3,})[ \t]*$/.exec(raw);
+    const match = /^( {0,3})(`{3,}|~{3,})([^\r\n]*)\r?\n(?:([\s\S]*?)\r?\n)?( {0,3})(`{3,}|~{3,})([ \t]*)$/.exec(raw);
     const lang = match?.[3].trim() ?? "";
+    // Mermaid는 정확한 정보 문자열만 편집하고 옵션·공백·대소문자 변형은 원문으로 남긴다.
+    if (match && match[3] === "mermaid" && match[2][0] === match[6][0] && match[6].length >= match[2].length) {
+      return { ...base, type: "mermaid", text: match[4] ?? "", lang: "mermaid",
+        codeFence: { character: match[2][0] as CodeFenceData["character"], length: match[2].length,
+          openingIndent: match[1], closingIndent: match[5], closingTrailing: match[7] } };
+    }
     if (match && match[2][0] === match[6][0] && match[6].length >= match[2].length &&
       /^[A-Za-z0-9_-]*$/.test(lang) && lang.toLowerCase() !== "mermaid") {
       return { ...base, type: "code", text: match[4] ?? "", lang,
         codeFence: { character: match[2][0] as CodeFenceData["character"], length: match[2].length,
-          openingIndent: match[1], closingIndent: match[5] } };
+          openingIndent: match[1], closingIndent: match[5], closingTrailing: match[7] } };
     }
   }
   if (node.type === "thematicBreak") return { ...base, type: "hr", text: "" };
@@ -245,7 +252,7 @@ export function blockMarkdown(block: EditorBlock, newline = "\n"): string {
         (block.text === block.toggle.originalTitle ? block.toggle.titleRaw : escapeToggleTitle(block.text)) +
         block.toggle.afterTitle + inner + boundary + block.toggle.suffix;
     }
-    case "code": {
+    case "code": case "mermaid": {
       const character = block.codeFence?.character ?? "`";
       let longest = 0;
       let run = 0;
@@ -254,8 +261,9 @@ export function blockMarkdown(block: EditorBlock, newline = "\n"): string {
         if (run > longest) longest = run;
       }
       const fence = character.repeat(Math.max(3, block.codeFence?.length ?? 3, longest + 1));
-      result = `${block.codeFence?.openingIndent ?? ""}${fence}${block.lang ?? ""}\n${text}\n` +
-        `${block.codeFence?.closingIndent ?? ""}${fence}`;
+      const language = block.type === "mermaid" ? "mermaid" : block.lang ?? "";
+      result = `${block.codeFence?.openingIndent ?? ""}${fence}${language}\n${text}\n` +
+        `${block.codeFence?.closingIndent ?? ""}${fence}${block.codeFence?.closingTrailing ?? ""}`;
       break;
     }
     case "math": result = `$$\n${text}\n$$`; break;
