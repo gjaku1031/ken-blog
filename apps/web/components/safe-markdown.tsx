@@ -1,15 +1,21 @@
 "use client";
 
+import { useMemo, type ReactNode } from "react";
+import { usePathname, useSearchParams } from "next/navigation";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { remarkSafeDetails } from "../lib/markdown-details";
+import { parseAnnotationDocument } from "../lib/markdown-details";
 import { remarkMathSyntax } from "../lib/math-syntax";
+import { remarkAnnotationSyntax, remarkResolveAnnotations } from "../lib/annotation-syntax";
 import { parseAttachmentId, parseImageAlt } from "../lib/editor-image";
 import { AttachmentImage, type AttachmentSource } from "./attachment-image";
 import { MarkdownDetails, MarkdownSummary } from "./markdown-details";
 import { CodeBlock } from "./code-block";
 import { MathExpression } from "./math-expression";
 import { MermaidBlock } from "./mermaid-block";
+import { AnnotationReader, AnnotationReference } from "./annotation-reader";
+import { useAuth } from "./auth-provider";
 
 /** 원문 위치의 열림·닫힘 fence와 정확한 소문자 mermaid 정보 문자열을 검사한다. */
 function exactMermaidFence(body: string, start?: number, end?: number): boolean {
@@ -34,10 +40,38 @@ function safeUrl(value: string, key: string): string {
   return "";
 }
 
-/** 명시적인 안전한 접기만 표시하고 다른 raw HTML과 이미지 자동 요청을 차단한 GFM 읽기 전용 렌더러. */
-export function SafeMarkdown({ body, source }: { body: string; source?: AttachmentSource }) {
-  return <div className="markdown-body"><Markdown remarkPlugins={[remarkGfm, remarkMathSyntax, remarkSafeDetails]} skipHtml urlTransform={safeUrl}
+/** 문서 전체 주석 목록과 참조를 같은 원문·경로·계정 수명에 묶는다. */
+function AnnotationDocument({ body, source, children }: { body: string; source?: AttachmentSource; children: ReactNode }) {
+  const auth = useAuth();
+  const pathname = usePathname();
+  const query = useSearchParams();
+  const items = useMemo(() => parseAnnotationDocument(body).items, [body]);
+  const sourceId = source?.kind === "post" ? `post:${source.postId}` : source?.kind ?? "none";
+  const identity = `${pathname}?${query.toString()}\u0000${auth.epoch}\u0000${auth.status}\u0000${auth.user?.username ?? ""}\u0000${sourceId}\u0000${body}`;
+  return <AnnotationReader key={identity} items={items}>{children}</AnnotationReader>;
+}
+
+/** raw HTML과 자동 이미지를 차단하며 문서 모드에서만 주석을 해석한다. */
+export function SafeMarkdown({ body, source, annotationMode = "document" }: {
+  body: string; source?: AttachmentSource; annotationMode?: "document" | "literal";
+}) {
+  const markdown = <div className="markdown-body"><Markdown
+    remarkPlugins={annotationMode === "document" ?
+      [remarkGfm, remarkMathSyntax, remarkAnnotationSyntax, remarkSafeDetails, remarkResolveAnnotations] :
+      [remarkGfm, remarkMathSyntax, remarkSafeDetails]}
+    skipHtml urlTransform={safeUrl}
     components={{
+      /** 모델이 검증한 숫자 인덱스만 현재 문서의 주석 링크로 바꾼다. */
+      sup({ node, children, ...props }) {
+        const classes = node?.properties.className;
+        const index = node?.properties["data-annotation-index"];
+        const occurrence = node?.properties["data-annotation-occurrence"];
+        if (annotationMode === "document" && Array.isArray(classes) && classes.includes("ken-annotation-ref") &&
+          typeof index === "string" && /^(0|[1-9]\d*)$/.test(index) &&
+          typeof occurrence === "string" && /^(0|[1-9]\d*)$/.test(occurrence))
+          return <AnnotationReference index={Number(index)} occurrence={Number(occurrence)} />;
+        return <sup {...props}>{children}</sup>;
+      },
       /** 원문 HTML 속성 없이 접기 구조만 표시한다. */
       details({ children }) { return <MarkdownDetails>{children}</MarkdownDetails>; },
       /** 기본 키보드 조작과 접근성 의미를 가진 제목을 사용한다. */
@@ -92,4 +126,5 @@ export function SafeMarkdown({ body, source }: { body: string; source?: Attachme
       /** 표 의미는 유지하고 가로로 긴 표에도 키보드 초점을 허용한다. */
       table({ node: _node, ...props }) { return <table {...props} tabIndex={0} />; },
     }}>{body}</Markdown></div>;
+  return annotationMode === "document" ? <AnnotationDocument body={body} source={source}>{markdown}</AnnotationDocument> : markdown;
 }

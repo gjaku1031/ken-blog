@@ -1,6 +1,5 @@
 import type { Root } from "mdast";
-import { remarkSafeDetails } from "./markdown-details";
-import { parseMathMarkdown } from "./math-syntax";
+import { parseAnnotationDocument } from "./markdown-details";
 
 /** 내부 첨부 이미지의 대체 설명·상대 너비·정렬을 담는 편집 값. */
 export type ImageData = {
@@ -55,24 +54,23 @@ export function serializeImageBlock(image: ImageData): string {
 /** CommonMark 참조 정의의 대소문자와 연속 공백을 같은 키로 맞춘다. */
 function referenceKey(identifier: string): string { return identifier.trim().replace(/\s+/g, " ").toLowerCase(); }
 
-/** 코드·Mermaid fence·수식의 가짜 이미지 문법을 건너뛰며 안전 접기 안의 정의를 찾는다. */
+/** 코드·Mermaid fence·수식·주석의 가짜 이미지 문법을 건너뛰며 안전 접기 안의 정의를 찾는다. */
 function walk(node: ImageNode, visit: (node: ImageNode) => void): void {
   visit(node);
   if (node.type === "code" || node.type === "mermaid" || node.type === "inlineCode" ||
-    node.type === "html" || node.type.startsWith("kenMath")) return;
+    node.type === "html" || node.type.startsWith("kenMath") || node.type.startsWith("kenAnnotation")) return;
   for (const child of node.children ?? []) walk(child, visit);
 }
 
 /**
  * 실제로 표시 가능한 내부 Markdown 이미지 노드만 모아 서버의 전체 연결 선언에 사용한다.
- * 읽기와 같은 안전 접기 변환 후 imageReference 정의를 풀며, 코드·Mermaid·수식·일반 링크 목적지·차단된 HTML은 세지 않는다.
+ * 읽기와 같은 안전 접기·주석 변환 후 imageReference 정의를 풀며, 코드·Mermaid·수식·주석·일반 링크 목적지·차단된 HTML은 세지 않는다.
  * 링크 안에 들어 있는 실제 이미지 노드는 읽기 화면에도 표시되므로 포함한다.
  *
  * @return 중복을 제거한 첨부 ID 오름차순 목록; 100개 상한은 저장 UI가 검사한다.
  */
 export function collectAttachmentIds(body: string): number[] {
-  const root = parseMathMarkdown(body) as Root;
-  remarkSafeDetails()(root, { value: body });
+  const root = parseAnnotationDocument(body).root as Root;
   const tree = root as unknown as ImageNode;
   const definitions = new Map<string, string>();
   walk(tree, (node) => {

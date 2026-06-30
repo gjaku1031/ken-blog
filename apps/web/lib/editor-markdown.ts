@@ -1,7 +1,8 @@
 import { parseEditableTable, serializeTable, type TableAlignment, type TableData } from "@/lib/editor-table";
 import { parseAttachmentId, parseImageAlt, serializeImageBlock, type ImageData } from "@/lib/editor-image";
 import { escapeToggleTitle, splitEditableToggle } from "@/lib/editor-toggle";
-import { mathSourceMask, parseMathMarkdown } from "@/lib/math-syntax";
+import { mathSourceMask } from "@/lib/math-syntax";
+import { annotationSourceMask, parseAnnotationMarkdown } from "@/lib/annotation-syntax";
 
 /** 편집 가능한 기본 문법과 원문 그대로 잠그는 미지원 문법. */
 export type BlockType = "p" | "h1" | "h2" | "h3" | "ul" | "ol" | "todo" | "quote" | "code" | "mermaid" | "math" | "hr" | "table" | "toggle" | "image" | "raw";
@@ -50,6 +51,7 @@ function detailsRanges(source: string): Array<{ start: number; end: number }> {
   const result: Array<{ start: number; end: number }> = [];
   const lines = source.match(/.*(?:\r?\n|$)/g) ?? [];
   const mathMask = mathSourceMask(source);
+  const annotationMask = annotationSourceMask(source);
   let offset = 0;
   let fence: { char: string; count: number } | null = null;
   let depth = 0;
@@ -57,6 +59,7 @@ function detailsRanges(source: string): Array<{ start: number; end: number }> {
   for (const line of lines) {
     if (!line) continue;
     if (mathMask[offset]) { offset += line.length; continue; }
+    if (annotationMask[offset]) { offset += line.length; continue; }
     const marker = /^ {0,3}(`{3,}|~{3,})/.exec(line);
     if (marker) {
       const chars = marker[1];
@@ -116,7 +119,7 @@ function standaloneImageAlt(raw: string, attachmentId: number, alt: string): boo
 
 /** 지원하지 않는 문법의 소스 위치를 포함해 Markdown 원문을 편집 블록으로 분리한다. */
 export function parseEditorMarkdown(source: string, depth = 0): MarkdownDocument {
-  const root = parseMathMarkdown(source);
+  const root = parseAnnotationMarkdown(source);
   const protectedRanges = detailsRanges(source);
   const children = root.children as SourceNode[];
   const spans: Span[] = [];

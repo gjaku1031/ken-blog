@@ -1,5 +1,7 @@
 import type { Root, RootContent } from "mdast";
-import { mathSourceMask, parseMathMarkdown } from "./math-syntax";
+import { mathSourceMask } from "./math-syntax";
+import { annotationSourceMask, parseAnnotationMarkdown, resolveAnnotationDocument,
+  type AnnotationItem } from "./annotation-syntax";
 
 type Boundary = "details-open" | "details-close" | "summary-open" | "summary-close";
 type Replacement = { start: number; end: number; boundary?: Boundary; fallback?: string };
@@ -68,6 +70,8 @@ function codeMask(source: string): Uint8Array {
   markInlineCode(paragraphStart, source.length);
   const mathMask = mathSourceMask(source);
   for (let index = 0; index < mask.length; index++) if (mathMask[index]) mask[index] = 1;
+  const annotationMask = annotationSourceMask(source);
+  for (let index = 0; index < mask.length; index++) if (annotationMask[index]) mask[index] = 1;
   return mask;
 }
 
@@ -332,9 +336,16 @@ export function remarkSafeDetails() {
       from = item.end;
     });
     modified += source.slice(from);
-    const parsed = parseMathMarkdown(modified);
+    const parsed = parseAnnotationMarkdown(modified);
     restoreSourcePositions(parsed, source, shifts);
     const grouped = groupNodes(parsed, replacements, prefix, source);
     root.children = grouped?.children ?? [{ type: "code", value: source }];
   };
+}
+
+/** 수식·주석·안전 접기를 같은 문서로 조립하고 살아남은 주석만 목록으로 반환한다. */
+export function parseAnnotationDocument(source: string): { root: Root; items: AnnotationItem[] } {
+  const root = parseAnnotationMarkdown(source);
+  remarkSafeDetails()(root, { value: source });
+  return { root, items: resolveAnnotationDocument(root) };
 }

@@ -584,7 +584,7 @@ export function BlockEditor({ value, onChange, disabled = false, focusFirstSigna
               <span className="editor-math-empty">빈 수식 · 클릭하여 편집</span> :
               block.type === "mermaid" && !block.text ?
               <span className="editor-mermaid-empty">빈 도식 · 클릭하여 편집</span> :
-              <SafeMarkdown body={blockMarkdown(block, value.newline)} source={{ kind: "admin" }} />}</div>
+              <SafeMarkdown body={blockMarkdown(block, value.newline)} source={{ kind: "admin" }} annotationMode="literal" />}</div>
             <button type="button" className="editor-preview-trigger" disabled={disabled} ref={(node) => { if (node) refs.current.set(block.id, node); }}
               aria-label={`${index + 1}번 ${blockNames[block.type]} 블록 편집: ${block.text.slice(0, 80) || "빈 블록"}`}
               onClick={() => activate(block.id)} onKeyDown={(event) => {

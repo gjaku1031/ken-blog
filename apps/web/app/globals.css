@@ -146,6 +146,20 @@ button:disabled { cursor: not-allowed; opacity: .6; }
 .markdown-body .mermaid-block pre { margin: 0; border-radius: 0; white-space: pre; overflow-wrap: normal; word-break: normal; }
 .markdown-body code { font-family: var(--font-mono), monospace; font-size: .87em; }
 .markdown-body :not(pre) > code { background: var(--soft); color: var(--inline-fg); border-radius: 4px; padding: 2px 4px; }
+.annotation-reference { margin: 0 2px; font-size: .72em; line-height: 0; vertical-align: super; }
+.markdown-body .annotation-reference a { border-radius: 3px; padding: 1px 2px; color: var(--accent-d); font-weight: 700; text-decoration: underline; }
+.annotation-section { max-width: 100%; margin: 32px 0 0; padding-top: 18px; border-top: 1px solid var(--line2); font-size: 14px; line-height: 1.7; }
+.annotation-section h2 { margin: 0 0 12px; font-size: 19px; }
+.annotation-section ol { margin: 0; padding: 0; list-style: none; }
+.annotation-section li { margin: 0 0 12px; padding: 4px 6px; border-radius: 5px; scroll-margin-top: 90px; overflow-wrap: anywhere; }
+.annotation-item-label { color: var(--accent-d); font-weight: 700; }
+.annotation-section a { color: var(--accent-d); text-decoration: underline; text-underline-offset: 2px; }
+.annotation-backlink { display: inline-block; margin-left: 5px; white-space: nowrap; }
+.annotation-reference a { scroll-margin-top: 90px; }
+.annotation-highlight { background: var(--tint); outline: 2px solid var(--accent); outline-offset: 2px; }
+.annotation-tooltip { position: fixed; z-index: 30; box-sizing: border-box; width: max-content; max-width: min(340px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow: auto; padding: 10px 13px; border: 1px solid var(--line2); border-radius: 7px; background: var(--card); color: var(--text); box-shadow: var(--shadow); font-size: 14px; line-height: 1.55; overflow-wrap: anywhere; word-break: keep-all; }
+.annotation-tooltip .math-inline { max-width: 100%; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 .math-inline { display: inline-block; max-width: min(100%, calc(100vw - 48px)); overflow-x: auto; vertical-align: middle; color: var(--text); white-space: nowrap; }
 .math-inline .math-fallback { font-family: var(--font-mono), monospace; font-size: .86em; }
 .math-display { max-width: 100%; margin: 22px 0; padding: 16px 18px; overflow-x: auto; border: 1px solid var(--line2); border-radius: 8px; background: var(--soft); color: var(--text); text-align: center; }
