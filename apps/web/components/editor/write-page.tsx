@@ -2,14 +2,16 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { ApiFailure, apiFailureMessage, type CategoryNode, type TagCount } from "@/lib/api";
 import { draftValues, parseAdminCategories, parseAdminPost, parseAdminTags, parseDraftDetail, parseDraftPage,
   positiveId, type AdminPost, type DraftDetail, type DraftSummary, type DraftValues } from "@/lib/editor-drafts";
 import { parseEditorMarkdown, serializeEditorMarkdown, type MarkdownDocument } from "@/lib/editor-markdown";
 import { collectAttachmentIds, type ImageData } from "@/lib/editor-image";
+import { buildEditorAnnotationModel } from "@/lib/editor-annotation";
 import { useAuth } from "@/components/auth-provider";
-import { BlockEditor } from "./block-editor";
+import { AnnotationReader } from "@/components/annotation-reader";
+import { BlockEditor, type BlockEditorHandle } from "./block-editor";
 import { PublishSheet } from "./publish-sheet";
 
 type Route = { kind: "new" } | { kind: "post" | "draft"; id: number } | { kind: "invalid" };
@@ -108,6 +110,11 @@ function WriteInstance({ route }: { route: Route }) {
   const [focusFirstSignal, setFocusFirstSignal] = useState(0);
   const dirty = screen === "ready" && version !== savedVersion;
   const dirtyRef = useRef(dirty);
+  const editorRef = useRef<BlockEditorHandle | null>(null);
+  const deferredDocument = useDeferredValue(form.document);
+  const annotationModel = useMemo(() => buildEditorAnnotationModel(deferredDocument), [deferredDocument]);
+  const currentAnnotationModel = deferredDocument === form.document ? annotationModel : null;
+  const annotationIdentity = `${auth.epoch}:${routeKey}:${screen}:${version}:${currentAnnotationModel ? "ready" : "updating"}`;
   dirtyRef.current = dirty;
 
   /** 로드와 쓰기 요청을 세션 인스턴스가 사라질 때 모두 취소한다. */
@@ -401,10 +408,13 @@ function WriteInstance({ route }: { route: Route }) {
         <option key={tag.name} value={tag.name} />)}</datalist>
       <button type="button" className="small-button" onClick={addTag} disabled={busy === "publish"}>추가</button>
     </div>
-    <BlockEditor value={form.document} disabled={busy === "publish" || uploading} focusFirstSignal={focusFirstSignal}
-      onImageFile={uploadImage} onImageReject={setMessage}
-      onChange={(next) => changeForm((current) => ({ ...current, document: next }))} />
-    <p className="write-hint">기본 블록·명확한 표·한 단계 접기·첨부 이미지·독립 수식·Mermaid 도식을 편집할 수 있습니다. 문단 전체에 $$ 또는 ```mermaid를 입력하고 끝에서 Enter를 누르면 전용 블록으로 바뀝니다. JPEG/PNG 파일 선택·드롭·붙여넣기로 이미지를 추가합니다. 이미지 제거는 문서 연결만 해제하며 저장 후 해당 글의 읽기 권한이 철회됩니다. 중첩 접기와 지원하지 않는 구문은 원문 그대로 보존합니다.</p>
+    <AnnotationReader mode="editor" identity={annotationIdentity} items={currentAnnotationModel?.items ?? []}>
+      <BlockEditor ref={editorRef} value={form.document} disabled={busy === "publish" || uploading}
+        annotationPreview={currentAnnotationModel} annotationSessionKey={`${auth.epoch}:${routeKey}:${screen}`}
+        focusFirstSignal={focusFirstSignal} onImageFile={uploadImage} onImageReject={setMessage}
+        onChange={(next) => changeForm((current) => ({ ...current, document: next }))} />
+    </AnnotationReader>
+    <p className="write-hint">기본 블록·명확한 표·한 단계 접기·첨부 이미지·독립 수식·Mermaid 도식을 편집할 수 있습니다. 주석 [*] 버튼은 선택한 인라인 글자를 `[* ]`로 바꾸고 닫는 괄호 앞에 커서를 둡니다. 문단 전체에 $$ 또는 ```mermaid를 입력하고 끝에서 Enter를 누르면 전용 블록으로 바뀝니다. JPEG/PNG 파일 선택·드롭·붙여넣기로 이미지를 추가합니다. 이미지 제거는 문서 연결만 해제하며 저장 후 해당 글의 읽기 권한이 철회됩니다. 중첩 접기와 지원하지 않는 구문은 원문 그대로 보존합니다.</p>
     {message && <p className="write-message" role="status">{message}</p>}
     <div className="write-spacer" />
     <div className="write-toolbar"><span className="write-save-state" aria-live="polite">{uploading ? "이미지 업로드 중…" : busy === "save" ? "저장 중…" :
@@ -412,6 +422,10 @@ function WriteInstance({ route }: { route: Route }) {
       {uploading && <button type="button" className="small-button" onClick={() => {
         uploadController.current?.abort(); setMessage("이미지 업로드를 취소했습니다. 원고는 유지됩니다.");
       }}>업로드 취소</button>}
+      <button type="button" className="small-button write-annotation-button" aria-label="주석 삽입" disabled={busy !== null || uploading}
+        onPointerDown={() => editorRef.current?.captureAnnotationSelection()}
+        onClick={() => { if (!editorRef.current?.insertAnnotation())
+          setMessage("글자 조합을 마친 뒤 주석을 삽입해 주세요."); }}>주석 [*]</button>
       <Link href="/admin/drafts/" className="write-drafts-link">임시저장 목록</Link>
       <button type="button" className="small-button" onClick={() => void save()} disabled={busy !== null || uploading}>임시저장</button>
       <button type="button" className="primary-button" onClick={() => setShowPublish(true)} disabled={busy !== null || uploading}>출간하기</button></div>

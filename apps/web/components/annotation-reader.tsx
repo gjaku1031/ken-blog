@@ -8,11 +8,11 @@ import { remarkMathSyntax } from "@/lib/math-syntax";
 import type { AnnotationItem } from "@/lib/annotation-syntax";
 import { MathExpression } from "./math-expression";
 
-type Active = { item: AnnotationItem; occurrence: number; anchor: HTMLAnchorElement };
+type Active = { item: AnnotationItem; occurrence: number; anchor: HTMLAnchorElement | HTMLButtonElement; identity: string };
 type Highlight = { kind: "item" | "reference"; index: number; occurrence?: number };
 type AnnotationContextValue = {
-  prefix: string; items: AnnotationItem[]; active: Active | null; highlight: Highlight | null;
-  show: (item: AnnotationItem, occurrence: number, anchor: HTMLAnchorElement) => void;
+  prefix: string; items: AnnotationItem[]; active: Active | null; highlight: Highlight | null; mode: "reader" | "editor";
+  show: (item: AnnotationItem, occurrence: number, anchor: HTMLAnchorElement | HTMLButtonElement) => void;
   close: () => void; scheduleClose: () => void; keepOpen: () => void;
   itemId: (index: number) => string; referenceId: (index: number, occurrence: number) => string;
   goToItem: (event: MouseEvent<HTMLAnchorElement>, index: number) => void;
@@ -103,7 +103,9 @@ function AnnotationTooltip({ active, id, close, scheduleClose, keepOpen }: {
 }
 
 /** 문서별 ID와 hover·키보드 이동 상태를 생성하고 PRIVATE 전환 때 모두 폐기한다. */
-export function AnnotationReader({ items, children }: { items: AnnotationItem[]; children: ReactNode }) {
+export function AnnotationReader({ items, children, mode = "reader", identity = "" }: {
+  items: AnnotationItem[]; children: ReactNode; mode?: "reader" | "editor"; identity?: string;
+}) {
   const id = useId().replace(/[^a-zA-Z0-9_-]/g, "");
   const prefix = `ken-annotation-${id}`;
   const [active, setActive] = useState<Active | null>(null);
@@ -117,8 +119,8 @@ export function AnnotationReader({ items, children }: { items: AnnotationItem[];
   const keepOpen = () => { if (closeTimer.current !== null) { clearTimeout(closeTimer.current); closeTimer.current = null; } };
   const close = () => { keepOpen(); setActive(null); };
   const scheduleClose = () => { keepOpen(); closeTimer.current = setTimeout(close, 160); };
-  const show = (item: AnnotationItem, occurrence: number, anchor: HTMLAnchorElement) => {
-    keepOpen(); setActive({ item, occurrence, anchor });
+  const show = (item: AnnotationItem, occurrence: number, anchor: HTMLAnchorElement | HTMLButtonElement) => {
+    keepOpen(); setActive({ item, occurrence, anchor, identity });
   };
   /** 이동한 요소를 1.8초 강조하며 연속 이동 때 앞선 타이머를 교체한다. */
   const mark = (value: Highlight) => {
@@ -154,22 +156,29 @@ export function AnnotationReader({ items, children }: { items: AnnotationItem[];
     if (frame.current !== null) cancelAnimationFrame(frame.current);
   }, []);
 
-  const context: AnnotationContextValue = { prefix, items, active, highlight, show, close, scheduleClose, keepOpen,
+  useEffect(() => {
+    close(); setHighlight(null);
+    if (highlightTimer.current !== null) { clearTimeout(highlightTimer.current); highlightTimer.current = null; }
+    if (frame.current !== null) { cancelAnimationFrame(frame.current); frame.current = null; }
+  }, [identity]);
+
+  const visibleActive = active?.identity === identity ? active : null;
+  const context: AnnotationContextValue = { prefix, items, active: visibleActive, highlight, mode, show, close, scheduleClose, keepOpen,
     itemId, referenceId, goToItem, goToReference };
-  const tooltipId = active ? `${prefix}-tooltip-${active.item.index}-${active.occurrence}` : "";
+  const tooltipId = visibleActive ? `${prefix}-tooltip-${visibleActive.item.index}-${visibleActive.occurrence}` : "";
   return <AnnotationContext.Provider value={context}>
     {children}
     {items.length > 0 && <section className="annotation-section" aria-labelledby={`${prefix}-heading`}>
-      <h2 id={`${prefix}-heading`}>주석</h2>
+      <h2 id={`${prefix}-heading`}>{mode === "editor" ? "주석 미리보기" : "주석"}</h2>
       <ol>{items.map((item) => <li key={item.index} id={itemId(item.index)} tabIndex={-1}
         className={highlight?.kind === "item" && highlight.index === item.index ? "annotation-highlight" : undefined}>
         <span className="annotation-item-label">[{item.label}]</span>{" "}
-        <span className="annotation-item-content"><AnnotationContent content={item.content} interactive /></span>{" "}
-        <a className="annotation-backlink" href={`#${referenceId(item.index, item.firstRef)}`}
-          aria-label={`${item.label} 주석의 첫 참조로 돌아가기`} onClick={(event) => goToReference(event, item)}>↩ 첫 참조</a>
+        <span className="annotation-item-content"><AnnotationContent content={item.content} interactive={mode === "reader"} /></span>{" "}
+        {mode === "reader" && <a className="annotation-backlink" href={`#${referenceId(item.index, item.firstRef)}`}
+          aria-label={`${item.label} 주석의 첫 참조로 돌아가기`} onClick={(event) => goToReference(event, item)}>↩ 첫 참조</a>}
       </li>)}</ol>
     </section>}
-    {active && <AnnotationTooltip key={tooltipId} active={active} id={tooltipId} close={close}
+    {visibleActive && <AnnotationTooltip key={tooltipId} active={visibleActive} id={tooltipId} close={close}
       scheduleClose={scheduleClose} keepOpen={keepOpen} />}
   </AnnotationContext.Provider>;
 }
@@ -180,17 +189,22 @@ export function AnnotationReference({ index, occurrence }: { index: number; occu
   const item = context?.items[index];
   if (!context || !item || !item.refs.includes(occurrence)) return null;
   const active = context.active?.item.index === index && context.active.occurrence === occurrence;
-  return <sup className="annotation-reference"><a id={context.referenceId(index, occurrence)}
-    href={`#${context.itemId(index)}`} aria-label={`${item.label} 주석, 목록으로 이동`}
-    aria-describedby={active ? `${context.prefix}-tooltip-${index}-${occurrence}` : undefined}
-    className={context.highlight?.kind === "reference" && context.highlight.index === index &&
-      context.highlight.occurrence === occurrence ? "annotation-highlight" : undefined}
-    onPointerEnter={(event) => {
+  const shared = {
+    id: context.referenceId(index, occurrence),
+    "aria-describedby": active ? `${context.prefix}-tooltip-${index}-${occurrence}` : undefined,
+    className: context.highlight?.kind === "reference" && context.highlight.index === index &&
+      context.highlight.occurrence === occurrence ? "annotation-highlight" : undefined,
+    onPointerEnter: (event: React.PointerEvent<HTMLAnchorElement | HTMLButtonElement>) => {
       if (event.pointerType !== "touch" && window.matchMedia("(hover: hover)").matches)
         context.show(item, occurrence, event.currentTarget);
-    }}
-    onPointerLeave={context.scheduleClose}
-    onFocus={(event) => context.show(item, occurrence, event.currentTarget)}
-    onBlur={context.scheduleClose}
+    },
+    onPointerLeave: context.scheduleClose,
+    onFocus: (event: React.FocusEvent<HTMLAnchorElement | HTMLButtonElement>) => context.show(item, occurrence, event.currentTarget),
+    onBlur: context.scheduleClose,
+  };
+  if (context.mode === "editor") return <sup className="annotation-reference"><button type="button" {...shared}
+    aria-label={`${item.label} 주석 설명 보기`} onClick={(event) => context.show(item, occurrence, event.currentTarget)}>[{item.label}]</button></sup>;
+  return <sup className="annotation-reference"><a {...shared}
+    href={`#${context.itemId(index)}`} aria-label={`${item.label} 주석, 목록으로 이동`}
     onClick={(event) => context.goToItem(event, index)}>[{item.label}]</a></sup>;
 }

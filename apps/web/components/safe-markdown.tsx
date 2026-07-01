@@ -16,6 +16,7 @@ import { MathExpression } from "./math-expression";
 import { MermaidBlock } from "./mermaid-block";
 import { AnnotationReader, AnnotationReference } from "./annotation-reader";
 import { useAuth } from "./auth-provider";
+import { remarkEditorAnnotations, type EditorAnnotationReference } from "../lib/editor-annotation";
 
 /** 원문 위치의 열림·닫힘 fence와 정확한 소문자 mermaid 정보 문자열을 검사한다. */
 function exactMermaidFence(body: string, start?: number, end?: number): boolean {
@@ -52,12 +53,15 @@ function AnnotationDocument({ body, source, children }: { body: string; source?:
 }
 
 /** raw HTML과 자동 이미지를 차단하며 문서 모드에서만 주석을 해석한다. */
-export function SafeMarkdown({ body, source, annotationMode = "document" }: {
-  body: string; source?: AttachmentSource; annotationMode?: "document" | "literal";
+export function SafeMarkdown({ body, source, annotationMode = "document", annotationRefs = [] }: {
+  body: string; source?: AttachmentSource; annotationMode?: "document" | "literal" | "editor";
+  annotationRefs?: readonly EditorAnnotationReference[];
 }) {
   const markdown = <div className="markdown-body"><Markdown
     remarkPlugins={annotationMode === "document" ?
       [remarkGfm, remarkMathSyntax, remarkAnnotationSyntax, remarkSafeDetails, remarkResolveAnnotations] :
+      annotationMode === "editor" ?
+      [remarkGfm, remarkMathSyntax, remarkAnnotationSyntax, remarkSafeDetails, [remarkEditorAnnotations, annotationRefs]] :
       [remarkGfm, remarkMathSyntax, remarkSafeDetails]}
     skipHtml urlTransform={safeUrl}
     components={{
@@ -66,29 +70,32 @@ export function SafeMarkdown({ body, source, annotationMode = "document" }: {
         const classes = node?.properties.className;
         const index = node?.properties["data-annotation-index"];
         const occurrence = node?.properties["data-annotation-occurrence"];
-        if (annotationMode === "document" && Array.isArray(classes) && classes.includes("ken-annotation-ref") &&
+        if (annotationMode !== "literal" && Array.isArray(classes) && classes.includes("ken-annotation-ref") &&
           typeof index === "string" && /^(0|[1-9]\d*)$/.test(index) &&
           typeof occurrence === "string" && /^(0|[1-9]\d*)$/.test(occurrence))
           return <AnnotationReference index={Number(index)} occurrence={Number(occurrence)} />;
         return <sup {...props}>{children}</sup>;
       },
       /** 원문 HTML 속성 없이 접기 구조만 표시한다. */
-      details({ children }) { return <MarkdownDetails>{children}</MarkdownDetails>; },
+      details({ children }) { return annotationMode === "editor" ? <div className="markdown-details-editor">{children}</div> :
+        <MarkdownDetails>{children}</MarkdownDetails>; },
       /** 기본 키보드 조작과 접근성 의미를 가진 제목을 사용한다. */
-      summary({ children }) { return <MarkdownSummary>{children}</MarkdownSummary>; },
+      summary({ children }) { return annotationMode === "editor" ? <strong>{children}</strong> : <MarkdownSummary>{children}</MarkdownSummary>; },
       /** 파서가 표시한 단일 텍스트 수식만 KaTeX에 전달한다. */
       span({ node, children }) {
         const classes = node?.properties.className;
         const math = Array.isArray(classes) && classes.includes("ken-math-inline") &&
           node?.children.length === 1 && node.children[0].type === "text" ? node.children[0].value : null;
-        return math !== null ? <MathExpression source={math} display={false} /> : <span>{children}</span>;
+        return math !== null ? annotationMode === "editor" ? <span inert><MathExpression source={math} display={false} /></span> :
+          <MathExpression source={math} display={false} /> : <span>{children}</span>;
       },
       /** 독립 수식은 문단 밖의 블록으로 만들고 원문만 MathML 렌더러에 전달한다. */
       div({ node, children }) {
         const classes = node?.properties.className;
         const math = Array.isArray(classes) && classes.includes("ken-math-block") &&
           node?.children.length === 1 && node.children[0].type === "text" ? node.children[0].value : null;
-        return math !== null ? <MathExpression source={math} display /> : <div>{children}</div>;
+        return math !== null ? annotationMode === "editor" ? <div inert><MathExpression source={math} display /></div> :
+          <MathExpression source={math} display /> : <div>{children}</div>;
       },
       /** 단독 이미지의 폭과 정렬 래퍼를 문단 자리에 두어 유효한 HTML을 만든다. */
       p({ node, children }) {
@@ -97,6 +104,7 @@ export function SafeMarkdown({ body, source, annotationMode = "document" }: {
       },
       /** 허용된 링크만 열고 외부 주소는 새 탭 분리 속성을 적용한다. */
       a({ href, children }) {
+        if (annotationMode === "editor") return <span>{children}</span>;
         if (!href) return <span>{children}</span>;
         const external = /^https?:/i.test(href);
         return <a href={href} target={external ? "_blank" : undefined} rel={external ? "noopener noreferrer" : undefined}>{children}</a>;
@@ -106,7 +114,8 @@ export function SafeMarkdown({ body, source, annotationMode = "document" }: {
         const id = parseAttachmentId(typeof src === "string" ? src : "");
         const metadata = parseImageAlt(alt ?? "");
         if (id === null || !metadata || !source) return <span className="blocked-image" role="note">지원하지 않는 이미지{alt ? `: ${alt}` : "."}</span>;
-        return <AttachmentImage image={{ attachmentId: id, ...metadata }} source={source} />;
+        const image = <AttachmentImage image={{ attachmentId: id, ...metadata }} source={source} />;
+        return annotationMode === "editor" ? <span inert>{image}</span> : image;
       },
       /** GFM 할 일은 상태를 보여 주되 읽기 화면에서 편집할 수 없게 한다. */
       input({ type, checked }) { return <input type={type} checked={checked} disabled readOnly aria-label={checked ? "완료된 항목" : "미완료 항목"} />; },
@@ -120,11 +129,12 @@ export function SafeMarkdown({ body, source, annotationMode = "document" }: {
         const classes = Array.isArray(className) ? className.filter((item): item is string => typeof item === "string") : [];
         const language = classes.find((item) => item.startsWith("language-"))?.slice(9);
         if (language === "mermaid" && exactMermaidFence(body, node?.position?.start?.offset, node?.position?.end?.offset))
-          return <MermaidBlock source={code} />;
-        return <CodeBlock code={code} language={language} />;
+          return annotationMode === "editor" ? <div inert><MermaidBlock source={code} /></div> : <MermaidBlock source={code} />;
+        return annotationMode === "editor" ? <div inert><CodeBlock code={code} language={language} /></div> :
+          <CodeBlock code={code} language={language} />;
       },
       /** 표 의미는 유지하고 가로로 긴 표에도 키보드 초점을 허용한다. */
-      table({ node: _node, ...props }) { return <table {...props} tabIndex={0} />; },
+      table({ node: _node, ...props }) { return <table {...props} tabIndex={annotationMode === "editor" ? -1 : 0} />; },
     }}>{body}</Markdown></div>;
   return annotationMode === "document" ? <AnnotationDocument body={body} source={source}>{markdown}</AnnotationDocument> : markdown;
 }

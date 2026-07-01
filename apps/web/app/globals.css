@@ -148,6 +148,7 @@ button:disabled { cursor: not-allowed; opacity: .6; }
 .markdown-body :not(pre) > code { background: var(--soft); color: var(--inline-fg); border-radius: 4px; padding: 2px 4px; }
 .annotation-reference { margin: 0 2px; font-size: .72em; line-height: 0; vertical-align: super; }
 .markdown-body .annotation-reference a { border-radius: 3px; padding: 1px 2px; color: var(--accent-d); font-weight: 700; text-decoration: underline; }
+.markdown-body .annotation-reference button { border: 0; border-radius: 3px; padding: 1px 2px; background: transparent; color: var(--accent-d); font: inherit; font-weight: 700; text-decoration: underline; }
 .annotation-section { max-width: 100%; margin: 32px 0 0; padding-top: 18px; border-top: 1px solid var(--line2); font-size: 14px; line-height: 1.7; }
 .annotation-section h2 { margin: 0 0 12px; font-size: 19px; }
 .annotation-section ol { margin: 0; padding: 0; list-style: none; }
@@ -236,7 +237,8 @@ button:disabled { cursor: not-allowed; opacity: .6; }
 .editor-preview .markdown-body h2 { font-size: 23px; }
 .editor-preview .markdown-body h3 { font-size: 19px; }
 .editor-preview .markdown-body pre { margin: 0; }
-.editor-preview-trigger { position: absolute; inset: 0; width: 100%; border: 0; border-radius: 6px; background: transparent; color: transparent; cursor: text; }
+.editor-preview-trigger { position: absolute; z-index: 1; inset: 0; width: 100%; border: 0; border-radius: 6px; background: transparent; color: transparent; cursor: text; }
+.editor-preview .annotation-reference { position: relative; z-index: 2; }
 .editor-preview-trigger:hover { outline: 1px solid var(--line2); }
 .editor-preview-trigger:focus-visible { outline: 3px solid var(--accent); }
 .editor-raw { border: 1px dashed var(--line2); border-radius: 7px; padding: 10px 12px; background: var(--soft); }

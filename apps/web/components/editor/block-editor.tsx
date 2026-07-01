@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useId, useRef, useState, type ClipboardEvent, type DragEvent, type KeyboardEvent } from "react";
+import { forwardRef, useEffect, useId, useImperativeHandle, useRef, useState,
+  type ClipboardEvent, type DragEvent, type KeyboardEvent } from "react";
 import { SafeMarkdown } from "@/components/safe-markdown";
 import { blockMarkdown, emptyBlock, emptyImageBlock, emptyToggleBlock, ensureBlockBoundaries, type BlockType, type EditorBlock, type MarkdownDocument } from "@/lib/editor-markdown";
 import type { ImageData } from "@/lib/editor-image";
@@ -8,12 +9,18 @@ import { emptyTable, parsePipeHeaderCommand, TABLE_MAX_COLUMNS, TABLE_MAX_CELL_L
 import { TableBlock } from "@/components/editor/table-block";
 import { ToggleBlock } from "@/components/editor/toggle-block";
 import { ImageBlock } from "@/components/editor/image-block";
+import { insertAnnotationAt, type EditorAnnotationModel, type EditorAnnotationSelection } from "@/lib/editor-annotation";
 import "./editor.css";
 
 type Props = { value: MarkdownDocument; onChange: (next: MarkdownDocument) => void; disabled?: boolean;
-  focusFirstSignal?: number; focusBlock?: { id: string; serial: number }; depth?: 0 | 1; onOutdentFrom?: (index: number) => void;
-  onImageFile?: (file: File) => Promise<ImageData | null>; onImageReject?: (message: string) => void };
+  focusFirstSignal?: number; focusBlock?: { id: string; serial: number; offset?: number }; depth?: 0 | 1; onOutdentFrom?: (index: number) => void;
+  onImageFile?: (file: File) => Promise<ImageData | null>; onImageReject?: (message: string) => void;
+  annotationPreview?: EditorAnnotationModel | null; annotationController?: AnnotationController; annotationSessionKey?: string };
+/** 글쓰기 고정 도구에서 커서를 보관하고 주석을 삽입할 수 있는 편집기 경계. */
+export type BlockEditorHandle = { captureAnnotationSelection: () => void; insertAnnotation: () => boolean };
+type AnnotationController = { selection: EditorAnnotationSelection | null; composing: boolean; suppressNext: boolean };
 type FocusTarget = { id: string; offset: number | "end" };
+const ANNOTATION_TEXT_TYPES = new Set<BlockType>(["p", "h1", "h2", "h3", "ul", "ol", "todo", "quote"]);
 /** 편집과 미리보기 조작에 쓰는 블록 종류별 한국어 이름. */
 const blockNames: Record<BlockType, string> = { p: "문단", h1: "제목 1", h2: "제목 2", h3: "제목 3",
   ul: "글머리 목록", ol: "번호 목록", todo: "할 일", quote: "인용", code: "코드", math: "수식", mermaid: "도식", hr: "구분선", table: "표", toggle: "접기", image: "이미지", raw: "원문" };
@@ -24,14 +31,15 @@ const CODE_LANGUAGES = ["kotlin", "java", "javascript", "typescript", "json", "s
 const CODE_LANGUAGE_PATTERN = /^[A-Za-z0-9_-]{0,32}$/;
 
 /** 기본 블록을 키보드와 마우스로 편집하고 원문 블록은 읽기 전용으로 보존한다. */
-export function BlockEditor({ value, onChange, disabled = false, focusFirstSignal = 0,
-  focusBlock, depth = 0, onOutdentFrom, onImageFile, onImageReject }: Props) {
+export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEditorInner({ value, onChange, disabled = false,
+  focusFirstSignal = 0, focusBlock, depth = 0, onOutdentFrom, onImageFile, onImageReject,
+  annotationPreview, annotationController, annotationSessionKey }: Props, ref) {
   const editorToken = useId();
   const [activeId, setActiveId] = useState<string | null>(null);
   const [focusTarget, setFocusTarget] = useState<FocusTarget | null>(null);
   const [tableFocus, setTableFocus] = useState<{ id: string; serial: number } | null>(null);
   const [toggleTitleFocus, setToggleTitleFocus] = useState<{ id: string; serial: number } | null>(null);
-  const [toggleChildFocus, setToggleChildFocus] = useState<{ toggleId: string; id: string; serial: number } | null>(null);
+  const [toggleChildFocus, setToggleChildFocus] = useState<{ toggleId: string; id: string; offset: number; serial: number } | null>(null);
   const [toggleFirstFocus, setToggleFirstFocus] = useState<{ id: string; serial: number } | null>(null);
   const [languageError, setLanguageError] = useState<{ id: string; message: string } | null>(null);
   const refs = useRef(new Map<string, HTMLElement>());
@@ -40,8 +48,17 @@ export function BlockEditor({ value, onChange, disabled = false, focusFirstSigna
   const dragId = useRef<string | null>(null);
   const fileInput = useRef<HTMLInputElement | null>(null);
   const latest = useRef(value);
+  const root = useRef<HTMLDivElement | null>(null);
+  const ownedAnnotation = useRef<AnnotationController>({ selection: null, composing: false, suppressNext: false });
+  const annotation = annotationController ?? ownedAnnotation.current;
   latest.current = value;
-  useEffect(() => () => { if (compositionTimer.current) clearTimeout(compositionTimer.current); }, []);
+  useEffect(() => () => {
+    if (compositionTimer.current) clearTimeout(compositionTimer.current);
+    if (composing.current) annotation.composing = false;
+  }, [annotation]);
+  useEffect(() => {
+    if (depth === 0) { annotation.selection = null; annotation.composing = false; annotation.suppressNext = false; }
+  }, [annotationSessionKey, depth]);
 
   /** 상태가 적용된 뒤 커서를 지정한 블록의 정확한 위치로 돌린다. */
   useEffect(() => {
@@ -58,7 +75,7 @@ export function BlockEditor({ value, onChange, disabled = false, focusFirstSigna
   /** 제목에서 Enter·아래 화살표를 누르면 첫 본문 블록의 앞에 커서를 둔다. */
   useEffect(() => { if (focusFirstSignal > 0 && value.blocks[0]) activate(value.blocks[0].id, 0); }, [focusFirstSignal]);
   /** 상위 접기에서 옮긴 자식 블록의 정확한 포커스를 되찾는다. */
-  useEffect(() => { if (focusBlock) activate(focusBlock.id, 0); }, [focusBlock?.serial]);
+  useEffect(() => { if (focusBlock) activate(focusBlock.id, focusBlock.offset ?? 0); }, [focusBlock?.serial]);
 
   /** 조합 중 keydown이 한글 마지막 글자를 분리하지 않게 모든 구조 키를 통과시킨다. */
   function isComposing(event: KeyboardEvent<HTMLTextAreaElement>): boolean {
@@ -91,6 +108,45 @@ export function BlockEditor({ value, onChange, disabled = false, focusFirstSigna
     setActiveId(id);
     setFocusTarget({ id, offset });
   }
+
+  /** 텍스트 값까지 함께 보관해 선택 범위가 다른 원고에 재사용되지 않게 한다. */
+  function captureAnnotationSelectionFrom(input: HTMLTextAreaElement) {
+    const id = input.dataset.annotationBlockId;
+    if (!id) return;
+    annotation.selection = { id, start: input.selectionStart, end: input.selectionEnd, expectedText: input.value };
+  }
+
+  /** Tab 통과는 선택을 유지하고 편집 불가 입력을 실제 조작할 때만 선택을 폐기한다. */
+  function clearAnnotationSelectionForInput(target: EventTarget | null) {
+    if (target instanceof HTMLElement &&
+      (target instanceof HTMLInputElement || target instanceof HTMLSelectElement ||
+        target instanceof HTMLTextAreaElement && !target.dataset.annotationBlockId || target.isContentEditable))
+      annotation.selection = null;
+  }
+
+  /** 도구로 포커스가 이동하기 직전의 현재 textarea 선택을 마지막 선택으로 보존한다. */
+  function captureAnnotationSelection() {
+    if (annotation.composing) { annotation.suppressNext = true; return; }
+    const focused = document.activeElement;
+    if (focused instanceof HTMLTextAreaElement && root.current?.contains(focused))
+      captureAnnotationSelectionFrom(focused);
+  }
+
+  /** 공유 모델로 선택을 치환하고 최상위 또는 접기 자식의 삽입 커서로 돌아간다. */
+  function insertAnnotation(): boolean {
+    const blocked = disabled || annotation.composing || annotation.suppressNext;
+    annotation.suppressNext = false;
+    if (blocked || depth !== 0) return false;
+    const inserted = insertAnnotationAt(latest.current, annotation.selection);
+    annotation.selection = null;
+    onChange(inserted.document);
+    if (inserted.focus.path) setToggleChildFocus({ toggleId: inserted.focus.path.toggleId,
+      id: inserted.focus.id, offset: inserted.focus.offset, serial: (toggleChildFocus?.serial ?? 0) + 1 });
+    else activate(inserted.focus.id, inserted.focus.offset);
+    return true;
+  }
+
+  useImperativeHandle(ref, () => ({ captureAnnotationSelection, insertAnnotation }));
 
   /** 현재 위치의 뒤에 새 블록을 넣고 원래 구분 공백은 새 블록 뒤로 옮긴다. */
   function insertAfter(index: number, type: BlockType, text = "", offset = 0) {
@@ -269,7 +325,7 @@ export function BlockEditor({ value, onChange, disabled = false, focusFirstSigna
     blocks.splice(index - 1, 2, updated);
     onChange(ensureBlockBoundaries({ ...value, blocks }));
     setActiveId(null);
-    setToggleChildFocus({ toggleId: group.id, id: child.id, serial: (toggleChildFocus?.serial ?? 0) + 1 });
+    setToggleChildFocus({ toggleId: group.id, id: child.id, offset: 0, serial: (toggleChildFocus?.serial ?? 0) + 1 });
   }
 
   /** 선택한 블록을 삭제하되 남은 글과 원문 구분자를 보존한다. */
@@ -436,7 +492,25 @@ export function BlockEditor({ value, onChange, disabled = false, focusFirstSigna
     if (from !== -1) move(from, index);
   }
 
-  return <div className="block-editor" aria-label="글 본문 편집기"
+  return <div className="block-editor" aria-label="글 본문 편집기" ref={root}
+    onFocusCapture={(event) => {
+      const target = event.target;
+      if (!(target instanceof HTMLElement) || target.closest(".block-editor") !== event.currentTarget) return;
+      if (target instanceof HTMLTextAreaElement && target.dataset.annotationBlockId)
+        captureAnnotationSelectionFrom(target);
+    }}
+    onPointerDownCapture={(event) => {
+      if ((event.target as Element).closest(".block-editor") === event.currentTarget)
+        clearAnnotationSelectionForInput(event.target);
+    }}
+    onKeyDownCapture={(event) => {
+      if (event.key !== "Tab" && (event.target as Element).closest(".block-editor") === event.currentTarget)
+        clearAnnotationSelectionForInput(event.target);
+    }}
+    onInputCapture={(event) => {
+      if ((event.target as Element).closest(".block-editor") === event.currentTarget)
+        clearAnnotationSelectionForInput(event.target);
+    }}
     onPasteCapture={(event: ClipboardEvent<HTMLDivElement>) => {
       if ((event.target as Element).closest(".block-editor") !== event.currentTarget) return;
       const file = Array.from(event.clipboardData.files).find((item) => item.type.startsWith("image/"));
@@ -489,9 +563,11 @@ export function BlockEditor({ value, onChange, disabled = false, focusFirstSigna
         moveAbove={() => { if (index > 0) activate(value.blocks[index - 1].id); }}
         moveBelow={() => { if (index + 1 < value.blocks.length) activate(value.blocks[index + 1].id, 0); }}>
         <BlockEditor value={block.toggle.inner} disabled={disabled} depth={1}
+          annotationController={annotation} annotationPreview={annotationPreview} annotationSessionKey={annotationSessionKey}
           onImageFile={onImageFile} onImageReject={onImageReject}
           focusFirstSignal={toggleFirstFocus?.id === block.id ? toggleFirstFocus.serial : 0}
-          focusBlock={toggleChildFocus?.toggleId === block.id ? { id: toggleChildFocus.id, serial: toggleChildFocus.serial } : undefined}
+          focusBlock={toggleChildFocus?.toggleId === block.id ? { id: toggleChildFocus.id, offset: toggleChildFocus.offset,
+            serial: toggleChildFocus.serial } : undefined}
           onChange={(inner) => edit(block.id, (old) => old.toggle ? { ...old, dirty: true,
             toggle: { ...old.toggle, inner } } : old)}
           onOutdentFrom={(childIndex) => outdentFrom(index, childIndex)} />
@@ -549,18 +625,23 @@ export function BlockEditor({ value, onChange, disabled = false, focusFirstSigna
             {block.type === "math" && <label htmlFor={`${block.id}-text`}>수식 원문</label>}
             {block.type === "mermaid" && <label htmlFor={`${block.id}-text`}>Mermaid 도식 원문</label>}
             <textarea id={`${block.id}-text`} ref={(node) => { if (node) refs.current.set(block.id, node); }}
+              data-annotation-block-id={ANNOTATION_TEXT_TYPES.has(block.type) ? block.id : undefined}
               aria-label={`${index + 1}번 ${blockNames[block.type]} 블록`} rows={Math.max(1, block.text.split("\n").length)}
               aria-describedby={block.type === "math" ? `${block.id}-math-help` : block.type === "mermaid" ? `${block.id}-mermaid-help` : undefined}
               value={block.text} disabled={disabled} placeholder={block.type === "p" ? "내용을 입력하세요" : "블록 내용을 입력하세요"}
               onChange={(event) => {
                 const nextText = event.target.value;
+                captureAnnotationSelectionFrom(event.currentTarget);
                 const shortcut = block.type === "p" && !composing.current && nextText.endsWith(" ") ?
                   shortcuts[nextText.slice(0, -1)] : undefined;
                 edit(block.id, (old) => ({ ...old, type: shortcut ?? old.type, text: shortcut ? "" : nextText, dirty: true }));
               }}
-              onCompositionStart={() => { composing.current = true; }}
+              onSelect={(event) => captureAnnotationSelectionFrom(event.currentTarget)}
+              onKeyUp={(event) => captureAnnotationSelectionFrom(event.currentTarget)}
+              onPointerUp={(event) => captureAnnotationSelectionFrom(event.currentTarget)}
+              onCompositionStart={() => { composing.current = true; annotation.composing = true; annotation.selection = null; }}
               onCompositionEnd={() => { compositionTimer.current = setTimeout(() => {
-                composing.current = false;
+                composing.current = false; annotation.composing = false;
                 const input = refs.current.get(block.id);
                 if (!(input instanceof HTMLTextAreaElement) || block.type !== "p" || !input.value.endsWith(" ")) return;
                 const type = shortcuts[input.value.slice(0, -1)];
@@ -580,11 +661,13 @@ export function BlockEditor({ value, onChange, disabled = false, focusFirstSigna
               }}>도식 삭제</button>
             </div>}
           </div> : <div className="editor-preview">
-            <div inert>{block.type === "math" && !block.text ?
+            <div inert={!annotationPreview?.byBlock.get(block.id)?.length}>{block.type === "math" && !block.text ?
               <span className="editor-math-empty">빈 수식 · 클릭하여 편집</span> :
               block.type === "mermaid" && !block.text ?
               <span className="editor-mermaid-empty">빈 도식 · 클릭하여 편집</span> :
-              <SafeMarkdown body={blockMarkdown(block, value.newline)} source={{ kind: "admin" }} annotationMode="literal" />}</div>
+              <SafeMarkdown body={blockMarkdown(block, value.newline)} source={{ kind: "admin" }}
+                annotationMode={annotationPreview?.byBlock.get(block.id)?.length ? "editor" : "literal"}
+                annotationRefs={annotationPreview?.byBlock.get(block.id)} />}</div>
             <button type="button" className="editor-preview-trigger" disabled={disabled} ref={(node) => { if (node) refs.current.set(block.id, node); }}
               aria-label={`${index + 1}번 ${blockNames[block.type]} 블록 편집: ${block.text.slice(0, 80) || "빈 블록"}`}
               onClick={() => activate(block.id)} onKeyDown={(event) => {
@@ -606,4 +689,4 @@ export function BlockEditor({ value, onChange, disabled = false, focusFirstSigna
       }} /><button type="button" className="editor-add" disabled={disabled} onClick={() => fileInput.current?.click()}>+ 이미지 추가</button></>}
     {depth === 0 && <button type="button" className="editor-add" disabled={disabled} onClick={addToggle}>+ 접기 추가</button>}
   </div>;
-}
+});
