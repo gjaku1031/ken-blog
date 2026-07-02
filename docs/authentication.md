@@ -63,6 +63,8 @@ Redis Cloud 캐시의 기본값은 비활성. 활성화해도 각 익명 상세�
 
 공개 상태 조회와 P1-04B 출간 글 GET은 `APP_CORS_ALLOWED_ORIGINS`에 적힌 정확한 origin에서만 허용. P1-05A 공개 분류·태그 GET에도 같은 origin 규칙 적용. 공개 origin에는 자격 증명 CORS 응답을 허용하지 않음. 이는 브라우저의 교차 출처 응답 접근 규칙이며 서버가 전달된 쿠키를 별도로 무시한다는 뜻이 아님. 인증 API와 쿠키가 있는 글·분류·태그 GET은 별도 `APP_AUTH_CORS_ALLOWED_ORIGINS`가 비어 있으면 교차 출처 자격 증명 요청 비허용. 같은 호스트의 로컬 정적 화면에서 시험할 때만 예를 들어 `http://127.0.0.1:14000`을 명시. 인증 origin의 인증 API에는 GET·POST와 `X-CSRF-TOKEN` 헤더에만 자격 증명 CORS 허용하며, 글·분류·태그 GET에도 같은 origin의 자격 증명 허용. 공개/인증 글·분류·태그 조회 성공 응답은 `Cache-Control: no-store`; 비공개 응답에 공개 캐시 사용 없음. P1-05A의 CORS·no-store는 격리 HTTP에서 확인. GitHub Pages 기본 도메인과 별도 API 도메인의 타사 쿠키 동작은 공개 HTTPS 도메인 준비 후 검증할 후속 결정.
 
+P2-06A 위키 제목 조회 `GET /api/v1/wiki-links/resolve`도 같은 공개/인증 origin 구분을 적용. 익명은 PUBLIC 이동 정보, PRIVATE는 대상 메타데이터 없는 `LOCKED`만 받으며 USER·ADMIN 세션에서만 PRIVATE 이동 정보를 받음. 공개 origin의 자격 증명 CORS는 비허용, 인증 origin의 자격 증명 GET만 허용. POST 허용이나 CSRF 예외 추가 없음. 2026-09-26 격리 HTTP에서 익명·USER·ADMIN·로그아웃별 결과, 공개/인증 origin CORS, POST 거부와 no-store를 확인. DB 중단 시 익명·로그인 요청 503과 복구 뒤 같은 로그인 세션 유지, 최종 JAR의 공개/관리자/로그아웃 응답과 OpenAPI 계약도 재확인. main·CI·Pages 반영은 아직 전. 상세 입력·응답 경계는 [위키 제목 조회](wiki-links.md) 참고.
+
 P2-02A 편집본 API는 `/api/v1/admin/editor-drafts` 아래 GET·POST·PUT·DELETE와 출간 POST를 `ADMIN` 세션에만 허용. 쓰기에는 기존 CSRF 보호, 성공 응답에는 `no-store` 적용. `APP_AUTH_CORS_ALLOWED_ORIGINS`의 정확한 origin에만 자격 증명 CORS를 허용하고, 공개 origin의 관리자 편집본 GET 접근은 허용하지 않음. 2026-09-26 격리 HTTP에서 익명·USER 차단, ADMIN/CSRF, 명시 인증 origin의 자격 증명 CORS와 공개 전용 origin의 편집본 거부를 확인. main `19b884a`·[CI](https://github.com/gjaku1031/ken-blog/actions/runs/36224536190)·[Pages](https://github.com/gjaku1031/ken-blog/actions/runs/36224536203) 반영 완료. 공개 Pages origin을 인증 허용 목록에 넣지 않았고 공개 HTTPS API 배포도 없음.
 
 
