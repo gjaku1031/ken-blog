@@ -11,6 +11,7 @@ import io.github.gjaku1031.kenblog.global.security.isDatabaseConnectionFailure
 import io.github.gjaku1031.kenblog.post.domain.DuplicatePostSlugException
 import io.github.gjaku1031.kenblog.post.domain.InvalidPostDraftException
 import io.github.gjaku1031.kenblog.post.domain.InvalidPostRequestException
+import io.github.gjaku1031.kenblog.post.domain.InvalidWikiLinkRequestException
 import io.github.gjaku1031.kenblog.post.domain.PostNotFoundException
 import org.springframework.dao.PessimisticLockingFailureException
 import org.springframework.http.HttpHeaders
@@ -33,6 +34,11 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
  */
 @RestControllerAdvice
 class ApiErrorHandler : ResponseEntityExceptionHandler() {
+    /** @return 제목 배열·문자·길이 오류를 원문 없이 고정 HTTP 400으로 반환. */
+    @ExceptionHandler(InvalidWikiLinkRequestException::class)
+    fun handleWikiLinkInput(ex: InvalidWikiLinkRequestException): ResponseEntity<ProblemDetail> =
+        ResponseEntity.badRequest().body(ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "위키 링크 제목 입력을 확인하세요."))
+
     /** @return 편집본 JSON·ID·revision 오류의 고정 HTTP 400 본문. */
     @ExceptionHandler(InvalidEditorDraftRequestException::class)
     fun handleEditorDraftInput(ex: InvalidEditorDraftRequestException): ResponseEntity<ProblemDetail> =

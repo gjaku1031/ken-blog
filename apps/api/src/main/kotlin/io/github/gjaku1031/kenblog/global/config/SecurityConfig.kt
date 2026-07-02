@@ -92,13 +92,13 @@ class SecurityConfig {
         )
 
     /**
-     * 공개 상태·게시글·분류·태그 조회는 지정 origin에 GET만 허용하고 인증 origin에만 자격 증명을 허용.
+     * 공개 상태·게시글·분류·태그·위키 대상 조회는 지정 origin에 GET만 허용하고 인증 origin에만 자격 증명을 허용.
      * 관리자 게시글·분류·태그 읽기는 인증 origin의 credential GET에 한정하고,
      * 편집본 관리자 경로는 기존 credential GET·POST·PUT·DELETE를 유지.
      *
      * @param publicOriginsCsv 공개 상태 조회 허용 origin
      * @param authOriginsCsv 인증 요청을 허용할 명시적 origin; 기본은 빈 목록
-     * @return 공개/인증 origin을 게시글 경로에서 구분하는 CORS 설정
+     * @return 공개/인증 origin을 게시글·위키 경로에서 구분하는 CORS 설정
      * @throws IllegalStateException origin에 와일드카드 또는 형식 오류가 있을 때
      */
     @Bean
@@ -171,14 +171,14 @@ class SecurityConfig {
         return CorsConfigurationSource { request ->
             val path = request.servletPath
             if (path == "/api/v1/posts" || path.startsWith("/api/v1/posts/") ||
-                path == "/api/v1/categories" || path == "/api/v1/tags") {
+                path == "/api/v1/categories" || path == "/api/v1/tags" || path == "/api/v1/wiki-links/resolve") {
                 if (request.getHeader("Origin") in authOrigins) authenticatedPosts else publicPosts
             } else source.getCorsConfiguration(request)
         }
     }
 
     /**
-     * API의 공개 경로와 세션 기반 접근 제어 및 [SecurityProblemWriter]를 연결.
+     * API의 공개 게시글·위키 경로와 세션 기반 접근 제어 및 [SecurityProblemWriter]를 연결.
      *
      * @param http Spring Security 설정 빌더
      * @param writer 인증·권한 오류 응답기
@@ -212,6 +212,7 @@ class SecurityConfig {
             it.requestMatchers(HttpMethod.GET, "/api/v1/posts", "/api/v1/posts/*").permitAll()
             it.requestMatchers(HttpMethod.GET, "/api/v1/posts/*/attachments/*/content").permitAll()
             it.requestMatchers(HttpMethod.GET, "/api/v1/categories", "/api/v1/tags").permitAll()
+            it.requestMatchers(HttpMethod.GET, "/api/v1/wiki-links/resolve").permitAll()
             it.requestMatchers(HttpMethod.GET, "/api/v1/auth/csrf").permitAll()
             it.requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
             it.requestMatchers(HttpMethod.GET, "/api/v1/auth/me").authenticated()

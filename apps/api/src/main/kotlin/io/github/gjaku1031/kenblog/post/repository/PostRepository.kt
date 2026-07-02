@@ -7,6 +7,7 @@ import io.github.gjaku1031.kenblog.post.dto.PrivatePostLockRow
 import io.github.gjaku1031.kenblog.post.dto.AdminPostRow
 import io.github.gjaku1031.kenblog.post.dto.PublicPostCacheRow
 import io.github.gjaku1031.kenblog.post.dto.PublishedPostRow
+import io.github.gjaku1031.kenblog.post.dto.WikiLinkTargetRow
 import io.github.gjaku1031.kenblog.post.service.PostService
 import io.github.gjaku1031.kenblog.category.dto.CategoryPostCountRow
 import jakarta.persistence.LockModeType
@@ -142,6 +143,23 @@ interface PostRepository : JpaRepository<PostEntity, Long> {
         @Param("status") status: PostStatus,
         @Param("visibility") visibility: PostVisibility,
     ): PrivatePostLockRow?
+
+    /**
+     * SQL LOWER 뒤 이진 비교로 악센트를 구별하며 출간 글의 최초 후보 한 건만 조회.
+     *
+     * 같은 제목은 최초 출간 시각·ID 오름차순으로 결정함. 본문 열은 선택하지 않음.
+     *
+     * @param title 공백·길이 검증을 마친 요청 제목
+     * @return 이동·권한 판별에 필요한 [WikiLinkTargetRow], 없으면 `null`
+     */
+    @Query(
+        value = "select p.id as id, p.title as title, p.slug as slug, p.visibility as visibility " +
+            "from posts p where p.status = 'PUBLISHED' " +
+            "and cast(lower(p.title) as binary) = cast(lower(:title) as binary) " +
+            "order by p.published_at asc, p.id asc limit 1",
+        nativeQuery = true,
+    )
+    fun findWikiLinkTarget(@Param("title") title: String): WikiLinkTargetRow?
 
     /** @return 관리자 또는 공개 역할 조건에서 분류별 직접 글 수를 계산한 [CategoryPostCountRow] 목록. */
     @Query("select new io.github.gjaku1031.kenblog.category.dto.CategoryPostCountRow(p.categoryId, count(p)) " +
