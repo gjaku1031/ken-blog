@@ -17,6 +17,8 @@ import { MermaidBlock } from "./mermaid-block";
 import { AnnotationReader, AnnotationReference } from "./annotation-reader";
 import { useAuth } from "./auth-provider";
 import { remarkEditorAnnotations, type EditorAnnotationReference } from "../lib/editor-annotation";
+import { collectWikiTitles, remarkWikiSyntax } from "../lib/wiki-link-syntax";
+import { WikiLink, WikiLinkReader } from "./wiki-link-reader";
 
 /** 원문 위치의 열림·닫힘 fence와 정확한 소문자 mermaid 정보 문자열을 검사한다. */
 function exactMermaidFence(body: string, start?: number, end?: number): boolean {
@@ -46,10 +48,15 @@ function AnnotationDocument({ body, source, children }: { body: string; source?:
   const auth = useAuth();
   const pathname = usePathname();
   const query = useSearchParams();
-  const items = useMemo(() => parseAnnotationDocument(body).items, [body]);
+  const documentModel = useMemo(() => {
+    const parsed = parseAnnotationDocument(body);
+    return { items: parsed.items, wiki: collectWikiTitles(parsed.root, parsed.items) };
+  }, [body]);
   const sourceId = source?.kind === "post" ? `post:${source.postId}` : source?.kind ?? "none";
   const identity = `${pathname}?${query.toString()}\u0000${auth.epoch}\u0000${auth.status}\u0000${auth.user?.username ?? ""}\u0000${sourceId}\u0000${body}`;
-  return <AnnotationReader key={identity} items={items}>{children}</AnnotationReader>;
+  return <WikiLinkReader key={identity} titles={documentModel.wiki.titles}>
+    <AnnotationReader items={documentModel.items} wikiLimits={documentModel.wiki.annotationLimits}>{children}</AnnotationReader>
+  </WikiLinkReader>;
 }
 
 /** raw HTML과 자동 이미지를 차단하며 문서 모드에서만 주석을 해석한다. */
@@ -59,7 +66,7 @@ export function SafeMarkdown({ body, source, annotationMode = "document", annota
 }) {
   const markdown = <div className="markdown-body"><Markdown
     remarkPlugins={annotationMode === "document" ?
-      [remarkGfm, remarkMathSyntax, remarkAnnotationSyntax, remarkSafeDetails, remarkResolveAnnotations] :
+      [remarkGfm, remarkMathSyntax, remarkWikiSyntax, remarkSafeDetails, remarkResolveAnnotations] :
       annotationMode === "editor" ?
       [remarkGfm, remarkMathSyntax, remarkAnnotationSyntax, remarkSafeDetails, [remarkEditorAnnotations, annotationRefs]] :
       [remarkGfm, remarkMathSyntax, remarkSafeDetails]}
@@ -86,8 +93,17 @@ export function SafeMarkdown({ body, source, annotationMode = "document", annota
         const classes = node?.properties.className;
         const math = Array.isArray(classes) && classes.includes("ken-math-inline") &&
           node?.children.length === 1 && node.children[0].type === "text" ? node.children[0].value : null;
-        return math !== null ? annotationMode === "editor" ? <span inert><MathExpression source={math} display={false} /></span> :
-          <MathExpression source={math} display={false} /> : <span>{children}</span>;
+        if (math !== null) return annotationMode === "editor" ? <span inert><MathExpression source={math} display={false} /></span> :
+          <MathExpression source={math} display={false} />;
+        const title = node?.properties["data-wiki-title"];
+        const raw = node?.properties["data-wiki-raw"];
+        if (annotationMode === "document" && Array.isArray(classes) && classes.includes("ken-wiki-link") &&
+          typeof title === "string" && typeof raw === "string" &&
+          node?.children.length === 1 && node.children[0].type === "text")
+          return <WikiLink title={title} label={node.children[0].value} raw={raw} />;
+        if (Array.isArray(classes) && classes.includes("ken-wiki-link") && typeof raw === "string")
+          return <span>{raw}</span>;
+        return <span>{children}</span>;
       },
       /** 독립 수식은 문단 밖의 블록으로 만들고 원문만 MathML 렌더러에 전달한다. */
       div({ node, children }) {

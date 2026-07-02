@@ -36,6 +36,10 @@ export type TagCount = { name: string; count: number };
 /** 인증된 계정의 서버 세션 정보. */
 export type CurrentUser = { username: string; role: "USER" | "ADMIN" };
 
+/** 제목 조회 API의 권한별 최소 결과. 잠금과 없음에는 대상 정보가 없다. */
+export type WikiLinkResult = { requestedTitle: string; status: "LOCKED" | "MISSING" } |
+  { requestedTitle: string; status: "READABLE"; id: number; title: string; slug: string };
+
 /** 클라이언트가 표시할 안전한 요청 실패 분류. */
 export class ApiFailure extends Error {
   /** 내부 URL·본문 없이 상태와 실패 종류만 보관한다. */
@@ -130,6 +134,26 @@ export async function fetchCsrf(signal?: AbortSignal): Promise<{ headerName: str
 /** 서버 응답이 객체인지 좁힌다. */
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/** 조회 요청의 순서와 PRIVATE 필드 부재를 포함해 위키 응답을 엄격히 확인한다. */
+export function parseWikiLinkResults(value: unknown, requested: readonly string[]): WikiLinkResult[] {
+  if (!isRecord(value) || Object.keys(value).length !== 1 || !Array.isArray(value.items) ||
+    value.items.length !== requested.length) throw new ApiFailure("response");
+  return value.items.map((item: unknown, index: number): WikiLinkResult => {
+    if (!isRecord(item) || item.requestedTitle !== requested[index]) throw new ApiFailure("response");
+    if (item.status === "LOCKED" || item.status === "MISSING") {
+      if (Object.keys(item).length !== 2) throw new ApiFailure("response");
+      return { requestedTitle: item.requestedTitle, status: item.status };
+    }
+    if (item.status !== "READABLE" || Object.keys(item).length !== 5 ||
+      typeof item.id !== "number" || !Number.isSafeInteger(item.id) || item.id <= 0 ||
+      typeof item.title !== "string" || !item.title ||
+      typeof item.slug !== "string" || item.slug.length > 160 ||
+      !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(item.slug)) throw new ApiFailure("response");
+    return { requestedTitle: item.requestedTitle, status: "READABLE", id: item.id,
+      title: item.title, slug: item.slug };
+  });
 }
 
 /** 현재 사용자 DTO의 이름과 역할만 확인한다. */

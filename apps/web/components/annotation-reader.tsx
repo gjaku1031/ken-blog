@@ -7,6 +7,8 @@ import remarkGfm from "remark-gfm";
 import { remarkMathSyntax } from "@/lib/math-syntax";
 import type { AnnotationItem } from "@/lib/annotation-syntax";
 import { MathExpression } from "./math-expression";
+import { remarkWikiSyntax } from "@/lib/wiki-link-syntax";
+import { WikiLink } from "./wiki-link-reader";
 
 type Active = { item: AnnotationItem; occurrence: number; anchor: HTMLAnchorElement | HTMLButtonElement; identity: string };
 type Highlight = { kind: "item" | "reference"; index: number; occurrence?: number };
@@ -22,8 +24,9 @@ type AnnotationContextValue = {
 const AnnotationContext = createContext<AnnotationContextValue | null>(null);
 
 /** 본문 원문의 인라인 문법만 다시 표시하고 주석 안 이미지·HTML·재귀 참조를 실행하지 않는다. */
-function AnnotationContent({ content, interactive }: { content: string; interactive: boolean }) {
-  return <Markdown remarkPlugins={[remarkGfm, remarkMathSyntax]} skipHtml urlTransform={(value, key) => {
+function AnnotationContent({ content, interactive, wikiLimit }: { content: string; interactive: boolean; wikiLimit?: number }) {
+  return <Markdown remarkPlugins={wikiLimit === undefined ? [remarkGfm, remarkMathSyntax] :
+    [remarkGfm, remarkMathSyntax, [remarkWikiSyntax, wikiLimit]]} skipHtml urlTransform={(value, key) => {
     if (key === "src") return "";
     const url = value.trim();
     if (/[\u0000-\u001f\u007f\\]/.test(url) || url.startsWith("//")) return "";
@@ -41,14 +44,20 @@ function AnnotationContent({ content, interactive }: { content: string; interact
       const classes = node?.properties.className;
       const math = Array.isArray(classes) && classes.includes("ken-math-inline") &&
         node?.children.length === 1 && node.children[0].type === "text" ? node.children[0].value : null;
-      return math !== null ? <MathExpression source={math} display={false} /> : <span>{children}</span>;
+      if (math !== null) return <MathExpression source={math} display={false} />;
+      const title = node?.properties["data-wiki-title"];
+      const raw = node?.properties["data-wiki-raw"];
+      if (Array.isArray(classes) && classes.includes("ken-wiki-link") && typeof title === "string" &&
+        typeof raw === "string" && node?.children.length === 1 && node.children[0].type === "text")
+        return <WikiLink title={title} label={node.children[0].value} raw={raw} interactive={interactive} />;
+      return <span>{children}</span>;
     },
   }}>{content}</Markdown>;
 }
 
 /** 초점·hover 참조 옆에 놓되 viewport와 설명 높이에 따라 위치를 다시 계산한다. */
-function AnnotationTooltip({ active, id, close, scheduleClose, keepOpen }: {
-  active: Active; id: string; close: () => void; scheduleClose: () => void; keepOpen: () => void;
+function AnnotationTooltip({ active, id, close, scheduleClose, keepOpen, wikiLimit }: {
+  active: Active; id: string; close: () => void; scheduleClose: () => void; keepOpen: () => void; wikiLimit?: number;
 }) {
   const target = useRef<HTMLDivElement | null>(null);
   const [position, setPosition] = useState<{ left: number; top: number; ready: boolean }>({ left: 16, top: 16, ready: false });
@@ -98,13 +107,14 @@ function AnnotationTooltip({ active, id, close, scheduleClose, keepOpen }: {
   return createPortal(<div id={id} ref={target} className="annotation-tooltip" role="tooltip"
     style={{ left: position.left, top: position.top, visibility: position.ready ? "visible" : "hidden" }}
     onPointerEnter={keepOpen} onPointerLeave={scheduleClose}>
-    <AnnotationContent content={active.item.content} interactive={false} />
+    <AnnotationContent content={active.item.content} interactive={false} wikiLimit={wikiLimit} />
   </div>, document.body);
 }
 
 /** 문서별 ID와 hover·키보드 이동 상태를 생성하고 PRIVATE 전환 때 모두 폐기한다. */
-export function AnnotationReader({ items, children, mode = "reader", identity = "" }: {
+export function AnnotationReader({ items, children, mode = "reader", identity = "", wikiLimits }: {
   items: AnnotationItem[]; children: ReactNode; mode?: "reader" | "editor"; identity?: string;
+  wikiLimits?: readonly number[];
 }) {
   const id = useId().replace(/[^a-zA-Z0-9_-]/g, "");
   const prefix = `ken-annotation-${id}`;
@@ -173,13 +183,15 @@ export function AnnotationReader({ items, children, mode = "reader", identity = 
       <ol>{items.map((item) => <li key={item.index} id={itemId(item.index)} tabIndex={-1}
         className={highlight?.kind === "item" && highlight.index === item.index ? "annotation-highlight" : undefined}>
         <span className="annotation-item-label">[{item.label}]</span>{" "}
-        <span className="annotation-item-content"><AnnotationContent content={item.content} interactive={mode === "reader"} /></span>{" "}
+        <span className="annotation-item-content"><AnnotationContent content={item.content} interactive={mode === "reader"}
+          wikiLimit={mode === "reader" ? wikiLimits?.[item.index] : undefined} /></span>{" "}
         {mode === "reader" && <a className="annotation-backlink" href={`#${referenceId(item.index, item.firstRef)}`}
           aria-label={`${item.label} 주석의 첫 참조로 돌아가기`} onClick={(event) => goToReference(event, item)}>↩ 첫 참조</a>}
       </li>)}</ol>
     </section>}
     {visibleActive && <AnnotationTooltip key={tooltipId} active={visibleActive} id={tooltipId} close={close}
-      scheduleClose={scheduleClose} keepOpen={keepOpen} />}
+      scheduleClose={scheduleClose} keepOpen={keepOpen}
+      wikiLimit={mode === "reader" ? wikiLimits?.[visibleActive.item.index] : undefined} />}
   </AnnotationContext.Provider>;
 }
 
