@@ -35,6 +35,8 @@ docker compose -p ken-blog-p102 down
 
 ## 정적 웹 빌드
 
+P2-06C의 기존 글 위키 연결은 자동 보정되지 않음. [일회성 재색인 도구](../ops/wiki-links/README.md)는 Node.js 24와 `apps/web`의 `npm ci` 의존성을 사용하며, 기본 실행은 세션으로 관리자 목록·본문을 읽되 게시글 연결을 바꾸지 않는 dry-run. 환경변수로 격리 API origin·ADMIN 계정을 전달하고 대상 DB와 글 수를 확인한 뒤 `--apply`를 명시할 때만 본문 SHA-256 조건부 연결 교체를 요청. 불일치 `409`는 해당 글을 건너뛰고 ID만 보고. 비밀번호·본문·세션·CSRF를 명령 인자나 출력 파일에 넣지 않음. 2026-09-26 격리 DB의 기존 글 22건 중 14건 보정과 재실행 변경 0건, 원문·수정 시각 불변을 확인. 실제 운영 DB에는 실행하지 않았고 공개 HTTPS API 주소는 여전히 미설정.
+
 `apps/web`에서 `npm ci` 후 `npm run build`를 실행하면 `out/`에 HTML·CSS·JS·도면 등 정적 파일 생성. Next 서버와 웹 컨테이너는 필요 없음. GitHub Pages 프로젝트 경로에 맞춰 빌드할 때 `NEXT_PUBLIC_BASE_PATH=/ken-blog` 사용. 이 값과 `NEXT_PUBLIC_API_BASE_URL`은 **빌드 시** 공개 JS에 포함되어, 변경 시 재빌드 필요. 공개 변수에 비밀값 입력 금지.
 
 ```sh

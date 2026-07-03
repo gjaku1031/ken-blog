@@ -30,7 +30,7 @@ io.github.gjaku1031.kenblog
 프론트는 GitHub Pages에서 제공하고 브라우저가 Spring API를 호출하는 구조. VM에는 Spring 실행. 공개 API 도메인·HTTPS 주소가 아직 없어 공개 홈은 API 미설정 상태로 배포.
 
 - [정적 프론트와 아키텍처 도면](https://gjaku1031.github.io/ken-blog/)
-- [현재 계획](planning/issues/P2-06B.md) · [작업 상태](planning/tasks.md) · [개발 순서](planning/roadmap.md)
+- [현재 계획](planning/issues/P2-06C.md) · [작업 상태](planning/tasks.md) · [개발 순서](planning/roadmap.md)
 - [코드·문서 규칙](docs/code-conventions.md) · [런타임 안내](docs/runtime.md) · [게시글 API](docs/posts.md) · [관리자 편집본 API](docs/editor-drafts.md) · [관리자 편집 화면](docs/editor.md) · [Markdown 읽기](docs/markdown.md) · [위키 제목 조회 API](docs/wiki-links.md) · [Tech 분류·태그](docs/taxonomy.md) · [선택적 공개 본문 캐시](docs/cache.md) · [첨부파일 운영 안내](docs/attachments.md) · [도면 설명](docs/architecture.md)
 
 ## API 직접 실행
@@ -120,7 +120,9 @@ P2-05B는 관리자 글쓰기에서 주석 삽입과 문서 전체 번호 미리
 
 P2-06A는 `[[글 제목]]`이 가리킬 출간 Tech 글을 제목으로 찾는 GET API 작업. 반복 `title` 쿼리로 1~20개 제목을 요청하고 입력 순서대로 읽기 가능·잠금·없음 상태를 받는 계약. PUBLIC은 익명에게 이동용 ID·제목·slug만 제공하고, PRIVATE는 USER/ADMIN 세션에서만 이동 정보를 제공하며 익명에게는 잠금 상태만 반환. 초안·없는 글은 같은 없음 상태. 입력·중복 제목 선택·권한·CORS·캐시 경계는 [위키 제목 조회 API](docs/wiki-links.md) 참고. 2026-09-26 기존 API 검사 28개와 clean verify, 격리 MySQL HTTP의 반복 제목·Unicode·쉼표·대소문자/악센트·중복 정렬, 권한별 응답·출간 철회/이름 변경/삭제 반영, 입력 상한·CORS·no-store·본문 없는 SQL 확인. DB 중단 중 익명·세션 요청의 503과 복구 후 기존 세션 유지 확인. Swagger 보완 후 테스트를 생략한 최종 JAR 패키징과 실제 HTTP/OpenAPI 재검증도 완료. 검증 API·MySQL 컨테이너/볼륨 정리 후 기존 앱·Redis ID·이미지·시작 시각 불변, OCI 미사용. P2-06A 당시 `[[...]]` Markdown 파서·읽기 화면·에디터 링크 UI는 범위 밖이며 읽기 연결은 P2-06B에서 진행. main `d5638dd`·[CI](https://github.com/gjaku1031/ken-blog/actions/runs/36239305385)·[Pages](https://github.com/gjaku1031/ken-blog/actions/runs/36239305344) 반영 완료. 실제 push는 2026-09-26 11:35:32 UTC. 공개 HTTPS API 연결과 기존 운영 배포는 변경하지 않음.
 
-P2-06B는 본문·주석의 `[[제목]]`·`[[제목|표시명]]` 읽기와 P2-06A 제목 조회 API 연결 작업. 읽을 수 있는 글만 기존 정적 글 경로로 이동하고 잠금·없는·조회 불가 상태를 구분. 2026-09-26 기존 웹 검사 7개·타입 검사·API 설정 정적 빌드와 격리 API/브라우저의 본문·표·접기·주석 링크, 중복 제목 배치, PUBLIC 이동·PRIVATE 잠금·MISSING 비링크, 실패 후 재시도·로그아웃 뒤 메타데이터 제거를 확인. 390/1280px 양 테마 넘침 0, 검사한 두 화면 Axe 위반 0건·페이지 오류 0건. 관리자 링크 선택기는 P2-06C, 역링크는 P2-06D, 목차는 P2-06E 후속. [위키 링크 계약](docs/wiki-links.md) 참고. 검증 API·정적 서버·Chrome 종료와 소유 MySQL 컨테이너/볼륨 삭제 완료, 기존 앱·Redis ID·이미지·시작 시각 불변, OCI 미사용. API 미설정 빌드는 CI/Pages 확인 예정이며 main·CI·Pages 반영 전. 공개 HTTPS API·기존 운영 배포는 변경하지 않음.
+P2-06B는 본문·주석의 `[[제목]]`·`[[제목|표시명]]` 읽기와 P2-06A 제목 조회 API 연결 작업. 읽을 수 있는 글만 기존 정적 글 경로로 이동하고 잠금·없는·조회 불가 상태를 구분. 2026-09-26 기존 웹 검사 7개·타입 검사·API 설정 정적 빌드와 격리 API/브라우저의 본문·표·접기·주석 링크, 중복 제목 배치, PUBLIC 이동·PRIVATE 잠금·MISSING 비링크, 실패 후 재시도·로그아웃 뒤 메타데이터 제거를 확인. 390/1280px 양 테마 넘침 0, 검사한 두 화면 Axe 위반 0건·페이지 오류 0건. [위키 링크 계약](docs/wiki-links.md) 참고. 검증 자원 정리 후 main `a6f8a6e`·[CI](https://github.com/gjaku1031/ken-blog/actions/runs/36240322404)·[Pages](https://github.com/gjaku1031/ken-blog/actions/runs/36240322370) 반영 완료. 공개 HTTPS API·기존 운영 배포는 변경하지 않음.
+
+P2-06C는 관리자 제목 검색·링크 선택기, 저장된 제목 연결의 역링크, 본문 목차를 한 흐름으로 잇는 작업. 기존 글의 연결은 자동으로 채워졌다고 가정하지 않으며, 격리 환경에서 실행한 [일회성 재색인 도구](ops/wiki-links/README.md)는 기본 dry-run에서 게시글 연결을 수정하지 않고 `--apply`에서만 본문 해시를 확인한 연결 교체를 요청. 2026-09-26 기존 API 검사 28개와 격리 MySQL의 V9→V10, 검색·보정·권한별 역링크·편집본 분리·본문 없는 SQL을 확인. 22개 기존 글의 보정 대상 14개를 갱신했고 재실행 변경 건수는 0개. 브라우저 통합 검증 완료, main·CI·Pages 반영 확인 전. 공개 Pages의 API HTTPS 주소와 기존 운영 배포는 그대로.
 
 ## Spring 컨테이너와 배포 범위
 
