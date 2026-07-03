@@ -1,11 +1,10 @@
 "use client";
 
-import { useMemo, type ReactNode } from "react";
+import { createContext, useContext, useMemo, type ReactNode } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { remarkSafeDetails } from "../lib/markdown-details";
-import { parseAnnotationDocument } from "../lib/markdown-details";
 import { remarkMathSyntax } from "../lib/math-syntax";
 import { remarkAnnotationSyntax, remarkResolveAnnotations } from "../lib/annotation-syntax";
 import { parseAttachmentId, parseImageAlt } from "../lib/editor-image";
@@ -17,8 +16,25 @@ import { MermaidBlock } from "./mermaid-block";
 import { AnnotationReader, AnnotationReference } from "./annotation-reader";
 import { useAuth } from "./auth-provider";
 import { remarkEditorAnnotations, type EditorAnnotationReference } from "../lib/editor-annotation";
-import { collectWikiTitles, remarkWikiSyntax } from "../lib/wiki-link-syntax";
+import { remarkWikiSyntax } from "../lib/wiki-link-syntax";
+import { buildReadingDocument, type ReadingDocument } from "../lib/reading-document";
+import type { TocItem } from "../lib/table-of-contents";
 import { WikiLink, WikiLinkReader } from "./wiki-link-reader";
+
+const HeadingContext = createContext<ReadonlyMap<number, TocItem>>(new Map());
+type HeadingProps = { node?: { position?: { start: { offset?: number } } }; children?: ReactNode };
+
+/** 제목 컴포넌트의 정체성을 유지해 비동기 링크 결과가 도착해도 목차 초점이 남는다. */
+function ReadingH2({ node, children }: HeadingProps) {
+  const item = useContext(HeadingContext).get(node?.position?.start.offset ?? -1);
+  return <h2 id={item?.depth === 2 ? item.id : undefined} tabIndex={item?.depth === 2 ? -1 : undefined}>{children}</h2>;
+}
+
+/** 3단 제목에도 동일한 원문 위치 앵커를 적용한다. */
+function ReadingH3({ node, children }: HeadingProps) {
+  const item = useContext(HeadingContext).get(node?.position?.start.offset ?? -1);
+  return <h3 id={item?.depth === 3 ? item.id : undefined} tabIndex={item?.depth === 3 ? -1 : undefined}>{children}</h3>;
+}
 
 /** 원문 위치의 열림·닫힘 fence와 정확한 소문자 mermaid 정보 문자열을 검사한다. */
 function exactMermaidFence(body: string, start?: number, end?: number): boolean {
@@ -44,27 +60,27 @@ function safeUrl(value: string, key: string): string {
 }
 
 /** 문서 전체 주석 목록과 참조를 같은 원문·경로·계정 수명에 묶는다. */
-function AnnotationDocument({ body, source, children }: { body: string; source?: AttachmentSource; children: ReactNode }) {
+function AnnotationDocument({ body, source, model, children }: { body: string; source?: AttachmentSource;
+  model: ReadingDocument; children: ReactNode }) {
   const auth = useAuth();
   const pathname = usePathname();
   const query = useSearchParams();
-  const documentModel = useMemo(() => {
-    const parsed = parseAnnotationDocument(body);
-    return { items: parsed.items, wiki: collectWikiTitles(parsed.root, parsed.items) };
-  }, [body]);
   const sourceId = source?.kind === "post" ? `post:${source.postId}` : source?.kind ?? "none";
   const identity = `${pathname}?${query.toString()}\u0000${auth.epoch}\u0000${auth.status}\u0000${auth.user?.username ?? ""}\u0000${sourceId}\u0000${body}`;
-  return <WikiLinkReader key={identity} titles={documentModel.wiki.titles}>
-    <AnnotationReader items={documentModel.items} wikiLimits={documentModel.wiki.annotationLimits}>{children}</AnnotationReader>
+  return <WikiLinkReader key={identity} titles={model.wiki.titles}>
+    <AnnotationReader items={model.items} wikiLimits={model.wiki.annotationLimits}>{children}</AnnotationReader>
   </WikiLinkReader>;
 }
 
 /** raw HTML과 자동 이미지를 차단하며 문서 모드에서만 주석을 해석한다. */
-export function SafeMarkdown({ body, source, annotationMode = "document", annotationRefs = [] }: {
+export function SafeMarkdown({ body, source, annotationMode = "document", annotationRefs = [], reading }: {
   body: string; source?: AttachmentSource; annotationMode?: "document" | "literal" | "editor";
-  annotationRefs?: readonly EditorAnnotationReference[];
+  annotationRefs?: readonly EditorAnnotationReference[]; reading?: ReadingDocument;
 }) {
-  const markdown = <div className="markdown-body"><Markdown
+  const model = useMemo(() => annotationMode === "document" ? reading ?? buildReadingDocument(body) : null,
+    [annotationMode, reading, body]);
+  const headingIds = useMemo(() => new Map(model?.toc.map((item) => [item.offset, item])), [model]);
+  const markdown = <div className="markdown-body"><HeadingContext.Provider value={headingIds}><Markdown
     remarkPlugins={annotationMode === "document" ?
       [remarkGfm, remarkMathSyntax, remarkWikiSyntax, remarkSafeDetails, remarkResolveAnnotations] :
       annotationMode === "editor" ?
@@ -72,6 +88,9 @@ export function SafeMarkdown({ body, source, annotationMode = "document", annota
       [remarkGfm, remarkMathSyntax, remarkSafeDetails]}
     skipHtml urlTransform={safeUrl}
     components={{
+      /** 최상위 제목만 원문 위치에 대응하는 안정적 목차 앵커를 받는다. */
+      h2: ReadingH2,
+      h3: ReadingH3,
       /** 모델이 검증한 숫자 인덱스만 현재 문서의 주석 링크로 바꾼다. */
       sup({ node, children, ...props }) {
         const classes = node?.properties.className;
@@ -151,6 +170,7 @@ export function SafeMarkdown({ body, source, annotationMode = "document", annota
       },
       /** 표 의미는 유지하고 가로로 긴 표에도 키보드 초점을 허용한다. */
       table({ node: _node, ...props }) { return <table {...props} tabIndex={annotationMode === "editor" ? -1 : 0} />; },
-    }}>{body}</Markdown></div>;
-  return annotationMode === "document" ? <AnnotationDocument body={body} source={source}>{markdown}</AnnotationDocument> : markdown;
+    }}>{body}</Markdown></HeadingContext.Provider></div>;
+  return annotationMode === "document" && model ?
+    <AnnotationDocument body={body} source={source} model={model}>{markdown}</AnnotationDocument> : markdown;
 }

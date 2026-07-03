@@ -42,8 +42,9 @@ function editableTargets(document: MarkdownDocument): Target[] {
   return targets;
 }
 
-/** 유효한 선택 범위를 대체하고, 범위가 낡았으면 마지막 편집 가능 블록에 안전하게 삽입한다. */
-export function insertAnnotationAt(document: MarkdownDocument, selection?: EditorAnnotationSelection | null):
+/** 유효한 선택 범위를 바꾸고 낡은 범위는 마지막 편집 가능 블록 끝으로 되돌린다. */
+export function insertInlineTextAt(document: MarkdownDocument, insertion: string, cursorOffset: number,
+  selection?: EditorAnnotationSelection | null):
   { document: MarkdownDocument; focus: EditorAnnotationFocus } {
   const targets = editableTargets(document);
   const selected = selection && targets.find((target) => target.block.id === selection.id);
@@ -52,17 +53,17 @@ export function insertAnnotationAt(document: MarkdownDocument, selection?: Edito
     selection.start >= 0 && selection.end >= selection.start && selection.end <= selected.block.text.length;
   const target = valid ? selected : targets[targets.length - 1];
   if (!target) {
-    const added = { ...emptyBlock("p", document.newline), text: INSERTION, after: "" };
+    const added = { ...emptyBlock("p", document.newline), text: insertion, after: "" };
     return { document: ensureBlockBoundaries({ ...document, blocks: [...document.blocks, added] }),
-      focus: { id: added.id, offset: 3 } };
+      focus: { id: added.id, offset: cursorOffset } };
   }
   const start = valid ? selection!.start : target.block.text.length;
   const end = valid ? selection!.end : start;
-  const changed = { ...target.block, text: target.block.text.slice(0, start) + INSERTION +
+  const changed = { ...target.block, text: target.block.text.slice(0, start) + insertion +
     target.block.text.slice(end), dirty: true };
   if (target.toggleIndex === undefined) {
     const blocks = document.blocks.map((block, index) => index === target.index ? changed : block);
-    return { document: { ...document, blocks }, focus: { id: changed.id, offset: start + 3 } };
+    return { document: { ...document, blocks }, focus: { id: changed.id, offset: start + cursorOffset } };
   }
   const blocks = document.blocks.map((block, index) => {
     if (index !== target.toggleIndex || !block.toggle) return block;
@@ -70,8 +71,14 @@ export function insertAnnotationAt(document: MarkdownDocument, selection?: Edito
     return { ...block, dirty: true, toggle: { ...block.toggle, inner: { ...inner,
       blocks: inner.blocks.map((child, childIndex) => childIndex === target.index ? changed : child) } } };
   });
-  return { document: { ...document, blocks }, focus: { id: changed.id, offset: start + 3,
+  return { document: { ...document, blocks }, focus: { id: changed.id, offset: start + cursorOffset,
     path: { toggleId: target.toggleId! } } };
+}
+
+/** 주석은 닫는 괄호 앞에 커서를 남기는 공통 인라인 삽입이다. */
+export function insertAnnotationAt(document: MarkdownDocument, selection?: EditorAnnotationSelection | null):
+  { document: MarkdownDocument; focus: EditorAnnotationFocus } {
+  return insertInlineTextAt(document, INSERTION, 3, selection);
 }
 
 /** 실제 직렬화된 블록 길이를 더해 전체 원문과 자식 블록의 시작 위치를 맞춘다. */

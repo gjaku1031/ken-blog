@@ -9,7 +9,8 @@ import { emptyTable, parsePipeHeaderCommand, TABLE_MAX_COLUMNS, TABLE_MAX_CELL_L
 import { TableBlock } from "@/components/editor/table-block";
 import { ToggleBlock } from "@/components/editor/toggle-block";
 import { ImageBlock } from "@/components/editor/image-block";
-import { insertAnnotationAt, type EditorAnnotationModel, type EditorAnnotationSelection } from "@/lib/editor-annotation";
+import { insertAnnotationAt, insertInlineTextAt, type EditorAnnotationModel, type EditorAnnotationSelection } from "@/lib/editor-annotation";
+import { validWikiTitle } from "@/lib/wiki-link-syntax";
 import "./editor.css";
 
 type Props = { value: MarkdownDocument; onChange: (next: MarkdownDocument) => void; disabled?: boolean;
@@ -17,7 +18,8 @@ type Props = { value: MarkdownDocument; onChange: (next: MarkdownDocument) => vo
   onImageFile?: (file: File) => Promise<ImageData | null>; onImageReject?: (message: string) => void;
   annotationPreview?: EditorAnnotationModel | null; annotationController?: AnnotationController; annotationSessionKey?: string };
 /** 글쓰기 고정 도구에서 커서를 보관하고 주석을 삽입할 수 있는 편집기 경계. */
-export type BlockEditorHandle = { captureAnnotationSelection: () => void; insertAnnotation: () => boolean };
+export type BlockEditorHandle = { captureAnnotationSelection: () => void; insertAnnotation: () => boolean;
+  insertWikiLink: (title: string) => boolean };
 type AnnotationController = { selection: EditorAnnotationSelection | null; composing: boolean; suppressNext: boolean };
 type FocusTarget = { id: string; offset: number | "end" };
 const ANNOTATION_TEXT_TYPES = new Set<BlockType>(["p", "h1", "h2", "h3", "ul", "ol", "todo", "quote"]);
@@ -146,7 +148,23 @@ export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEd
     return true;
   }
 
-  useImperativeHandle(ref, () => ({ captureAnnotationSelection, insertAnnotation }));
+  /** 검색에서 확인한 제목을 원래 선택 범위 또는 안전한 마지막 문단에 삽입한다. */
+  function insertWikiLink(value: string): boolean {
+    const title = validWikiTitle(value);
+    const blocked = disabled || annotation.composing || annotation.suppressNext;
+    annotation.suppressNext = false;
+    if (blocked || depth !== 0 || !title) return false;
+    const source = `[[${title}]]`;
+    const inserted = insertInlineTextAt(latest.current, source, source.length, annotation.selection);
+    annotation.selection = null;
+    onChange(inserted.document);
+    if (inserted.focus.path) setToggleChildFocus({ toggleId: inserted.focus.path.toggleId,
+      id: inserted.focus.id, offset: inserted.focus.offset, serial: (toggleChildFocus?.serial ?? 0) + 1 });
+    else activate(inserted.focus.id, inserted.focus.offset);
+    return true;
+  }
+
+  useImperativeHandle(ref, () => ({ captureAnnotationSelection, insertAnnotation, insertWikiLink }));
 
   /** 현재 위치의 뒤에 새 블록을 넣고 원래 구분 공백은 새 블록 뒤로 옮긴다. */
   function insertAfter(index: number, type: BlockType, text = "", offset = 0) {

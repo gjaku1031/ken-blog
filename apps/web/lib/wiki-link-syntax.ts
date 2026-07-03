@@ -13,7 +13,14 @@ const MAX_CANDIDATES = 512;
 const MAX_TITLE_CODEPOINTS = 200;
 const MAX_LABEL_CODEPOINTS = 2048;
 const EXCLUDED = new Set(["code", "inlineCode", "html", "definition", "image", "imageReference", "link"]);
-const INVALID_CHARACTER = /[\u0000-\u001f\u007f-\u009f\u2028\u2029\ud800-\udfff]/;
+const INVALID_CHARACTER = /[\u0000-\u001f\u007f-\u009f\u2028\u2029\ud800-\udfff]/u;
+
+/** 검색·새 글 제목·삽입·저장 메타데이터에 공통으로 쓰는 서버 제목 규칙. */
+export function validWikiTitle(value: string): string | null {
+  const title = value.trim();
+  return title && Array.from(title).length <= MAX_TITLE_CODEPOINTS &&
+    !INVALID_CHARACTER.test(title) && !/[\[\]|]/.test(title) ? title : null;
+}
 
 /** 수식·코드·이미지·기존 링크·HTML·주석 안쪽을 위키 후보에서 제외한다. */
 function excludedMask(source: string): Uint8Array {

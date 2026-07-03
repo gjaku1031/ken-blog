@@ -40,6 +40,13 @@ export type CurrentUser = { username: string; role: "USER" | "ADMIN" };
 export type WikiLinkResult = { requestedTitle: string; status: "LOCKED" | "MISSING" } |
   { requestedTitle: string; status: "READABLE"; id: number; title: string; slug: string };
 
+/** 본문 없이 제공되는 검색·역링크의 읽기 가능한 최소 글 정보. */
+export type WikiTitleItem = { id: number; title: string; slug: string };
+/** 관리자 제목 검색의 7개 결과와 입력 문자열의 정확한 해석. */
+export type WikiTitleSearch = { items: WikiTitleItem[]; exact: WikiLinkResult };
+/** 공개 역링크 한 페이지의 최소 정보. */
+export type WikiBacklinkPage = { items: WikiTitleItem[]; page: number; hasMore: boolean };
+
 /** 클라이언트가 표시할 안전한 요청 실패 분류. */
 export class ApiFailure extends Error {
   /** 내부 URL·본문 없이 상태와 실패 종류만 보관한다. */
@@ -154,6 +161,31 @@ export function parseWikiLinkResults(value: unknown, requested: readonly string[
     return { requestedTitle: item.requestedTitle, status: "READABLE", id: item.id,
       title: item.title, slug: item.slug };
   });
+}
+
+/** 검색·역링크가 본문이나 비공개 메타데이터를 실수로 노출하지 않도록 필드를 제한한다. */
+function parseWikiTitleItem(value: unknown): WikiTitleItem {
+  if (!isRecord(value) || Object.keys(value).length !== 3 ||
+    !Number.isSafeInteger(value.id) || (value.id as number) <= 0 ||
+    typeof value.title !== "string" || !value.title ||
+    typeof value.slug !== "string" || value.slug.length > 160 ||
+    !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value.slug)) throw new ApiFailure("response");
+  return { id: value.id as number, title: value.title, slug: value.slug };
+}
+
+/** 관리자 제목 검색의 정확한 대상과 최대 7개 후보를 검증한다. */
+export function parseWikiTitleSearch(value: unknown, query: string): WikiTitleSearch {
+  if (!isRecord(value) || !Array.isArray(value.items) || value.items.length > 7)
+    throw new ApiFailure("response");
+  const exact = parseWikiLinkResults({ items: [value.exact] }, [query])[0];
+  return { items: value.items.map(parseWikiTitleItem), exact };
+}
+
+/** 요청 페이지와 최대 10개 역링크, 다음 페이지 여부를 확인한다. */
+export function parseWikiBacklinkPage(value: unknown, requestedPage: number): WikiBacklinkPage {
+  if (!isRecord(value) || !Array.isArray(value.items) || value.items.length > 10 ||
+    value.page !== requestedPage || typeof value.hasMore !== "boolean") throw new ApiFailure("response");
+  return { items: value.items.map(parseWikiTitleItem), page: requestedPage, hasMore: value.hasMore };
 }
 
 /** 현재 사용자 DTO의 이름과 역할만 확인한다. */

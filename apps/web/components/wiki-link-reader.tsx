@@ -95,6 +95,7 @@ export function WikiLinkReader({ titles, children }: { titles: readonly string[]
 export function WikiLink({ title, label, raw, interactive = true }: {
   title: string; label: string; raw: string; interactive?: boolean;
 }) {
+  const auth = useAuth();
   const context = useContext(WikiContext);
   if (!context || !context.requested.has(title)) return <span>{raw}</span>;
   const result = context.results.get(title);
@@ -102,8 +103,10 @@ export function WikiLink({ title, label, raw, interactive = true }: {
     title={context.pending ? "글 링크 확인 중" : "글 링크를 확인하지 못했습니다"}>{label}</span>;
   if (result.status === "LOCKED") return <span className="wiki-link wiki-locked"
     title="비공개 글 · 로그인하면 볼 수 있습니다" aria-label={`${label}, 비공개 글, 로그인하면 볼 수 있습니다`}>{label}</span>;
-  if (result.status === "MISSING") return <span className="wiki-link wiki-missing"
-    title="아직 없는 글" aria-label={`${label}, 아직 없는 글`}>{label}</span>;
+  if (result.status === "MISSING") return interactive && auth.status === "authenticated" && auth.user?.role === "ADMIN" ?
+    <Link className="wiki-link wiki-missing" href={`/write/?title=${encodeURIComponent(title)}`}
+      title="아직 없는 글 · 새 글로 작성" aria-label={`${label}, 아직 없는 글, 새 글로 작성`}>{label}</Link> :
+    <span className="wiki-link wiki-missing" title="아직 없는 글" aria-label={`${label}, 아직 없는 글`}>{label}</span>;
   if (result.status !== "READABLE") return <span>{raw}</span>;
   if (!interactive) return <span className="wiki-link wiki-readable" title={`Tech · ${result.title}`}>{label}</span>;
   return <Link className="wiki-link wiki-readable" href={`/post/?slug=${encodeURIComponent(result.slug)}`}

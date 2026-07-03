@@ -9,29 +9,39 @@ import { draftValues, parseAdminCategories, parseAdminPost, parseAdminTags, pars
 import { parseEditorMarkdown, serializeEditorMarkdown, type MarkdownDocument } from "@/lib/editor-markdown";
 import { collectAttachmentIds, type ImageData } from "@/lib/editor-image";
 import { buildEditorAnnotationModel } from "@/lib/editor-annotation";
+import { validWikiTitle } from "@/lib/wiki-link-syntax";
+import { collectWikiTargets } from "@/lib/wiki-targets";
 import { useAuth } from "@/components/auth-provider";
 import { AnnotationReader } from "@/components/annotation-reader";
 import { BlockEditor, type BlockEditorHandle } from "./block-editor";
 import { PublishSheet } from "./publish-sheet";
+import { WikiLinkPicker } from "./wiki-link-picker";
 
-type Route = { kind: "new" } | { kind: "post" | "draft"; id: number } | { kind: "invalid" };
-type Form = Omit<DraftValues, "body" | "attachmentIds"> & { document: MarkdownDocument };
+type Route = { kind: "new"; title: string | null } | { kind: "post" | "draft"; id: number } | { kind: "invalid" };
+type Form = Omit<DraftValues, "body" | "attachmentIds" | "wikiTargets"> & { document: MarkdownDocument };
 type Screen = "loading" | "ready" | "existing" | "error";
 
 /** 정적 검색 쿼리에서 중복·동시 ID와 안전하지 않은 숫자를 거부한다. */
 function routeFromParams(params: URLSearchParams): Route {
   const draft = params.getAll("draftId");
   const post = params.getAll("postId");
-  if (draft.length > 1 || post.length > 1 || (draft.length && post.length) ||
-    [...params.keys()].some((name) => name !== "draftId" && name !== "postId")) return { kind: "invalid" };
+  const titles = params.getAll("title");
+  if (draft.length > 1 || post.length > 1 || titles.length > 1 ||
+    Number(Boolean(draft.length)) + Number(Boolean(post.length)) + Number(Boolean(titles.length)) > 1 ||
+    [...params.keys()].some((name) => name !== "draftId" && name !== "postId" && name !== "title")) return { kind: "invalid" };
   if (draft.length) { const id = positiveId(draft[0]); return id === null ? { kind: "invalid" } : { kind: "draft", id }; }
   if (post.length) { const id = positiveId(post[0]); return id === null ? { kind: "invalid" } : { kind: "post", id }; }
-  return { kind: "new" };
+  if (titles.length) {
+    const title = validWikiTitle(titles[0]);
+    return title && title === titles[0] ? { kind: "new", title } : { kind: "invalid" };
+  }
+  return { kind: "new", title: null };
 }
 
 /** 화면에 남겨 둔 원고 식별자로 정적 주소를 다시 만든다. */
 function routeHref(key: string): string {
   if (key === "new") return "/write/";
+  if (key.startsWith("new:")) return `/write/?title=${encodeURIComponent(key.slice(4))}`;
   const [kind, id] = key.split(":");
   return `/write/?${kind === "post" ? "postId" : "draftId"}=${id}`;
 }
@@ -44,8 +54,8 @@ function savedTime(utc: string): string {
 }
 
 /** 응답이 없는 새 글의 모든 저장 필드를 명시적으로 초기화한다. */
-function blankForm(): Form {
-  return { title: "", slug: "", categoryId: null, tags: [], visibility: "PUBLIC", document: parseEditorMarkdown("") };
+function blankForm(title = ""): Form {
+  return { title, slug: "", categoryId: null, tags: [], visibility: "PUBLIC", document: parseEditorMarkdown("") };
 }
 
 /** 기존 원문을 아직 서버에 저장하지 않은 편집본의 초기 값으로 읽는다. */
@@ -80,7 +90,8 @@ function writeError(error: unknown): string {
 function WriteInstance({ route }: { route: Route }) {
   const auth = useAuth();
   const router = useRouter();
-  const routeKey = route.kind === "new" || route.kind === "invalid" ? route.kind : `${route.kind}:${route.id}`;
+  const routeKey = route.kind === "new" ? route.title ? `new:${route.title}` : "new" :
+    route.kind === "invalid" ? "invalid" : `${route.kind}:${route.id}`;
   const loadedRoute = useRef<string | null>(null);
   const controllers = useRef(new Set<AbortController>());
   const writeGeneration = useRef(0);
@@ -106,6 +117,7 @@ function WriteInstance({ route }: { route: Route }) {
   const [busy, setBusy] = useState<"save" | "publish" | null>(null);
   const [uploading, setUploading] = useState(false);
   const [showPublish, setShowPublish] = useState(false);
+  const [showWikiPicker, setShowWikiPicker] = useState(false);
   const [retry, setRetry] = useState(0);
   const [focusFirstSignal, setFocusFirstSignal] = useState(0);
   const dirty = screen === "ready" && version !== savedVersion;
@@ -152,12 +164,12 @@ function WriteInstance({ route }: { route: Route }) {
     allowRouteSwitch.current = false;
     writeGeneration.current += 1;
     controllers.current.forEach((pending) => pending.abort()); controllers.current.clear();
-    busyLock.current = false; setBusy(null); setShowPublish(false);
+    busyLock.current = false; setBusy(null); setShowPublish(false); setShowWikiPicker(false);
     uploadLock.current = false; setUploading(false);
     uploadController.current = null;
     draftId.current = null; revision.current = null;
     original.current = { postId: null, baseUpdatedAt: null };
-    const cleared = blankForm();
+    const cleared = blankForm(route.kind === "new" ? route.title ?? "" : "");
     formRef.current = cleared; setForm(cleared); versionRef.current = 0; setVersion(0); setSavedVersion(0);
     loadedRoute.current = routeKey;
     const controller = new AbortController();
@@ -194,7 +206,7 @@ function WriteInstance({ route }: { route: Route }) {
         } else {
           draftId.current = null; revision.current = null;
           original.current = { postId: null, baseUpdatedAt: null };
-          nextForm = blankForm(); setSavedAt("");
+          nextForm = blankForm(route.kind === "new" ? route.title ?? "" : ""); setSavedAt("");
         }
         if (controller.signal.aborted) return;
         formRef.current = nextForm; setForm(nextForm); versionRef.current = 0; setVersion(0); setSavedVersion(0);
@@ -274,8 +286,9 @@ function WriteInstance({ route }: { route: Route }) {
     const body = serializeEditorMarkdown(snapshot.document);
     const attachmentIds = collectAttachmentIds(body);
     if (attachmentIds.length > 100) throw new Error("attachment-limit");
+    const wikiTargets = collectWikiTargets(body);
     const values = draftValues({ title: snapshot.title, slug: snapshot.slug,
-      body, attachmentIds, categoryId: snapshot.categoryId,
+      body, attachmentIds, wikiTargets, categoryId: snapshot.categoryId,
       tags: snapshot.tags, visibility: snapshot.visibility });
     const currentId = draftId.current;
     const response = currentId === null ? await auth.adminWrite("POST", "/api/v1/admin/editor-drafts",
@@ -358,10 +371,10 @@ function WriteInstance({ route }: { route: Route }) {
     <p role="alert">API 설정이나 연결을 확인해 주세요.</p><button type="button" className="small-button" onClick={() => void auth.refresh()}>다시 시도</button></main>;
   if (auth.status !== "authenticated" || auth.user?.role !== "ADMIN") return <main id="main-content" className="write-page">
     <h1>관리자 글쓰기</h1>{auth.status === "guest" ? <p>글을 쓰려면 관리자 로그인이 필요합니다. <Link
-      href={`/login/?returnTo=${encodeURIComponent(`/write/${route.kind === "draft" ? `?draftId=${route.id}` : route.kind === "post" ? `?postId=${route.id}` : ""}`)}`}>로그인</Link></p> :
+      href={`/login/?returnTo=${encodeURIComponent(routeHref(routeKey))}`}>로그인</Link></p> :
       <p>이 계정은 글쓰기 권한이 없습니다.</p>}</main>;
   if (route.kind === "invalid") return <main id="main-content" className="write-page"><h1>글쓰기 주소를 확인해 주세요</h1>
-    <p>postId 또는 draftId에 양수 ID 하나만 지정할 수 있습니다.</p><Link href="/admin/drafts/">편집본 목록</Link></main>;
+    <p>postId·draftId 또는 유효한 title 하나만 지정할 수 있습니다.</p><Link href="/admin/drafts/">편집본 목록</Link></main>;
   if (screen === "loading") return <main id="main-content" className="write-page" role="status">원고를 불러오고 있습니다…</main>;
   if (screen === "error") return <main id="main-content" className="write-page"><h1>원고를 열지 못했습니다</h1>
     <p role="alert">{message}</p><button type="button" className="small-button" onClick={() => { loadedRoute.current = null; setRetry((n) => n + 1); }}>다시 시도</button></main>;
@@ -426,9 +439,16 @@ function WriteInstance({ route }: { route: Route }) {
         onPointerDown={() => editorRef.current?.captureAnnotationSelection()}
         onClick={() => { if (!editorRef.current?.insertAnnotation())
           setMessage("글자 조합을 마친 뒤 주석을 삽입해 주세요."); }}>주석 [*]</button>
+      <button type="button" className="small-button" aria-label="글 링크 선택기 열기" disabled={busy !== null || uploading}
+        onPointerDown={() => editorRef.current?.captureAnnotationSelection()}
+        onClick={() => setShowWikiPicker(true)}>글 링크</button>
       <Link href="/admin/drafts/" className="write-drafts-link">임시저장 목록</Link>
       <button type="button" className="small-button" onClick={() => void save()} disabled={busy !== null || uploading}>임시저장</button>
       <button type="button" className="primary-button" onClick={() => setShowPublish(true)} disabled={busy !== null || uploading}>출간하기</button></div>
+    {showWikiPicker && <WikiLinkPicker onClose={() => setShowWikiPicker(false)} onInsert={(title) => {
+      if (editorRef.current?.insertWikiLink(title)) { setShowWikiPicker(false); setMessage("글 링크를 본문에 넣었습니다."); }
+      else setMessage("글자 조합을 마친 뒤 글 링크를 삽입해 주세요.");
+    }} />}
     {showPublish && <PublishSheet title={form.title} slug={form.slug} visibility={form.visibility} busy={busy !== null || uploading} error={message}
       onSlug={(slug) => changeForm((current) => ({ ...current, slug }))}
       onVisibility={(visibility) => changeForm((current) => ({ ...current, visibility }))}

@@ -2,18 +2,23 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { ApiFailure, apiFailureMessage, apiJson, parsePostDetail, type PostDetail } from "@/lib/api";
 import { useAuth } from "./auth-provider";
 import { SafeMarkdown } from "./safe-markdown";
+import { buildReadingDocument } from "@/lib/reading-document";
+import { TableOfContents } from "./table-of-contents";
+import { PostBacklinks } from "./post-backlinks";
 
 type DetailState = { status: "loading" | "ready" | "error"; post: PostDetail | null; privatePost: boolean; error: string };
 
 /** 같은 세션 세대의 실제 공개 상세와 익명 접근 범위를 함께 확인한다. */
 function ReaderInstance({ slug }: { slug: string }) {
-  const { status, user, readCredentials, expire } = useAuth();
+  const { status, user, readCredentials, refresh } = useAuth();
   const [state, setState] = useState<DetailState>({ status: "loading", post: null, privatePost: false, error: "" });
   const [retry, setRetry] = useState(0);
+  const reading = useMemo(() => state.status === "ready" && state.post && !state.post.locked ?
+    buildReadingDocument(state.post.body ?? "") : null, [state]);
 
   useEffect(() => {
     if (status === "checking") return;
@@ -31,12 +36,12 @@ function ReaderInstance({ slug }: { slug: string }) {
         }
         if (live) setState({ status: "ready", post, privatePost, error: "" });
       } catch (error) {
-        if (error instanceof ApiFailure && error.status === 401) expire();
+        if (error instanceof ApiFailure && error.status === 401) void refresh();
         if (live) setState({ status: "error", post: null, privatePost: false, error: apiFailureMessage(error) });
       }
     })();
     return () => { live = false; controller.abort(); };
-  }, [status, readCredentials, expire, slug, retry]);
+  }, [status, readCredentials, refresh, slug, retry]);
 
   return <main id="main-content" className="post-page page-container">
     <Link href="/tech/" className="back-link">← Tech</Link>
@@ -55,7 +60,13 @@ function ReaderInstance({ slug }: { slug: string }) {
       {state.post.locked ? <div className="locked-post card"><h2>로그인이 필요한 글입니다</h2>
         <p>제목과 날짜만 볼 수 있습니다. 본문과 분류·태그는 로그인 후 표시됩니다.</p>
         <Link className="primary-button" href={`/login/?returnTo=${encodeURIComponent(`/post/?slug=${slug}`)}`}>로그인</Link></div> :
-        <SafeMarkdown body={state.post.body ?? ""} source={{ kind: "post", postId: state.post.id }} />}
+        <div className={reading?.toc.length ? "post-reading-layout has-toc" : "post-reading-layout"}>
+          <div className="post-main-content">
+            <SafeMarkdown body={state.post.body ?? ""} source={{ kind: "post", postId: state.post.id }} reading={reading ?? undefined} />
+            <PostBacklinks slug={slug} />
+          </div>
+          {reading && <TableOfContents items={reading.toc} />}
+        </div>}
     </article>}
   </main>;
 }
