@@ -7,7 +7,12 @@ import io.github.gjaku1031.kenblog.post.dto.PostPageResponse
 import io.github.gjaku1031.kenblog.post.dto.PostWriteRequests
 import io.github.gjaku1031.kenblog.post.dto.PostVisibilityRequest
 import io.github.gjaku1031.kenblog.post.dto.PostTaxonomyRequest
+import io.github.gjaku1031.kenblog.post.dto.WikiLinkCorrectionRequest
+import io.github.gjaku1031.kenblog.post.dto.WikiTitleSearchResponse
+import io.github.gjaku1031.kenblog.post.domain.InvalidWikiLinkRequestException
 import io.github.gjaku1031.kenblog.post.service.PostService
+import io.github.gjaku1031.kenblog.post.service.WikiNavigationService
+import jakarta.servlet.http.HttpServletRequest
 import java.net.URI
 import org.springframework.http.CacheControl
 import org.springframework.http.ResponseEntity
@@ -16,7 +21,21 @@ import tools.jackson.databind.JsonNode
 
 /** [PostApi]의 관리자 HTTP 계약을 [PostService]와 공개 DTO에 연결. */
 @RestController
-class PostController(private val service: PostService) : PostApi {
+class PostController(private val service: PostService, private val navigation: WikiNavigationService) : PostApi {
+    /** @return 반복 q를 거부한 본문 없는 관리자 검색 결과. */
+    override fun titleSearch(request: HttpServletRequest): ResponseEntity<WikiTitleSearchResponse> {
+        val values = request.getParameterValues("q") ?: throw InvalidWikiLinkRequestException()
+        if (values.size != 1) throw InvalidWikiLinkRequestException()
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(navigation.titleSearch(values[0]))
+    }
+
+    /** @return 현재 SHA와 일치할 때만 선언을 바꾼 no-store 상세. */
+    override fun wikiLinks(id: Long, request: JsonNode): ResponseEntity<PostDetailResponse> {
+        val input = WikiLinkCorrectionRequest.fromJson(request)
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore())
+            .body(service.replaceWikiLinks(id, input.expectedBodySha256, input.wikiTargets))
+    }
+
     /**
      * 역직렬화된 필수 세 필드를 기존 [PostService.createDraft]로 저장.
      *
@@ -25,7 +44,7 @@ class PostController(private val service: PostService) : PostApi {
      */
     override fun create(request: JsonNode): ResponseEntity<PostDetailResponse> {
         val input = PostWriteRequests.fromJson(request)
-        val response = service.createDraftDetail(input.title, input.slug, input.body, input.attachmentIds)
+        val response = service.createDraftDetail(input.title, input.slug, input.body, input.attachmentIds, input.wikiTargets)
         return ResponseEntity.created(URI.create("/api/v1/admin/posts/${response.id}"))
             .cacheControl(CacheControl.noStore()).body(response)
     }
@@ -64,7 +83,7 @@ class PostController(private val service: PostService) : PostApi {
         if (id <= 0) throw InvalidPostRequestException()
         val input = PostWriteRequests.fromJson(request)
         return ResponseEntity.ok().cacheControl(CacheControl.noStore())
-            .body(service.updateDraftDetail(id, input.title, input.slug, input.body, input.attachmentIds))
+            .body(service.updateDraftDetail(id, input.title, input.slug, input.body, input.attachmentIds, input.wikiTargets))
     }
 
     /**

@@ -12,6 +12,7 @@ import io.github.gjaku1031.kenblog.post.domain.DuplicatePostSlugException
 import io.github.gjaku1031.kenblog.post.domain.InvalidPostDraftException
 import io.github.gjaku1031.kenblog.post.domain.InvalidPostRequestException
 import io.github.gjaku1031.kenblog.post.domain.InvalidWikiLinkRequestException
+import io.github.gjaku1031.kenblog.post.domain.WikiLinkConflictException
 import io.github.gjaku1031.kenblog.post.domain.PostNotFoundException
 import org.springframework.dao.PessimisticLockingFailureException
 import org.springframework.http.HttpHeaders
@@ -34,6 +35,12 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
  */
 @RestControllerAdvice
 class ApiErrorHandler : ResponseEntityExceptionHandler() {
+    /** @return 본문 SHA 불일치인 선언 보정을 입력 노출 없는 HTTP 409로 반환. */
+    @ExceptionHandler(WikiLinkConflictException::class)
+    fun handleWikiLinkConflict(ex: WikiLinkConflictException): ResponseEntity<ProblemDetail> =
+        ResponseEntity.status(HttpStatus.CONFLICT)
+            .body(ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, "게시글 본문이 변경됐습니다."))
+
     /** @return 제목 배열·문자·길이 오류를 원문 없이 고정 HTTP 400으로 반환. */
     @ExceptionHandler(InvalidWikiLinkRequestException::class)
     fun handleWikiLinkInput(ex: InvalidWikiLinkRequestException): ResponseEntity<ProblemDetail> =

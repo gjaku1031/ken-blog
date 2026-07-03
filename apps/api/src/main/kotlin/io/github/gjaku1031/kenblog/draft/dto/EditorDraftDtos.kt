@@ -7,6 +7,7 @@ import io.github.gjaku1031.kenblog.draft.domain.InvalidEditorDraftRequestExcepti
 import io.github.gjaku1031.kenblog.post.domain.InvalidPostRequestException
 import io.github.gjaku1031.kenblog.post.domain.PostVisibility
 import io.github.gjaku1031.kenblog.post.domain.TagNames
+import io.github.gjaku1031.kenblog.post.dto.WikiDeclarations
 import io.swagger.v3.oas.annotations.media.Schema
 import java.time.LocalDateTime
 import java.time.format.DateTimeParseException
@@ -35,6 +36,8 @@ data class EditorDraftCreateRequest(
     val visibility: PostVisibility,
     @field:Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, types = ["array", "null"], description = "선택적 READY 첨부 ID 최대 100개; 원본 편집 생성 시 생략하면 상속")
     val attachmentIds: List<Long>?,
+    @field:Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, types = ["array", "null"], description = "선택적 위키 대상 제목 최대 128개")
+    val wikiTargets: List<String>?,
 ) {
     /** @return 정규화·상한 검사를 마친 내용 값. */
     fun values(): EditorDraftValues = EditorDraftValues(title, slug, body, categoryId, tags, visibility)
@@ -58,6 +61,8 @@ data class EditorDraftUpdateRequest(
     val visibility: PostVisibility,
     @field:Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, types = ["array", "null"], description = "선택적 READY 첨부 ID 최대 100개; 생략하면 기존 연결 유지")
     val attachmentIds: List<Long>?,
+    @field:Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, types = ["array", "null"], description = "선택적 위키 대상 제목 최대 128개")
+    val wikiTargets: List<String>?,
 ) {
     /** @return 검증한 전체 교체 내용 값. */
     fun values(): EditorDraftValues = EditorDraftValues(title, slug, body, categoryId, tags, visibility)
@@ -87,6 +92,7 @@ data class EditorDraftDetailResponse(
     val createdAt: LocalDateTime,
     val updatedAt: LocalDateTime,
     val attachmentIds: List<Long>,
+    val wikiTargets: List<String>,
 )
 
 /** 본문 열을 읽지 않는 관리자 편집본 목록의 한 행. */
@@ -134,9 +140,9 @@ data class EditorDraftPageResponse(
 )
 
 /** 엔티티 내부 직렬화 방식은 응답에 노출하지 않고 태그 배열로 변환. */
-fun EditorDraftEntity.response(attachmentIds: List<Long>): EditorDraftDetailResponse = EditorDraftDetailResponse(
+fun EditorDraftEntity.response(attachmentIds: List<Long>, wikiTargets: List<String>): EditorDraftDetailResponse = EditorDraftDetailResponse(
     id ?: error("Persisted editor draft has no ID"), revision, postId, baseUpdatedAt,
-    title, slug, body, categoryId, tags(), visibility, createdAt, updatedAt, attachmentIds,
+    title, slug, body, categoryId, tags(), visibility, createdAt, updatedAt, attachmentIds, wikiTargets,
 )
 
 /** Jackson 문자열·숫자 강제 변환 전에 실제 JSON 노드 타입과 입력 상한을 확인. */
@@ -149,7 +155,8 @@ object EditorDraftRequests {
         if ((postId == null) != (base == null)) throw InvalidEditorDraftRequestException()
         val values = values(node)
         return EditorDraftCreateRequest(postId, base, values.title, values.slug, values.body,
-            values.categoryId, values.tags, values.visibility, AttachmentIds.parse(node.get("attachmentIds")))
+            values.categoryId, values.tags, values.visibility, AttachmentIds.parse(node.get("attachmentIds")),
+            WikiDeclarations.parse(node.get("wikiTargets")))
     }
 
     /** @return revision과 전체 내용이 있는 갱신 요청. */
@@ -158,7 +165,8 @@ object EditorDraftRequests {
         val revision = revision(node)
         val values = values(node)
         return EditorDraftUpdateRequest(revision, values.title, values.slug, values.body,
-            values.categoryId, values.tags, values.visibility, AttachmentIds.parse(node.get("attachmentIds")))
+            values.categoryId, values.tags, values.visibility, AttachmentIds.parse(node.get("attachmentIds")),
+            WikiDeclarations.parse(node.get("wikiTargets")))
     }
 
     /** @return 현재 화면의 0 이상 revision을 가진 출간 요청. */

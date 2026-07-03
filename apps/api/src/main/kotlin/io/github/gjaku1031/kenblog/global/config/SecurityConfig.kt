@@ -153,6 +153,13 @@ class SecurityConfig {
                 allowCredentials = true
                 maxAge = 600
             }
+            source.registerCorsConfiguration("/api/v1/admin/posts/*/wiki-links", CorsConfiguration().apply {
+                allowedOrigins = authOrigins
+                allowedMethods = listOf("PUT")
+                allowedHeaders = listOf("Accept", "Content-Type", "X-CSRF-TOKEN")
+                allowCredentials = true
+                maxAge = 600
+            })
             source.registerCorsConfiguration("/api/v1/admin/posts", adminReadCors)
             source.registerCorsConfiguration("/api/v1/admin/posts/**", adminReadCors)
             source.registerCorsConfiguration("/api/v1/admin/categories", adminReadCors)
@@ -210,6 +217,7 @@ class SecurityConfig {
         .authorizeHttpRequests {
             it.requestMatchers(HttpMethod.GET, "/api/v1/status", "/actuator/health", "/v3/api-docs", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
             it.requestMatchers(HttpMethod.GET, "/api/v1/posts", "/api/v1/posts/*").permitAll()
+            it.requestMatchers(HttpMethod.GET, "/api/v1/posts/*/backlinks").permitAll()
             it.requestMatchers(HttpMethod.GET, "/api/v1/posts/*/attachments/*/content").permitAll()
             it.requestMatchers(HttpMethod.GET, "/api/v1/categories", "/api/v1/tags").permitAll()
             it.requestMatchers(HttpMethod.GET, "/api/v1/wiki-links/resolve").permitAll()

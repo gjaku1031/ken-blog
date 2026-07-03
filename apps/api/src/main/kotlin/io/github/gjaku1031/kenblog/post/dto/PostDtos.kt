@@ -18,6 +18,7 @@ import tools.jackson.databind.JsonNode
  * @property slug 소문자 ASCII 형식으로 정규화할 주소
  * @property body 빈 문자열도 허용하는 원문 본문
  * @property attachmentIds 생략·null이면 기존 연결 유지, 명시적 배열이면 전체 교체
+ * @property wikiTargets 명시적 위키 대상 제목; 생략·null은 본문 변경 여부에 따라 유지 또는 해제
  */
 data class PostWriteRequest(
     @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["string"], description = "1~200자 제목")
@@ -28,6 +29,8 @@ data class PostWriteRequest(
     val body: String,
     @field:Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, types = ["array", "null"], description = "선택적 READY 첨부 ID 최대 100개; 새 글 생략 시 빈 연결")
     val attachmentIds: List<Long>? = null,
+    @field:Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, types = ["array", "null"], description = "선택적 위키 대상 제목 최대 128개")
+    val wikiTargets: List<String>? = null,
 )
 
 /** 관리자 게시글 JSON의 문자열과 선택적 첨부 목록을 강제 변환 없이 파싱. */
@@ -36,7 +39,7 @@ object PostWriteRequests {
     fun fromJson(node: JsonNode): PostWriteRequest {
         if (!node.isObject) throw InvalidPostRequestException()
         return PostWriteRequest(string(node, "title"), string(node, "slug"), string(node, "body"),
-            AttachmentIds.parse(node.get("attachmentIds")))
+            AttachmentIds.parse(node.get("attachmentIds")), WikiDeclarations.parse(node.get("wikiTargets")))
     }
 
     /** @return 누락·null·숫자 강제 변환을 거부한 필수 문자열. */
@@ -84,6 +87,7 @@ data class PostVisibilityRequest(
  * @property category 현재 분류 참조, 미지정이면 `null`
  * @property tags 입력 순서대로 저장된 정규화 태그
  * @property attachmentIds 글에 연결하도록 선언된 첨부 ID의 오름차순 목록
+ * @property wikiTargets 작성자가 선언한 대상 제목의 원래 순서 목록
  */
 data class PostDetailResponse(
     val id: Long,
@@ -98,6 +102,7 @@ data class PostDetailResponse(
     val category: CategoryRefResponse?,
     val tags: List<String>,
     val attachmentIds: List<Long>,
+    val wikiTargets: List<String>,
 )
 
 /**

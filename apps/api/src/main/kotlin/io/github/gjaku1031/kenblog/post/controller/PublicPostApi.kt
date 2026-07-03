@@ -2,6 +2,7 @@ package io.github.gjaku1031.kenblog.post.controller
 
 import io.github.gjaku1031.kenblog.post.dto.PublicPostDetailResponse
 import io.github.gjaku1031.kenblog.post.dto.PublicPostPageResponse
+import io.github.gjaku1031.kenblog.post.dto.WikiBacklinkPageResponse
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.media.Content
@@ -24,6 +25,24 @@ import org.springframework.web.bind.annotation.RequestParam
  */
 @RequestMapping("/api/v1/posts")
 interface PublicPostApi {
+    /**
+     * 현재 제목의 대표 출간 글로 향하는 읽기 가능 출처를 본문 없이 10개씩 반환.
+     * @return no-store 역링크 한 페이지와 다음 페이지 여부
+     */
+    @GetMapping("/{slug}/backlinks", produces = [MediaType.APPLICATION_JSON_VALUE])
+    @Operation(summary = "출간 글 역링크", description = "현재 제목 대표 대상이 아니면 빈 목록; 익명은 PUBLIC 출처만 조회")
+    @ApiResponses(value = [
+        ApiResponse(responseCode = "200", content = [Content(schema = Schema(implementation = WikiBacklinkPageResponse::class))]),
+        ApiResponse(responseCode = "400", description = "페이지 입력 오류", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
+        ApiResponse(responseCode = "404", description = "대상 없음·초안·익명 PRIVATE", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
+        ApiResponse(responseCode = "503", description = "DB 장애", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
+    ])
+    fun backlinks(
+        @PathVariable("slug") slug: String,
+        @RequestParam(defaultValue = "0") page: Int,
+        @Parameter(hidden = true) authentication: Authentication?,
+    ): ResponseEntity<WikiBacklinkPageResponse>
+
     /**
      * 권한별 목록·건수를 조회하고 본문 없는 페이지를 반환.
      *

@@ -8,6 +8,7 @@ import io.github.gjaku1031.kenblog.post.dto.AdminPostRow
 import io.github.gjaku1031.kenblog.post.dto.PublicPostCacheRow
 import io.github.gjaku1031.kenblog.post.dto.PublishedPostRow
 import io.github.gjaku1031.kenblog.post.dto.WikiLinkTargetRow
+import io.github.gjaku1031.kenblog.post.dto.WikiNavigationRow
 import io.github.gjaku1031.kenblog.post.service.PostService
 import io.github.gjaku1031.kenblog.category.dto.CategoryPostCountRow
 import jakarta.persistence.LockModeType
@@ -160,6 +161,39 @@ interface PostRepository : JpaRepository<PostEntity, Long> {
         nativeQuery = true,
     )
     fun findWikiLinkTarget(@Param("title") title: String): WikiLinkTargetRow?
+
+    /** @return slug로 찾은 출간 대상의 본문 없는 현재 최소 메타데이터. */
+    @Query(value = "select p.id as id, p.title as title, p.slug as slug, p.visibility as visibility " +
+        "from posts p where p.slug = :slug and p.status = 'PUBLISHED'", nativeQuery = true)
+    fun findPublishedWikiTargetBySlug(@Param("slug") slug: String): WikiLinkTargetRow?
+
+    /**
+     * 검색어를 SQL 와일드카드로 해석하지 않고 본문 없는 대표 제목만 최대 7개 반환.
+     * 동일 제목의 대표는 위키 resolve와 같은 최초 출간 시각·ID 순서임.
+     */
+    @Query(value = "select p.id as id, p.title as title, p.slug as slug from posts p " +
+        "where p.status = 'PUBLISHED' and locate(cast(lower(:query) as binary), cast(lower(p.title) as binary)) > 0 " +
+        "and not exists (select 1 from posts older where older.status = 'PUBLISHED' " +
+        "and cast(lower(older.title) as binary) = cast(lower(p.title) as binary) " +
+        "and (older.published_at < p.published_at or (older.published_at = p.published_at and older.id < p.id))) " +
+        "order by p.published_at desc, p.id desc limit 7", nativeQuery = true)
+    fun searchCanonicalTitles(@Param("query") query: String): List<WikiNavigationRow>
+
+    /**
+     * SQL 출간·가시성 필터 뒤 명시적 참조만 조회; 본문·초안 열을 읽지 않음.
+     * 페이지마다 11개를 읽어 마지막 하나로 다음 페이지 여부만 판단함.
+     */
+    @Query(value = "select p.id as id, p.title as title, p.slug as slug from posts p " +
+        "where p.status = 'PUBLISHED' and p.id <> :targetId and (:includePrivate = true or p.visibility = 'PUBLIC') " +
+        "and exists (select 1 from post_wiki_links w where w.post_id = p.id " +
+        "and cast(lower(w.target_title) as binary) = cast(lower(:targetTitle) as binary)) " +
+        "order by p.published_at desc, p.id desc limit 11 offset :offset", nativeQuery = true)
+    fun findBacklinkRows(
+        @Param("targetId") targetId: Long,
+        @Param("targetTitle") targetTitle: String,
+        @Param("includePrivate") includePrivate: Boolean,
+        @Param("offset") offset: Int,
+    ): List<WikiNavigationRow>
 
     /** @return 관리자 또는 공개 역할 조건에서 분류별 직접 글 수를 계산한 [CategoryPostCountRow] 목록. */
     @Query("select new io.github.gjaku1031.kenblog.category.dto.CategoryPostCountRow(p.categoryId, count(p)) " +

@@ -5,6 +5,9 @@ import io.github.gjaku1031.kenblog.post.dto.PostPageResponse
 import io.github.gjaku1031.kenblog.post.dto.PostWriteRequest
 import io.github.gjaku1031.kenblog.post.dto.PostVisibilityRequest
 import io.github.gjaku1031.kenblog.post.dto.PostTaxonomyRequest
+import io.github.gjaku1031.kenblog.post.dto.WikiLinkCorrectionRequest
+import io.github.gjaku1031.kenblog.post.dto.WikiTitleSearchResponse
+import jakarta.servlet.http.HttpServletRequest
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.Parameter
 import io.swagger.v3.oas.annotations.enums.ParameterIn
@@ -35,6 +38,35 @@ import tools.jackson.databind.JsonNode
 @RequestMapping("/api/v1/admin/posts")
 @SecurityRequirement(name = "sessionCookie")
 interface PostApi {
+    /** @return 출간 제목 최대 7개와 입력 제목의 정확한 위키 해석. */
+    @GetMapping("/title-search", produces = [MediaType.APPLICATION_JSON_VALUE])
+    @Operation(summary = "관리자 출간 글 제목 부분 검색", parameters = [Parameter(name = "q", `in` = ParameterIn.QUERY,
+        required = true, description = "공백 제거 후 1~200 Unicode codepoints, 와일드카드 해석 없음")])
+    @ApiResponses(value = [
+        ApiResponse(responseCode = "200", content = [Content(schema = Schema(implementation = WikiTitleSearchResponse::class))]),
+        ApiResponse(responseCode = "400", description = "검색어 오류", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
+        ApiResponse(responseCode = "401", description = "인증 필요", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
+        ApiResponse(responseCode = "403", description = "관리자 권한 필요", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
+        ApiResponse(responseCode = "503", description = "DB 장애", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
+    ])
+    fun titleSearch(@Parameter(hidden = true) request: HttpServletRequest): ResponseEntity<WikiTitleSearchResponse>
+
+    /** @return 본문 SHA 일치 시 선언만 변경한 관리자 상세. */
+    @PutMapping("/{id}/wiki-links", consumes = [MediaType.APPLICATION_JSON_VALUE], produces = [MediaType.APPLICATION_JSON_VALUE])
+    @Operation(summary = "관리자 기존 글 위키 연결 보정", parameters = [Parameter(name = "X-CSRF-TOKEN", `in` = ParameterIn.HEADER, required = true)])
+    @ApiResponses(value = [
+        ApiResponse(responseCode = "200", content = [Content(schema = Schema(implementation = PostDetailResponse::class))]),
+        ApiResponse(responseCode = "400", description = "ID·본문 SHA·선언 입력 오류", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
+        ApiResponse(responseCode = "401", description = "인증 필요", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
+        ApiResponse(responseCode = "403", description = "관리자 권한 또는 CSRF 필요", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
+        ApiResponse(responseCode = "404", description = "게시글 없음", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
+        ApiResponse(responseCode = "409", description = "현재 본문 버전 불일치", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
+        ApiResponse(responseCode = "503", description = "DB 장애", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
+    ])
+    fun wikiLinks(@PathVariable("id") id: Long, @RequestBody @io.swagger.v3.oas.annotations.parameters.RequestBody(
+        required = true, content = [Content(schema = Schema(implementation = WikiLinkCorrectionRequest::class))],
+    ) request: JsonNode): ResponseEntity<PostDetailResponse>
+
     /**
      * 필수 JSON 세 필드로 초안을 생성.
      *

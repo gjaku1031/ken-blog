@@ -2,7 +2,9 @@ package io.github.gjaku1031.kenblog.post.controller
 
 import io.github.gjaku1031.kenblog.post.dto.PublicPostDetailResponse
 import io.github.gjaku1031.kenblog.post.dto.PublicPostPageResponse
+import io.github.gjaku1031.kenblog.post.dto.WikiBacklinkPageResponse
 import io.github.gjaku1031.kenblog.post.service.PublicPostService
+import io.github.gjaku1031.kenblog.post.service.WikiNavigationService
 import org.springframework.http.CacheControl
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.Authentication
@@ -10,7 +12,11 @@ import org.springframework.web.bind.annotation.RestController
 
 /** [PublicPostApi] 요청을 권한별 [PublicPostService] 조회에 연결. */
 @RestController
-class PublicPostController(private val service: PublicPostService) : PublicPostApi {
+class PublicPostController(private val service: PublicPostService, private val navigation: WikiNavigationService) : PublicPostApi {
+    /** @return 현재 권한과 대상 제목 대표 여부를 검증한 no-store 역링크 페이지. */
+    override fun backlinks(slug: String, page: Int, authentication: Authentication?): ResponseEntity<WikiBacklinkPageResponse> =
+        ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(navigation.backlinks(slug, page, authentication))
+
     /**
      * 익명과 로그인 세션의 목록 필터를 서비스에 전달.
      *

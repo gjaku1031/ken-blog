@@ -12,6 +12,7 @@ import io.github.gjaku1031.kenblog.post.domain.PostNotFoundException
 import io.github.gjaku1031.kenblog.post.domain.PostVisibility
 import io.github.gjaku1031.kenblog.post.domain.PostTagEntity
 import io.github.gjaku1031.kenblog.post.domain.TagNames
+import io.github.gjaku1031.kenblog.post.domain.WikiLinkConflictException
 import io.github.gjaku1031.kenblog.post.dto.PostDetailResponse
 import io.github.gjaku1031.kenblog.post.dto.PostPageResponse
 import io.github.gjaku1031.kenblog.post.dto.PostSummaryResponse
@@ -51,6 +52,7 @@ class PostService(
     private val tags: PostTagRepository,
     private val taxonomy: PostTaxonomyMetadata,
     private val attachmentLinks: AttachmentLinkService,
+    private val wikiLinks: WikiLinkMetadata,
 ) {
     /**
      * 제목과 slug를 정규화한 후 초안을 원자적으로 저장.
@@ -226,13 +228,16 @@ class PostService(
      * 생략·null 목록은 빈 연결, 명시적 목록은 READY 확인 후 선언함.
      *
      * @param attachmentIds 선택적 첨부 ID 전체 목록
+     * @param wikiTargets 선택적 제목 선언; 새 글에서 생략하면 빈 연결
      * @return taxonomy와 이미지 연결을 포함한 커밋 예정 [PostDetailResponse]
      * @throws io.github.gjaku1031.kenblog.attachment.domain.AttachmentFailure ID가 없거나 READY가 아닐 때
      */
     @Transactional
-    fun createDraftDetail(title: String, slug: String, body: String, attachmentIds: List<Long>? = null): PostDetailResponse {
+    fun createDraftDetail(title: String, slug: String, body: String, attachmentIds: List<Long>? = null,
+        wikiTargets: List<String>? = null): PostDetailResponse {
         val post = createDraft(title, slug, body)
         attachmentLinks.replacePost(post.id ?: error("Persisted post has no ID"), attachmentIds ?: emptyList())
+        wikiLinks.replacePost(post.id ?: error("Persisted post has no ID"), wikiTargets ?: emptyList())
         return post.adminDetail()
     }
 
@@ -241,13 +246,30 @@ class PostService(
      * 생략·null은 기존 연결 유지, 빈 목록은 전부 해제함.
      *
      * @param attachmentIds 선택적 첨부 ID 전체 목록
+     * @param wikiTargets 명시 배열은 전체 교체; 생략하면 본문 변경 시 해제·동일 본문 시 유지
      * @return 기존 또는 교체된 연결을 포함한 커밋 예정 [PostDetailResponse]
      * @throws io.github.gjaku1031.kenblog.attachment.domain.AttachmentFailure ID가 없거나 READY가 아닐 때
      */
     @Transactional
-    fun updateDraftDetail(id: Long, title: String, slug: String, body: String, attachmentIds: List<Long>? = null): PostDetailResponse {
+    fun updateDraftDetail(id: Long, title: String, slug: String, body: String, attachmentIds: List<Long>? = null,
+        wikiTargets: List<String>? = null): PostDetailResponse {
+        if (id <= 0) throw InvalidPostRequestException()
+        val previousBody = (repository.findLockedById(id) ?: throw PostNotFoundException()).body
         val post = updateDraft(id, title, slug, body)
         if (attachmentIds != null) attachmentLinks.replacePost(id, attachmentIds)
+        if (wikiTargets != null || previousBody != body) wikiLinks.replacePost(id, wikiTargets ?: emptyList())
+        return post.adminDetail()
+    }
+
+    /**
+     * 본문 SHA-256을 잠긴 부모 행에서 확인하고 본문·updatedAt은 건드리지 않은 채 선언만 교체.
+     * @throws WikiLinkConflictException 본문이 보정 도구의 조회 뒤 변경됐을 때
+     */
+    @Transactional
+    fun replaceWikiLinks(id: Long, expectedBodySha256: String, wikiTargets: List<String>): PostDetailResponse {
+        val post = lockedPost(id)
+        if (post.bodySha256 != expectedBodySha256) throw WikiLinkConflictException()
+        wikiLinks.replacePost(id, wikiTargets)
         return post.adminDetail()
     }
 
@@ -337,7 +359,7 @@ class PostService(
         val postId = id ?: error("Persisted post has no ID")
         val view = taxonomy.one(postId, categoryId)
         return PostDetailResponse(postId, title, slug, body, createdAt, updatedAt,
-            status, visibility, publishedAt, view.category, view.tags, attachmentLinks.postIds(postId))
+            status, visibility, publishedAt, view.category, view.tags, attachmentLinks.postIds(postId), wikiLinks.postTitles(postId))
     }
 
     /**
