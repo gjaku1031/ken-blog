@@ -1,6 +1,6 @@
 # 현재 작업
 
-- 우선 작업: [P1-02B — Spring Data JPA Repository 전환과 도입 이력 정정](issues/P1-02B.md). 구현·기존 28개 검사·격리 HTTP·이력 재작성 완료. 원격 반영 대기. 기존 P1-03 미완료 계획은 별도 보존.
+- 우선 작업: [P1-02B — Spring Data JPA Repository 전환과 도입 이력 정정](issues/P1-02B.md). 구현·기존 28개 검사·격리 HTTP·31개 이력 재작성·main·CI·Pages 반영 완료. 원래 author date 유지, 실제 재작성·push는 2026-09-25. 기존 P1-03 미완료 계획은 별도 보존.
 
 - 완료 계획: [P1-02A — 로그인 세션 저장소를 MySQL로 전환](issues/P1-02A.md).
 - 상태: **구현·격리 HTTP 검증·Buildpacks·main·CI·Pages 반영 완료.**
