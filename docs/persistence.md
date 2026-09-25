@@ -35,7 +35,7 @@ API 이미지는 [실행 안내](runtime.md)의 Buildpacks 명령으로 현재 �
 
 ## 검증
 
-현재 `cd apps/api && ./mvnw -B -ntp clean verify`는 Testcontainers가 별도의 임시 MySQL 8.4.11을 시작해 MVC·영속화·인증 테스트를 실행하도록 구성. 테스트 DB는 개발 Compose의 DB·볼륨과 격리. Docker 접근 필요, H2 사용 없음. 게시글 테스트는 빈 DB에 V1~V3 적용 및 Hibernate 검증, 제목/slug/본문 경계, ID·slug 재조회, 고유 제약 충돌, 여러 저장을 묶은 트랜잭션 롤백, 같은 DB에 두 번째 `migrate()` 실행 시 적용 건수 0을 확인. CI는 이 테스트 뒤 일회용 MySQL 서비스에 패키징한 jar를 연결해 HTTP health를 검사. [P1-02A 원격 CI](https://github.com/gjaku1031/ken-blog/actions/runs/36151614912)에서는 기존 28개 테스트가 실패·오류·건너뜀 없이 완료.
+현재 `cd apps/api && ./mvnw -B -ntp clean verify`는 Testcontainers가 별도의 임시 MySQL 8.4.11을 시작해 MVC·영속화·인증 테스트를 실행하도록 구성. 테스트 DB는 개발 Compose의 DB·볼륨과 격리. Docker 접근 필요, H2 사용 없음. 게시글 테스트는 빈 DB에 V1~V3 적용 및 Hibernate 검증, 제목/slug/본문 경계, ID·slug 재조회, 고유 제약 충돌, 여러 저장을 묶은 트랜잭션 롤백, 같은 DB에 두 번째 `migrate()` 실행 시 적용 건수 0을 확인. CI는 이 테스트 뒤 일회용 MySQL 서비스에 패키징한 jar를 연결해 HTTP health를 검사. [P1-02A 원격 CI](https://github.com/gjaku1031/ken-blog/actions/runs/36151614912)에서는 기존 28개 테스트가 실패·오류·건너뜀 없이 완료. 이 CI 결과와 아래 P1-01 기록은 이력 정정 전 `EntityManager` 저장소의 실제 검증 증거이며, 새 `JpaRepository` 구현의 검증 결과로 바꾸어 해석하지 않음.
 
 이전 P1-01 단계에서 2026-09-25 ARM64·Docker 29.8.1의 `clean verify` 21개(기존 MVC 15개, 저장 6개) 모두 통과. `spring-boot:build-image -DskipTests`로 당시 API 이미지 빌드 성공. 별도 `ken-blog-p101-verify` Compose 프로젝트의 MySQL·API를 기동해 `/actuator/health` `UP` 확인. 개발 볼륨에 확인용 행 1개를 넣고 `down` 후 재기동했을 때 행 1개와 성공한 Flyway V1 이력 1개가 유지되고, 앱 로그에 `Schema ... is up to date. No migration necessary.` 표시. 검증 프로젝트의 컨테이너·네트워크·전용 볼륨은 검증 후 제거; 기존 8080 앱과 Redis는 유지. [원격 CI](https://github.com/gjaku1031/ken-blog/actions/runs/36137705283)에서도 API·Web 작업 성공 확인.
 
