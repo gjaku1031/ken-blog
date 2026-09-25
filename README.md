@@ -81,7 +81,7 @@ NEXT_PUBLIC_BASE_PATH=/ken-blog npm run build
 
 Spring API 이미지는 Buildpacks로 생성. 개발 Compose는 API·MySQL을 실행하며 Web Docker 구성 없음. 포트는 로컬 주소에만 연결. 이 구성은 새 프로젝트의 격리 검증용이며 기존 VM 앱·Redis를 교체한 상태가 아님. 공개 HTTPS API 배포는 아직 수행하지 않음.
 
-Pages에 포함될 아키텍처 도면 자산도 갱신했으나 공개 API 배포나 브라우저 첨부 UI 연결은 수행하지 않음. 공개 Pages의 API 주소 미설정과 로그인 화면 부재는 유지.
+Pages의 아키텍처 도면 자산도 갱신했으나 공개 API 배포나 브라우저 첨부 UI 연결은 수행하지 않음. 공개 Pages의 API 주소 미설정과 로그인 화면 부재는 유지.
 
 [도면 설명과 원본](docs/architecture.md)은 정적 프론트 배포, 로컬 MySQL 게시글·계정·세션·첨부 메타데이터, 비공개 OCI Object Storage의 관리자 첨부 경로와 후속 공개 HTTPS 연결·공개 글 캐시를 구분.
 

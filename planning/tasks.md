@@ -1,6 +1,6 @@
 # 현재 작업
 
-- [P1-03 — OCI Object Storage 이미지 첨부 기반](issues/P1-03.md): 사용자 승인 범위의 구현·로컬 검증 완료. main·CI·Pages 반영 진행.
+- [P1-03 — OCI Object Storage 이미지 첨부 기반](issues/P1-03.md): 사용자 승인 범위의 구현·격리 검증·main 직접 push·CI·Pages 완료.
 - 선행 [P1-02B](issues/P1-02B.md): JpaRepository 전환·도입 이력 정정·기존 28개 검사·main·CI·Pages 완료.
 - 인증은 Spring Security·Spring Session JDBC·MySQL 유지. Redis Cloud는 후속 공개 데이터 캐시용.
 
@@ -13,7 +13,8 @@
 - 검증 DB 연결 중단 시 30.0초 뒤 503 ProblemDetail, 복구 후 기존 세션 유지.
 - Buildpacks 실행 이미지의 격리 Compose에서도 실제 업로드·다운로드·삭제 성공. Swagger multipart 경로 확인.
 - 검증 객체·DB 행·API·MySQL·Compose 전용 볼륨 정리 완료. 라이트/다크 도면과 로컬 학습 문서 갱신.
-- 원격 CI·Pages 결과는 push 후 기록.
+- `e184799`의 [CI](https://github.com/gjaku1031/ken-blog/actions/runs/36169981879): 기존 API 28개·Web 7개, 빌드·HTTP 확인 성공. [Pages](https://github.com/gjaku1031/ken-blog/actions/runs/36169981884) 배포 성공. 공개 홈 200·API 미설정 문구·도면 4개 바이트 일치 확인.
+- Author date: 6월 3일 기능 2개, 6월 5일 문서 1개. 실제 검증·push: 2026-09-25 UTC(한국시간 9월 26일). 원격 결과 기록 커밋은 실제 날짜 사용.
 
 ## 실제 배포와의 구분
 
