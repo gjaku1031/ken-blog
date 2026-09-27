@@ -11,6 +11,7 @@ import io.github.gjaku1031.kenblog.category.repository.CategoryRepository
 import io.github.gjaku1031.kenblog.post.domain.PostStatus
 import io.github.gjaku1031.kenblog.post.domain.PostVisibility
 import io.github.gjaku1031.kenblog.post.repository.PostRepository
+import io.github.gjaku1031.kenblog.post.repository.ContentStateRepository
 import java.util.Locale
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.dao.PessimisticLockingFailureException
@@ -18,9 +19,10 @@ import org.springframework.security.core.Authentication
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
-/** 경로 생성·하위 글 이동 삭제·권한별 분류 트리 집계를 담당하는 구체 서비스. */
+/** 경로 생성·형제 순서·하위 글 이동 삭제·권한별 분류 트리 집계를 담당하는 구체 서비스. */
 @Service
-class CategoryService(private val categories: CategoryRepository, private val posts: PostRepository) {
+class CategoryService(private val categories: CategoryRepository, private val posts: PostRepository,
+    private val state: ContentStateRepository) {
     /**
      * 경로의 기존 중간 폴더를 잠가 재사용하고 없는 단계를 한 트랜잭션에서 생성.
      *
@@ -33,6 +35,7 @@ class CategoryService(private val categories: CategoryRepository, private val po
     fun create(path: String): CategoryRefResponse {
         val segments = normalizePath(path)
         return try {
+            lockTree()
             var parent: CategoryEntity? = null
             var currentPath = ""
             for ((index, segment) in segments.withIndex()) {
@@ -42,7 +45,11 @@ class CategoryService(private val categories: CategoryRepository, private val po
                     if (index == segments.lastIndex) throw CategoryConflictException()
                     parent = existing
                 } else {
-                    parent = categories.saveAndFlush(CategoryEntity(parent?.id, currentPath, segment.name, index + 1))
+                    val siblings = categories.findSiblings(parent?.id)
+                    val last = siblings.maxOfOrNull { it.sortOrder } ?: 0
+                    if (last == Int.MAX_VALUE) throw CategoryConflictException()
+                    parent = categories.saveAndFlush(CategoryEntity(parent?.id, currentPath, segment.name,
+                        index + 1, last + 1))
                 }
             }
             parent!!.reference()
@@ -67,6 +74,7 @@ class CategoryService(private val categories: CategoryRepository, private val po
     fun delete(id: Long) {
         if (id <= 0) throw InvalidCategoryRequestException()
         try {
+            lockTree()
             val target = categories.findLockedById(id) ?: throw CategoryNotFoundException()
             val subtree = categories.findSubtreeLocked(target.path, "${target.path}/%")
             posts.moveCategories(subtree.mapNotNull { it.id }, target.parentId)
@@ -83,6 +91,36 @@ class CategoryService(private val categories: CategoryRepository, private val po
     }
 
     /**
+     * 같은 부모의 현재 직계 자식 ID 전체와 정확히 일치하는 순열만 저장.
+     * [create]·[delete]와 단일 상태 행을 먼저 잠가 새 형제나 삭제 경합을 직렬화함.
+     *
+     * @throws InvalidCategoryRequestException 중복·양수가 아닌 ID·과도한 목록일 때
+     * @throws CategoryNotFoundException 양수 부모가 이미 없을 때
+     * @throws CategoryConflictException 누락·다른 부모의 ID 또는 잠금 경합일 때
+     */
+    @Transactional
+    fun reorder(parentId: Long?, categoryIds: List<Long>) {
+        if ((parentId != null && parentId <= 0) || categoryIds.size > 10_000 ||
+            categoryIds.any { it <= 0 } || categoryIds.toSet().size != categoryIds.size)
+            throw InvalidCategoryRequestException()
+        try {
+            lockTree()
+            if (parentId != null) categories.findLockedById(parentId) ?: throw CategoryNotFoundException()
+            val siblings = categories.findSiblings(parentId)
+            val currentIds = siblings.map { it.id ?: error("Persisted category has no ID") }
+            if (categoryIds.size != currentIds.size || categoryIds.toSet() != currentIds.toSet())
+                throw CategoryConflictException()
+            val byId = siblings.associateBy { it.id!! }
+            categoryIds.forEachIndexed { index, id -> byId.getValue(id).reorder(index + 1) }
+            categories.flush()
+        } catch (ex: DataIntegrityViolationException) {
+            throw CategoryConflictException()
+        } catch (ex: PessimisticLockingFailureException) {
+            throw CategoryConflictException()
+        }
+    }
+
+    /**
      * 모든 빈 분류를 보존하고 현재 역할로 읽을 수 있는 글만 직접/하위 건수에 반영.
      *
      * @param admin 관리자 집계이면 초안까지 포함
@@ -91,7 +129,7 @@ class CategoryService(private val categories: CategoryRepository, private val po
      */
     @Transactional(readOnly = true)
     fun tree(admin: Boolean, authentication: Authentication?): List<CategoryTreeResponse> {
-        val all = categories.findAllByOrderByDepthAscPathAsc()
+        val all = categories.findAllByOrderByDepthAscSortOrderAscIdAsc()
         val includePrivate = authentication?.authorities?.any { it.authority == "ROLE_USER" || it.authority == "ROLE_ADMIN" } == true
         val direct = posts.countByCategoryForRole(admin, PostStatus.PUBLISHED, PostVisibility.PUBLIC, includePrivate)
             .associate { it.categoryId to it.count }
@@ -130,6 +168,9 @@ class CategoryService(private val categories: CategoryRepository, private val po
 
     /** 사용자 표시명과 정규화된 경로 조각을 함께 보관. */
     private data class PathSegment(val name: String, val slug: String)
+
+    /** 분류 생성·삭제·순서 변경의 형제 집합 검증에 쓸 전역 잠금 행을 먼저 취득. */
+    private fun lockTree() { state.lockCategoryTree() ?: error("Missing content state row") }
 
     private companion object {
         val DISPLAY_PATTERN = Regex("[\\p{L}\\p{N}]+(?:[ -][\\p{L}\\p{N}]+)*")

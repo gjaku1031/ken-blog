@@ -1,6 +1,7 @@
 package io.github.gjaku1031.kenblog.category.controller
 
 import io.github.gjaku1031.kenblog.category.dto.CategoryCreateRequest
+import io.github.gjaku1031.kenblog.category.dto.CategoryOrderRequest
 import io.github.gjaku1031.kenblog.category.dto.CategoryRefResponse
 import io.github.gjaku1031.kenblog.category.dto.CategoryTreeResponse
 import io.github.gjaku1031.kenblog.category.service.CategoryService
@@ -21,6 +22,13 @@ class AdminCategoryController(private val service: CategoryService) : AdminCateg
     /** @return 초안 포함 직접·하위 글 수 트리와 no-store HTTP 200. */
     override fun list(): ResponseEntity<List<CategoryTreeResponse>> =
         ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.tree(admin = true, authentication = null))
+
+    /** @return 검증한 직계 형제 순열을 원자적으로 저장한 no-store HTTP 204. */
+    override fun reorder(request: JsonNode): ResponseEntity<Void> {
+        val order = CategoryOrderRequest.fromJson(request)
+        service.reorder(order.parentId, order.categoryIds)
+        return ResponseEntity.noContent().cacheControl(CacheControl.noStore()).build()
+    }
 
     /** @return 글을 부모로 이동한 뒤 분류만 삭제한 no-store HTTP 204. */
     override fun delete(id: Long): ResponseEntity<Void> {

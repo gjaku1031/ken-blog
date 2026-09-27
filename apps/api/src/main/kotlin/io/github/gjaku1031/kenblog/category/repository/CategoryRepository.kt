@@ -32,6 +32,11 @@ interface CategoryRepository : JpaRepository<CategoryEntity, Long> {
     @Query("select c from CategoryEntity c where c.path = :path or c.path like :descendants order by c.id asc")
     fun findSubtreeLocked(@Param("path") path: String, @Param("descendants") descendants: String): List<CategoryEntity>
 
-    /** @return 깊이·경로 순서의 모든 빈 폴더 포함 분류 행. */
-    fun findAllByOrderByDepthAscPathAsc(): List<CategoryEntity>
+    /** @return 같은 부모의 저장 순서를 보존하도록 정렬한 모든 빈 폴더 포함 분류 행. */
+    fun findAllByOrderByDepthAscSortOrderAscIdAsc(): List<CategoryEntity>
+
+    /** @return 같은 부모의 현재 직계 형제; `null`이면 대분류 전체. */
+    @Query("select c from CategoryEntity c where (:parentId is null and c.parentId is null) " +
+        "or c.parentId = :parentId order by c.sortOrder asc, c.id asc")
+    fun findSiblings(@Param("parentId") parentId: Long?): List<CategoryEntity>
 }

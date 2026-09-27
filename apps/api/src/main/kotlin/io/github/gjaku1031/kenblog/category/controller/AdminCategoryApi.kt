@@ -1,6 +1,7 @@
 package io.github.gjaku1031.kenblog.category.controller
 
 import io.github.gjaku1031.kenblog.category.dto.CategoryCreateRequest
+import io.github.gjaku1031.kenblog.category.dto.CategoryOrderRequest
 import io.github.gjaku1031.kenblog.category.dto.CategoryRefResponse
 import io.github.gjaku1031.kenblog.category.dto.CategoryTreeResponse
 import io.swagger.v3.oas.annotations.Operation
@@ -18,11 +19,12 @@ import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestMapping
 import tools.jackson.databind.JsonNode
 
-/** ADMIN 분류 경로 생성·트리 조회·부모 이동 삭제의 HTTP/OpenAPI 계약. */
+/** ADMIN 분류 경로 생성·형제 순서·트리 조회·부모 이동 삭제의 HTTP/OpenAPI 계약. */
 @RequestMapping("/api/v1/admin/categories")
 @SecurityRequirement(name = "sessionCookie")
 interface AdminCategoryApi {
@@ -53,6 +55,22 @@ interface AdminCategoryApi {
         ApiResponse(responseCode = "503", description = "DB 연결 장애"),
     ])
     fun list(): ResponseEntity<List<CategoryTreeResponse>>
+
+    /** @return 현재 부모의 직계 자식 전체 순열을 저장한 no-store HTTP 204. */
+    @PutMapping("/order", consumes = [MediaType.APPLICATION_JSON_VALUE])
+    @Operation(summary = "관리자 분류 형제 순서 변경", parameters = [Parameter(name = "X-CSRF-TOKEN", `in` = ParameterIn.HEADER, required = true)])
+    @ApiResponses(value = [
+        ApiResponse(responseCode = "204", description = "형제 순서 저장 완료"),
+        ApiResponse(responseCode = "400", description = "JSON 타입·양수 ID·중복 오류", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
+        ApiResponse(responseCode = "401", description = "인증 필요"),
+        ApiResponse(responseCode = "403", description = "관리자 권한 또는 CSRF 필요"),
+        ApiResponse(responseCode = "404", description = "부모 분류 없음"),
+        ApiResponse(responseCode = "409", description = "형제 전체 ID 불일치 또는 동시 충돌", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
+        ApiResponse(responseCode = "503", description = "DB 연결 장애"),
+    ])
+    fun reorder(@RequestBody @io.swagger.v3.oas.annotations.parameters.RequestBody(
+        required = true, content = [Content(schema = Schema(implementation = CategoryOrderRequest::class))],
+    ) request: JsonNode): ResponseEntity<Void>
 
     /**
      * 삭제 분류와 자손의 글을 부모/null로 이동한 후 폴더만 삭제.

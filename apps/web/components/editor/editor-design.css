@@ -3,7 +3,7 @@ main.write-page.editor-design-page {
   width: 100%; max-width: none; min-height: calc(100vh - 64px); margin: 0;
   padding: 0 40px 60px; box-sizing: border-box; background: var(--card); color: var(--text);
 }
-.editor-design-page .write-surface { width: min(760px, 100%); min-height: calc(100vh - 124px); margin: 0 auto; padding: 40px 0 30px; box-sizing: border-box; }
+.editor-design-page .write-surface { width: min(var(--page-width-editor), 100%); min-height: calc(100vh - 124px); margin: 0 auto; padding: 40px 0 30px; box-sizing: border-box; }
 .editor-design-page .write-top { margin: 0 0 20px; }
 .editor-design-page .write-top .back-link { align-self: flex-start; margin-left: -10px; padding: 0 12px; height: 32px; display: inline-flex; align-items: center; border-radius: 6px; border: 0; background: transparent; color: var(--muted); font-size: 13px; text-decoration: none; }
 .editor-design-page .write-top .back-link:hover { background: var(--soft); color: var(--text); }

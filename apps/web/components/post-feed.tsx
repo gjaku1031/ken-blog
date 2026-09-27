@@ -79,7 +79,7 @@ export function FeedSkeleton() {
   </div>;
 }
 
-/** 섹션 소속과 실제 요약·회차 번호·권한을 카드에 표시한다. {@link FeedCard} */
+/** 섹션 소속과 Tech 연관 프로젝트·요약·회차 번호·권한을 카드에 표시한다. {@link FeedCard} */
 export function FeedCard({ post, mode, categoryId, tag, sort, categories = [], pinAction, pinDrop, onPinDragStart }: { post: FeedItem; mode: FeedMode;
   categoryId: number | null; tag: string | null; sort: FeedSort;
   categories?: CategoryNode[];
@@ -99,9 +99,11 @@ export function FeedCard({ post, mode, categoryId, tag, sort, categories = [], p
       <span>· {post.seriesPosition} / {post.seriesTotal}</span>}
     {post.section === "NOTE_CHAPTER" && post.courseName && <span>· {post.courseField ? `${post.courseField} › ` : ""}{post.courseName}</span>}
     {post.section === "NOTE_CHAPTER" && post.chapterPosition && <span>· {post.chapterPosition}강 {post.chapterPosition}/{post.chapterTotal}</span>}
-    {post.projectName && <span>· {post.projectName}</span>}
+    {post.section !== "TECH" && post.projectName && <span>· {post.projectName}</span>}
     {post.visibility === "PRIVATE" && <span className="private-label">· 비공개</span>}
     {post.pinOrder !== null && <span>· 고정</span>}</div>
+    {post.section === "TECH" && post.projectName && <div className="card-related-project">
+      <span>[연관 프로젝트]</span> {post.projectName}</div>}
     <div className="card-title-row"><h2><Link href={href}>{post.title}</Link></h2>
       {pinAction && sort === "pin" && <div className="card-pin-controls">
         <button type="button" aria-label={`${post.title} 위로`} onClick={() => pinAction(post, -1)}><svg width="14" height="14"

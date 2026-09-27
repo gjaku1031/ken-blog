@@ -6,10 +6,15 @@ import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Lock
 import org.springframework.data.jpa.repository.Query
 
-/** 핀 교체 트랜잭션이 공통으로 잠그는 단일 상태 행. */
+/** 핀 교체와 분류 트리 변경을 각각 직렬화할 수 있는 단일 상태 행. */
 interface ContentStateRepository : JpaRepository<ContentStateEntity, Byte> {
     /** @return 전역 핀 순열을 직렬화할 ID 1의 배타 잠금 행. */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select s from ContentStateEntity s where s.id = 1")
     fun lockPins(): ContentStateEntity?
+
+    /** @return 형제 재정렬과 루트 생성·삭제의 집합 검증을 직렬화할 ID 1의 잠금 행. */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select s from ContentStateEntity s where s.id = 1")
+    fun lockCategoryTree(): ContentStateEntity?
 }

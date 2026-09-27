@@ -25,6 +25,38 @@ data class CategoryCreateRequest(
     }
 }
 
+/** 부모별 직계 형제 전체를 새 순서로 보내는 관리자 입력. */
+data class CategoryOrderRequest(
+    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["integer", "null"], format = "int64")
+    val parentId: Long?,
+    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["array"], description = "현재 직계 자식의 양수 ID 전체 순열")
+    val categoryIds: List<Long>,
+) {
+    companion object {
+        /** @return 강제 숫자 변환과 중복을 거부한 [CategoryOrderRequest]. */
+        fun fromJson(node: JsonNode): CategoryOrderRequest {
+            if (!node.isObject || !node.has("parentId") || !node.has("categoryIds"))
+                throw InvalidCategoryRequestException()
+            val parent = node.get("parentId")
+            val parentId = if (parent.isNull) null else {
+                if (!parent.isIntegralNumber || !parent.canConvertToLong() || parent.longValue() <= 0)
+                    throw InvalidCategoryRequestException()
+                parent.longValue()
+            }
+            val values = node.get("categoryIds")
+            if (!values.isArray || values.size() > 10_000) throw InvalidCategoryRequestException()
+            val ids = (0 until values.size()).map { index ->
+                val item = values.get(index)
+                if (!item.isIntegralNumber || !item.canConvertToLong() || item.longValue() <= 0)
+                    throw InvalidCategoryRequestException()
+                item.longValue()
+            }
+            if (ids.toSet().size != ids.size) throw InvalidCategoryRequestException()
+            return CategoryOrderRequest(parentId, ids)
+        }
+    }
+}
+
 /**
  * 글과 분류 생성 응답에서 공유하는 저장 분류 참조.
  *

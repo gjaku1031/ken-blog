@@ -1,5 +1,5 @@
 /* 관리 화면 전용 원본 배치. 공통 색상·글꼴 토큰은 globals.css를 따른다. */
-.page-container.admin-page { width: 1152px; max-width: calc(100% - 64px); padding: 32px 0 64px; }
+.page-container.admin-page { width: var(--page-width-wide); max-width: calc(100% - 64px); padding: 32px 0 64px; }
 .admin-page.admin-layout { grid-template-columns: 200px minmax(0, 1fr); gap: 32px; }
 .admin-page .admin-nav { position: static; align-self: start; min-width: 0; max-width: 100%; font-size: 14px; }
 .admin-page .admin-nav > span { margin: 0; padding: 4px 10px 8px; color: var(--text2); font-size: 13px; font-weight: 700; }
@@ -94,18 +94,49 @@
 .admin-page .category-admin { width: 100%; max-width: 520px; padding: 6px; }
 .admin-page .category-admin ul, .admin-page .category-admin > ul { margin: 0; padding: 0; border: 0; list-style: none; }
 .admin-page .category-admin ul ul { padding-left: 20px; }
-.admin-page .category-admin-node { margin: 0; }
-.admin-page .category-admin-row { position: relative; min-height: 32px; gap: 0; }
-.admin-page .category-folder { width: 100%; height: 32px; display: flex; align-items: center; gap: 8px; padding: 0 40px 0 8px; border: 0; border-radius: 6px; background: transparent; color: var(--text); font-size: 13.5px; text-align: left; }
+.admin-page .category-admin-node { position: relative; margin: 0; }
+.admin-page .category-admin-row { position: relative; display: flex; align-items: center; min-width: 0; min-height: 32px; gap: 0; }
+.admin-page .category-folder { flex: 1 1 auto; min-width: 0; height: 32px; display: flex; align-items: center; gap: 8px; padding: 0 8px; border: 0; border-radius: 6px; background: transparent; color: var(--text); font-size: 13.5px; text-align: left; }
 .admin-page .category-folder:hover { background: var(--soft); }
 .admin-page .category-folder > svg { flex: 0 0 auto; color: var(--muted); }
 .admin-page .category-folder > span:first-child { flex: 0 0 12px; display: inline-flex; transition: transform .1s; }
 .admin-page .category-chevron-empty { opacity: 0; }
 .admin-page .category-folder-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .admin-page .category-folder-count { flex: 0 0 auto; color: var(--muted); font-size: 12px; }
-.admin-page .category-delete { position: absolute; right: 6px; top: 3px; width: 26px; height: 26px; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 6px; background: transparent; color: var(--muted); opacity: 0; }
-.admin-page .category-admin-row:hover .category-delete, .admin-page .category-delete:focus-visible { opacity: 1; }
+.admin-page .category-order-handle, .admin-page .category-order-up, .admin-page .category-order-down,
+.admin-page .category-delete { flex: 0 0 26px; width: 26px; height: 28px; display: inline-flex; align-items: center; justify-content: center; padding: 0; border: 0; border-radius: 6px; background: transparent; color: var(--muted); font-size: 15px; }
+.admin-page .category-order-handle { cursor: grab; touch-action: manipulation; }
+.admin-page .category-order-handle:active { cursor: grabbing; }
+.admin-page .category-order-handle span { font-size: 19px; line-height: 1; }
+.admin-page .category-order-up, .admin-page .category-order-down, .admin-page .category-delete { opacity: 0; }
+.admin-page .category-admin-row:hover .category-order-up:not(:disabled), .admin-page .category-admin-row:hover .category-order-down:not(:disabled),
+.admin-page .category-admin-row:hover .category-delete, .admin-page .category-order-up:focus-visible,
+.admin-page .category-order-down:focus-visible, .admin-page .category-delete:focus-visible { opacity: 1; }
+.admin-page .category-order-up:hover, .admin-page .category-order-down:hover,
+.admin-page .category-order-handle:hover { background: var(--soft); color: var(--text); }
+.admin-page .category-order-up:disabled, .admin-page .category-order-down:disabled { cursor: default; }
 .admin-page .category-delete:hover { background: var(--soft); color: var(--danger); }
+.admin-page .category-admin-node[data-drop-side="before"]::before,
+.admin-page .category-admin-node[data-drop-side="after"]::after { content: ""; position: absolute; z-index: 2; left: 0; right: 0; height: 3px; border-radius: 99px; background: var(--accent); box-shadow: 0 0 0 2px var(--card); pointer-events: none; }
+.admin-page .category-admin-node[data-drop-side="before"]::before { top: -2px; }
+.admin-page .category-admin-node[data-drop-side="after"]::after { bottom: -2px; }
+.admin-page .category-admin-node.is-dragging > .category-admin-row { opacity: .42; }
+.admin-page .category-admin-node.is-moved > .category-admin-row { animation: category-moved .8s ease-out; }
+.category-order-ghost { position: fixed; top: 0; left: 0; z-index: 9999; padding: 7px 12px; border: 1px solid var(--accent); border-radius: 8px; background: var(--card); color: var(--text); box-shadow: 0 8px 20px #0002; font-size: 13px; font-weight: 600; white-space: nowrap; pointer-events: none; }
+@keyframes category-moved { 0% { background: var(--tint); box-shadow: inset 0 0 0 1px var(--accent); } 100% { background: transparent; box-shadow: none; } }
+@media (hover: none) {
+  .admin-page .category-admin-row .category-order-up:not(:disabled), .admin-page .category-admin-row .category-order-down:not(:disabled),
+  .admin-page .category-admin-row .category-delete { opacity: 1; }
+}
+@media (max-width: 480px) {
+  .admin-page .category-admin { max-width: 100%; }
+  .admin-page .category-admin ul ul { padding-left: 12px; }
+  .admin-page .category-order-handle, .admin-page .category-order-up, .admin-page .category-order-down,
+  .admin-page .category-delete { flex-basis: 28px; width: 28px; min-height: 32px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .admin-page .category-admin-node.is-moved > .category-admin-row { animation: none; }
+}
 .admin-page .category-add { width: 100%; height: 32px; display: flex; align-items: center; padding: 0 8px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); font-size: 13.5px; text-align: left; }
 .admin-page .category-add:hover { background: var(--soft); color: var(--text); }
 .admin-page .category-inline-form { display: flex; align-items: center; gap: 6px; padding: 2px 8px; }
