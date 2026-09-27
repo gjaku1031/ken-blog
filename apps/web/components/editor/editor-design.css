@@ -7,7 +7,7 @@ main.write-page.editor-design-page {
 .editor-design-page .write-top { margin: 0 0 20px; }
 .editor-design-page .write-top .back-link { align-self: flex-start; margin-left: -10px; padding: 0 12px; height: 32px; display: inline-flex; align-items: center; border-radius: 6px; border: 0; background: transparent; color: var(--muted); font-size: 13px; text-decoration: none; }
 .editor-design-page .write-top .back-link:hover { background: var(--soft); color: var(--text); }
-.editor-design-page .write-title { font-size: 40px; line-height: 1.35; letter-spacing: -.025em; }
+.editor-design-page .write-title { line-height: 1.35; letter-spacing: -.025em; }
 .editor-design-page .write-title::placeholder { color: #777; }
 .editor-design-page .editor-kind-line { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 12px; font-size: 13px; }
 .editor-kind-line strong { color: var(--muted); }
@@ -88,9 +88,6 @@ main.write-page.editor-design-page {
 .editor-design-page .block-input-wrap textarea::placeholder, .editor-empty-placeholder { color: var(--muted2); }
 .editor-design-page .editor-preview { min-height: 34px; padding: 2px 0; }
 .editor-design-page .editor-preview .markdown-body { font-size: 17px; line-height: 1.7; }
-.editor-design-page .editor-preview .markdown-body h1 { font-size: 30px; }
-.editor-design-page .editor-preview .markdown-body h2 { font-size: 24px; }
-.editor-design-page .editor-preview .markdown-body h3 { font-size: 19px; }
 .editor-design-page .editor-preview .markdown-body ul, .editor-design-page .editor-preview .markdown-body ol { padding-left: 25px; }
 .editor-design-page .editor-preview .code-block { position: relative; margin: 6px 0; border-color: var(--code-bg); }
 .editor-design-page .editor-preview .code-block-heading { position: absolute; z-index: 2; top: 6px; right: 12px; min-height: 0; padding: 0; border: 0; background: transparent; font: 11px var(--font-mono), monospace; }
@@ -246,7 +243,6 @@ main.write-page.editor-design-page {
 @media (max-width: 620px) {
   main.write-page.editor-design-page { padding: 0 40px 60px; }
   .editor-design-page .write-surface { padding-top: 48px; }
-  .editor-design-page .write-title { font-size: 40px; }
   .editor-design-page .editor-kind-line { margin-top: 12px; }
   .editor-design-page .editor-kind-home { display: grid; grid-template-columns: 60px 5px 70px minmax(0,1fr); align-items: start; column-gap: 8px; row-gap: 0; margin-top: 20px; line-height: 1.25; }
   .editor-design-page .editor-kind-home small { margin-left: 0; line-height: 1.25; }

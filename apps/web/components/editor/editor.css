@@ -49,9 +49,9 @@
 
 .editor-block.editor-h1 .block-input-wrap textarea, .editor-block.editor-h2 .block-input-wrap textarea,
 .editor-block.editor-h3 .block-input-wrap textarea { field-sizing: content; min-height: 1.7em; font-weight: 700; line-height: 1.7; resize: none; overflow: hidden; }
-.editor-block.editor-h1 .block-input-wrap textarea { font-size: 30px; }
-.editor-block.editor-h2 .block-input-wrap textarea { font-size: 24px; }
-.editor-block.editor-h3 .block-input-wrap textarea { font-size: 19px; }
+.editor-block.editor-h1 .block-input-wrap textarea { font-size: var(--heading-1-size); }
+.editor-block.editor-h2 .block-input-wrap textarea { font-size: var(--heading-2-size); }
+.editor-block.editor-h3 .block-input-wrap textarea { font-size: var(--heading-3-size); }
 
 @media (prefers-reduced-motion: reduce) { .editor-block.editor-block-flash { animation: none; outline: 2px solid var(--accent); outline-offset: 2px; } }
 

@@ -45,9 +45,12 @@ function CategoryLinkItem({ node, selected, tag, mode, sort }: { node: CategoryN
     onClick={() => { const next = selected !== node.id; categoryExpansion.set(node.id, next); setExpanded(next); }}>
     <span>{node.name}</span>{(expanded ? node.directCount : node.totalCount) > 0 &&
       <span className="mono side-count">{expanded ? node.directCount : node.totalCount}</span>}</Link>
-    {node.children.length > 0 && <button type="button" aria-expanded={expanded} aria-label={`${node.name} 하위 분류 ${expanded ? "접기" : "펼치기"}`}
+    {node.children.length > 0 && <button type="button" className="category-toggle" aria-expanded={expanded}
+      aria-label={`${node.name} 하위 분류 ${expanded ? "접기" : "펼치기"}`}
       onClick={() => setExpanded((current) => { categoryExpansion.set(node.id, !current); return !current; })}>
-      {expanded ? "▾" : "▸"}</button>}</div>
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" focusable="false">
+        <path d="m6 3 4 5-4 5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
+      </svg></button>}</div>
     {expanded && node.children.length > 0 && <CategoryLinks nodes={node.children} selected={selected} tag={tag} mode={mode} sort={sort} />}</li>;
 }
 
