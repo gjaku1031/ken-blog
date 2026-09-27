@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { apiFailureMessage } from "@/lib/api";
 import { useAuth } from "../auth-provider";
+import { DailyVisitorsChart } from "./daily-visitors-chart";
 
 type Analytics = { status: "UNCONFIGURED" | "EMPTY" | "READY" | "ERROR"; range: 7 | 30 | 90;
   metrics: { visitors: number; pageViews: number; averageEngagementSeconds: number | null; projectsSessionRate: number | null;
@@ -13,11 +14,16 @@ type Analytics = { status: "UNCONFIGURED" | "EMPTY" | "READY" | "ERROR"; range: 
   projects: Array<{ slug: string; name: string; homeViews: number; documentReachRate: number | null }> };
 
 /** 실제 GA4 응답의 상태와 필수 배열을 확인하고 수치를 만들어 내지 않는다. */
-function parseAnalytics(value: unknown): Analytics {
+function parseAnalytics(value: unknown, expectedRange: 7 | 30 | 90): Analytics {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Invalid analytics");
   const item = value as Record<string, unknown>;
   if (!Array.isArray(item.dailyVisitors) || !Array.isArray(item.topPages) || !Array.isArray(item.trafficSources) ||
-    !Array.isArray(item.projects) || !["UNCONFIGURED", "EMPTY", "READY", "ERROR"].includes(String(item.status)))
+    !Array.isArray(item.projects) || !["UNCONFIGURED", "EMPTY", "READY", "ERROR"].includes(String(item.status)) ||
+    item.range !== expectedRange || item.status === "READY" && (
+      !item.metrics || typeof item.metrics !== "object" || item.dailyVisitors.length !== expectedRange ||
+      item.dailyVisitors.some((day) => !day || typeof day !== "object" ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(String(day.date)) ||
+        !Number.isSafeInteger(day.visitors) || day.visitors < 0)))
     throw new Error("Invalid analytics");
   return item as Analytics;
 }
@@ -37,7 +43,7 @@ export function AnalyticsDashboard() {
     const controller = new AbortController();
     setData(null); setError("");
     void (async () => {
-      try { const result = parseAnalytics(await auth.adminRead(`/api/v1/admin/analytics?range=${range}`, controller.signal));
+      try { const result = parseAnalytics(await auth.adminRead(`/api/v1/admin/analytics?range=${range}`, controller.signal), range);
         if (!controller.signal.aborted) setData(result); }
       catch (failure) { if (!controller.signal.aborted) setError(apiFailureMessage(failure)); }
     })();
@@ -45,8 +51,7 @@ export function AnalyticsDashboard() {
   }, [auth.adminRead, range, retry]);
 
   const metrics = data?.metrics;
-  const max = Math.max(1, ...(data?.dailyVisitors.map((entry) => entry.visitors) ?? []));
-  const ready = data?.status === "READY" && Boolean(metrics);
+  const ready = data?.range === range && data.status === "READY" && Boolean(metrics);
   const unavailable = data?.status === "UNCONFIGURED" ? "Google Analytics Data API가 연결되지 않았습니다." :
     data?.status === "EMPTY" ? "선택한 기간에 집계된 방문 기록이 없습니다." :
       data?.status === "ERROR" ? "Google Analytics 결과를 가져오지 못했습니다." : null;
@@ -71,10 +76,9 @@ export function AnalyticsDashboard() {
         "비교 기간 측정 없음"}</span>}
       {ready && index === 2 && <span>문서 페이지 기준</span>}
       {ready && index === 3 && <span>전체 세션 중</span>}</section>)}</div>
-    <section className="analytics-chart card"><h2>일별 방문자 {ready && <small>지난 {range}일</small>}</h2><div className="bar-chart" role="img" aria-label="날짜별 방문자 막대 그래프">
-      {ready && data!.dailyVisitors.map((entry) => <div className="bar-cell" key={entry.date} title={`${entry.date} · ${entry.visitors}명`}>
-        <span style={{ height: `${entry.visitors / max * 100}%` }} /></div>)}
-      {!ready && <span className="analytics-empty-chart">실측 데이터 없음</span>}</div></section>
+    <section className="analytics-chart card"><h2>일별 방문자 {ready && <small>지난 {range}일</small>}</h2>
+      {ready ? <DailyVisitorsChart key={`${range}:${data!.dailyVisitors[0].date}:${data!.dailyVisitors.at(-1)?.date}`}
+        days={data!.dailyVisitors} range={range} /> : <div className="analytics-empty-chart">실측 데이터 없음</div>}</section>
     <div className="analytics-bottom"><section className="card"><h2>인기 글</h2><table className="admin-table"><thead><tr><th>제목</th><th>구분</th><th>조회</th></tr></thead>
       <tbody>{ready && data!.topPages.map((item) => <tr key={item.path}><td>{item.title}</td><td>{item.section}</td><td>{item.views.toLocaleString("ko-KR")}</td></tr>)}</tbody></table>
       {!ready && <p className="analytics-empty-list">실측 데이터 없음</p>}</section>

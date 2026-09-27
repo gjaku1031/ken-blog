@@ -70,10 +70,33 @@
 .admin-page .metric-card span { color: var(--muted); font-size: 12.5px; }
 .admin-page .metric-card .metric-positive { color: var(--accent); font-weight: 700; }
 .admin-page .metric-card .metric-negative { color: var(--danger); font-weight: 700; }
-.admin-page .analytics-chart { height: 233px; margin: 0; padding: 20px 22px; }
+.admin-page .analytics-chart { min-height: 340px; margin: 0; padding: 20px 22px; overflow: visible; }
 .admin-page .analytics-chart h2, .admin-page .analytics-bottom h2 { margin: 0 0 16px; font-size: 15px; font-weight: 700; }
-.admin-page .bar-chart { height: 154px; position: relative; }
-.admin-page .analytics-empty-chart { position: absolute; inset: 0; display: grid; place-items: center; color: var(--muted); font-size: 13px; }
+.admin-page .analytics-empty-chart { min-height: 230px; display: grid; place-items: center; color: var(--muted); font-size: 13px; }
+.admin-page .daily-chart { min-width: 0; }
+.admin-page .daily-chart-layout { display: grid; grid-template-columns: var(--axis-width, 37px) minmax(0, 1fr); column-gap: 8px; }
+.admin-page .daily-chart-y-axis { position: relative; height: 170px; margin-top: 48px; color: var(--muted); font: 12px var(--font-mono), monospace; }
+.admin-page .daily-chart-y-axis span { position: absolute; right: 0; transform: translateY(-50%); white-space: nowrap; }
+.admin-page .daily-chart-plot { position: relative; min-width: 0; height: 218px; touch-action: pan-y; }
+.admin-page .daily-chart-grid, .admin-page .daily-chart-bars { position: absolute; inset: 48px 0 0; }
+.admin-page .daily-chart-grid { pointer-events: none; }
+.admin-page .daily-chart-grid span { position: absolute; right: 0; left: 0; border-top: 1px solid var(--line); opacity: .75; }
+.admin-page .daily-chart-bars { display: grid; grid-template-columns: repeat(var(--chart-columns), minmax(0, 1fr)); }
+.admin-page .daily-chart-slot { position: relative; display: flex; align-items: end; min-width: 0; height: 100%; padding: 0 var(--bar-padding, 1px); border: 0; border-radius: 0; background: transparent; cursor: crosshair; }
+.admin-page .daily-chart-slot::before { content: ""; position: absolute; top: 0; bottom: 0; left: 50%; width: 1px; background: transparent; pointer-events: none; }
+.admin-page .daily-chart-slot:hover::before, .admin-page .daily-chart-slot:focus-visible::before,
+.admin-page .daily-chart-slot[data-selected="true"]::before { background: var(--accent); opacity: .6; }
+.admin-page .daily-chart-slot:focus-visible { outline: 2px solid var(--accent); outline-offset: -1px; z-index: 2; }
+.admin-page .daily-chart-bar { position: relative; z-index: 1; width: 100%; min-height: 0; border-radius: 2px 2px 0 0; background: var(--accent); pointer-events: none; }
+.admin-page .daily-chart-slot:hover .daily-chart-bar, .admin-page .daily-chart-slot[data-selected="true"] .daily-chart-bar { background: var(--accent-d); }
+.admin-page .daily-chart-7 { --bar-padding: 4px; }
+.admin-page .daily-chart-30 { --bar-padding: 1.5px; }
+.admin-page .daily-chart-90 { --bar-padding: .5px; }
+.admin-page .daily-chart-tooltip { position: absolute; z-index: 3; top: 0; left: clamp(0px, calc(var(--tooltip-x) - 125px), max(0px, calc(100% - 250px)));
+  width: min(250px, 100%); padding: 6px 9px; border: 1px solid var(--line2); border-radius: 6px; background: var(--card); box-shadow: var(--shadow);
+  color: var(--text); font-size: 12.5px; line-height: 1.35; overflow-wrap: anywhere; pointer-events: none; }
+.admin-page .daily-chart-date-axis { position: relative; height: 27px; margin: 8px 0 0 calc(var(--axis-width, 37px) + 8px); color: var(--muted); font: 12px var(--font-mono), monospace; }
+.admin-page .daily-chart-date-axis span { position: absolute; top: 0; left: clamp(24px, var(--tick-x), calc(100% - 24px)); transform: translateX(-50%); white-space: nowrap; }
 .admin-page .analytics-bottom { grid-template-columns: minmax(0, 3fr) minmax(0, 2fr); gap: 18px; }
 .admin-page .analytics-bottom > section, .admin-page .analytics-side > section { padding: 20px 22px; min-width: 0; }
 .admin-page .analytics-bottom .admin-table { min-width: 0; table-layout: fixed; }

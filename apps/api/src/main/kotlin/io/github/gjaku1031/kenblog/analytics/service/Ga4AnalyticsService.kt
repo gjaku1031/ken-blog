@@ -50,7 +50,7 @@ class Ga4AnalyticsService(
         return try { load(range) } catch (_: Exception) { empty(AnalyticsStatus.ERROR, range) }
     }
 
-    /** @return 모든 보고서가 성공한 경우에만 실제 측정치를 조합한 응답. */
+    /** @return 모든 보고서가 성공하면 KST 전체 날짜의 빈 날을 0으로 채운 실제 측정 응답. */
     private fun load(range: Int): AnalyticsResponse {
         val raw = Base64.getDecoder().decode(credentialsBase64)
         val credentials = ByteArrayInputStream(raw).use { GoogleCredentials.fromStream(it) }
@@ -78,10 +78,14 @@ class Ga4AnalyticsService(
         val visitors = metric(summary, 0)
         val pageViews = metric(summary, 1)
         if (visitors == 0L && pageViews == 0L) return empty(AnalyticsStatus.EMPTY, range)
-        val daily = rows(reports[1]).map { row ->
-            val day = dimension(row, 0)
-            DailyVisitors(LocalDate.parse(day, DateTimeFormatter.BASIC_ISO_DATE).toString(), metric(row, 0))
-        }.sortedBy { it.date }
+        val dailyCounts = rows(reports[1]).mapNotNull { row ->
+            val date = LocalDate.parse(dimension(row, 0), DateTimeFormatter.BASIC_ISO_DATE)
+            if (date.isBefore(start) || date.isAfter(end)) null else date to metric(row, 0)
+        }.toMap()
+        val daily = (0 until range).map { offset ->
+            val date = start.plusDays(offset.toLong())
+            DailyVisitors(date.toString(), dailyCounts[date] ?: 0L)
+        }
         val pageRows = rows(reports[2])
         val pages = pageRows.map { row ->
             val path = dimension(row, 0)

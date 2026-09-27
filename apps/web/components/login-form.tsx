@@ -107,9 +107,8 @@ export function LoginForm() {
             maxLength={useRecoveryCode ? 64 : 6} spellCheck={false} autoCapitalize="off"
             placeholder={useRecoveryCode ? "복구 코드" : "6자리 코드"} value={verificationCode}
             onChange={(event) => setVerificationCode(useRecoveryCode ? event.target.value : event.target.value.replace(/\D/g, "").slice(0, 6))}
-            disabled={busy} aria-describedby="verification-help" />
-          <p id="verification-help" className="login-code-help">{useRecoveryCode ?
-            "보관한 일회용 복구 코드를 입력하세요." : "Google Authenticator의 ken.blog 코드 6자리를 입력하세요."}</p>
+            disabled={busy} aria-describedby={useRecoveryCode ? "verification-help" : undefined} />
+          {useRecoveryCode && <p id="verification-help" className="login-code-help">보관한 일회용 복구 코드를 입력하세요.</p>}
           <button type="button" className="login-code-switch" onClick={switchCodeMode} disabled={busy}
             aria-controls="verification-code">{useRecoveryCode ? "인증 앱 코드 사용" : "복구 코드 사용"}</button>
           {error && <p className="form-error" role="alert">{error}</p>}
