@@ -1,7 +1,7 @@
 "use client";
 
-import { forwardRef, useEffect, useId, useImperativeHandle, useRef, useState,
-  type ClipboardEvent, type DragEvent, type KeyboardEvent } from "react";
+import { forwardRef, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState,
+  type ClipboardEvent, type DragEvent, type KeyboardEvent, type MouseEvent } from "react";
 import { SafeMarkdown } from "@/components/safe-markdown";
 import { blockMarkdown, emptyBlock, emptyImageBlock, emptyToggleBlock, ensureBlockBoundaries, type BlockType, type EditorBlock, type MarkdownDocument } from "@/lib/editor-markdown";
 import type { ImageData } from "@/lib/editor-image";
@@ -11,6 +11,7 @@ import { ToggleBlock } from "@/components/editor/toggle-block";
 import { ImageBlock } from "@/components/editor/image-block";
 import { insertAnnotationAt, insertInlineTextAt, type EditorAnnotationModel, type EditorAnnotationSelection } from "@/lib/editor-annotation";
 import { validWikiTitle } from "@/lib/wiki-link-syntax";
+import { captureBlockInsertion, moveEditorBlocks, resolveBlockInsertion, type BlockInsertion } from "@/lib/editor-block-move";
 import "./editor.css";
 
 type Props = { value: MarkdownDocument; onChange: (next: MarkdownDocument) => void; disabled?: boolean;
@@ -22,6 +23,7 @@ export type BlockEditorHandle = { captureAnnotationSelection: () => void; insert
   insertWikiLink: (title: string) => boolean; insertTable: () => void; chooseImage: () => void };
 type AnnotationController = { selection: EditorAnnotationSelection | null; composing: boolean; suppressNext: boolean };
 type FocusTarget = { id: string; offset: number | "end" };
+type DropSlot = { targetId: string | null; side: "before" | "after" | "end"; kind: "blocks" | "file" };
 const ANNOTATION_TEXT_TYPES = new Set<BlockType>(["p", "h1", "h2", "h3", "ul", "ol", "todo", "quote"]);
 /** 편집과 미리보기 조작에 쓰는 블록 종류별 한국어 이름. */
 const blockNames: Record<BlockType, string> = { p: "문단", h1: "제목 1", h2: "제목 2", h3: "제목 3",
@@ -31,6 +33,37 @@ const shortcuts: Record<string, BlockType> = { "#": "h1", "##": "h2", "###": "h3
 const DRAG_FORMAT = "application/x-ken-blog-editor-block";
 const CODE_LANGUAGES = ["kotlin", "java", "javascript", "typescript", "json", "sql", "bash", "yaml", "python", "css", "html", "markdown"];
 const CODE_LANGUAGE_PATTERN = /^[A-Za-z0-9_-]{0,32}$/;
+
+/** 텍스트 블록의 Markdown 접두어를 활성 입력에만 붙이고 {@link blockMarkdown} 저장 모델은 유지한다. */
+function sourcePrefix(block: EditorBlock): string {
+  if (block.type === "h1" || block.type === "h2" || block.type === "h3")
+    return `${"#".repeat(Number(block.type[1]))} `;
+  if (block.type === "ul") return "- ";
+  if (block.type === "ol") return `${block.ordinal ?? 1}. `;
+  if (block.type === "todo") return `- [${block.done ? "x" : " "}] `;
+  if (block.type === "quote") return "> ";
+  return "";
+}
+
+/** 활성 입력에는 {@link EditorBlock}의 제목 기호와 원문 인라인 문법을 함께 보여 준다. */
+function visibleBlockText(block: EditorBlock): string { return sourcePrefix(block) + block.text; }
+
+/** 활성 접두어 수정·삭제를 {@link EditorBlock} 종류로 되돌리고 유효하지 않은 기호는 문단으로 남긴다. */
+function parseActiveSource(block: EditorBlock, source: string): Pick<EditorBlock, "type" | "text" | "done" | "ordinal"> {
+  if (block.type !== "p" && !sourcePrefix(block))
+    return { type: block.type, text: source, done: block.done, ordinal: block.ordinal };
+  const heading = /^(#{1,3}) ([^\r\n]*)$/.exec(source);
+  if (heading) return { type: `h${heading[1].length}` as BlockType, text: heading[2], done: undefined, ordinal: undefined };
+  const task = /^- \[([ xX])\] ([^\r\n]*)$/.exec(source);
+  if (task) return { type: "todo", text: task[2], done: task[1].toLowerCase() === "x", ordinal: undefined };
+  const bullet = /^[-+*] ([^\r\n]*)$/.exec(source);
+  if (bullet) return { type: "ul", text: bullet[1], done: undefined, ordinal: undefined };
+  const number = /^(\d{1,9})[.)] ([^\r\n]*)$/.exec(source);
+  if (number) return { type: "ol", text: number[2], done: undefined, ordinal: Number(number[1]) };
+  const quote = /^> ([^\r\n]*)$/.exec(source);
+  if (quote) return { type: "quote", text: quote[1], done: undefined, ordinal: undefined };
+  return { type: "p", text: source, done: undefined, ordinal: undefined };
+}
 
 /** 기본 블록을 키보드와 마우스로 편집하고 원문 블록은 읽기 전용으로 보존한다. */
 export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEditorInner({ value, onChange, disabled = false,
@@ -47,7 +80,16 @@ export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEd
   const refs = useRef(new Map<string, HTMLElement>());
   const composing = useRef(false);
   const compositionTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const dragId = useRef<string | null>(null);
+  const dragIds = useRef<string[]>([]);
+  const handlePointerType = useRef<string>("");
+  const selectionAnchor = useRef<string | null>(null);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+  const [dropSlot, setDropSlot] = useState<DropSlot | null>(null);
+  const [pendingUpload, setPendingUpload] = useState<{ serial: number; anchor: BlockInsertion } | null>(null);
+  const uploadSerial = useRef(0);
+  const [flashIds, setFlashIds] = useState<Set<string>>(() => new Set());
+  const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const beforeMove = useRef<Map<string, DOMRect> | null>(null);
   const fileInput = useRef<HTMLInputElement | null>(null);
   const latest = useRef(value);
   const root = useRef<HTMLDivElement | null>(null);
@@ -56,8 +98,31 @@ export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEd
   latest.current = value;
   useEffect(() => () => {
     if (compositionTimer.current) clearTimeout(compositionTimer.current);
+    if (flashTimer.current) clearTimeout(flashTimer.current);
     if (composing.current) annotation.composing = false;
   }, [annotation]);
+  useEffect(() => {
+    const available = new Set(value.blocks.map((block) => block.id));
+    setSelectedIds((current) => current.size && [...current].some((id) => !available.has(id)) ?
+      new Set([...current].filter((id) => available.has(id))) : current);
+    if (selectionAnchor.current && !available.has(selectionAnchor.current)) selectionAnchor.current = null;
+  }, [value.blocks]);
+
+  /** 실제 재배치 전후의 블록 좌표 차이만 애니메이션하고 감소된 동작 설정을 존중한다. {@link BlockEditor} */
+  useLayoutEffect(() => {
+    const previous = beforeMove.current;
+    beforeMove.current = null;
+    if (!previous || !root.current || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    for (const element of root.current.querySelectorAll<HTMLElement>(":scope > .editor-block")) {
+      const old = previous.get(element.dataset.blockId ?? "");
+      if (!old) continue;
+      const now = element.getBoundingClientRect();
+      const delta = old.top - now.top;
+      if (Math.abs(delta) < 1) continue;
+      element.animate([{ transform: `translateY(${delta}px)` }, { transform: "translateY(0)" }],
+        { duration: 230, easing: "cubic-bezier(.22,.8,.3,1)" });
+    }
+  }, [value.blocks]);
   useEffect(() => {
     if (depth === 0) { annotation.selection = null; annotation.composing = false; annotation.suppressNext = false; }
   }, [annotationSessionKey, depth]);
@@ -68,7 +133,10 @@ export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEd
     const target = refs.current.get(focusTarget.id);
     target?.focus();
     if (target instanceof HTMLTextAreaElement) {
-      const offset = focusTarget.offset === "end" ? target.value.length : Math.min(focusTarget.offset, target.value.length);
+      const block = value.blocks.find((item) => item.id === focusTarget.id);
+      const prefix = block ? sourcePrefix(block).length : 0;
+      const offset = focusTarget.offset === "end" ? target.value.length :
+        Math.min(focusTarget.offset + prefix, target.value.length);
       target.setSelectionRange(offset, offset);
     }
     setFocusTarget(null);
@@ -111,11 +179,15 @@ export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEd
     setFocusTarget({ id, offset });
   }
 
-  /** 텍스트 값까지 함께 보관해 선택 범위가 다른 원고에 재사용되지 않게 한다. */
+  /** 제목 입력의 가상 접두어를 빼고 실제 {@link EditorAnnotationSelection} 본문 좌표만 보관한다. */
   function captureAnnotationSelectionFrom(input: HTMLTextAreaElement) {
     const id = input.dataset.annotationBlockId;
     if (!id) return;
-    annotation.selection = { id, start: input.selectionStart, end: input.selectionEnd, expectedText: input.value };
+    const block = latest.current.blocks.find((item) => item.id === id);
+    if (!block || input.value !== visibleBlockText(block)) return;
+    const prefix = sourcePrefix(block).length;
+    annotation.selection = { id, start: Math.max(0, input.selectionStart - prefix),
+      end: Math.max(0, input.selectionEnd - prefix), expectedText: block.text };
   }
 
   /** Tab 통과는 선택을 유지하고 편집 불가 입력을 실제 조작할 때만 선택을 폐기한다. */
@@ -221,37 +293,65 @@ export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEd
     setTableFocus({ id: table.id, serial: (tableFocus?.serial ?? 0) + 1 });
   }
 
-  /** 업로드가 끝난 시점의 최신 원고에 이미지를 삽입하고 다음 문단을 유지한다. */
-  function insertUploaded(image: ImageData, targetId: string | null) {
+  /** 파일이 놓인 앞·뒤 경계를 실제 블록 배열의 삽입 인덱스로 바꾼다. {@link DropSlot} */
+  function slotIndex(document: MarkdownDocument, slot: DropSlot): number {
+    if (slot.side === "end" || !slot.targetId) return document.blocks.length;
+    const index = document.blocks.findIndex((block) => block.id === slot.targetId);
+    return index < 0 ? document.blocks.length : index + (slot.side === "after" ? 1 : 0);
+  }
+
+  /** 업로드 완료 시점의 최신 원고에서 ID 경계를 찾아 이미지와 이어 쓸 문단을 삽입한다. {@link BlockInsertion} */
+  function insertUploaded(image: ImageData, anchor: BlockInsertion, replaceEmptyId: string | null) {
     const current = latest.current;
     const blocks = [...current.blocks];
-    const index = targetId ? blocks.findIndex((block) => block.id === targetId) : blocks.length - 1;
-    if (targetId && index < 0) return;
+    const index = resolveBlockInsertion(current, anchor);
     const picture = emptyImageBlock(image, current.newline);
-    if (index < 0) {
-      blocks.push({ ...picture, after: current.newline.repeat(2) }, emptyBlock("p", current.newline));
-    } else {
-      const previous = blocks[index];
-      if (previous.type === "p" && !previous.text && !previous.raw) {
-        blocks[index] = { ...picture, after: previous.after };
-      } else {
-        blocks[index] = { ...previous, after: current.newline.repeat(2) };
-        blocks.splice(index + 1, 0, { ...picture, after: previous.after });
+    const replaceIndex = replaceEmptyId ? blocks.findIndex((block) => block.id === replaceEmptyId) : -1;
+    const emptyTarget = replaceIndex >= 0 && blocks[replaceIndex].type === "p" &&
+      !blocks[replaceIndex].text && !blocks[replaceIndex].raw;
+    if (emptyTarget) {
+      const old = blocks[replaceIndex];
+      blocks[replaceIndex] = { ...picture, after: old.after };
+      if (replaceIndex === blocks.length - 1) {
+        blocks[replaceIndex] = { ...picture, after: current.newline.repeat(2) };
+        blocks.push({ ...emptyBlock("p", current.newline), after: old.after });
       }
-      if (index === current.blocks.length - 1) {
-        const last = blocks.at(-1)!;
-        blocks[blocks.length - 1] = { ...last, after: current.newline.repeat(2) };
+    } else if (!blocks.length) {
+      blocks.push({ ...picture, after: current.newline.repeat(2) }, emptyBlock("p", current.newline));
+    } else if (index === 0) {
+      blocks.unshift({ ...picture, after: current.newline.repeat(2) });
+    } else {
+      const previous = blocks[index - 1];
+      blocks[index - 1] = { ...previous, after: current.newline.repeat(2) };
+      blocks.splice(index, 0, { ...picture, after: previous.after });
+      if (index === current.blocks.length) {
+        blocks[index] = { ...picture, after: current.newline.repeat(2) };
         blocks.push({ ...emptyBlock("p", current.newline), after: previous.after });
       }
     }
-    onChange(ensureBlockBoundaries({ ...current, blocks }));
+    const next = ensureBlockBoundaries({ ...current, blocks });
+    latest.current = next;
+    onChange(next);
     activate(picture.id);
+    setFlashIds(new Set([picture.id]));
+    if (flashTimer.current) clearTimeout(flashTimer.current);
+    flashTimer.current = setTimeout(() => setFlashIds(new Set()), 800);
   }
 
-  /** 파일 선택·드롭·클립보드 이미지를 같은 관리자 업로드 작업으로 연결한다. */
-  function acceptImageFile(file: File, targetId = activeId) {
+  /** 업로드 요청 전 ID 경계를 잡아 이후 원고 편집에도 첨부 삽입 위치를 유지한다. {@link insertUploaded} */
+  function acceptImageFile(file: File, slot: DropSlot | null = null) {
     if (disabled || !onImageFile) return;
-    void onImageFile(file).then((image) => { if (image) insertUploaded(image, targetId); });
+    const current = latest.current;
+    const targetIndex = activeId ? current.blocks.findIndex((block) => block.id === activeId) : -1;
+    const index = slot ? slotIndex(current, slot) : targetIndex < 0 ? current.blocks.length : targetIndex + 1;
+    const preferred = slot?.side === "before" ? "before" : "after";
+    const anchor = captureBlockInsertion(current, index, preferred);
+    const replaceEmptyId = slot ? null : targetIndex >= 0 ? current.blocks[targetIndex].id : null;
+    const serial = ++uploadSerial.current;
+    setPendingUpload({ serial, anchor });
+    void onImageFile(file).then((image) => { if (image) insertUploaded(image, anchor, replaceEmptyId); })
+      .catch(() => onImageReject?.("이미지를 업로드하지 못했습니다. 다시 시도해 주세요."))
+      .finally(() => setPendingUpload((pending) => pending?.serial === serial ? null : pending));
   }
 
   /** 빈 문단을 접기 그룹으로 바꾸고 마지막 그룹 뒤에는 이어 쓸 문단을 둔다. */
@@ -374,9 +474,12 @@ export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEd
     if (disabled) return;
     if (isComposing(event)) return;
     const input = event.currentTarget;
-    const start = input.selectionStart;
-    const end = input.selectionEnd;
-    const text = input.value;
+    const prefixLength = sourcePrefix(block).length;
+    const startInInput = input.selectionStart;
+    const endInInput = input.selectionEnd;
+    const start = Math.max(0, startInInput - prefixLength);
+    const end = Math.max(0, endInInput - prefixLength);
+    const text = prefixLength ? block.text : input.value;
     if (event.key === "Escape") { event.preventDefault(); setActiveId(null); setFocusTarget({ id: block.id, offset: 0 }); return; }
     if (event.key === "Tab" && !event.ctrlKey && !event.altKey && !event.metaKey) {
       if (event.shiftKey && depth === 1 && onOutdentFrom) { event.preventDefault(); onOutdentFrom(index); return; }
@@ -390,6 +493,13 @@ export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEd
       if (type) { event.preventDefault(); edit(block.id, (old) => ({ ...old, type, text: "", dirty: true })); activate(block.id, 0); return; }
     }
     if (event.key === "Enter" && !event.shiftKey && !event.altKey) {
+      if (prefixLength && startInInput < prefixLength) {
+        event.preventDefault();
+        const blocks = [...value.blocks];
+        const added = { ...emptyBlock("p", value.newline), after: value.newline.repeat(2) };
+        blocks.splice(index, 0, added);
+        onChange(ensureBlockBoundaries({ ...value, blocks })); activate(added.id, 0); return;
+      }
       if (block.type === "p" && depth === 0 && start === end && end === text.length &&
         (text === "/접기" || text === "/toggle")) {
         event.preventDefault(); replaceWithToggle(index); return;
@@ -452,7 +562,8 @@ export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEd
     if (event.key === "Enter" && event.shiftKey && block.type !== "p" && block.type !== "code" && block.type !== "math" && block.type !== "mermaid") {
       event.preventDefault(); return;
     }
-    if (event.key === "Backspace" && start === 0 && end === 0) {
+    if (event.key === "Backspace" && start === 0 && end === 0 && startInInput === endInInput) {
+      if (prefixLength && startInInput > 0 && startInInput < prefixLength) return;
       if (block.type !== "p" && block.type !== "code" && block.type !== "math" && block.type !== "mermaid") {
         event.preventDefault(); edit(block.id, (old) => ({ ...old, type: "p", dirty: true })); activate(block.id, 0); return;
       }
@@ -480,35 +591,156 @@ export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEd
     }
   }
 
-  /** 손잡이나 버튼으로 순서를 바꾸되 원문 블록 내용은 편집하지 않는다. */
-  function move(from: number, to: number) {
-    if (disabled || from === to || from < 0 || to < 0 || to >= value.blocks.length) return;
-    const blocks = [...value.blocks];
-    const separators = blocks.map((block) => block.after);
-    const [moved] = blocks.splice(from, 1);
-    blocks.splice(to, 0, moved);
-    // 구분자는 문서 위치에 두고 부족한 개행은 raw 꼬리까지 고려하는 공통 함수에서 보강한다.
-    onChange(ensureBlockBoundaries({ ...value, blocks: blocks.map((block, index) => ({ ...block, after: separators[index] })) }));
-    activate(moved.id);
+  /** 현재 편집기 직속 블록의 위치를 기억해 {@link moveEditorBlocks} 후 이동 애니메이션을 계산한다. */
+  function rememberPositions() {
+    beforeMove.current = new Map([...root.current?.querySelectorAll<HTMLElement>(":scope > .editor-block") ?? []]
+      .map((element) => [element.dataset.blockId ?? "", element.getBoundingClientRect()]));
   }
 
-  /** HTML Drag and Drop 식별자를 오직 현재 화면 블록에서만 받는다. */
-  function onDrop(event: DragEvent<HTMLElement>, index: number) {
-    if (event.dataTransfer.files.length) {
-      event.preventDefault(); event.stopPropagation();
-      dragId.current = null;
-      if (event.dataTransfer.files.length !== 1) { onImageReject?.("이미지는 한 번에 한 파일씩 올려 주세요."); return; }
-      if (!disabled) acceptImageFile(event.dataTransfer.files[0], value.blocks[index]?.id ?? null);
+  /** 선택 ID를 원래 순서대로 하나의 묶음으로 옮기고 최종 위치를 강조한다. {@link moveEditorBlocks} */
+  function reorder(ids: readonly string[], boundaryIndex: number) {
+    if (disabled) return;
+    const current = latest.current;
+    const moving = current.blocks.filter((block) => ids.includes(block.id)).map((block) => block.id);
+    const next = moveEditorBlocks(current, moving, boundaryIndex);
+    setDropSlot(null);
+    if (!next) return;
+    rememberPositions();
+    latest.current = next;
+    onChange(next);
+    setSelectedIds(new Set(moving));
+    setFlashIds(new Set(moving));
+    if (flashTimer.current) clearTimeout(flashTimer.current);
+    flashTimer.current = setTimeout(() => setFlashIds(new Set()), 800);
+  }
+
+  /** 화살표는 손잡이 선택이 있으면 전체 묶음을, 없으면 해당 블록 하나를 한 칸 이동한다. {@link reorder} */
+  function move(from: number, to: number) {
+    if (disabled || from === to || from < 0 || from >= value.blocks.length) return;
+    const id = value.blocks[from].id;
+    const ids = selectedIds.has(id) ? [...selectedIds] : [id];
+    const positions = value.blocks.flatMap((block, index) => ids.includes(block.id) ? [index] : []);
+    const first = Math.min(...positions);
+    const nextUnselected = value.blocks.findIndex((block, index) => index > first && !ids.includes(block.id));
+    const boundary = to < from ? first - 1 : nextUnselected < 0 ? -1 : nextUnselected + 1;
+    if (boundary < 0 || boundary > value.blocks.length) return;
+    selectionAnchor.current = id;
+    reorder(ids, boundary);
+  }
+
+  /** 선택 묶음 전체를 기준으로 화살표 이동 가능성을 계산해 {@link move} 버튼 상태를 맞춘다. */
+  function canMove(index: number, direction: "up" | "down"): boolean {
+    const block = value.blocks[index];
+    if (!block || disabled) return false;
+    const group = selectedIds.has(block.id) ? selectedIds : new Set([block.id]);
+    const first = value.blocks.findIndex((item) => group.has(item.id));
+    return direction === "up" ? first > 0 :
+      value.blocks.some((item, position) => position > first && !group.has(item.id));
+  }
+
+  /** 손잡이 Shift 범위·Ctrl/⌘ 개별 선택을 현재 {@link BlockEditor}의 형제 블록으로 제한한다. */
+  function selectHandle(event: MouseEvent<HTMLButtonElement>, id: string, index: number) {
+    if (event.shiftKey) {
+      const anchorIndex = value.blocks.findIndex((block) => block.id === selectionAnchor.current);
+      const start = anchorIndex < 0 ? index : Math.min(anchorIndex, index);
+      const end = anchorIndex < 0 ? index : Math.max(anchorIndex, index);
+      setSelectedIds(new Set(value.blocks.slice(start, end + 1).map((block) => block.id)));
+      if (anchorIndex < 0) selectionAnchor.current = id;
+    } else if (event.ctrlKey || event.metaKey ||
+      event.detail > 0 && handlePointerType.current === "touch" && selectedIds.size > 0) {
+      setSelectedIds((current) => { const next = new Set(current);
+        if (next.has(id)) next.delete(id); else next.add(id);
+        return next; });
+      selectionAnchor.current = id;
+    } else {
+      setSelectedIds(new Set([id]));
+      selectionAnchor.current = id;
+    }
+  }
+
+  /** 선택된 블록 수와 첫 내용을 보여 주는 브라우저 드래그 고스트를 만든다. {@link blockNames} */
+  function showDragGhost(event: DragEvent<HTMLElement>, ids: readonly string[]) {
+    const first = value.blocks.find((block) => block.id === ids[0]);
+    const ghost = document.createElement("div");
+    ghost.className = "editor-drag-ghost";
+    const label = document.createElement("strong");
+    label.textContent = ids.length === 1 ? `${blockNames[first?.type ?? "p"]} 블록 이동` : `${ids.length}개 블록 함께 이동`;
+    const preview = document.createElement("span");
+    preview.textContent = first?.type === "image" ? first.image?.caption || "이미지" :
+      first?.text.slice(0, 68) || first?.raw.slice(0, 68) || "빈 블록";
+    ghost.append(label, preview);
+    document.body.append(ghost);
+    event.dataTransfer.setDragImage(ghost, 18, 16);
+    requestAnimationFrame(() => ghost.remove());
+  }
+
+  /** 손잡이나 실제 이미지에서 시작한 끌기를 동일한 {@link DRAG_FORMAT} 블록 이동으로 통일한다. */
+  function beginDrag(event: DragEvent<HTMLElement>, id: string) {
+    if (disabled) { event.preventDefault(); return; }
+    const ids = selectedIds.has(id) ? value.blocks.filter((item) => selectedIds.has(item.id)).map((item) => item.id) : [id];
+    dragIds.current = ids;
+    if (!selectedIds.has(id)) { setSelectedIds(new Set(ids)); selectionAnchor.current = id; }
+    event.dataTransfer.setData(DRAG_FORMAT, editorToken);
+    event.dataTransfer.effectAllowed = "move";
+    showDragGhost(event, ids);
+  }
+
+  /** 현재 {@link BlockEditor}에서 시작한 블록 또는 외부 이미지 파일만 드롭 위치 미리보기에 허용한다. */
+  function dragKind(event: DragEvent<HTMLElement>): DropSlot["kind"] | null {
+    if (event.dataTransfer.types.includes(DRAG_FORMAT)) return dragIds.current.length ? "blocks" : null;
+    if (event.dataTransfer.types.includes("Files")) return "file";
+    return null;
+  }
+
+  /** 블록 사이 빈 공간에서도 포인터와 가장 가까운 {@link DropSlot} 경계를 고른다. */
+  function slotAt(clientY: number, kind: DropSlot["kind"]): DropSlot {
+    for (const element of root.current?.querySelectorAll<HTMLElement>(":scope > .editor-block") ?? []) {
+      const rect = element.getBoundingClientRect();
+      if (clientY < rect.top + rect.height / 2) return { targetId: element.dataset.blockId ?? null, side: "before", kind };
+    }
+    return { targetId: null, side: "end", kind };
+  }
+
+  /** 블록 윗·아랫반의 실제 삽입 경계와 파일·블록 종류를 표시한다. {@link DropSlot} */
+  function hoverBlock(event: DragEvent<HTMLDivElement>, id: string) {
+    const kind = dragKind(event);
+    if (!kind) {
+      if (event.dataTransfer.types.includes(DRAG_FORMAT)) {
+        event.preventDefault(); event.stopPropagation(); event.dataTransfer.dropEffect = "none";
+      }
       return;
     }
-    event.preventDefault();
-    event.stopPropagation();
-    const id = dragId.current;
-    dragId.current = null;
+    if (disabled || kind === "file" && !onImageFile) {
+      if (kind === "file") { event.preventDefault(); event.stopPropagation(); event.dataTransfer.dropEffect = "none"; }
+      return;
+    }
+    event.preventDefault(); event.stopPropagation();
+    event.dataTransfer.dropEffect = kind === "file" ? "copy" : "move";
+    if (kind === "blocks" && dragIds.current.includes(id)) { setDropSlot(null); return; }
+    const rect = event.currentTarget.getBoundingClientRect();
+    const side = event.clientY < rect.top + rect.height / 2 ? "before" : "after";
+    setDropSlot((current) => current?.targetId === id && current.side === side && current.kind === kind ? current :
+      { targetId: id, side, kind });
+  }
+
+  /** 파일은 ID 경계에 업로드하고 블록은 같은 편집기 토큰일 때만 옮긴다. {@link DropSlot} */
+  function dropOn(event: DragEvent<HTMLElement>, slot: DropSlot) {
+    event.preventDefault(); event.stopPropagation();
+    setDropSlot(null);
     if (disabled) return;
-    if (!id || event.dataTransfer.getData(DRAG_FORMAT) !== `${editorToken}:${id}`) return;
-    const from = value.blocks.findIndex((block) => block.id === id);
-    if (from !== -1) move(from, index);
+    if (event.dataTransfer.types.includes(DRAG_FORMAT)) {
+      const ids = dragIds.current;
+      dragIds.current = [];
+      if (!ids.length || event.dataTransfer.getData(DRAG_FORMAT) !== editorToken) return;
+      if (slot.targetId && ids.includes(slot.targetId)) return;
+      reorder(ids, slotIndex(latest.current, slot));
+      return;
+    }
+    if (event.dataTransfer.files.length) {
+      dragIds.current = [];
+      if (event.dataTransfer.files.length !== 1) { onImageReject?.("이미지는 한 번에 한 파일씩 올려 주세요."); return; }
+      acceptImageFile(event.dataTransfer.files[0], slot); return;
+    }
   }
 
   return <div className="block-editor" aria-label="글 본문 편집기" ref={root}
@@ -523,6 +755,10 @@ export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEd
         clearAnnotationSelectionForInput(event.target);
     }}
     onKeyDownCapture={(event) => {
+      if (event.key === "Escape" && selectedIds.size &&
+        (event.target as Element).closest(".block-editor") === event.currentTarget) {
+        setSelectedIds(new Set()); selectionAnchor.current = null;
+      }
       if (event.key !== "Tab" && (event.target as Element).closest(".block-editor") === event.currentTarget)
         clearAnnotationSelectionForInput(event.target);
     }}
@@ -536,28 +772,65 @@ export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEd
       if (file && !disabled && onImageFile) { event.preventDefault(); event.stopPropagation();
         if (event.clipboardData.files.length !== 1) { onImageReject?.("이미지는 한 번에 한 파일씩 붙여넣어 주세요."); return; }
         const id = (event.target as Element).closest<HTMLElement>(".editor-block")?.dataset.blockId ?? activeId;
-        acceptImageFile(file, id); }
+        acceptImageFile(file, id ? { targetId: id, side: "after", kind: "file" } : null); }
     }}
-    onDragOver={(event) => { if (event.dataTransfer.types.includes("Files")) event.preventDefault(); }}
-    onDrop={(event) => { if (!event.dataTransfer.files.length) return;
+    onDragOver={(event) => { const kind = dragKind(event);
+      if (!kind) {
+        if (event.dataTransfer.types.includes(DRAG_FORMAT)) {
+          event.preventDefault(); event.stopPropagation(); event.dataTransfer.dropEffect = "none";
+        }
+        return;
+      }
+      if (disabled || kind === "file" && !onImageFile) {
+        if (kind === "file") { event.preventDefault(); event.stopPropagation(); event.dataTransfer.dropEffect = "none"; }
+        return;
+      }
       event.preventDefault(); event.stopPropagation();
-      if (event.dataTransfer.files.length !== 1) { onImageReject?.("이미지는 한 번에 한 파일씩 올려 주세요."); return; }
-      if (!disabled) acceptImageFile(event.dataTransfer.files[0]); }}>
-    {value.blocks.map((block, index) => <div key={block.id} data-block-id={block.id} className={`editor-block editor-${block.type}`}
-      onDragOver={(event) => { event.preventDefault(); event.stopPropagation(); }} onDrop={(event) => onDrop(event, index)}>
+      event.dataTransfer.dropEffect = kind === "file" ? "copy" : "move";
+      const slot = slotAt(event.clientY, kind);
+      setDropSlot((current) => current?.targetId === slot.targetId && current.side === slot.side && current.kind === kind ? current : slot);
+    }}
+    onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDropSlot(null); }}
+    onDrop={(event) => dropOn(event, slotAt(event.clientY, dragKind(event) ?? "file"))}>
+    {selectedIds.size > 0 && <div className="editor-selection-bar" role="status">
+      <span>{selectedIds.size}개 블록 선택됨 · 손잡이나 화살표로 함께 이동</span>
+      <button type="button" onClick={() => { setSelectedIds(new Set()); selectionAnchor.current = null; }}>선택 해제</button>
+    </div>}
+    {pendingUpload && <span className="sr-only" role="status">이미지 업로드 중 · 표시한 삽입 위치에 추가됩니다</span>}
+    {value.blocks.map((block, index) => <div key={block.id} data-block-id={block.id}
+      data-drop-side={dropSlot?.targetId === block.id ? dropSlot.side : undefined}
+      data-upload-before={pendingUpload && resolveBlockInsertion(value, pendingUpload.anchor) === index ? "true" : undefined}
+      className={`editor-block editor-${block.type}${selectedIds.has(block.id) ? " editor-block-selected" : ""}${flashIds.has(block.id) ? " editor-block-flash" : ""}`}
+      onDragStart={(event) => {
+        if (block.type === "image" && event.target instanceof Element && event.target.closest("img")) {
+          event.stopPropagation(); beginDrag(event, block.id);
+        }
+      }}
+      onDragEnd={(event) => { if (block.type === "image" && event.target instanceof Element && event.target.closest("img")) {
+        event.stopPropagation(); dragIds.current = []; setDropSlot(null);
+      } }}
+      onDragOver={(event) => hoverBlock(event, block.id)}
+      onDrop={(event) => { const rect = event.currentTarget.getBoundingClientRect();
+        dropOn(event, { targetId: block.id, side: event.clientY < rect.top + rect.height / 2 ? "before" : "after",
+          kind: dragKind(event) ?? "file" }); }}>
       <div className={`block-controls${depth === 1 || (depth === 0 && index > 0 && value.blocks[index - 1].type === "toggle") ? " block-controls-transfer" : ""}`}
         aria-label={`${index + 1}번 블록 이동`}>
-        <button type="button" className="drag-handle" disabled={disabled} draggable={!disabled} onDragStart={(event) => {
+        <button type="button" className="drag-handle" disabled={disabled} draggable={!disabled}
+          aria-pressed={selectedIds.has(block.id)}
+          onPointerDown={(event) => { handlePointerType.current = event.pointerType; }}
+          onClick={(event) => selectHandle(event, block.id, index)}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") { event.preventDefault(); setSelectedIds(new Set()); selectionAnchor.current = null; }
+            if (event.altKey && event.key === "ArrowUp") { event.preventDefault(); move(index, index - 1); }
+            if (event.altKey && event.key === "ArrowDown") { event.preventDefault(); move(index, index + 1); }
+          }} onDragStart={(event) => {
           event.stopPropagation();
-          if (disabled) { event.preventDefault(); return; }
-          dragId.current = block.id;
-          event.dataTransfer.setData(DRAG_FORMAT, `${editorToken}:${block.id}`);
-          event.dataTransfer.effectAllowed = "move";
+          beginDrag(event, block.id);
         }} onDragEnd={(event) => {
-          event.stopPropagation(); dragId.current = null;
-        }} aria-label={`${index + 1}번 블록 끌어 이동`}>⋮⋮</button>
-        <button type="button" disabled={disabled || index === 0} onClick={() => move(index, index - 1)} aria-label={`${index + 1}번 블록 위로 이동`}>↑</button>
-        <button type="button" disabled={disabled || index === value.blocks.length - 1} onClick={() => move(index, index + 1)} aria-label={`${index + 1}번 블록 아래로 이동`}>↓</button>
+          event.stopPropagation(); dragIds.current = []; setDropSlot(null);
+        }} aria-label={`${index + 1}번 블록 선택 또는 끌어 이동`}>⋮⋮</button>
+        <button type="button" className="block-move-up" disabled={!canMove(index, "up")} onClick={() => move(index, index - 1)} aria-label={`${index + 1}번 블록 위로 이동`}>↑</button>
+        <button type="button" className="block-move-down" disabled={!canMove(index, "down")} onClick={() => move(index, index + 1)} aria-label={`${index + 1}번 블록 아래로 이동`}>↓</button>
         {depth === 1 && onOutdentFrom && <button type="button" disabled={disabled} onClick={() => onOutdentFrom(index)}
           aria-label={`${index + 1}번 블록부터 접기 밖으로 빼기`}>↤</button>}
         {depth === 0 && index > 0 && value.blocks[index - 1].type === "toggle" && block.type !== "toggle" &&
@@ -647,13 +920,19 @@ export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEd
               data-annotation-block-id={ANNOTATION_TEXT_TYPES.has(block.type) ? block.id : undefined}
               aria-label={`${index + 1}번 ${blockNames[block.type]} 블록`} rows={Math.max(1, block.text.split("\n").length)}
               aria-describedby={block.type === "math" ? `${block.id}-math-help` : block.type === "mermaid" ? `${block.id}-mermaid-help` : undefined}
-              value={block.text} disabled={disabled} placeholder={block.type === "p" ? "내용을 입력하세요. 마크다운 단축키가 바로 적용됩니다" : "블록 내용을 입력하세요"}
+              value={visibleBlockText(block)} disabled={disabled} placeholder={block.type === "p" ? "내용을 입력하세요. 마크다운 단축키가 바로 적용됩니다" : "블록 내용을 입력하세요"}
               onChange={(event) => {
                 const nextText = event.target.value;
-                captureAnnotationSelectionFrom(event.currentTarget);
                 const shortcut = block.type === "p" && !composing.current && nextText.endsWith(" ") ?
                   shortcuts[nextText.slice(0, -1)] : undefined;
-                edit(block.id, (old) => ({ ...old, type: shortcut ?? old.type, text: shortcut ? "" : nextText, dirty: true }));
+                const parsed = shortcut ? { type: shortcut, text: "" } : parseActiveSource(block, nextText);
+                if (ANNOTATION_TEXT_TYPES.has(parsed.type)) {
+                  const prefix = sourcePrefix({ ...block, ...parsed }).length;
+                  annotation.selection = { id: block.id,
+                    start: Math.max(0, event.currentTarget.selectionStart - prefix),
+                    end: Math.max(0, event.currentTarget.selectionEnd - prefix), expectedText: parsed.text };
+                }
+                edit(block.id, (old) => ({ ...old, ...parsed, dirty: true }));
               }}
               onSelect={(event) => captureAnnotationSelectionFrom(event.currentTarget)}
               onKeyUp={(event) => captureAnnotationSelectionFrom(event.currentTarget)}
@@ -699,6 +978,9 @@ export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEd
       {block.type === "todo" && <button type="button" className="todo-toggle" disabled={disabled} onClick={() => edit(block.id, (old) => ({ ...old, done: !old.done, dirty: true }))}
         aria-label={block.done ? "할 일 미완료로 변경" : "할 일 완료로 변경"}>{block.done ? "☑" : "□"}</button>}
     </div>)}
+    {(dropSlot?.side === "end" || pendingUpload && resolveBlockInsertion(value, pendingUpload.anchor) === value.blocks.length) &&
+      <div className={`editor-drop-end${pendingUpload ? " editor-upload-pending" : ""}`} role="status">
+        {pendingUpload ? "이미지 업로드 중 · 이 위치에 삽입됩니다" : "여기에 삽입"}</div>}
     <button type="button" className="editor-add" disabled={disabled} onClick={() => {
       if (!value.blocks.length) { const block = emptyBlock("p", value.newline); onChange({ ...value, blocks: [block] }); activate(block.id, 0); }
       else insertAfter(value.blocks.length - 1, "p");

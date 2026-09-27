@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ApiFailure, apiFailureMessage, postDestination, type CategoryNode, type TagCount } from "@/lib/api";
 import { draftValues, parseAdminCategories, parseAdminPost, parseAdminTags, parseDraftDetail, parseDraftPage,
   positiveId, type AdminPost, type DraftDetail, type DraftSummary, type DraftValues,
@@ -11,7 +11,8 @@ import { parseAdminProject, parseAdminProjectPage, type AdminProject } from "@/l
 import { parseCoursePage, type CourseSummary } from "@/lib/notes";
 import { parseEditorMarkdown, serializeEditorMarkdown, type MarkdownDocument } from "@/lib/editor-markdown";
 import { collectAttachmentIds, type ImageData } from "@/lib/editor-image";
-import { buildEditorAnnotationModel, stripInlineAnnotations } from "@/lib/editor-annotation";
+import { buildEditorAnnotationModel, matchingEditorAnnotationModel, stripInlineAnnotations,
+  type EditorAnnotationModel } from "@/lib/editor-annotation";
 import { validWikiTitle } from "@/lib/wiki-link-syntax";
 import { collectWikiTargets } from "@/lib/wiki-targets";
 import { useAuth } from "@/components/auth-provider";
@@ -21,6 +22,7 @@ import { PublishSheet } from "./publish-sheet";
 import { WikiLinkPicker } from "./wiki-link-picker";
 import { StackBadgePicker } from "./stack-badge-picker";
 import { CategoryPicker } from "./category-picker";
+import { ProjectPicker } from "./project-picker";
 import { ShortcutHelp } from "./shortcut-help";
 import "./editor-design.css";
 
@@ -131,10 +133,12 @@ function formFromDraft(draft: DraftDetail): Form {
 }
 
 /** 서버 트리를 깊이별 레이블을 포함한 분류 선택 목록으로 펼친다. */
-function categoryOptions(nodes: CategoryNode[]): Array<{ id: number; label: string; depth: number; count: number }> {
-  return nodes.flatMap((node) => [{ id: node.id, label: node.path.replaceAll("/", " › "),
-    depth: node.depth, count: node.totalCount },
-    ...categoryOptions(node.children)]);
+function categoryOptions(nodes: CategoryNode[], ancestors: string[] = []): Array<{ id: number; label: string; depth: number; count: number }> {
+  return nodes.flatMap((node) => {
+    const labels = [...ancestors, node.name];
+    return [{ id: node.id, label: labels.join(" › "), depth: node.depth, count: node.totalCount },
+      ...categoryOptions(node.children, labels)];
+  });
 }
 
 /** 관리자 과목 상세의 비공개·비출간 회차까지 포함해 다음 순서를 구한다. */
@@ -166,10 +170,12 @@ function WriteInstance({ route }: { route: Route }) {
       route.section === "NOTE_CHAPTER" ? `new:notes:${route.courseId}` : route.title ? `new:${route.title}` : "new" :
     route.kind === "invalid" ? "invalid" : `${route.kind}:${route.id}`;
   const loadedRoute = useRef<string | null>(null);
+  const loadedAuthEpoch = useRef<number | null>(null);
   const controllers = useRef(new Set<AbortController>());
   const writeGeneration = useRef(0);
   const busyLock = useRef(false);
   const uploadLock = useRef(false);
+  const projectLoadingLock = useRef(false);
   const uploadController = useRef<AbortController | null>(null);
   const allowRouteSwitch = useRef(false);
   const draftId = useRef<number | null>(null);
@@ -189,6 +195,7 @@ function WriteInstance({ route }: { route: Route }) {
   const [projectPage, setProjectPage] = useState(0);
   const [projectPages, setProjectPages] = useState(0);
   const [projectLoading, setProjectLoading] = useState(false);
+  const [projectError, setProjectError] = useState("");
   const [projectName, setProjectName] = useState("");
   const [projectSlug, setProjectSlug] = useState("");
   const [tagInput, setTagInput] = useState("");
@@ -200,17 +207,33 @@ function WriteInstance({ route }: { route: Route }) {
   const [showHelp, setShowHelp] = useState(false);
   const [showWikiPicker, setShowWikiPicker] = useState(false);
   const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+  const [categoryCreating, setCategoryCreating] = useState(false);
   const [tagFocused, setTagFocused] = useState(false);
   const [retry, setRetry] = useState(0);
   const [focusFirstSignal, setFocusFirstSignal] = useState(0);
   const dirty = screen === "ready" && version !== savedVersion;
   const dirtyRef = useRef(dirty);
   const editorRef = useRef<BlockEditorHandle | null>(null);
+  const categoryTriggerRef = useRef<HTMLButtonElement | null>(null);
   const deferredDocument = useDeferredValue(form.document);
   const annotationModel = useMemo(() => buildEditorAnnotationModel(deferredDocument), [deferredDocument]);
-  const currentAnnotationModel = deferredDocument === form.document ? annotationModel : null;
+  const lastCompletedAnnotations = useRef<{ routeKey: string; authEpoch: number; model: EditorAnnotationModel } | null>(null);
+  const annotationRouteReady = screen === "ready" && loadedRoute.current === routeKey &&
+    loadedAuthEpoch.current === auth.epoch && auth.status === "authenticated" && auth.user?.role === "ADMIN";
+  const currentAnnotationModel = annotationRouteReady && deferredDocument === form.document ? annotationModel : null;
+  const previousAnnotationModel = lastCompletedAnnotations.current;
+  const annotationPreview = annotationRouteReady ? currentAnnotationModel ??
+    (previousAnnotationModel?.routeKey === routeKey && previousAnnotationModel.authEpoch === auth.epoch ?
+      matchingEditorAnnotationModel(form.document, previousAnnotationModel.model) : null) : null;
+  const annotationItems = annotationPreview?.items ?? [];
   const annotationIdentity = `${auth.epoch}:${routeKey}:${screen}:${version}:${currentAnnotationModel ? "ready" : "updating"}`;
   dirtyRef.current = dirty;
+
+  /** {@link buildEditorAnnotationModel}의 마지막 완료 모형을 다음 입력 전에 보관한다. */
+  useLayoutEffect(() => {
+    if (annotationRouteReady && currentAnnotationModel)
+      lastCompletedAnnotations.current = { routeKey, authEpoch: auth.epoch, model: currentAnnotationModel };
+  }, [annotationRouteReady, currentAnnotationModel, routeKey, auth.epoch]);
 
   /** 로드와 쓰기 요청을 세션 인스턴스가 사라질 때 모두 취소한다. */
   useEffect(() => () => {
@@ -226,16 +249,19 @@ function WriteInstance({ route }: { route: Route }) {
   /** ADMIN 확인 후 편집본·원본 또는 새 글과 관리자 taxonomy를 같은 세션에서 읽는다. */
   useEffect(() => {
     if (auth.status !== "authenticated" || auth.user?.role !== "ADMIN" ||
-      loadedRoute.current === routeKey) return;
-    if (loadedRoute.current !== null && dirtyRef.current && !allowRouteSwitch.current) {
+      loadedRoute.current === routeKey && loadedAuthEpoch.current === auth.epoch) return;
+    if (loadedRoute.current !== null && loadedAuthEpoch.current === auth.epoch &&
+      dirtyRef.current && !allowRouteSwitch.current) {
       setMessage("저장하지 않은 원고를 유지하고 원래 편집 주소로 돌아왔습니다.");
       router.replace(routeHref(loadedRoute.current), { scroll: false });
       return;
     }
     if (route.kind === "invalid") {
+      loadedAuthEpoch.current = null;
       writeGeneration.current += 1;
       controllers.current.forEach((pending) => pending.abort()); controllers.current.clear();
-      busyLock.current = false; setBusy(null); setShowPublish(false); setShowCategoryPicker(false); setShowHelp(false);
+      busyLock.current = false; setBusy(null); setShowPublish(false); setShowCategoryPicker(false); setCategoryCreating(false); setShowHelp(false);
+      projectLoadingLock.current = false; setProjectLoading(false); setProjectError("");
       uploadLock.current = false; setUploading(false);
       uploadController.current = null;
       loadedRoute.current = routeKey;
@@ -245,10 +271,12 @@ function WriteInstance({ route }: { route: Route }) {
       return;
     }
     allowRouteSwitch.current = false;
+    loadedAuthEpoch.current = null;
     writeGeneration.current += 1;
     controllers.current.forEach((pending) => pending.abort()); controllers.current.clear();
     busyLock.current = false; setBusy(null); setShowPublish(false); setShowWikiPicker(false);
-    setShowCategoryPicker(false); setShowHelp(false); setTagFocused(false);
+    setShowCategoryPicker(false); setCategoryCreating(false); setShowHelp(false); setTagFocused(false);
+    projectLoadingLock.current = false; setProjectLoading(false); setProjectError("");
     uploadLock.current = false; setUploading(false);
     uploadController.current = null;
     draftId.current = null; revision.current = null;
@@ -315,19 +343,30 @@ function WriteInstance({ route }: { route: Route }) {
             throw new ApiFailure("response");
           parent = parseAdminProject(detail.project);
         }
+        let relatedProject = nextForm.relatedProjectId === null ? null :
+          projectList.items.find((item) => item.id === nextForm.relatedProjectId) ?? null;
+        if (nextForm.relatedProjectId !== null && !relatedProject) {
+          const detail = await auth.adminRead(`/api/v1/admin/projects/${nextForm.relatedProjectId}`, controller.signal);
+          if (!detail || typeof detail !== "object" || Array.isArray(detail) || !("project" in detail))
+            throw new ApiFailure("response");
+          relatedProject = parseAdminProject(detail.project);
+        }
         if (controller.signal.aborted) return;
         formRef.current = nextForm; setForm(nextForm); versionRef.current = 0; setVersion(0); setSavedVersion(0);
-        setCategories(nextCategories); setKnownTags(nextTags); setProjects(projectList.items);
+        setCategories(nextCategories); setKnownTags(nextTags);
+        setProjects(relatedProject && !projectList.items.some((item) => item.id === relatedProject.id) ?
+          [...projectList.items, relatedProject] : projectList.items);
         setCourses(courseList.items);
         setProjectPage(0); setProjectPages(projectList.totalPages);
-        setProjectName(parent?.name ?? ""); setProjectSlug(parent?.slug ?? ""); loadFinished = true; setScreen("ready");
+        setProjectName(parent?.name ?? ""); setProjectSlug(parent?.slug ?? "");
+        loadedAuthEpoch.current = auth.epoch; loadFinished = true; setScreen("ready");
       } catch (error) {
         if (!controller.signal.aborted) { loadFinished = true; setMessage(apiFailureMessage(error)); setScreen("error"); }
       } finally { controllers.current.delete(controller); }
     })();
     return () => { controller.abort(); controllers.current.delete(controller);
-      if (!loadFinished && loadedRoute.current === routeKey) loadedRoute.current = null; };
-  }, [auth.adminRead, auth.status, auth.user?.role, route.kind, routeKey, retry, router]);
+      if (!loadFinished && loadedRoute.current === routeKey) { loadedRoute.current = null; loadedAuthEpoch.current = null; } };
+  }, [auth.adminRead, auth.epoch, auth.status, auth.user?.role, route.kind, routeKey, retry, router]);
 
   /** 원고의 새 값을 즉시 ref에도 반영해 저장 클릭 직전 입력을 빠뜨리지 않는다. */
   const changeForm = useCallback((change: (current: Form) => Form) => {
@@ -499,18 +538,52 @@ function WriteInstance({ route }: { route: Route }) {
     } catch (error) { setMessage(apiFailureMessage(error)); }
   }
 
-  /** 글쓰기 분류 선택기에서 새 분류를 만들고 서버 트리를 다시 읽는다. */
+  /** {@link parseAdminProjectPage}의 다음 페이지를 읽어 관련 프로젝트 선택지를 빠짐없이 채운다. */
+  async function fetchMoreProjects() {
+    const nextPage = projectPage + 1;
+    if (projectLoadingLock.current || nextPage >= projectPages) return;
+    const generation = writeGeneration.current;
+    const controller = new AbortController(); controllers.current.add(controller);
+    projectLoadingLock.current = true; setProjectLoading(true); setProjectError("");
+    try {
+      const page = parseAdminProjectPage(await auth.adminRead(
+        `/api/v1/admin/projects?page=${nextPage}&size=20`, controller.signal), nextPage);
+      if (controller.signal.aborted || generation !== writeGeneration.current) return;
+      setProjects((current) => {
+        const known = new Set(current.map((project) => project.id));
+        return [...current, ...page.items.filter((project) => !known.has(project.id))];
+      });
+      setProjectPage(nextPage); setProjectPages(page.totalPages);
+    } catch (error) {
+      if (!controller.signal.aborted && generation === writeGeneration.current) setProjectError(apiFailureMessage(error));
+    } finally {
+      controllers.current.delete(controller);
+      if (generation === writeGeneration.current) { projectLoadingLock.current = false; setProjectLoading(false); }
+    }
+  }
+
+  /** 글쓰기 분류 선택기에서 서버가 반환한 ID로 새 분류를 확인하고 선택한다. */
   async function createCategory(parent: CategoryNode | null, name: string): Promise<number | null> {
     if (busyLock.current) return null;
     const path = parent ? `${parent.path}/${name}` : name;
-    await auth.adminWrite("POST", "/api/v1/admin/categories", { path });
-    const next = parseAdminCategories(await auth.adminRead("/api/v1/admin/categories"));
-    setCategories(next);
-    const created = categoryOptions(next).find((option) => option.label === path.replaceAll("/", " › "));
-    if (created) changeForm((current) => ({ ...current, categoryId: created.id,
-      techSeriesOrder: current.section === "TECH" && created.depth === 3 && original.current.postId === null ?
-        created.count + 1 : null }));
-    return created?.id ?? null;
+    try {
+      const response = await auth.adminWrite("POST", "/api/v1/admin/categories", { path });
+      if (!response || typeof response !== "object" || Array.isArray(response) || !("id" in response) ||
+        !Number.isSafeInteger(response.id) || (response.id as number) < 1) throw new ApiFailure("response");
+      const id = response.id as number;
+      const next = parseAdminCategories(await auth.adminRead("/api/v1/admin/categories"));
+      const created = categoryOptions(next).find((option) => option.id === id);
+      if (!created) throw new ApiFailure("response");
+      setCategories(next);
+      changeForm((current) => ({ ...current, categoryId: id,
+        techSeriesOrder: current.section === "TECH" && created.depth === 3 && original.current.postId === null ?
+          created.count + 1 : null }));
+      return id;
+    } catch (error) {
+      if (error instanceof ApiFailure && error.status === 409) throw new Error("같은 이름의 분류가 이미 있습니다.");
+      if (error instanceof ApiFailure && error.status === 400) throw new Error("분류 이름과 깊이를 확인해 주세요.");
+      throw new Error(apiFailureMessage(error));
+    }
   }
 
   if (auth.status === "checking") return <main id="main-content" className="write-page" role="status">관리자 세션을 확인하고 있습니다…</main>;
@@ -531,7 +604,6 @@ function WriteInstance({ route }: { route: Route }) {
 
   const options = categoryOptions(categories);
   const selectedCategory = options.find((item) => item.id === form.categoryId);
-  const selectedProject = projects.find((item) => item.id === form.relatedProjectId);
   const sectionLocked = draftId.current !== null || original.current.postId !== null;
   const actionLabel = form.section === "PROJECT_HOME" ? original.current.postId === null ? "프로젝트 만들기" : "저장" :
     original.current.postId === null ? "출간하기" : "수정하기";
@@ -594,10 +666,11 @@ function WriteInstance({ route }: { route: Route }) {
         </div>
       </div>
       <div className="editor-meta-row editor-category-row"><span>분류</span>
-        <button type="button" className="editor-compact-button" disabled={busy === "publish"}
+        <button ref={categoryTriggerRef} type="button" className="editor-compact-button" disabled={busy === "publish" || categoryCreating}
           aria-expanded={showCategoryPicker} aria-label="분류 고르기" onClick={() => setShowCategoryPicker((open) => !open)}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2-2H5a2 2 0 0 1-2-2z" /></svg>
-          {selectedCategory?.label ?? (form.categoryId ? "삭제된 분류" : "분류 없음")} <span aria-hidden="true">⌄</span></button>
+          <span className="editor-category-current">{selectedCategory?.label ?? (form.categoryId ? "삭제된 분류" : "분류 없음")}</span>
+          <span aria-hidden="true">⌄</span></button>
         {form.categoryId !== null && <button type="button" className="editor-clear-button" onClick={() => changeForm((current) =>
           ({ ...current, categoryId: null, techSeriesOrder: null }))}>해제</button>}
         {showCategoryPicker && <CategoryPicker nodes={categories} selected={form.categoryId} busy={busy !== null}
@@ -607,19 +680,19 @@ function WriteInstance({ route }: { route: Route }) {
               picked?.depth === 3 && original.current.postId === null ? picked.count + 1 :
                 current.categoryId === id ? current.techSeriesOrder : null : null };
           })}
-          onCreate={createCategory} onClose={() => setShowCategoryPicker(false)} />}
+          onCreate={createCategory} onPendingChange={setCategoryCreating}
+          onClose={() => { setShowCategoryPicker(false); categoryTriggerRef.current?.focus(); }} />}
       </div>
-      {form.section === "TECH" && <div className="editor-meta-row"><span>프로젝트</span><label className={`editor-compact-button editor-project-select${form.relatedProjectId ? " selected" : ""}`}>
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 9h18" /></svg>
-        {selectedProject?.name ?? "프로젝트 없음"}<span aria-hidden="true">⌄</span>
-        <select aria-label="관련 프로젝트" value={form.relatedProjectId ?? ""} disabled={busy === "publish"}
-          onChange={(event) => changeForm((current) => ({ ...current, relatedProjectId: event.target.value ? Number(event.target.value) : null }))}>
-          <option value="">없음</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}{project.visibility === "PRIVATE" ? " (비공개)" : ""}</option>)}
-        </select></label></div>}
+      {form.section === "TECH" && <div className="editor-meta-row"><span>프로젝트</span>
+        <ProjectPicker projects={projects} selected={form.relatedProjectId} disabled={busy === "publish"}
+          hasMore={projectPage + 1 < projectPages} loadingMore={projectLoading} error={projectError}
+          onMore={() => { void fetchMoreProjects(); }}
+          onSelect={(id) => changeForm((current) => ({ ...current, relatedProjectId: id }))} />
+      </div>}
     </>}
-    <AnnotationReader mode="editor" identity={annotationIdentity} items={currentAnnotationModel?.items ?? []}>
+    <AnnotationReader mode="editor" identity={annotationIdentity} items={annotationItems}>
       <BlockEditor ref={editorRef} value={form.document} disabled={busy === "publish" || uploading}
-        annotationPreview={currentAnnotationModel} annotationSessionKey={`${auth.epoch}:${routeKey}:${screen}`}
+        annotationPreview={annotationPreview} annotationSessionKey={`${auth.epoch}:${routeKey}:${screen}`}
         focusFirstSignal={focusFirstSignal} onImageFile={uploadImage} onImageReject={setMessage}
         onChange={(next) => changeForm((current) => ({ ...current, document: next }))} />
     </AnnotationReader>
@@ -648,13 +721,13 @@ function WriteInstance({ route }: { route: Route }) {
       {uploading && <button type="button" className="small-button" onClick={() => {
         uploadController.current?.abort(); setMessage("이미지 업로드를 취소했습니다. 원고는 유지됩니다.");
       }}>업로드 취소</button>}
-      <button type="button" className="editor-save-button" onClick={() => void save()} disabled={busy !== null || uploading}>임시저장</button>
+      <button type="button" className="editor-save-button" onClick={() => void save()} disabled={busy !== null || uploading || categoryCreating}>임시저장</button>
       <button type="button" className="primary-button" onClick={() => {
         if (form.section === "PROJECT_HOME" && !form.slug) changeForm((current) => ({ ...current,
           slug: current.title.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") ||
             `project-${Date.now().toString(36)}` }));
         setShowPublish(true);
-      }} disabled={busy !== null || uploading}>{actionLabel}</button></div>
+      }} disabled={busy !== null || uploading || categoryCreating}>{actionLabel}</button></div>
     {showPublish && <PublishSheet title={form.title} slug={form.slug} section={form.section} summary={form.summary}
       summaryPreview={summaryFromBody(serializeEditorMarkdown(form.document))}
       visibility={form.visibility} busy={busy !== null || uploading} sectionLocked={sectionLocked} error={message} actionLabel={actionLabel}

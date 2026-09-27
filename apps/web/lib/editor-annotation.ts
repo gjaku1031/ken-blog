@@ -16,6 +16,7 @@ export type EditorAnnotationReference = {
 /** 저장 원문과 주석 목록, 정확히 대응되는 텍스트 블록의 참조만 모은다. */
 export type EditorAnnotationModel = {
   body: string; items: AnnotationItem[]; byBlock: Map<string, EditorAnnotationReference[]>;
+  sourceByBlock: Map<string, string>;
 };
 
 type Target = { block: EditorBlock; index: number; toggleIndex?: number; toggleId?: string };
@@ -148,6 +149,7 @@ export function buildEditorAnnotationModel(document: MarkdownDocument): EditorAn
   const body = serializeEditorMarkdown(document);
   const { root, items } = parseAnnotationDocument(body);
   const spans = editableSpans(document).sort((left, right) => left.start - right.start);
+  const sourceByBlock = new Map(spans.map((span) => [span.id, body.slice(span.start, span.end)]));
   const byBlock = new Map<string, EditorAnnotationReference[]>();
   let spanIndex = 0;
   for (const reference of resolvedReferences(root, items)) {
@@ -160,7 +162,22 @@ export function buildEditorAnnotationModel(document: MarkdownDocument): EditorAn
     list.push(local);
     byBlock.set(span.id, list);
   }
-  return { body, items, byBlock };
+  return { body, items, byBlock, sourceByBlock };
+}
+
+/** {@link buildEditorAnnotationModel}의 완료된 번호를 유지하되 현재 {@link blockMarkdown}과 같은 블록에만 참조를 제공한다. */
+export function matchingEditorAnnotationModel(document: MarkdownDocument, model: EditorAnnotationModel): EditorAnnotationModel {
+  const byBlock = new Map<string, EditorAnnotationReference[]>();
+  const visit = (current: MarkdownDocument) => {
+    for (const block of current.blocks) {
+      const references = model.byBlock.get(block.id);
+      if (references && model.sourceByBlock.get(block.id) === blockMarkdown(block, current.newline))
+        byBlock.set(block.id, references);
+      if (block.type === "toggle" && block.toggle) visit(block.toggle.inner);
+    }
+  };
+  visit(document);
+  return { ...model, byBlock };
 }
 
 /** 블록 단편을 다시 번호 매기지 않고 전체 문서에서 확정한 정확한 후보만 위첨자로 표시한다. */

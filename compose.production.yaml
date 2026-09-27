@@ -15,7 +15,8 @@ services:
       SESSION_COOKIE_SECURE: "true"
     ports:
       - "127.0.0.1:${API_PORT:-18081}:8080"
-    mem_limit: 768m
+    # 512MiB 힙 외 JVM 네이티브 메모리에도 약 512MiB를 남긴다.
+    mem_limit: 1g
     cpus: 1.0
 
   web:

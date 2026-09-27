@@ -1,5 +1,13 @@
 .editor-image-block { border: 1px solid var(--line2); border-radius: 9px; padding: 12px; background: var(--card); }
 .editor-image-block:focus-visible { outline: 3px solid var(--accent); }
+.editor-image-block .editor-image-stage { position: relative; min-width: 0; }
+.editor-design-page .editor-image-block .editor-image-figure { min-width: 0; max-width: 100%; margin-right: 0; transition: width 220ms ease, margin-left 220ms ease; }
+.editor-image-block .editor-image-stage > .editor-image-toolbar { box-sizing: border-box; width: max-content; max-width: 100%; overflow-x: auto; overflow-y: hidden; overscroll-behavior-x: contain; scrollbar-width: thin; }
+.editor-image-block .editor-image-toolbar button, .editor-image-block .editor-image-toolbar input[type="range"] { flex: 0 0 auto; }
+.editor-image-block .editor-image-toolbar button svg { display: block; }
+@media (prefers-reduced-motion: reduce) {
+  .editor-design-page .editor-image-block .editor-image-figure { transition: none; }
+}
 .editor-image-fields { display: flex; align-items: end; flex-wrap: wrap; gap: 10px; margin-top: 12px; }
 .editor-image-fields label { display: grid; gap: 4px; min-width: 100px; flex: 1 1 130px; color: var(--muted); font-size: 12px; }
 .editor-image-fields label:first-child { flex: 2 1 220px; }
