@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { ApiFailure, apiFailureMessage, apiRequest, fetchCsrf } from "@/lib/api";
-import { publicPagesMirrorOrigin } from "@/lib/site-mirror";
 
 /** 링크 fragment의 일회용 토큰을 주소에서 지운 뒤 계정 이름을 확인한다. */
 export function InvitationForm() {
@@ -19,11 +18,6 @@ export function InvitationForm() {
   const initialToken = useRef<string | null | undefined>(undefined);
 
   useEffect(() => {
-    const mirror = publicPagesMirrorOrigin();
-    if (mirror) {
-      window.location.replace(`${mirror}${window.location.pathname}${window.location.search}${window.location.hash}`);
-      return;
-    }
     if (initialToken.current === undefined) {
       const params = new URLSearchParams(window.location.hash.slice(1));
       const values = params.getAll("token");

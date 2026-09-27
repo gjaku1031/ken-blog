@@ -27,6 +27,7 @@ server:
         http-only: true
         secure: ${SESSION_COOKIE_SECURE:true}
         same-site: ${SESSION_COOKIE_SAME_SITE:lax}
+        partitioned: ${SESSION_COOKIE_PARTITIONED:false}
 
 management:
   endpoints:

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
-import { ApiFailure, apiFailureMessage, apiUrl } from "@/lib/api";
+import { ApiFailure, apiFailureMessage } from "@/lib/api";
 import { useAuth } from "../auth-provider";
 
 type Member = { id: number; displayName: string; username: string; role: "USER" | "ADMIN";
@@ -25,7 +25,7 @@ function parseMembers(value: unknown): MemberPage {
   return { items, page: page.page as number, size: page.size as number, totalElements: page.totalElements as number };
 }
 
-/** 한 번만 돌아오는 초대 URL이 현재 HTTPS 미러와 fragment 토큰을 가리키는지 확인한다. */
+/** 한 번만 돌아오는 초대 URL이 GitHub Pages와 fragment 토큰을 가리키는지 확인한다. */
 function parseIssuedInvite(value: unknown): IssuedInvite {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new ApiFailure("response");
   const result = value as Record<string, unknown>;
@@ -34,7 +34,7 @@ function parseIssuedInvite(value: unknown): IssuedInvite {
   const member = result.member as Record<string, unknown>;
   let url: URL;
   try { url = new URL(result.inviteUrl); } catch { throw new ApiFailure("response"); }
-  if (url.origin !== apiUrl("/").origin || url.pathname !== "/ken-blog/invite/" || url.search ||
+  if (url.origin !== "https://gjaku1031.github.io" || url.pathname !== "/ken-blog/invite/" || url.search ||
     !/^#token=[A-Za-z0-9_-]{43}$/.test(url.hash) || typeof member.displayName !== "string" ||
     typeof member.username !== "string") throw new ApiFailure("response");
   return { displayName: member.displayName, username: member.username, url: url.toString() };

@@ -22,10 +22,6 @@ services:
     build:
       context: ./apps/web
       dockerfile: Dockerfile.production
-      args:
-        NEXT_PUBLIC_BASE_PATH: /ken-blog
-        NEXT_PUBLIC_API_BASE_URL: https://oci-workspace.tailedbbb5.ts.net
-        NEXT_PUBLIC_GA_ENABLED: "false"
     image: ken-blog-web:production
     restart: unless-stopped
     depends_on:

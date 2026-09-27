@@ -11,7 +11,7 @@
 
 ## 검증과 배포 경계
 
-- Next는 GitHub Pages 정적 출력 및 OCI 동일 출처 정적 배포, Spring API는 OCI VM 구조. 공개 읽기는 Pages 유지, 인증 화면은 동일 HTTPS 출처로 연결하여 제3자 쿠키 의존 제거.
+- Next 프런트는 GitHub Pages에만 배포, Spring API는 OCI VM 구조. 공개·로그인·관리·초대 모두 Pages 주소 유지. Secure·HttpOnly·SameSite=None·Partitioned JDBC 세션과 지정 CORS 사용.
 - Spring Session JDBC·MySQL 사용. Redis Cloud는 선택적 공개 본문 캐시만 사용, 기본 비활성.
 - 기존 자동 검사와 변경된 권한·저장·오류 흐름 검증. 신규 테스트 코드 추가 없음.
 - 기존 앱·DB 보존, 새 전용 MySQL 스키마와 OCI 객체/Redis 캐시 접두사로 실제 배포. 별도 PORT 문서 보존. 사용자용 학습 자료 삭제 유지.
