@@ -173,7 +173,7 @@ export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEd
     };
     const move = (event: globalThis.PointerEvent) => {
       if (candidate && candidate.pointerId === event.pointerId &&
-        Math.hypot(event.clientX - candidate.x, event.clientY - candidate.y) >= 4) candidate.moved = true;
+        Math.hypot(event.clientX - candidate.x, event.clientY - candidate.y) >= 5) candidate.moved = true;
     };
     const up = (event: globalThis.PointerEvent) => {
       if (candidate?.pointerId === event.pointerId) {
@@ -191,7 +191,7 @@ export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEd
       candidate = null; clearExpiry();
       const editor = root.current;
       if (!pending?.released || pending.moved || event.button !== 0 || event.detail === 0 ||
-        Math.hypot(event.clientX - pending.x, event.clientY - pending.y) >= 4 ||
+        Math.hypot(event.clientX - pending.x, event.clientY - pending.y) >= 5 ||
         suppressMarqueeClick.current || !editor || !(event.target instanceof Element)) return;
       const action = selectionDismissClick(event.target, editor);
       if (action === "keep") return;
@@ -869,22 +869,31 @@ export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEd
     }
   }
 
-  /** {@link BlockEditor}의 빈 여백·블록 선택 여백에서만 마우스 박스 선택을 시작한다.
-   * 텍스트 입력·손잡이를 제외하고 `selectedIds`와 `selectionAnchor`를 함께 갱신한다. */
-  function startBoxSelection(event: ReactPointerEvent<HTMLDivElement>) {
+  /** {@link BlockEditor} 내부 빈 여백과 글쓰기 페이지 좌우 여백의 마우스 박스 선택을 시작한다.
+   * 본문 글자·메타 입력·손잡이를 제외하고 `selectedIds`와 `selectionAnchor`를 함께 갱신한다. */
+  function startBoxSelection(event: ReactPointerEvent<HTMLDivElement> | globalThis.PointerEvent, pageMargin = false) {
     const editor = root.current;
     if (!editor || disabled || composing.current || event.pointerType !== "mouse" || event.button !== 0 ||
       event.shiftKey || event.ctrlKey || event.metaKey || event.altKey || marqueeCleanup.current) return;
     const target = event.target;
-    if (!(target instanceof Element) || target.closest(".block-editor") !== editor ||
+    if (!(target instanceof Element) || !pageMargin && target.closest(".block-editor") !== editor ||
       target.closest(".editor-selection-bar, .block-controls, button, input, textarea, select, [contenteditable]")) return;
-    const block = target.closest<HTMLElement>(".editor-block");
-    const gutter = target.closest(".editor-box-gutter");
-    if (block && (block.parentElement !== editor || !gutter && (
-      event.clientX < block.getBoundingClientRect().left ||
-      event.clientX >= block.getBoundingClientRect().left + 12))) return;
-    if (!block && target !== editor && !target.closest(".editor-click-below")) return;
-    event.preventDefault();
+    if (pageMargin) {
+      const page = editor.closest<HTMLElement>("main.write-page.editor-design-page");
+      const surface = editor.closest<HTMLElement>(".write-surface");
+      const bounds = editor.getBoundingClientRect();
+      if (!page || target !== page && target !== surface ||
+        event.clientX >= bounds.left && event.clientX <= bounds.right ||
+        event.clientY < bounds.top || event.clientY > bounds.bottom) return;
+    } else {
+      const block = target.closest<HTMLElement>(".editor-block");
+      const gutter = target.closest(".editor-box-gutter");
+      if (block && (block.parentElement !== editor || !gutter && (
+        event.clientX < block.getBoundingClientRect().left ||
+        event.clientX >= block.getBoundingClientRect().left + 12))) return;
+      if (!block && target !== editor && !target.closest(".editor-click-below")) return;
+      event.preventDefault();
+    }
     cancelAnimationFrame(marqueeFocusFrame.current);
     setKeepSelectionBarSpace(selectedIds.size > 0);
     const pointerId = event.pointerId;
@@ -900,20 +909,21 @@ export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEd
     const update = () => {
       const pageX = clientX + window.scrollX;
       const pageY = clientY + window.scrollY;
-      if (!selecting && Math.hypot(pageX - startX, pageY - startY) < 4) return;
+      if (!selecting && Math.hypot(pageX - startX, pageY - startY) < 5) return;
       selecting = true;
       window.getSelection()?.removeAllRanges();
       const left = Math.min(startX, pageX);
       const right = Math.max(startX, pageX);
       const top = Math.min(startY, pageY);
       const bottom = Math.max(startY, pageY);
-      setSelectionBox({ left: left - window.scrollX, top: top - window.scrollY,
-        width: Math.max(1, right - left), height: Math.max(1, bottom - top) });
+      const bounds = editor.getBoundingClientRect();
+      setSelectionBox({ left: pageMargin ? bounds.left : left - window.scrollX, top: top - window.scrollY,
+        width: pageMargin ? bounds.width : Math.max(1, right - left), height: Math.max(1, bottom - top) });
       const ids = [...editor.querySelectorAll<HTMLElement>(":scope > .editor-block:not([data-transient='true'])")].flatMap((element) => {
         const rect = element.getBoundingClientRect();
         const gutterRect = element.querySelector<HTMLElement>(":scope > .editor-box-gutter")?.getBoundingClientRect();
         const hitLeft = gutterRect?.width ? Math.min(rect.left, gutterRect.left) : rect.left;
-        return hitLeft + window.scrollX <= right && rect.right + window.scrollX >= left &&
+        return (pageMargin || hitLeft + window.scrollX <= right && rect.right + window.scrollX >= left) &&
           rect.top + window.scrollY <= bottom && rect.bottom + window.scrollY >= top ?
           [element.dataset.blockId ?? ""] : [];
       }).filter(Boolean);
@@ -980,6 +990,14 @@ export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEd
     frame = requestAnimationFrame(autoScroll);
     marqueeCleanup.current = cleanup;
   }
+
+  /** 최상위 편집기만 페이지 좌우 여백의 시작 포인터를 받아 내부 {@link startBoxSelection}과 공유한다. */
+  useEffect(() => {
+    if (depth !== 0) return;
+    const down = (event: globalThis.PointerEvent) => { startBoxSelection(event, true); };
+    document.addEventListener("pointerdown", down, true);
+    return () => document.removeEventListener("pointerdown", down, true);
+  }, [depth, disabled, selectedIds.size]);
 
   return <div className="block-editor" aria-label="글 본문 편집기" ref={root}
     onClickCapture={(event) => { if (suppressMarqueeClick.current) {
