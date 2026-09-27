@@ -45,7 +45,22 @@
 
 - 사용자가 GitHub Pages 프런트 유지 재확인. 위 중간 단계의 OCI 동일 출처 미러 방식 폐기. Pages 익명 고정과 OCI 강제 이동 제거.
 - Spring Boot 4.1.1 기본 `server.servlet.session.cookie.partitioned`를 사용하여 `Secure; HttpOnly; SameSite=None; Partitioned` JDBC 세션 제공. CORS의 인증 origin은 `https://gjaku1031.github.io`, 초대 URL도 Pages로 통일.
-- [Spring Session CookieSerializer](https://docs.spring.io/spring-session/reference/api/java/org/springframework/session/web/http/DefaultCookieSerializer.html) 및 [분할 쿠키 동작](https://developer.mozilla.org/en-US/docs/Web/Privacy/Guides/Third-party_cookies/Partitioned_cookies) 확인. 브라우저 제3자 쿠키 차단을 켠 상태에서 실제 Pages 인증 검증 예정.
+- [Spring Session CookieSerializer](https://docs.spring.io/spring-session/reference/api/java/org/springframework/session/web/http/DefaultCookieSerializer.html) 및 [분할 쿠키 동작](https://developer.mozilla.org/en-US/docs/Web/Privacy/Guides/Third-party_cookies/Partitioned_cookies) 확인. 브라우저 제3자 쿠키 차단을 켠 상태에서 실제 Pages 인증 검증 통과.
 - 운영 이미지는 API와 nginx API 프록시만 실행. OCI `/ken-blog/` 이하 이전 URL은 같은 경로·query의 Pages로 302 이동. 프런트 정적 파일은 GitHub Pages에만 배포.
 - 사용자 지정 초기 관리자 아이디 반영, 비밀번호는 BCrypt 저장·실제 HTTPS 로그인 확인. 원문 저장소·파일·문서 노출 없음. 기존 관리자 세션 폐기.
 - 초기 관리자 bootstrap 설정은 빈 스키마의 최초 준비에만 사용. 운영 실행 환경에서는 제거하여 이후 회원이 추가돼도 재시작 가능. 별도 비공개 bootstrap 설정에는 해시만 보관.
+
+
+## Pages에서 접근 가능한 공인 HTTPS API
+
+- Tailscale에 참여한 기기의 MagicDNS가 API 호스트를 사설 IP로 해석하여 Chrome의 `LocalNetworkAccessPermissionDenied` 발생 확인. CORS나 쿠키 권한 확대 없이 OCI 공인 IP HTTPS API 추가.
+- Pages 공개 API 설정을 `https://140.245.87.1`로 변경. 화면 주소는 `https://gjaku1031.github.io/ken-blog/` 유지, 기존 Tailscale API 별칭 유지.
+- OCI 전용 NSG에 TCP 80·443만 추가하고 기존 VNIC 설정 보존. Docker 공개 포트는 VM 사설 NIC에 바인딩하여 Tailscale HTTPS 리스너와 분리.
+- [Let's Encrypt 공식 IP 인증서 지원](https://letsencrypt.org/2026/03/11/shorter-certs-certbot) 기준 Certbot 5.4.0과 shortlived 프로필 사용. 신뢰 인증서 발급·webroot 갱신 모의 실행 성공. 인증서·계정 키는 저장소 밖에 보관. 12시간 갱신 timer 활성화 및 수동 service 실행·nginx 재적용 성공.
+- 공개 TLS의 health 200·익명 인증 401·Pages CORS preflight 200·비공개 운영 경로 404 확인. 기존 `/ken-blog/projects/`는 Pages 동일 경로로 302 이동.
+- 실제 Pages 브라우저에서 공인 API CSRF 조회 200 확인. 제3자 쿠키 차단·네트워크 캐시 비활성 상태에서 지정 관리자 로그인·JDBC 세션 유지·MySQL 초안 저장·OCI 이미지 업로드/조회 통과.
+
+- Pages에서 이름·아이디로 회원 생성 → Pages 초대 링크 발급 → 주소의 fragment 제거 → 비밀번호 지정 → 새 회원 로그인 → 사용한 토큰 410 → 회원 삭제·세션 폐기 통과. 모든 화면의 Pages origin 유지 및 브라우저 오류 0 확인.
+- 브라우저 쿠키의 Secure·HttpOnly·SameSite=None 및 GitHub Pages top-level site의 partitionKey 확인. 별도 로컬 네트워크 권한 허용 없이 검증 완료.
+- 임시 회원·글·첨부·초대 삭제 완료. 초기 관리자 1명만 보존. 사용자 지정 비밀번호 원문 저장 없음.
+- 공개 API 변수 변경 후 Pages 수동 배포 `36302739068` 성공. 웹 제품 소스는 `cd1ba74`와 동일하며 해당 SHA의 CI `36302111321` 성공. 공개 TLS 운영 설정 반영 커밋의 최종 Actions 상태는 로컬 인계에 기록.

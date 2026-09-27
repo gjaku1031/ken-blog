@@ -1,0 +1,11 @@
+[Unit]
+Description=Check ken-blog API IP certificate renewal twice daily
+
+[Timer]
+OnCalendar=*-*-* 00,12:00:00 UTC
+RandomizedDelaySec=30m
+Persistent=true
+Unit=ken-blog-cert-renew.service
+
+[Install]
+WantedBy=timers.target

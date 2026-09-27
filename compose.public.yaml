@@ -1,0 +1,25 @@
+# IP 인증서가 발급된 뒤 production Compose와 함께 사용. 호스트 private NIC로만 NAT 공개 포트를 바인딩.
+services:
+  web:
+    ports:
+      - "${KEN_BLOG_PUBLIC_BIND_IP:?Private NIC bind IP is required}:80:80"
+      - "${KEN_BLOG_PUBLIC_BIND_IP:?Private NIC bind IP is required}:443:8443"
+    volumes:
+      - type: bind
+        source: ./ops/nginx-public.conf
+        target: /etc/nginx/conf.d/public.conf
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${KEN_BLOG_ACME_WEBROOT_DIR:?Absolute ACME webroot directory is required}
+        target: /var/www/certbot
+        read_only: true
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${KEN_BLOG_CERTBOT_CONFIG_DIR:?Absolute Certbot configuration directory is required}
+        target: /etc/letsencrypt
+        read_only: true
+        bind:
+          create_host_path: false
