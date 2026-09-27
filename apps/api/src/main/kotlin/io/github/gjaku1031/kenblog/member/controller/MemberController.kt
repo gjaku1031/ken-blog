@@ -3,10 +3,11 @@ package io.github.gjaku1031.kenblog.member.controller
 import io.github.gjaku1031.kenblog.member.dto.CompleteInvitationRequest
 import io.github.gjaku1031.kenblog.member.dto.CreateMemberRequest
 import io.github.gjaku1031.kenblog.member.dto.InspectInvitationRequest
+import io.github.gjaku1031.kenblog.member.dto.InvitationCreateResult
 import io.github.gjaku1031.kenblog.member.dto.InvitationResponse
 import io.github.gjaku1031.kenblog.member.dto.MemberPageResponse
-import io.github.gjaku1031.kenblog.member.dto.MemberResponse
 import io.github.gjaku1031.kenblog.member.service.MemberService
+import org.springframework.http.CacheControl
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.DeleteMapping
@@ -26,10 +27,10 @@ class MemberController(private val service: MemberService) : MemberApi {
                       authentication: Authentication): MemberPageResponse =
         service.list(page, size, authentication.name)
 
-    /** @return 실제 초대 메일 발송을 마친 회원과 HTTP 201. */
+    /** @return [InvitationCreateResult]를 캐시하지 않는 HTTP 201 응답. */
     @PostMapping("/api/v1/admin/members")
-    override fun create(@RequestBody body: CreateMemberRequest): ResponseEntity<MemberResponse> =
-        ResponseEntity.status(201).body(service.create(body))
+    override fun create(@RequestBody body: CreateMemberRequest): ResponseEntity<InvitationCreateResult> =
+        ResponseEntity.status(201).cacheControl(CacheControl.noStore()).body(service.create(body))
 
     /** @return 삭제와 세션 폐기를 마친 HTTP 204. */
     @DeleteMapping("/api/v1/admin/members/{id}")

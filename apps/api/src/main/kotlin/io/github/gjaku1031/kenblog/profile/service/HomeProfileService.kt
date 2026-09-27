@@ -28,14 +28,14 @@ class HomeProfileService(
 ) {
     /** @return 저장된 공개 소개, 아직 저장하지 않았으면 빈 카드. */
     @Transactional(readOnly = true)
-    fun get(): HomeProfileResponse = profiles.findByIdOrNull(1)?.response() ?: HomeProfileResponse("", "", "", "", "", "", null)
+    fun get(): HomeProfileResponse = profiles.findByIdOrNull(1)?.response() ?: HomeProfileResponse("", "", "", "", "", null)
 
     /** @return 검증·저장된 홈 카드. 저장 전 브라우저 편집 상태에는 영향 없음. */
     @Transactional
     fun update(request: HomeProfileRequest): HomeProfileResponse {
         val clean = validate(request)
         val profile = profiles.findByIdOrNull(1) ?: HomeProfileEntity(now())
-        profile.update(clean.name, clean.tagline, clean.intro, clean.github, clean.email, clean.phone, now())
+        profile.update(clean.name, clean.tagline, clean.intro, clean.github, clean.phone, now())
         return profiles.saveAndFlush(profile).response()
     }
 
@@ -53,7 +53,7 @@ class HomeProfileService(
             }
         }
         val profile = profiles.findByIdOrNull(1) ?: HomeProfileEntity(now())
-        profile.update(clean.name, clean.tagline, clean.intro, clean.github, clean.email, clean.phone, now())
+        profile.update(clean.name, clean.tagline, clean.intro, clean.github, clean.phone, now())
         val previous = if (key != null || removePhoto) profile.replacePhoto(key, now()) else null
         val saved = profiles.saveAndFlush(profile).response()
         if (previous != null) cleanupAfterCommit(previous)
@@ -95,15 +95,14 @@ class HomeProfileService(
 
     /** @return object key 없이 공개할 카드 DTO. */
     private fun HomeProfileEntity.response(): HomeProfileResponse =
-        HomeProfileResponse(name, tagline, intro, github, email, phone, photoObjectKey?.let { "/api/v1/profile/photo?v=$updatedAt" })
+        HomeProfileResponse(name, tagline, intro, github, phone, photoObjectKey?.let { "/api/v1/profile/photo?v=$updatedAt" })
 
     /** @return 모든 텍스트 필드를 단일 요청에서 검증·정리한 확정 입력. */
     private fun validate(request: HomeProfileRequest): HomeProfileRequest {
         val clean = HomeProfileRequest(field(request.name, 100), field(request.tagline, 240),
             field(request.intro, 5000, multiline = true), field(request.github, 500),
-            field(request.email, 254), field(request.phone, 40))
-        if (clean.name.isBlank() || (clean.email.isNotEmpty() && !EMAIL.matches(clean.email)) ||
-            (clean.phone.isNotEmpty() && !PHONE.matches(clean.phone)) ||
+            field(request.phone, 40))
+        if (clean.name.isBlank() || (clean.phone.isNotEmpty() && !PHONE.matches(clean.phone)) ||
             (clean.github.isNotEmpty() && !isGithubUrl(clean.github))) badInput()
         return clean
     }
@@ -143,7 +142,6 @@ class HomeProfileService(
     private fun badInput(): Nothing = throw OperationFailure(HttpStatus.BAD_REQUEST, "홈 소개 입력을 확인하세요.")
 
     private companion object {
-        val EMAIL = Regex("[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9-]+(?:\\.[A-Za-z0-9-]+)+")
         val PHONE = Regex("\\+?[0-9]{1,39}")
     }
 }

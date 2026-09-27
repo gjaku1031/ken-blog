@@ -28,8 +28,8 @@ class MemberInvitationEntity protected constructor() {
     lateinit var expiresAt: LocalDateTime
         protected set
 
-    @Column(name = "sent_at", columnDefinition = "datetime(6)")
-    var sentAt: LocalDateTime? = null
+    @Column(name = "issued_at", columnDefinition = "datetime(6)")
+    var issuedAt: LocalDateTime? = null
         protected set
 
     @Column(name = "consumed_at", columnDefinition = "datetime(6)")
@@ -48,8 +48,8 @@ class MemberInvitationEntity protected constructor() {
         expiresAt = createdAt.plusHours(72)
     }
 
-    /** SMTP 전송 성공 시점을 기록. */
-    fun markSent(now: LocalDateTime) { sentAt = now }
+    /** [issuedAt]에 관리자가 일회성 URL을 발급한 시점을 기록. */
+    fun markIssued(now: LocalDateTime) { issuedAt = now }
 
     /** 비밀번호 설정 후 토큰 재사용을 차단. */
     fun consume(now: LocalDateTime) { consumedAt = now }

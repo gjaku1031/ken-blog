@@ -5,6 +5,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { useAuth } from "./auth-provider";
 import { PublicAnalytics, disablePublicAnalytics } from "./public-analytics";
+import { isProtectedMirrorRoute, publicPagesMirrorOrigin } from "@/lib/site-mirror";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
 
@@ -39,17 +40,27 @@ export function SiteShell({ children }: { children: ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (process.env.NEXT_PUBLIC_GA_ENABLED !== "true") return;
+    const mirror = publicPagesMirrorOrigin();
+    if (mirror && isProtectedMirrorRoute(window.location.pathname)) {
+      window.location.replace(`${mirror}${window.location.pathname}${window.location.search}${window.location.hash}`);
+      return;
+    }
     const beforeNavigation = (event: MouseEvent) => {
       const anchor = event.target instanceof Element ? event.target.closest("a[href]") : null;
-      if (anchor instanceof HTMLAnchorElement && anchor.origin === window.location.origin && anchor.href !== window.location.href)
+      if (anchor instanceof HTMLAnchorElement && anchor.origin === window.location.origin && anchor.href !== window.location.href) {
         disablePublicAnalytics();
+        if (mirror && isProtectedMirrorRoute(anchor.pathname) && !event.defaultPrevented && event.button === 0 &&
+          !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey && !anchor.download && anchor.target !== "_blank") {
+          event.preventDefault();
+          window.location.assign(`${mirror}${anchor.pathname}${anchor.search}${anchor.hash}`);
+        }
+      }
     };
     document.addEventListener("click", beforeNavigation, true);
     window.addEventListener("popstate", disablePublicAnalytics);
     return () => { document.removeEventListener("click", beforeNavigation, true);
       window.removeEventListener("popstate", disablePublicAnalytics); };
-  }, []);
+  }, [currentPath]);
 
   /** 사용자가 고른 색을 로컬에만 저장하고 즉시 적용한다. */
   function toggleTheme() {

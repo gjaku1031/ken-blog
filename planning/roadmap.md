@@ -1,6 +1,6 @@
 # 새 프로젝트 개발 순서
 
-2026-09-27 통합 구현으로 P3~P5의 제품 코드와 격리 검증 진행. 최신 판정은 [통합 기록](issues/DELIVERY-2026-09-27.md) 기준. 공개 HTTPS API·새 전용 DB 스키마·SMTP 실발송·GA 실측은 외부 조건이며 기존 운영 앱 교체 없음.
+2026-09-27 통합 구현으로 P3~P5 제품 코드·격리 검증 완료. 추가 요청으로 실제 HTTPS 연결과 이메일 전면 제거 진행. 최신 판정은 [운영 연결 기록](issues/CONNECTION-2026-09-27.md), 이전 통합 결과는 [통합 기록](issues/DELIVERY-2026-09-27.md) 기준. 아래 단계별 상태는 구현 이력 보존.
 
 현재 [P1-02B](issues/P1-02B.md)의 JpaRepository 전환·도입 이력 정정·검증·main·CI·Pages 반영 완료. 현재 [P1-03](issues/P1-03.md) 이미지 첨부·격리 검증·main·CI·Pages 반영 완료. 세션은 Spring Session JDBC로 기존 MySQL에 저장하고 새 프로젝트의 내부 Redis 제거. 기존 VM 배포 앱·Redis는 교체하지 않음. 공개 HTTPS·도메인·프론트 로그인 연결은 후속 범위.
 

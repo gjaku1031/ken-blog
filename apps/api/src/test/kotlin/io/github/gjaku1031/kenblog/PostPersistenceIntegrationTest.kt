@@ -119,11 +119,11 @@ class PostPersistenceIntegrationTest(
         assertEquals(1, countPosts())
     }
 
-    /** Flyway V1~V18이 적용되고 동일 DB의 두 번째 migrate는 아무 변경도 하지 않는지 검증. */
+    /** Flyway V1~V19가 적용되고 동일 DB의 두 번째 migrate는 아무 변경도 하지 않는지 검증. */
     @Test
     fun migrationIsIdempotent() {
         val migrations = flyway.info().applied()
-        assertEquals((1..18).map(Int::toString), migrations.map { it.version.version })
+        assertEquals((1..19).map(Int::toString), migrations.map { it.version.version })
         assertEquals(0, flyway.migrate().migrationsExecuted)
         assertTrue(jdbc.queryForObject(
             "SELECT COUNT(*) FROM information_schema.table_constraints WHERE table_schema = DATABASE() AND table_name = 'posts' AND constraint_name = 'uk_posts_slug'",

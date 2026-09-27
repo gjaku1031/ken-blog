@@ -52,7 +52,7 @@ export function ProfileManager() {
     try {
       const fields = new FormData();
       fields.set("profile", new Blob([JSON.stringify({ name: form.name, tagline: form.tagline, intro: form.intro,
-        github: form.github, email: form.email, phone: form.phone })], { type: "application/json" }));
+        github: form.github, phone: form.phone })], { type: "application/json" }));
       if (photoMode === "upload" && file) fields.set("file", file);
       fields.set("removePhoto", String(photoMode === "remove"));
       const result = parseProfile(await auth.adminForm("POST", "/api/v1/admin/profile/save", fields));
@@ -71,8 +71,8 @@ export function ProfileManager() {
   return <div className="profile-manager"><form className="admin-form card" onSubmit={(event) => void save(event)}><fieldset disabled={busy}>
     <h2>홈 소개</h2><label>사진<input type="file" accept="image/*" onChange={(event) => choosePhoto(event.target.files?.[0] ?? null)} /></label>
     <button type="button" className="small-button" onClick={() => { setFile(null); setPreview(null); setPhotoMode("remove"); }}>사진 빼기</button>
-    {(["name", "tagline", "intro", "github", "email", "phone"] as const).map((key) => <label key={key}>
-      {{ name: "이름", tagline: "한 줄 소개", intro: "소개", github: "GitHub 주소", email: "이메일", phone: "연락처" }[key]}
+    {(["name", "tagline", "intro", "github", "phone"] as const).map((key) => <label key={key}>
+      {{ name: "이름", tagline: "한 줄 소개", intro: "소개", github: "GitHub 주소", phone: "연락처" }[key]}
       {key === "intro" ? <textarea rows={5} value={form[key]} onChange={(event) => setForm((current) => current &&
         ({ ...current, [key]: event.target.value }))} /> : <input value={form[key]} onChange={(event) => setForm((current) => current &&
         ({ ...current, [key]: event.target.value }))} />}</label>)}

@@ -40,7 +40,7 @@ class AuthService(
      * @throws BadCredentialsException 입력 형식 또는 자격 증명이 맞지 않을 때
      */
     fun login(body: LoginRequest, request: HttpServletRequest, response: HttpServletResponse): CurrentUserResponse {
-        if (body.username.isBlank() || body.username.length > 254 || body.password.isEmpty() ||
+        if (!USERNAME_PATTERN.matches(body.username) || body.password.isEmpty() ||
             body.password.toByteArray(Charsets.UTF_8).size > 72) {
             throw BadCredentialsException("Invalid credentials")
         }
@@ -64,5 +64,9 @@ class AuthService(
     fun currentUser(authentication: Authentication): CurrentUserResponse {
         val role = if (authentication.authorities.any { it.authority == "ROLE_ADMIN" }) UserRole.ADMIN else UserRole.USER
         return CurrentUserResponse(authentication.name, role)
+    }
+
+    private companion object {
+        val USERNAME_PATTERN = Regex("[a-z][a-z0-9_-]{2,63}")
     }
 }

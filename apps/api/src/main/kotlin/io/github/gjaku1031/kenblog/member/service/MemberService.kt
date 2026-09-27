@@ -4,19 +4,20 @@ import io.github.gjaku1031.kenblog.account.domain.UserEntity
 import io.github.gjaku1031.kenblog.account.repository.AccountRepository
 import io.github.gjaku1031.kenblog.member.domain.MemberInvitationEntity
 import io.github.gjaku1031.kenblog.member.dto.CreateMemberRequest
+import io.github.gjaku1031.kenblog.member.dto.InvitationCreateResult
 import io.github.gjaku1031.kenblog.member.dto.InvitationResponse
 import io.github.gjaku1031.kenblog.member.dto.MemberPageResponse
 import io.github.gjaku1031.kenblog.member.dto.MemberResponse
 import io.github.gjaku1031.kenblog.member.repository.MemberInvitationRepository
 import io.github.gjaku1031.kenblog.operations.domain.OperationFailure
+import java.net.URI
 import java.security.MessageDigest
 import java.security.SecureRandom
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.util.Base64
-import java.util.Locale
-import java.util.UUID
 import org.springframework.dao.DataIntegrityViolationException
+import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.domain.PageRequest
 import org.springframework.data.domain.Sort
 import org.springframework.data.repository.findByIdOrNull
@@ -26,12 +27,13 @@ import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
-/** 관리자 발급, SMTP 초대, 일회용 비밀번호 설정, 계정·세션 폐기를 관리. */
+/** 관리자 직접 링크 발급, 일회용 비밀번호 설정, 계정·세션 폐기를 관리. */
 @Service
 class MemberService(
     private val accounts: AccountRepository,
     private val invitations: MemberInvitationRepository,
-    private val mailer: InvitationMailer,
+    @Value("\${app.invitation.web-base-url:}") private val webBaseUrl: String,
+    @Value("\${app.auth.cors.allowed-origins:}") private val authOrigins: String,
     private val encoder: PasswordEncoder,
     private val jdbc: JdbcTemplate,
 ) {
@@ -43,31 +45,25 @@ class MemberService(
         return MemberPageResponse(result.content.map { it.response(currentUsername) }, result.totalElements, page, size)
     }
 
-    /**
-     * SMTP 설정을 먼저 확인하고 비활성 계정과 72시간 초대를 생성한 뒤 실제 발송.
-     *
-     * 전송 실패 시 트랜잭션을 롤백하므로 발급 완료로 표시하지 않음.
-     */
+    /** @return 검증된 HTTPS 프런트 주소에 비활성 계정과 72시간 [InvitationCreateResult]를 한 번만 발급. */
     @Transactional
-    fun create(request: CreateMemberRequest): MemberResponse {
-        val name = request.name.trim()
-        val email = request.email.trim().lowercase(Locale.ROOT)
-        if (name.isBlank() || name.length > 100 || name.any(Char::isISOControl) ||
-            email.length > 254 || !EMAIL.matches(email)) badInput()
-        mailer.requireConfigured()
-        if (accounts.findByEmail(email) != null) duplicate()
+    fun create(request: CreateMemberRequest): InvitationCreateResult {
+        val username = request.username.trim()
+        val displayName = request.displayName.trim()
+        if (!USERNAME.matches(username) || displayName.isBlank() || displayName.length > 100 ||
+            displayName.any(Char::isISOControl)) badInput()
+        val baseUrl = invitationBaseUrl()
+        if (accounts.findByUsername(username) != null) duplicate()
         val token = newToken()
         val account = try {
-            accounts.saveAndFlush(UserEntity("member_${UUID.randomUUID().toString().replace("-", "")}",
-                name, email, request.role, now()))
+            accounts.saveAndFlush(UserEntity(username, request.role, displayName, now()))
         } catch (_: DataIntegrityViolationException) {
             duplicate()
         }
         val invite = invitations.saveAndFlush(MemberInvitationEntity(account.id ?: error("Persisted member has no ID"), hash(token), now()))
-        mailer.send(email, name, token)
-        invite.markSent(now())
+        invite.markIssued(now())
         invitations.saveAndFlush(invite)
-        return account.response()
+        return InvitationCreateResult(account.response(), "$baseUrl/invite/#token=$token")
     }
 
     /** @return 유효하고 아직 사용하지 않은 초대의 대상·만료 시각. */
@@ -77,7 +73,7 @@ class MemberService(
         checkInvite(invite)
         val account = accounts.findByIdOrNull(invite.userId) ?: invalidToken()
         if (account.enabled) invalidToken()
-        return InvitationResponse(account.email ?: invalidToken(), account.displayName ?: account.username, invite.expiresAt)
+        return InvitationResponse(account.username, account.displayName ?: account.username, invite.expiresAt)
     }
 
     /** 원문 비밀번호를 BCrypt로 해시하고 잠긴 초대를 한 번만 소비. */
@@ -122,14 +118,30 @@ class MemberService(
     private fun UserEntity.response(currentUsername: String? = null): MemberResponse {
         val userId = id ?: error("Persisted member has no ID")
         val invitation = invitations.findByUserId(userId)
-        val state = if (enabled) "ACTIVE" else if (invitation?.sentAt != null) "SENT" else "PENDING"
-        return MemberResponse(userId, displayName ?: username, email ?: "", role, createdAt, state,
+        val state = if (enabled) "ACTIVE" else if (invitation?.issuedAt != null) "ISSUED" else "PENDING"
+        return MemberResponse(userId, username, displayName ?: username, role, createdAt, state,
             currentUsername != null && username == currentUsername)
     }
 
     /** 유효 기간과 일회용 소비 상태를 확인. */
     private fun checkInvite(invite: MemberInvitationEntity) {
-        if (invite.sentAt == null || invite.consumedAt != null || !invite.expiresAt.isAfter(now())) invalidToken()
+        if (invite.issuedAt == null || invite.consumedAt != null || !invite.expiresAt.isAfter(now())) invalidToken()
+    }
+
+    /** @return [webBaseUrl]의 `/ken-blog` 경로와 인증 origin을 발급 전에 검증한 HTTPS 주소. */
+    private fun invitationBaseUrl(): String {
+        val value = webBaseUrl.trim()
+        val uri = runCatching { URI(value) }.getOrNull()
+        val origin = uri?.let { candidate ->
+            "${candidate.scheme}://${candidate.host}" + if (candidate.port >= 0) ":${candidate.port}" else ""
+        } ?: ""
+        if (uri == null || uri.scheme != "https" || uri.host.isNullOrBlank() || uri.userInfo != null ||
+            uri.query != null || uri.fragment != null || uri.normalize().rawPath != uri.rawPath ||
+            uri.rawPath?.trimEnd('/') != "/ken-blog" || uri.port !in -1..65535 || uri.port == 0 ||
+            authOrigins.split(',').map(String::trim).none { it == origin }) {
+            throw OperationFailure(HttpStatus.SERVICE_UNAVAILABLE, "초대 링크 주소가 설정되지 않았습니다.")
+        }
+        return value.trimEnd('/')
     }
 
     /** @return 32바이트 난수의 URL 안전 원문 토큰. */
@@ -153,15 +165,15 @@ class MemberService(
     /** @return 회원 필드의 안전한 400. */
     private fun badInput(): Nothing = throw OperationFailure(HttpStatus.BAD_REQUEST, "회원 입력을 확인하세요.")
 
-    /** @return 중복 이메일의 안전한 409. */
-    private fun duplicate(): Nothing = throw OperationFailure(HttpStatus.CONFLICT, "이미 등록된 이메일입니다.")
+    /** @return 중복 계정명의 안전한 409. */
+    private fun duplicate(): Nothing = throw OperationFailure(HttpStatus.CONFLICT, "이미 등록된 계정명입니다.")
 
     /** @return 잘못되거나 만료된 토큰의 안전한 410. */
     private fun invalidToken(): Nothing = throw OperationFailure(HttpStatus.GONE, "초대 링크가 만료됐거나 사용할 수 없습니다.")
 
     private companion object {
         val random = SecureRandom()
-        val EMAIL = Regex("[A-Za-z0-9.!#$%&'*+/=?^_`{|}~-]+@[A-Za-z0-9-]+(?:\\.[A-Za-z0-9-]+)+")
+        val USERNAME = Regex("[a-z][a-z0-9_-]{2,63}")
         val TOKEN = Regex("[A-Za-z0-9_-]{43}")
     }
 }

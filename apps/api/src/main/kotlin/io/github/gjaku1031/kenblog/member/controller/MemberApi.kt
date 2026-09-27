@@ -3,9 +3,9 @@ package io.github.gjaku1031.kenblog.member.controller
 import io.github.gjaku1031.kenblog.member.dto.CompleteInvitationRequest
 import io.github.gjaku1031.kenblog.member.dto.CreateMemberRequest
 import io.github.gjaku1031.kenblog.member.dto.InspectInvitationRequest
+import io.github.gjaku1031.kenblog.member.dto.InvitationCreateResult
 import io.github.gjaku1031.kenblog.member.dto.InvitationResponse
 import io.github.gjaku1031.kenblog.member.dto.MemberPageResponse
-import io.github.gjaku1031.kenblog.member.dto.MemberResponse
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
@@ -28,12 +28,12 @@ interface MemberApi {
     fun list(@RequestParam(defaultValue = "0") page: Int, @RequestParam(defaultValue = "10") size: Int,
              authentication: Authentication): MemberPageResponse
 
-    /** @return 메일이 실제 발송된 회원. */
+    /** @return [InvitationCreateResult]에 한 번만 담긴 비밀번호 설정 링크. */
     @PostMapping("/api/v1/admin/members")
     @SecurityRequirement(name = "sessionCookie")
-    @Operation(summary = "회원 발급과 초대 메일 발송")
+    @Operation(summary = "회원 발급과 일회성 초대 링크 생성")
     @ApiResponses(value = [ApiResponse(responseCode = "201"), ApiResponse(responseCode = "400"), ApiResponse(responseCode = "409"), ApiResponse(responseCode = "503")])
-    fun create(@RequestBody body: CreateMemberRequest): ResponseEntity<MemberResponse>
+    fun create(@RequestBody body: CreateMemberRequest): ResponseEntity<InvitationCreateResult>
 
     /** @return 모든 세션을 폐기한 HTTP 204. */
     @DeleteMapping("/api/v1/admin/members/{id}")

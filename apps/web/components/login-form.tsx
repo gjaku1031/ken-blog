@@ -13,26 +13,33 @@ function returnPath(value: string | null): string {
   if (!value || !value.startsWith("/") || value.startsWith("//") || /[%\\\u0000-\u001f\u007f]/.test(value)) return "/tech/";
   try {
     const url = new URL(value, "https://ken-blog.invalid");
-    const known = new Set(["/", "/tech/", "/post/", "/projects/", "/project/", "/notes/", "/write/", "/admin/drafts/"]);
-    if (url.origin !== "https://ken-blog.invalid" || !known.has(url.pathname) || url.hash) return "/tech/";
-    if (url.pathname === "/post/") {
+    const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
+    const rawPath = basePath && url.pathname.startsWith(`${basePath}/`) ? url.pathname.slice(basePath.length) : url.pathname;
+    const pathname = rawPath === "/" ? "/" : rawPath.endsWith("/") ? rawPath : `${rawPath}/`;
+    const known = new Set(["/", "/tech/", "/post/", "/projects/", "/project/", "/notes/", "/course/",
+      "/write/", "/admin/", "/admin/posts/", "/admin/drafts/", "/admin/members/", "/admin/categories/",
+      "/admin/stacks/", "/admin/profile/"]);
+    if (url.origin !== "https://ken-blog.invalid" || !known.has(pathname) || url.hash) return "/tech/";
+    if (pathname === "/post/") {
       const entries = [...url.searchParams.entries()];
       if (entries.length !== 1 || entries[0][0] !== "slug" || !validProjectSlug(entries[0][1])) return "/tech/";
-    } else if (url.pathname === "/project/") {
+    } else if (pathname === "/project/" || pathname === "/course/") {
       const entries = [...url.searchParams.entries()];
+      const childKey = pathname === "/project/" ? "doc" : "chapter";
       if (entries.length < 1 || entries.length > 2 || entries[0][0] !== "slug" || !validProjectSlug(entries[0][1]) ||
-        (entries.length === 2 && (entries[1][0] !== "doc" || !validProjectSlug(entries[1][1])))) return "/tech/";
+        (entries.length === 2 && (entries[1][0] !== childKey || !validProjectSlug(entries[1][1])))) return "/tech/";
     }
-    if (url.pathname === "/write/") {
+    if (pathname === "/write/") {
       const entries = [...url.searchParams.entries()];
-      if (entries.length > 1 || (entries.length === 1 &&
-        (!new Set(["postId", "draftId"]).has(entries[0][0]) || positiveId(entries[0][1]) === null))) return "/tech/";
-    } else if (url.pathname === "/admin/drafts/") {
+      if (entries.length > 2 || entries.some(([key, entry]) => !new Set(["postId", "draftId", "projectId", "courseId", "section", "title"])
+        .has(key) || !entry || entry.length > 160 || key.endsWith("Id") && positiveId(entry) === null)) return "/tech/";
+    } else if (pathname === "/admin/drafts/") {
       const entries = [...url.searchParams.entries()];
       if (entries.length > 1 || (entries.length === 1 && (entries[0][0] !== "page" ||
         !/^(0|[1-9]\d*)$/.test(entries[0][1]) || !Number.isSafeInteger(Number(entries[0][1]))))) return "/tech/";
-    } else if (url.pathname !== "/post/" && url.pathname !== "/project/" && url.pathname !== "/tech/" && url.search) return "/tech/";
-    return `${url.pathname}${url.search}`;
+    } else if (pathname !== "/post/" && pathname !== "/project/" && pathname !== "/course/" && pathname !== "/tech/" && url.search)
+      return "/tech/";
+    return `${pathname}${url.search}`;
   } catch { return "/tech/"; }
 }
 
@@ -60,7 +67,7 @@ export function LoginForm() {
       router.replace(destination);
     } catch (failure) {
       setPassword("");
-      if (failure instanceof ApiFailure && failure.status === 401) setError("이메일·계정명 또는 비밀번호를 확인해 주세요.");
+      if (failure instanceof ApiFailure && failure.status === 401) setError("계정명 또는 비밀번호를 확인해 주세요.");
       else setError(apiFailureMessage(failure));
     } finally { pending.current = false; setBusy(false); }
   }
@@ -71,8 +78,8 @@ export function LoginForm() {
       {auth.status === "authenticated" ? <div className="login-done"><p>{auth.user?.username} 계정으로 로그인되어 있습니다.</p>
         <Link href={destination} className="primary-button">글 보러 가기</Link></div> :
         <form onSubmit={(event) => void submit(event)}>
-          <label htmlFor="username">이메일 또는 계정명</label>
-          <input id="username" name="username" type="text" autoComplete="username" required maxLength={254}
+          <label htmlFor="username">계정명</label>
+          <input id="username" name="username" type="text" autoComplete="username" required maxLength={64}
             value={username} onChange={(event) => setUsername(event.target.value)} disabled={busy} />
           <label htmlFor="password">비밀번호</label>
           <input id="password" name="password" type="password" autoComplete="current-password" required

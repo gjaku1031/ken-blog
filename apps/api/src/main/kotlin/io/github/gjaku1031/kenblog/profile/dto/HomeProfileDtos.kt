@@ -6,7 +6,6 @@ data class HomeProfileRequest(
     val tagline: String,
     val intro: String,
     val github: String,
-    val email: String,
     val phone: String,
 )
 
@@ -16,7 +15,6 @@ data class HomeProfileResponse(
     val tagline: String,
     val intro: String,
     val github: String,
-    val email: String,
     val phone: String,
     val photoUrl: String?,
 )

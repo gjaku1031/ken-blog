@@ -11,7 +11,6 @@ export function ProfileCard({ profile, previewPhoto }: { profile: HomeProfile; p
       <div><h2>{profile.name || "ken.blog"}</h2>{profile.tagline && <p>{profile.tagline}</p>}</div></div>
     {profile.intro && <p className="profile-intro">{profile.intro}</p>}
     <div className="profile-links">{github && <a href={github} target="_blank" rel="noreferrer noopener">GitHub</a>}
-      {profile.email && <a href={`mailto:${profile.email}`}>{profile.email}</a>}
       {profile.phone && <a href={`tel:${profile.phone}`}>{profile.phone}</a>}</div>
   </section>;
 }

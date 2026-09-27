@@ -49,10 +49,6 @@ class UserEntity protected constructor() {
     var displayName: String? = null
         protected set
 
-    @Column(length = 254, unique = true)
-    var email: String? = null
-        protected set
-
     @Column(nullable = false)
     var enabled: Boolean = true
         protected set
@@ -74,14 +70,13 @@ class UserEntity protected constructor() {
         this.createdAt = createdAt
     }
 
-    /** 메일 초대가 완료되기 전 로그인할 수 없는 회원 행을 생성. */
-    constructor(username: String, name: String, email: String, role: UserRole, createdAt: LocalDateTime) : this() {
+    /** 일회성 링크를 수락하기 전 로그인할 수 없는 회원 행을 생성. */
+    constructor(username: String, role: UserRole, displayName: String, createdAt: LocalDateTime) : this() {
         this.username = username
         passwordHash = "{noop}!"
         this.role = role
         this.createdAt = createdAt
-        displayName = name
-        this.email = email
+        this.displayName = displayName
         enabled = false
     }
 

@@ -57,12 +57,6 @@ app:
       key-prefix: ${OCI_OBJECT_STORAGE_KEY_PREFIX:ken-blog/attachments}
   invitation:
     web-base-url: ${INVITATION_WEB_BASE_URL:}
-    from: ${INVITATION_FROM:}
-    smtp:
-      host: ${INVITATION_SMTP_HOST:}
-      port: ${INVITATION_SMTP_PORT:587}
-      username: ${INVITATION_SMTP_USERNAME:}
-      password: ${INVITATION_SMTP_PASSWORD:}
   analytics:
     ga4:
       property-id: ${GA4_PROPERTY_ID:}

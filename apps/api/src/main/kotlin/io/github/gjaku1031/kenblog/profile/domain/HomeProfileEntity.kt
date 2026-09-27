@@ -30,10 +30,6 @@ class HomeProfileEntity protected constructor() {
     var github: String = ""
         protected set
 
-    @Column(nullable = false, length = 254)
-    var email: String = ""
-        protected set
-
     @Column(nullable = false, length = 40)
     var phone: String = ""
         protected set
@@ -50,12 +46,11 @@ class HomeProfileEntity protected constructor() {
     constructor(now: LocalDateTime) : this() { updatedAt = now }
 
     /** 검증된 텍스트만 확정 카드에 반영. */
-    fun update(name: String, tagline: String, intro: String, github: String, email: String, phone: String, now: LocalDateTime) {
+    fun update(name: String, tagline: String, intro: String, github: String, phone: String, now: LocalDateTime) {
         this.name = name
         this.tagline = tagline
         this.intro = intro
         this.github = github
-        this.email = email
         this.phone = phone
         updatedAt = now
     }

@@ -1,0 +1,37 @@
+# 운영 연결 및 이메일 제거 — 2026-09-27
+
+## 요청과 수용 기준
+
+- 실제 서비스 연결까지 수행하라는 추가 요청 및 기존 Tailscale HTTPS 주소 사용 확정.
+- 이메일 기능 전면 제외. 아이디·비밀번호 인증, 이름·아이디 기반 회원 관리, 직접 전달하는 일회용 초대 링크로 통일. 프로필 이메일 연락처 제거.
+- 기존 앱의 Flyway V1과 새 앱의 V1 불일치 보존. 별도 전용 MySQL 스키마에 새 앱 배포.
+- GitHub Pages 공개 화면과 실제 HTTPS API 연결. 인증 화면은 OCI 동일 출처 정적 화면으로 이동하여 제3자 쿠키 차단 의존 제거.
+- 신규 저장소 테스트 작성 없이 기존 검사와 실제 HTTPS HTTP·브라우저 흐름 검증.
+
+## 실제 연결 확인
+
+- OCI MySQL HeatWave의 새 전용 `ken_blog_live` 스키마 생성. 해당 스키마에 한정한 전용 계정과 현재 VM 사설 주소 제한·TLS 필수 적용.
+- V1~V18 실제 적용 및 JPA 스키마 검증·API health UP 확인. 기존 `ken_blog` 스키마의 글/첨부 각각 0건 확인, 변경 없음.
+- Tailscale HTTPS API 실제 관리자 로그인·세션 ID 교체·Secure 쿠키·로그아웃 후 401 확인.
+- 앱을 통한 OCI Object Storage 업로드·바이트 일치 다운로드·삭제 확인. 익명 첨부 접근 401 확인.
+- 앱을 통한 Redis Cloud 공개 본문 캐시 저장·조회·TTL 확인. 비공개 전환 시 익명 본문 제외 확인. 기존 제공자의 TLS 비활성 접속 설정 유지.
+- 검증용 운영 글·첨부·캐시 키 삭제 완료. 새 DB 백업 파일 생성 및 SHA256 검증 완료. 비밀값·DB 덤프의 저장소 반입 없음.
+- GitHub `NEXT_PUBLIC_API_BASE_URL` 실제 HTTPS 주소 설정 완료.
+
+## 최종 구현·검증
+
+- 계정·초대·프로필 이메일 필드와 SMTP/메일 의존 완전 제거. V19에서 users/home_profile email 컬럼 삭제 및 초대 발급 시각 issued_at 전환. 적용 이력이 있는 V1~V18 체크섬 보존.
+- 운영 MySQL V19·19개 마이그레이션 성공, email 컬럼 0개, TLS_AES_128_GCM_SHA256 연결 확인.
+- 실제 HTTPS 관리자 로그인 → 이름/아이디로 초대 발급 → fragment를 주소에서 제거 → 비밀번호 설정 → 아이디 로그인 → 소비 토큰 410 → 계정 삭제 및 기존 브라우저 세션 폐기까지 통과. 검증 계정 삭제 완료.
+- 새 API 이미지에서 MySQL 세션·OCI 업로드/바이트 일치 다운로드/삭제·Redis 캐시/TTL·비공개 차단 재검증 통과.
+- 기존 API 검사 4개 suite·28개 모두 실패/오류/생략 0. 삭제된 클래스의 로컬 incremental 잔재를 제거한 `clean test` 기준. Docker 이미지 내부에 Mailer 클래스와 Mail starter 없음 확인.
+- 웹 타입 검사·기존 검사 7개·정적 20개 경로 빌드 통과. 홈·로그인·회원·프로필 4개 실제 HTTPS 화면 WCAG AA 위반 0·360px 가로 넘침 0.
+- nginx 정적 웹 18082와 API18081은 loopback 한정. Funnel443 → nginx, `/ken-blog/` 정적 파일·`/api/v1/` API·health만 공개. Swagger·환경 파일·나머지 actuator 404 확인.
+- nginx에서 API 재생성 후 Docker DNS 재해석 지원, HTTP 내부 포트가 외부 redirect에 포함되지 않도록 상대 Location 사용.
+- 공개 Pages 인증 화면은 동일 경로의 OCI HTTPS 화면으로 이동. Pages의 직접 초대 URL도 fragment를 삭제하기 전에 이동.
+- 원격 CI/Pages 배포는 이 변경의 main push 후 확인. 실제 run ID와 최종 URL 검증은 로컬 인계에 기록.
+
+## 별도 설정
+
+- GA4 Data API 속성 ID·서비스계정 미제공 상태 유지. 샘플 통계 대체 없음. 공개 측정 활성화와 GA 관리 화면의 실제 통계 연결을 구분.
+- Tailscale 백그라운드 공개 프록시는 재시작 시 유지되는 구성 사용. [공식 CLI 동작](https://tailscale.com/docs/reference/tailscale-cli/funnel) 확인.

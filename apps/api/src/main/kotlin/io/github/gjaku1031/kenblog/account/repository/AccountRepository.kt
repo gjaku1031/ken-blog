@@ -18,7 +18,4 @@ interface AccountRepository : JpaRepository<UserEntity, Long> {
      * @return 일치하는 [UserEntity], 없으면 `null`
      */
     fun findByUsername(username: String): UserEntity?
-
-    /** @return 대소문자 무시 이메일과 일치하는 계정 또는 `null`. */
-    fun findByEmail(email: String): UserEntity?
 }

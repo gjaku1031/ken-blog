@@ -3,6 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
 import { ApiFailure, apiJson, apiRequest, apiUrl, fetchCsrf, parseCurrentUser, type CurrentUser } from "@/lib/api";
 import { uploadAttachment, type UploadedAttachment } from "@/lib/attachments";
+import { publicPagesMirrorOrigin } from "@/lib/site-mirror";
 
 type Session = { status: "checking" | "guest" | "authenticated" | "error"; user: CurrentUser | null; epoch: number };
 type AuthContextValue = Session & {
@@ -42,6 +43,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   /** 저장된 쿠키의 서버 계정을 확인하며 401만 정상적인 익명 상태로 해석한다. */
   const refresh = useCallback(async () => {
+    if (publicPagesMirrorOrigin()) {
+      if (current.current.status !== "guest") commit("guest", null);
+      return;
+    }
     const ticket = sequence.current;
     try {
       const user = parseCurrentUser(await apiJson<unknown>("/api/v1/auth/me", "include"));
