@@ -1,5 +1,7 @@
 # 현재 작업
 
+- 테마를 적용한 한국어 404 페이지 구현·로컬 검증 완료: [계획과 검증](issues/NOT-FOUND-2026-09-27.md). 정적 404 상태·탐색 링크·모바일/테마 확인, 동일 SHA CI·Pages 최종 확인 대상.
+
 - 저장 창 실제 로고·기술 스택/프로젝트 순서 드래그 구현 및 통합 검증 완료: [계획과 검증](issues/STACK-PREVIEW-ORDER-2026-09-27.md). Neo4j·Oracle Cloud·Proxmox 추가로 69개, GCP는 Google Cloud 검색 별칭. 사용자 원고·기존 기술과 연결 보존, API 운영 반영 완료. 동일 SHA CI·Pages 최종 확인 대상.
 
 - 편집기 좌우 바깥 여백에서 중간 블록 범위 선택 구현·격리 검증 완료: [계획과 검증](issues/EDITOR-MARGIN-SELECTION-2026-09-27.md). 양쪽 여백 정역방향·단일/다중 선택·자동 스크롤·해제·글자 선택·터치 확인. 운영 원고 변경 없음, 전달 SHA CI·Pages 최종 확인 대상.
