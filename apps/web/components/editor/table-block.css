@@ -15,4 +15,5 @@
 .editor-table-block button:hover:not(:disabled) { background: var(--soft); }
 .editor-table-block button:disabled { opacity: .55; }
 .editor-table-help { margin: 8px 0 0; color: var(--muted); font-size: 12px; }
+.editor-table-action-hint { display: none; }
 @media (max-width: 600px) { .editor-table-block { padding: 7px; } }

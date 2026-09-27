@@ -7,13 +7,29 @@ import { useAuth } from "../auth-provider";
 /** 선택한 부모 경로 아래에 만들 분류의 깊이별 이름을 표시한다. */
 function childLabel(depth: number): string { return ["대분류", "중분류", "소분류"][depth] ?? "분류"; }
 
-/** 트리 행에서 신규 하위 분류와 부모 이동 삭제 확인을 처리한다. */
-function CategoryRow({ node, onCreate, onRemove }: { node: CategoryNode;
+/** {@link CategoryRow}에 쓰는 원본 설계의 폴더 선 아이콘이다. */
+function FolderIcon() { return <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+  strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg>; }
+
+/** {@link CategoryRow}에서 접힘 상태를 표시하는 원본 설계의 화살표다. */
+function ChevronIcon({ expanded }: { expanded: boolean }) { return <svg width="12" height="12" viewBox="0 0 24 24" fill="none"
+  stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" aria-hidden="true"
+  style={{ transform: expanded ? "rotate(90deg)" : undefined }}><path d="m9 6 6 6-6 6" /></svg>; }
+
+/** {@link CategoryRow} 삭제 단추에 쓰는 원본 설계의 휴지통 선 아이콘이다. */
+function TrashIcon() { return <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+  strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path
+    d="M4 7h16M10 11v6M14 11v6M6 7l1 12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-12M9 7V4h6v3" /></svg>; }
+
+/** {@link CategoryManager}가 읽은 트리 행에서 하위 분류 생성과 이동 삭제 확인을 처리한다. */
+function CategoryRow({ node, ancestors, onCreate, onRemove }: { node: CategoryNode; ancestors: string[];
   onCreate: (parent: CategoryNode | null, name: string) => Promise<void>; onRemove: (node: CategoryNode) => Promise<void> }) {
-  const [expanded, setExpanded] = useState(true);
+  const [expanded, setExpanded] = useState(false);
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState("");
   const [deleting, setDeleting] = useState(false);
+  const displayPath = [...ancestors, node.name].join(" › ");
+  const parentName = ancestors.at(-1) ?? "상위 분류";
 
   /** 현재 node의 경로에 이름 한 단계만 추가한다. */
   async function create(event: FormEvent<HTMLFormElement>) {
@@ -24,18 +40,21 @@ function CategoryRow({ node, onCreate, onRemove }: { node: CategoryNode;
   }
 
   return <li className="category-admin-node"><div className="category-admin-row">
-    {node.children.length ? <button type="button" aria-label={expanded ? `${node.name} 접기` : `${node.name} 펼치기`}
-      aria-expanded={expanded} onClick={() => setExpanded((value) => !value)}>{expanded ? "▾" : "▸"}</button> : <span className="category-indent" />}
-    <span>{node.name}</span><span className="mono">{node.totalCount}</span>
-    <button type="button" className="danger-text" aria-label={`${node.path} 분류 삭제`} onClick={() => setDeleting(true)}>삭제</button></div>
-    {deleting && <div className="inline-confirm" role="alertdialog" aria-label="분류 삭제 확인"><p>“{node.path.replaceAll("/", " › ")}” 분류를 삭제합니다.
-      {node.totalCount > 0 && <> 글 {node.totalCount}개는 상위 분류로 이동합니다.</>}
-      {node.children.length > 0 && <> 하위 분류 {node.children.length}개도 삭제됩니다.</>}</p>
-      <button type="button" className="small-button" onClick={() => setDeleting(false)}>취소</button>
+    <button className="category-folder" type="button" aria-label={expanded ? `${node.name} 접기` : `${node.name} 펼치기`}
+      aria-expanded={node.children.length ? expanded : undefined} onClick={() => setExpanded((value) => !value)}>
+      <span className={node.children.length ? "" : "category-chevron-empty"}><ChevronIcon expanded={expanded} /></span>
+      <FolderIcon /><span className="category-folder-name">{node.name}</span><span className="category-folder-count">{node.totalCount}</span></button>
+    <button type="button" className="category-delete" aria-label={`${node.path} 분류 삭제`} title="분류 삭제"
+      onClick={() => setDeleting(true)}><TrashIcon /></button></div>
+    {deleting && <div className="inline-confirm" role="alertdialog" aria-label="분류 삭제 확인">
+      <p className="inline-confirm-title">“{displayPath}” 분류를 삭제합니다.</p>
+      {node.totalCount > 0 && <p>안에 있는 글 {node.totalCount}개는 “{parentName}”(으)로 옮겨집니다. 글은 지워지지 않습니다.</p>}
+      {node.children.length > 0 && <p>하위 분류 {node.children.length}개도 함께 삭제됩니다.</p>}
+      <div className="inline-confirm-actions"><button type="button" className="small-button" onClick={() => setDeleting(false)}>취소</button>
       <button type="button" className="small-button danger-button" onClick={() => { void onRemove(node).then(() => setDeleting(false)).catch(() => undefined); }}>
-        {node.totalCount > 0 ? "옮기고 삭제" : "삭제"}</button></div>}
+        {node.totalCount > 0 ? "옮기고 삭제" : "삭제"}</button></div></div>}
     {expanded && node.children.length > 0 && <ul>{node.children.map((child) => <CategoryRow key={child.id} node={child}
-      onCreate={onCreate} onRemove={onRemove} />)}</ul>}
+      ancestors={[...ancestors, node.name]} onCreate={onCreate} onRemove={onRemove} />)}</ul>}
     {expanded && node.depth < 3 && (adding ? <form className="category-inline-form" onSubmit={(event) => void create(event)}
       onKeyDown={(event) => { if (event.key === "Escape") { setAdding(false); setName(""); } }}>
       <input aria-label={`새 ${childLabel(node.depth)} 이름`} value={name} autoFocus onChange={(event) => setName(event.target.value)} />
@@ -44,7 +63,7 @@ function CategoryRow({ node, onCreate, onRemove }: { node: CategoryNode;
   </li>;
 }
 
-/** 저장된 빈 폴더까지 포함한 관리자 분류 트리를 조회·수정한다. */
+/** {@link CategoryRow}를 통해 저장된 빈 폴더까지 포함한 관리자 분류 트리를 조회·수정한다. */
 export function CategoryManager() {
   const auth = useAuth();
   const [nodes, setNodes] = useState<CategoryNode[]>([]);
@@ -80,10 +99,11 @@ export function CategoryManager() {
     catch (failure) { setError(apiFailureMessage(failure)); throw failure; }
   }
 
-  return <><h1>분류 관리</h1>{error && <p role="alert" className="inline-error">{error}
+  return <><div className="admin-heading"><h1>분류 관리</h1></div>{error && <p role="alert" className="inline-error">{error}
     <button type="button" onClick={() => setReload((value) => value + 1)}>다시 조회</button></p>}
     {message && <p role="status">{message}</p>}
-    <div className="category-admin card"><ul>{nodes.map((node) => <CategoryRow key={node.id} node={node} onCreate={create} onRemove={remove} />)}</ul>
+    <div className="category-admin card"><ul>{nodes.map((node) => <CategoryRow key={node.id} node={node} ancestors={[]}
+      onCreate={create} onRemove={remove} />)}</ul>
       {adding ? <form className="category-inline-form" onSubmit={(event) => { event.preventDefault(); void create(null, name.trim()).then(() => {
         setName(""); setAdding(false);
       }).catch(() => undefined); }}><input aria-label="새 대분류 이름" value={name} autoFocus

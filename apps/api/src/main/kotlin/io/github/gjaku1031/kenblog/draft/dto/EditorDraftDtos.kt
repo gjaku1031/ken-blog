@@ -54,11 +54,13 @@ data class EditorDraftCreateRequest(
     val courseId: Long? = null,
     val chapterOrder: Int? = null,
     val summary: String = "",
+    @field:Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, types = ["integer", "null"], description = "TECH 소분류 시리즈 양수 순서")
+    val techSeriesOrder: Int? = null,
 ) {
     /** @return 정규화·상한 검사를 마친 내용과 프로젝트 스냅샷. */
     fun values(fallbackSection: PostSection = PostSection.TECH): EditorDraftValues =
         EditorDraftValues(title, slug, body, categoryId, tags, visibility, section ?: fallbackSection,
-            projectId, relatedProjectId, documentOrder, projectMetadata, courseId, chapterOrder, summary)
+            projectId, relatedProjectId, documentOrder, projectMetadata, courseId, chapterOrder, summary, techSeriesOrder)
 }
 
 /** revision 조건과 전체 편집 내용을 받되 원본 ID·기준 시각은 바꾸지 않는 PUT 계약. */
@@ -94,11 +96,13 @@ data class EditorDraftUpdateRequest(
     val courseId: Long? = null,
     val chapterOrder: Int? = null,
     val summary: String = "",
+    @field:Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, types = ["integer", "null"], description = "TECH 소분류 시리즈 양수 순서")
+    val techSeriesOrder: Int? = null,
 ) {
     /** @return 검증한 전체 교체 내용과 불변 섹션·소속 후보. */
     fun values(fallbackSection: PostSection = PostSection.TECH): EditorDraftValues =
         EditorDraftValues(title, slug, body, categoryId, tags, visibility, section ?: fallbackSection,
-            projectId, relatedProjectId, documentOrder, projectMetadata, courseId, chapterOrder, summary)
+            projectId, relatedProjectId, documentOrder, projectMetadata, courseId, chapterOrder, summary, techSeriesOrder)
 }
 
 /** 현재 편집본 revision만 받는 원자적 출간 계약. */
@@ -108,7 +112,8 @@ data class EditorDraftPublishRequest(
 )
 
 /** 관리 엔티티를 미리 적재하지 않고 잠금 순서에 필요한 FK 스냅샷만 읽는 행. */
-data class EditorDraftLockHint(val postId: Long?, val categoryId: Long?, val projectId: Long?, val courseId: Long?)
+data class EditorDraftLockHint(val postId: Long?, val categoryId: Long?, val projectId: Long?, val courseId: Long?,
+    val techSeriesOrder: Int?)
 
 /** 관리자 편집본의 모든 저장 필드와 revision을 보이는 상세 응답. */
 data class EditorDraftDetailResponse(
@@ -134,6 +139,7 @@ data class EditorDraftDetailResponse(
     val courseId: Long? = null,
     val chapterOrder: Int? = null,
     val summary: String = "",
+    val techSeriesOrder: Int? = null,
 )
 
 /** 본문 열을 읽지 않는 관리자 편집본 목록의 한 행. */
@@ -156,12 +162,13 @@ data class EditorDraftSummaryRow(
     val courseId: Long?,
     val chapterOrder: Int?,
     val summary: String,
+    val techSeriesOrder: Int?,
 ) {
     /** @return 직렬화 문자열 대신 태그 배열을 포함한 공개 목록 행. */
     fun response(): EditorDraftSummaryResponse = EditorDraftSummaryResponse(id, revision, postId, baseUpdatedAt,
         title, slug, categoryId, if (tagsSnapshot.isEmpty()) emptyList() else tagsSnapshot.split('\u001f'),
         visibility, createdAt, updatedAt, section, projectId, relatedProjectId, documentOrder, courseId,
-        chapterOrder, summary)
+        chapterOrder, summary, techSeriesOrder)
 }
 
 /** 본문을 제외한 관리자 편집본 목록 행. */
@@ -184,6 +191,7 @@ data class EditorDraftSummaryResponse(
     val courseId: Long?,
     val chapterOrder: Int?,
     val summary: String,
+    val techSeriesOrder: Int?,
 )
 
 /** 본문 없는 한 페이지와 같은 조건의 전체 건수. */
@@ -199,7 +207,7 @@ data class EditorDraftPageResponse(
 fun EditorDraftEntity.response(attachmentIds: List<Long>, wikiTargets: List<String>): EditorDraftDetailResponse = EditorDraftDetailResponse(
     id ?: error("Persisted editor draft has no ID"), revision, postId, baseUpdatedAt,
     title, slug, body, categoryId, tags(), visibility, createdAt, updatedAt, attachmentIds, wikiTargets,
-    section, projectId, relatedProjectId, documentOrder, projectMetadata(), courseId, chapterOrder, summary,
+    section, projectId, relatedProjectId, documentOrder, projectMetadata(), courseId, chapterOrder, summary, techSeriesOrder,
 )
 
 /** Jackson 문자열·숫자 강제 변환 전에 실제 JSON 노드 타입과 입력 상한을 확인. */
@@ -215,7 +223,8 @@ object EditorDraftRequests {
             values.categoryId, values.tags, values.visibility, AttachmentIds.parse(node.get("attachmentIds")),
             WikiDeclarations.parse(node.get("wikiTargets")), section(node), optionalId(node, "projectId"),
             optionalId(node, "relatedProjectId"), optionalOrder(node), metadata(node, values.visibility),
-            optionalId(node, "courseId"), optionalPositiveInt(node, "chapterOrder"), optionalSummary(node))
+            optionalId(node, "courseId"), optionalPositiveInt(node, "chapterOrder"), optionalSummary(node),
+            optionalPositiveInt(node, "techSeriesOrder"))
     }
 
     /** @return revision과 전체 내용이 있는 갱신 요청. */
@@ -227,7 +236,8 @@ object EditorDraftRequests {
             values.categoryId, values.tags, values.visibility, AttachmentIds.parse(node.get("attachmentIds")),
             WikiDeclarations.parse(node.get("wikiTargets")), section(node), optionalId(node, "projectId"),
             optionalId(node, "relatedProjectId"), optionalOrder(node), metadata(node, values.visibility),
-            optionalId(node, "courseId"), optionalPositiveInt(node, "chapterOrder"), optionalSummary(node))
+            optionalId(node, "courseId"), optionalPositiveInt(node, "chapterOrder"), optionalSummary(node),
+            optionalPositiveInt(node, "techSeriesOrder"))
     }
 
     /** @return 현재 화면의 0 이상 revision을 가진 출간 요청. */
@@ -252,7 +262,7 @@ object EditorDraftRequests {
             if (!tag.isTextual) throw InvalidEditorDraftRequestException()
             rawTags.add(tag.textValue())
         }
-        val tags = try { TagNames.normalizeAll(rawTags) }
+        val tags = try { TagNames.displayAll(rawTags) }
             catch (ex: InvalidPostRequestException) { throw InvalidEditorDraftRequestException() }
         val visibility = when (string(node, "visibility")) {
             "PUBLIC" -> PostVisibility.PUBLIC

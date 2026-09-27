@@ -65,8 +65,9 @@ class EditorDraftService(
     fun create(request: EditorDraftCreateRequest): EditorDraftDetailResponse = conflicts {
         val section = request.section ?: request.postId?.let { posts.findByIdOrNull(it)?.section } ?: PostSection.TECH
         validateSection(section, request.categoryId, request.tags, request.projectId,
-            request.relatedProjectId, request.projectMetadata, request.courseId, request.postId)
-        if (section == PostSection.TECH) lockCategory(request.categoryId)
+            request.relatedProjectId, request.projectMetadata, request.courseId, request.postId, request.techSeriesOrder)
+        if (section == PostSection.TECH || section == PostSection.PROJECT_DOC)
+            lockCategory(request.categoryId, request.techSeriesOrder)
         val parent = request.projectId?.let(projects::sharedParent)
         request.courseId?.let(courses::sharedParent)
         if (section == PostSection.PROJECT_DOC && parent != null) projects.requirePublishedParent(parent.id!!)
@@ -132,8 +133,9 @@ class EditorDraftService(
         if (request.section != null && request.section != drafts.findByIdOrNull(id)?.section) throw EditorDraftConflictException()
         val section = drafts.findByIdOrNull(id)?.section ?: throw EditorDraftNotFoundException()
         validateSection(section, request.categoryId, request.tags, request.projectId,
-            request.relatedProjectId, request.projectMetadata, request.courseId, snapshot.postId)
-        if (section == PostSection.TECH) lockCategory(request.categoryId)
+            request.relatedProjectId, request.projectMetadata, request.courseId, snapshot.postId, request.techSeriesOrder)
+        if (section == PostSection.TECH || section == PostSection.PROJECT_DOC)
+            lockCategory(request.categoryId, request.techSeriesOrder)
         if (snapshot.projectId != null) projects.sharedParent(snapshot.projectId)
         if (snapshot.courseId != null) courses.sharedParent(snapshot.courseId)
         val draft = lockDraftAfterPost(id)
@@ -176,7 +178,8 @@ class EditorDraftService(
         validRevision(revision)
         val snapshot = preview(id)
         val section = drafts.findByIdOrNull(id)?.section ?: throw EditorDraftNotFoundException()
-        if (section == PostSection.TECH) lockCategory(snapshot.categoryId)
+        if (section == PostSection.TECH || section == PostSection.PROJECT_DOC)
+            lockCategory(snapshot.categoryId, snapshot.techSeriesOrder)
         val parent = snapshot.projectId?.let(projects::lockedParent)
         val course = snapshot.courseId?.let(courses::lockedParent)
         val original = snapshot.postId?.let { posts.findLockedById(it) ?: throw EditorDraftNotFoundException() }
@@ -230,8 +233,10 @@ class EditorDraftService(
         }
         val postId = post.id ?: error("Persisted post has no ID")
         if (section != PostSection.PROJECT_HOME) postService.replaceSummary(postId, draft.summary)
-        if (section == PostSection.TECH) {
+        if (section == PostSection.TECH || section == PostSection.PROJECT_DOC)
             postService.replaceTaxonomy(postId, draft.categoryId, draft.tags())
+        if (section == PostSection.TECH) {
+            postService.setTechSeriesOrder(postId, draft.techSeriesOrder)
             postService.relateTechPost(postId, draft.relatedProjectId)
         }
         attachmentLinks.publishDraft(postId, id)
@@ -244,26 +249,33 @@ class EditorDraftService(
         postService.adminDetail(postId)
     }
 
-    /** @return 동시 이동에 대비해 참조 카테고리를 공유 잠금으로 검증. */
-    private fun lockCategory(categoryId: Long?) {
-        if (categoryId == null) return
+    /** @return [EditorDraftEntity.techSeriesOrder]가 3단계 TECH 분류에만 속하도록 공유 잠금으로 검증. */
+    private fun lockCategory(categoryId: Long?, techSeriesOrder: Int?) {
+        if (categoryId == null) {
+            if (techSeriesOrder != null) throw InvalidEditorDraftRequestException()
+            return
+        }
         if (categoryId <= 0) throw InvalidEditorDraftRequestException()
-        categories.findSharedById(categoryId) ?: throw CategoryNotFoundException()
+        val category = categories.findSharedById(categoryId) ?: throw CategoryNotFoundException()
+        if (techSeriesOrder != null && (techSeriesOrder <= 0 || category.depth != 3))
+            throw InvalidEditorDraftRequestException()
     }
 
     /** [EditorDraftEntity.section]별 소속과 taxonomy를 검증해 우회 출간을 차단. */
     private fun validateSection(section: PostSection, categoryId: Long?, tags: List<String>, projectId: Long?,
         relatedProjectId: Long?, metadata: io.github.gjaku1031.kenblog.project.domain.ProjectMetadata?,
-        courseId: Long?, postId: Long?) {
+        courseId: Long?, postId: Long?, techSeriesOrder: Int?) {
         when (section) {
             PostSection.TECH -> if (projectId != null || courseId != null || metadata != null)
                 throw InvalidEditorDraftRequestException()
             PostSection.PROJECT_HOME -> if (categoryId != null || tags.isNotEmpty() || relatedProjectId != null ||
+                techSeriesOrder != null ||
                 courseId != null || (postId == null) != (projectId == null) || metadata == null)
                 throw InvalidEditorDraftRequestException()
-            PostSection.PROJECT_DOC -> if (categoryId != null || tags.isNotEmpty() || relatedProjectId != null ||
+            PostSection.PROJECT_DOC -> if (relatedProjectId != null || techSeriesOrder != null ||
                 projectId == null || courseId != null || metadata != null) throw InvalidEditorDraftRequestException()
             PostSection.NOTE_CHAPTER -> if (categoryId != null || tags.isNotEmpty() || projectId != null ||
+                techSeriesOrder != null ||
                 relatedProjectId != null || metadata != null || courseId == null) throw InvalidEditorDraftRequestException()
         }
     }

@@ -7,12 +7,13 @@ import { publicImageUrl } from "@/lib/profile";
 import { normalizeBadge, parseStackBadges, type StackBadge } from "@/lib/stack-badges";
 import { useAuth } from "../auth-provider";
 
-/** OCI 기반 기술 뱃지의 추가·수정·삭제와 실제 프로젝트 사용 건수를 관리한다. */
+/** {@link normalizeBadge}를 사용해 OCI 기술 뱃지의 추가·수정·삭제와 프로젝트 사용 건수를 관리한다. */
 export function StackManager() {
   const auth = useAuth();
   const [items, setItems] = useState<StackBadge[]>([]);
   const [name, setName] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [editing, setEditing] = useState<number | null>(null);
   const [editName, setEditName] = useState("");
   const [deleting, setDeleting] = useState<number | null>(null);
@@ -35,6 +36,13 @@ export function StackManager() {
 
   useEffect(() => { if (page > 0 && page * 10 >= items.length)
     setPage(Math.max(0, Math.ceil(items.length / 10) - 1)); }, [items.length, page]);
+
+  useEffect(() => {
+    if (!file) { setPreviewUrl(null); return; }
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [file]);
 
   /** {@link normalizeBadge} 결과와 이름을 함께 보내 레지스트리에 추가한다. */
   async function create(event: FormEvent<HTMLFormElement>) {
@@ -81,32 +89,41 @@ export function StackManager() {
   }
 
   const rows = items.slice(page * 10, page * 10 + 10);
-  return <><div className="admin-heading"><h1>기술 스택</h1><span>{items.length}개</span></div>
+  return <><div className="admin-heading"><h1>기술 스택</h1><span>뱃지 {items.length}개</span></div>
     <form className="stack-create card" onSubmit={(event) => void create(event)}>
-      <label>이미지 · 64 × 64<input type="file" accept="image/*" onChange={(event) => setFile(event.target.files?.[0] ?? null)} /></label>
-      <label>이름<input value={name} onChange={(event) => setName(event.target.value)} placeholder="예: Spring Boot" /></label>
+      <div className="stack-upload-group"><label className="stack-upload" title="이미지 올리기" aria-label="뱃지 이미지 올리기">
+        {previewUrl ? <Image src={previewUrl} alt="선택한 뱃지 이미지 미리보기" width={64} height={64} unoptimized /> :
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+            strokeLinecap="round" aria-hidden="true"><path d="M12 5v14M5 12h14" /></svg>}
+        <input type="file" accept="image/*" onChange={(event) => setFile(event.target.files?.[0] ?? null)} /></label>
+        <span>64 × 64</span></div>
+      <label className="stack-name-field">이름<input value={name} onChange={(event) => setName(event.target.value)}
+        placeholder="예: Spring Boot" autoComplete="off" /></label>
       <button type="submit" className="primary-button" disabled={busy}>뱃지 추가</button>
     </form>
     {error && <p role="alert" className="inline-error">{error} <button type="button" onClick={() => setReload((value) => value + 1)}>다시 조회</button></p>}
     {message && <p role="status">{message}</p>}
-    <div className="admin-table-wrap card"><table className="admin-table"><thead><tr><th>뱃지</th><th>사용</th><th>관리</th></tr></thead><tbody>
+    <div className="admin-table-wrap card stack-table-card"><table className="admin-table stack-table"><colgroup><col /><col className="stack-usage-col" />
+      <col className="stack-actions-col" /></colgroup><thead><tr><th>뱃지</th><th>사용</th><th><span className="sr-only">관리</span></th></tr></thead><tbody>
       {rows.map((item) => <tr key={item.id}><td><div className="stack-cell">{publicImageUrl(item.imageUrl) && <Image
-        src={publicImageUrl(item.imageUrl)!} alt="" width={36} height={36} unoptimized />}{editing === item.id ?
+        src={publicImageUrl(item.imageUrl)!} alt="" width={24} height={24} unoptimized />}{editing === item.id ?
         <input aria-label={`${item.name} 이름 수정`} value={editName} onChange={(event) => setEditName(event.target.value)}
           onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); void rename(item.id); }
             if (event.key === "Escape") setEditing(null); }} /> : item.name}</div></td>
-        <td>{item.projectCount === null ? "—" : item.projectCount ? `프로젝트 ${item.projectCount}개` : "사용 안 함"}</td>
+        <td>{deleting === item.id && item.projectCount ? <>프로젝트 {item.projectCount}개에서<br />빠집니다.</> :
+          item.projectCount === null ? "—" : item.projectCount ? `프로젝트 ${item.projectCount}개` : "사용 안 함"}</td>
         <td className="admin-row-actions">{editing === item.id ? <><button type="button" onClick={() => setEditing(null)}>취소</button>
           <button type="button" onClick={() => void rename(item.id)} disabled={busy}>저장</button></> : deleting === item.id ? <>
-          <span>{item.projectCount ? `${item.projectCount}개에서 빠집니다` : "삭제할까요?"}</span>
+          <span>삭제할까요?</span>
           <button type="button" onClick={() => setDeleting(null)}>취소</button><button type="button" className="danger-text" disabled={busy}
             onClick={() => void remove(item.id)}>삭제</button></> : <>
           <label className="file-button">이미지 교체<input type="file" accept="image/*" onChange={(event) => void replaceImage(item.id, event.target.files?.[0] ?? null)} /></label>
           <button type="button" onClick={() => { setEditing(item.id); setEditName(item.name); }}>이름 수정</button>
           <button type="button" onClick={() => setDeleting(item.id)}>삭제</button></>}</td></tr>)}
-    </tbody></table>{!items.length && <p className="message-card">등록된 뱃지가 없습니다.</p>}</div>
-    {items.length > 10 && <nav className="number-pager" aria-label="기술 스택 페이지">
+    </tbody></table>{!items.length && <p className="message-card">등록된 뱃지가 없습니다.</p>}
+    {items.length > 10 && <nav className="number-pager" aria-label="기술 스택 페이지"><span className="pager-count">
+      {page * 10 + 1}–{Math.min((page + 1) * 10, items.length)} / {items.length}개</span>
       {Array.from({ length: Math.ceil(items.length / 10) }, (_, index) => <button key={index} type="button"
-        aria-current={page === index ? "page" : undefined} onClick={() => setPage(index)}>{index + 1}</button>)}</nav>}
+        aria-current={page === index ? "page" : undefined} onClick={() => setPage(index)}>{index + 1}</button>)}</nav>}</div>
   </>;
 }

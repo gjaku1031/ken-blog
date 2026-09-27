@@ -8,7 +8,7 @@ import { useAuth } from "./auth-provider";
 type BacklinkState = { items: WikiTitleItem[]; loadedPage: number; hasMore: boolean;
   loading: boolean; error: string };
 
-/** 현재 세션에서 읽을 수 있는 출간 글의 역링크만 10개씩 표시한다. */
+/** 현재 세션에서 읽을 수 있는 출간 글의 역링크만 10개씩 표시한다. {@link PostBacklinks} */
 export function PostBacklinks({ slug }: { slug: string }) {
   const { readCredentials, refresh } = useAuth();
   const [wantedPage, setWantedPage] = useState(0);
@@ -40,7 +40,10 @@ export function PostBacklinks({ slug }: { slug: string }) {
   return <section className="post-backlinks" aria-label="이 글을 가리키는 글">
     <h2>이 글을 가리키는 글</h2>
     {state.items.length > 0 && <ul>{state.items.map((item) => <li key={item.id}>
-      <Link href={postDestination(item)}>{item.title}</Link></li>)}</ul>}
+      <Link href={postDestination(item)}>{item.title}</Link><span>{item.section === "TECH" ?
+        `Tech${item.projectName ? ` · ${item.projectName}` : ""}` :
+        item.section === "NOTE_CHAPTER" ? `Notes${item.courseName ? ` · ${item.courseName}` : ""}` :
+          `Projects${item.projectName ? ` · ${item.projectName}` : ""}`}</span></li>)}</ul>}
     {state.loading && <p role="status">역링크를 불러오고 있습니다…</p>}
     {state.error && <p role="alert">{state.error} <button type="button" className="small-button"
       onClick={() => setRetry((value) => value + 1)}>다시 시도</button></p>}

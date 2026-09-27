@@ -45,11 +45,12 @@ private const val PUBLISHED_OLDER_PROJECT_PARENT =
  * ID 조회는 [JpaRepository.findById]를 사용함.
  */
 interface PostRepository : JpaRepository<PostEntity, Long> {
-    /** @return 한 3단계 소분류의 현재 권한별 출간 글을 최초 출간 순서로 조회. */
+    /** @return [PostSeriesRow]를 빈 번호 먼저, 저장 번호·최초 출간일·ID 순서로 조회. */
     @Query("select new io.github.gjaku1031.kenblog.post.dto.PostSeriesRow(p.id, p.slug, p.title) " +
         "from PostEntity p where p.section = :tech and p.categoryId = :categoryId " +
         "and p.status = :published and (:includePrivate = true or p.visibility = :publicVisibility) " +
-        "order by p.publishedAt asc, p.id asc")
+        "order by case when p.techSeriesOrder is null then 0 else 1 end asc, " +
+        "p.techSeriesOrder asc, p.publishedAt asc, p.id asc")
     fun findTechSeries(@Param("categoryId") categoryId: Long, @Param("tech") tech: PostSection,
         @Param("published") published: PostStatus, @Param("includePrivate") includePrivate: Boolean,
         @Param("publicVisibility") publicVisibility: PostVisibility): List<PostSeriesRow>
@@ -97,8 +98,11 @@ interface PostRepository : JpaRepository<PostEntity, Long> {
      * @return 생성 시각·ID 내림차순의 [AdminPostRow] 페이지
      */
     @Query(
-        value = "select new io.github.gjaku1031.kenblog.post.dto.AdminPostRow(p.id, p.title, p.slug, p.createdAt, p.updatedAt, p.status, p.visibility, p.publishedAt, p.categoryId, p.section, p.projectId, p.courseId, p.summary, p.pinOrder, p.viewCount) " +
-            "from PostEntity p order by p.createdAt desc, p.id desc",
+        value = "select new io.github.gjaku1031.kenblog.post.dto.AdminPostRow(p.id, p.title, p.slug, p.createdAt, p.updatedAt, p.status, p.visibility, p.publishedAt, p.categoryId, p.section, p.projectId, p.courseId, p.summary, p.pinOrder, p.viewCount, p.techSeriesOrder, coalesce(project.name, related.name), course.name, course.field, p.documentOrder, p.chapterOrder) " +
+            "from PostEntity p left join ProjectEntity project on project.id = p.projectId " +
+            "left join ProjectEntity related on related.id = p.relatedProjectId " +
+            "left join CourseEntity course on course.id = p.courseId " +
+            "order by p.createdAt desc, p.id desc",
         countQuery = "select count(p) from PostEntity p",
     )
     fun findAdminSummaries(pageable: Pageable): Page<AdminPostRow>
@@ -122,7 +126,13 @@ interface PostRepository : JpaRepository<PostEntity, Long> {
             "and (:categoryPath is null or exists (select c.id from CategoryEntity c where c.id = p.categoryId " +
             "and (c.path = :categoryPath or c.path like :descendantPath))) " +
             "and (:tag is null or exists (select t.id from PostTagEntity t where t.postId = p.id and t.name = :tag)) " +
-            "order by p.publishedAt desc, p.id desc",
+        "order by case when :seriesOrder = true and p.techSeriesOrder is null then 0 " +
+            "when :seriesOrder = true then 1 else null end asc, " +
+            "case when :seriesOrder = true then p.techSeriesOrder else null end asc, " +
+            "case when :seriesOrder = true then p.publishedAt else null end asc, " +
+            "case when :seriesOrder = true then p.id else null end asc, " +
+            "case when :seriesOrder = false then p.publishedAt else null end desc, " +
+            "case when :seriesOrder = false then p.id else null end desc",
         countQuery = "select count(p) from PostEntity p " +
             "where p.section = io.github.gjaku1031.kenblog.post.domain.PostSection.TECH and p.status = :published " +
             "and (:includePrivate = true or p.visibility = :publicVisibility) " +
@@ -134,6 +144,7 @@ interface PostRepository : JpaRepository<PostEntity, Long> {
         @Param("published") published: PostStatus,
         @Param("publicVisibility") publicVisibility: PostVisibility,
         @Param("includePrivate") includePrivate: Boolean,
+        @Param("seriesOrder") seriesOrder: Boolean,
         @Param("categoryPath") categoryPath: String?,
         @Param("descendantPath") descendantPath: String?,
         @Param("tag") tag: String?,
@@ -182,7 +193,7 @@ interface PostRepository : JpaRepository<PostEntity, Long> {
      * @param visibility 공개 범위
      * @return 현재 공개 글의 [PublicPostCacheRow], 없으면 `null`
      */
-    @Query("select new io.github.gjaku1031.kenblog.post.dto.PublicPostCacheRow(p.id, p.title, p.slug, p.publishedAt, p.bodySha256, p.categoryId, p.relatedProjectId, p.summary, p.pinOrder, p.viewCount) " +
+    @Query("select new io.github.gjaku1031.kenblog.post.dto.PublicPostCacheRow(p.id, p.title, p.slug, p.publishedAt, p.bodySha256, p.categoryId, p.relatedProjectId, p.summary, p.pinOrder, p.viewCount, p.techSeriesOrder) " +
         "from PostEntity p where p.slug = :slug and p.section = :tech and p.status = :status and p.visibility = :visibility")
     fun findPublicCacheMetadataBySlug(
         @Param("slug") slug: String,
@@ -266,7 +277,8 @@ interface PostRepository : JpaRepository<PostEntity, Long> {
      * 동일 제목의 대표는 위키 resolve와 같은 최초 출간 시각·ID 순서임.
      */
     @Query(value = "select p.id as id, p.title as title, p.slug as slug, p.section as section, " +
-        "project.slug as projectSlug, course.slug as courseSlug from posts p " +
+        "project.slug as projectSlug, course.slug as courseSlug, " +
+        "project.name as projectName, course.name as courseName from posts p " +
         "left join projects project on project.id = p.project_id " +
         "left join courses course on course.id = p.course_id " +
         "left join posts home on home.id = project.home_post_id " +
@@ -291,7 +303,8 @@ interface PostRepository : JpaRepository<PostEntity, Long> {
      * 페이지마다 11개를 읽어 마지막 하나로 다음 페이지 여부만 판단함.
      */
     @Query(value = "select p.id as id, p.title as title, p.slug as slug, p.section as section, " +
-        "project.slug as projectSlug, course.slug as courseSlug from posts p " +
+        "project.slug as projectSlug, course.slug as courseSlug, " +
+        "project.name as projectName, course.name as courseName from posts p " +
         "left join projects project on project.id = p.project_id " +
         "left join courses course on course.id = p.course_id " +
         "left join posts home on home.id = project.home_post_id " +
@@ -309,11 +322,19 @@ interface PostRepository : JpaRepository<PostEntity, Long> {
         @Param("offset") offset: Int,
     ): List<WikiNavigationRow>
 
-    /** @return 관리자 또는 공개 역할 조건에서 분류별 직접 글 수를 계산한 [CategoryPostCountRow] 목록. */
+    /** @return PROJECT_DOC의 출간 대문·공개 범위를 확인해 분류별 [CategoryPostCountRow]를 집계. */
     @Query("select new io.github.gjaku1031.kenblog.category.dto.CategoryPostCountRow(p.categoryId, count(p)) " +
-        "from PostEntity p where p.section = io.github.gjaku1031.kenblog.post.domain.PostSection.TECH " +
+        "from PostEntity p left join ProjectEntity project on project.id = p.projectId " +
+        "left join PostEntity home on home.id = project.homePostId " +
+        "where p.section in (io.github.gjaku1031.kenblog.post.domain.PostSection.TECH, " +
+        "io.github.gjaku1031.kenblog.post.domain.PostSection.PROJECT_DOC) " +
         "and p.categoryId is not null and (:admin = true or " +
-        "(p.status = :published and (:includePrivate = true or p.visibility = :publicVisibility))) group by p.categoryId")
+        "(p.status = :published and (p.section = io.github.gjaku1031.kenblog.post.domain.PostSection.TECH or " +
+        "(home.status = :published and home.section = io.github.gjaku1031.kenblog.post.domain.PostSection.PROJECT_HOME " +
+        "and home.projectId = project.id)) and (:includePrivate = true or " +
+        "(p.visibility = :publicVisibility and (p.section = io.github.gjaku1031.kenblog.post.domain.PostSection.TECH " +
+        "or (project.visibility = :publicVisibility and home.visibility = :publicVisibility)))))) " +
+        "group by p.categoryId")
     fun countByCategoryForRole(
         @Param("admin") admin: Boolean,
         @Param("published") published: PostStatus,
@@ -323,6 +344,6 @@ interface PostRepository : JpaRepository<PostEntity, Long> {
 
     /** @return 잠긴 분류 하위의 글을 삭제 대상의 부모로 한 SQL에서 옮긴 수. */
     @Modifying(flushAutomatically = true)
-    @Query("update PostEntity p set p.categoryId = :parentId where p.categoryId in :categoryIds")
+    @Query("update PostEntity p set p.categoryId = :parentId, p.techSeriesOrder = null where p.categoryId in :categoryIds")
     fun moveCategories(@Param("categoryIds") categoryIds: Collection<Long>, @Param("parentId") parentId: Long?): Int
 }

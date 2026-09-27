@@ -19,7 +19,7 @@ type Props = { value: MarkdownDocument; onChange: (next: MarkdownDocument) => vo
   annotationPreview?: EditorAnnotationModel | null; annotationController?: AnnotationController; annotationSessionKey?: string };
 /** 글쓰기 고정 도구에서 커서를 보관하고 주석을 삽입할 수 있는 편집기 경계. */
 export type BlockEditorHandle = { captureAnnotationSelection: () => void; insertAnnotation: () => boolean;
-  insertWikiLink: (title: string) => boolean };
+  insertWikiLink: (title: string) => boolean; insertTable: () => void; chooseImage: () => void };
 type AnnotationController = { selection: EditorAnnotationSelection | null; composing: boolean; suppressNext: boolean };
 type FocusTarget = { id: string; offset: number | "end" };
 const ANNOTATION_TEXT_TYPES = new Set<BlockType>(["p", "h1", "h2", "h3", "ul", "ol", "todo", "quote"]);
@@ -164,7 +164,8 @@ export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEd
     return true;
   }
 
-  useImperativeHandle(ref, () => ({ captureAnnotationSelection, insertAnnotation, insertWikiLink }));
+  useImperativeHandle(ref, () => ({ captureAnnotationSelection, insertAnnotation, insertWikiLink,
+    insertTable: addTable, chooseImage: () => fileInput.current?.click() }));
 
   /** 현재 위치의 뒤에 새 블록을 넣고 원래 구분 공백은 새 블록 뒤로 옮긴다. */
   function insertAfter(index: number, type: BlockType, text = "", offset = 0) {
@@ -646,7 +647,7 @@ export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEd
               data-annotation-block-id={ANNOTATION_TEXT_TYPES.has(block.type) ? block.id : undefined}
               aria-label={`${index + 1}번 ${blockNames[block.type]} 블록`} rows={Math.max(1, block.text.split("\n").length)}
               aria-describedby={block.type === "math" ? `${block.id}-math-help` : block.type === "mermaid" ? `${block.id}-mermaid-help` : undefined}
-              value={block.text} disabled={disabled} placeholder={block.type === "p" ? "내용을 입력하세요" : "블록 내용을 입력하세요"}
+              value={block.text} disabled={disabled} placeholder={block.type === "p" ? "내용을 입력하세요. 마크다운 단축키가 바로 적용됩니다" : "블록 내용을 입력하세요"}
               onChange={(event) => {
                 const nextText = event.target.value;
                 captureAnnotationSelectionFrom(event.currentTarget);
@@ -679,7 +680,9 @@ export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEd
               }}>도식 삭제</button>
             </div>}
           </div> : <div className="editor-preview">
-            <div inert={!annotationPreview?.byBlock.get(block.id)?.length}>{block.type === "math" && !block.text ?
+            <div inert={!annotationPreview?.byBlock.get(block.id)?.length}>{block.type === "p" && !block.text && !block.raw ?
+              <span className="editor-empty-placeholder">내용을 입력하세요. 마크다운 단축키가 바로 적용됩니다</span> :
+              block.type === "math" && !block.text ?
               <span className="editor-math-empty">빈 수식 · 클릭하여 편집</span> :
               block.type === "mermaid" && !block.text ?
               <span className="editor-mermaid-empty">빈 도식 · 클릭하여 편집</span> :
@@ -706,5 +709,9 @@ export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEd
         const file = event.target.files?.[0]; if (file) acceptImageFile(file); event.target.value = "";
       }} /><button type="button" className="editor-add" disabled={disabled} onClick={() => fileInput.current?.click()}>+ 이미지 추가</button></>}
     {depth === 0 && <button type="button" className="editor-add" disabled={disabled} onClick={addToggle}>+ 접기 추가</button>}
+    {depth === 0 && <div className="editor-click-below" aria-hidden="true" onClick={() => {
+      const last = value.blocks.at(-1);
+      if (last) activate(last.id);
+    }} />}
   </div>;
 });

@@ -4,12 +4,13 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
 import { useAuth } from "../auth-provider";
+import "./admin-design.css";
 
-const tabs = [["/admin/", "대시보드"], ["/admin/posts/", "글 관리"], ["/admin/drafts/", "임시저장"],
+const tabs = [["/admin/", "대시보드"], ["/admin/posts/", "글 관리"],
   ["/admin/members/", "회원 관리"], ["/admin/categories/", "분류 관리"], ["/admin/stacks/", "기술 스택"],
   ["/admin/profile/", "홈 소개"]] as const;
 
-/** ADMIN 권한이 확인된 때에만 관리 메뉴와 하위 페이지를 렌더한다. */
+/** {@link useAuth}의 ADMIN 권한이 확인된 때에만 원본 관리 탐색과 하위 페이지를 렌더한다. */
 export function AdminShell({ children }: { children: ReactNode }) {
   const auth = useAuth();
   const pathname = usePathname();
@@ -20,6 +21,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
     <h1>관리자 로그인</h1><Link className="primary-button" href={`/login/?returnTo=${encodeURIComponent(pathname)}`}>로그인</Link></main>;
   return <main id="main-content" className="page-container admin-page admin-layout"><aside className="admin-nav" aria-label="관리 메뉴">
     <span>관리</span><nav>{tabs.map(([href, label]) => <Link key={href} href={href}
-      aria-current={pathname === href || pathname.endsWith(href) ? "page" : undefined}>{label}</Link>)}</nav></aside>
+      aria-current={pathname === href || pathname.endsWith(href) ||
+        href === "/admin/posts/" && pathname.startsWith("/admin/drafts") ? "page" : undefined}>{label}</Link>)}</nav></aside>
     <section className="admin-content">{children}</section></main>;
 }

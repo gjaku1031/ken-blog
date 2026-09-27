@@ -11,7 +11,7 @@ import { parseAdminProject, parseAdminProjectPage, type AdminProject } from "@/l
 import { parseCoursePage, type CourseSummary } from "@/lib/notes";
 import { parseEditorMarkdown, serializeEditorMarkdown, type MarkdownDocument } from "@/lib/editor-markdown";
 import { collectAttachmentIds, type ImageData } from "@/lib/editor-image";
-import { buildEditorAnnotationModel } from "@/lib/editor-annotation";
+import { buildEditorAnnotationModel, stripInlineAnnotations } from "@/lib/editor-annotation";
 import { validWikiTitle } from "@/lib/wiki-link-syntax";
 import { collectWikiTargets } from "@/lib/wiki-targets";
 import { useAuth } from "@/components/auth-provider";
@@ -20,6 +20,9 @@ import { BlockEditor, type BlockEditorHandle } from "./block-editor";
 import { PublishSheet } from "./publish-sheet";
 import { WikiLinkPicker } from "./wiki-link-picker";
 import { StackBadgePicker } from "./stack-badge-picker";
+import { CategoryPicker } from "./category-picker";
+import { ShortcutHelp } from "./shortcut-help";
+import "./editor-design.css";
 
 type Route = { kind: "new"; title: string | null; section: DraftSection; projectId: number | null; courseId: number | null } |
   { kind: "post" | "draft"; id: number } | { kind: "invalid" };
@@ -88,7 +91,7 @@ function summaryFromBody(body: string): string {
     if (fenced || math || !line || line.startsWith("#") || line.startsWith(">") || line.startsWith("-") ||
       line.startsWith("*") || line.startsWith("+ ") || line.startsWith("![") || line.startsWith("|") ||
       line.startsWith("<") || line.startsWith("[") || /^\d+\..*/.test(line)) continue;
-    const value = line.replace(/!\[[^\]]*\](?:\([^)]*\))?/g, "")
+    const value = stripInlineAnnotations(line).replace(/!\[[^\]]*\](?:\([^)]*\))?/g, "")
       .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
       .replace(/\[\[([^|\]]+)(?:\|([^\]]+))?\]\]/g, (_, title: string, label?: string) => label || title)
       .replace(/[\*`_]/g, "").replace(/\s+/g, " ").trim();
@@ -103,9 +106,9 @@ function blankForm(title = "", section: DraftSection = "TECH", projectId: number
     status: "DEV", startPeriod: "", endPeriod: null, overview: "", visibility: "PUBLIC", baseProjectUpdatedAt: null,
     stackBadgeNames: [],
   } : null;
-  const homeTemplate = "**역할** [역할] · **인원** [인원]\n\n## 프로젝트 소개\n\n## 문제와 해결\n\n## 작업 내용\n\n## 결과와 회고\n";
+  const homeTemplate = "**역할** [역할] · **인원** [인원]\n\n## 배경\n\n[배경과 목표]\n\n## 문제 → 해결 → 결과\n\n- **문제** — \n- **해결** — \n- **결과** — \n\n## 핵심 기능\n\n1. **[기능]** — [설명]\n\n## 구조\n\n```mermaid\nflowchart LR\n  A[클라이언트] --> B[API 서버]\n  B --> C[(DB)]\n```\n\n## 내가 한 일\n\n- \n\n## 배운 점 · 다음 단계\n\n- ";
   return { title, slug: "", categoryId: null, tags: [], visibility: "PUBLIC", section, projectId, courseId,
-    relatedProjectId: null, documentOrder: null, chapterOrder: null, summary: "", projectMetadata,
+    relatedProjectId: null, documentOrder: null, chapterOrder: null, techSeriesOrder: null, summary: "", projectMetadata,
     document: parseEditorMarkdown(section === "PROJECT_HOME" ? homeTemplate : "") };
 }
 
@@ -114,7 +117,7 @@ function formFromPost(post: AdminPost): Form {
   return { title: post.title, slug: post.slug, categoryId: post.category?.id ?? null,
     tags: [...post.tags], visibility: post.visibility, section: post.section, projectId: post.projectId,
     relatedProjectId: post.relatedProjectId, documentOrder: post.documentOrder, courseId: post.courseId,
-    chapterOrder: post.chapterOrder, summary: post.summary,
+    chapterOrder: post.chapterOrder, techSeriesOrder: post.techSeriesOrder, summary: post.summary,
     projectMetadata: post.projectMetadata, document: parseEditorMarkdown(post.body) };
 }
 
@@ -123,14 +126,25 @@ function formFromDraft(draft: DraftDetail): Form {
   return { title: draft.title, slug: draft.slug, categoryId: draft.categoryId, tags: [...draft.tags],
     visibility: draft.visibility, section: draft.section, projectId: draft.projectId,
     relatedProjectId: draft.relatedProjectId, documentOrder: draft.documentOrder, courseId: draft.courseId,
-    chapterOrder: draft.chapterOrder, summary: draft.summary,
+    chapterOrder: draft.chapterOrder, techSeriesOrder: draft.techSeriesOrder, summary: draft.summary,
     projectMetadata: draft.projectMetadata, document: parseEditorMarkdown(draft.body) };
 }
 
 /** 서버 트리를 깊이별 레이블을 포함한 분류 선택 목록으로 펼친다. */
-function categoryOptions(nodes: CategoryNode[]): Array<{ id: number; label: string }> {
-  return nodes.flatMap((node) => [{ id: node.id, label: `${"　".repeat(Math.max(0, node.depth - 1))}${node.path.replaceAll("/", " › ")}` },
+function categoryOptions(nodes: CategoryNode[]): Array<{ id: number; label: string; depth: number; count: number }> {
+  return nodes.flatMap((node) => [{ id: node.id, label: node.path.replaceAll("/", " › "),
+    depth: node.depth, count: node.totalCount },
     ...categoryOptions(node.children)]);
+}
+
+/** 관리자 과목 상세의 비공개·비출간 회차까지 포함해 다음 순서를 구한다. */
+function nextChapterOrder(detail: unknown): number | null {
+  if (!detail || typeof detail !== "object" || !("chapters" in detail) || !Array.isArray(detail.chapters)) return null;
+  return detail.chapters.reduce((max: number, value: unknown) => {
+    if (!value || typeof value !== "object" || !("order" in value) ||
+        !Number.isSafeInteger(value.order) || (value.order as number) < 1) return max;
+    return Math.max(max, value.order as number);
+  }, 0) + 1;
 }
 
 /** 저장 실패는 현재 원고를 유지하고 재시도 가능한 설명으로만 변환한다. */
@@ -185,6 +199,8 @@ function WriteInstance({ route }: { route: Route }) {
   const [showPublish, setShowPublish] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [showWikiPicker, setShowWikiPicker] = useState(false);
+  const [showCategoryPicker, setShowCategoryPicker] = useState(false);
+  const [tagFocused, setTagFocused] = useState(false);
   const [retry, setRetry] = useState(0);
   const [focusFirstSignal, setFocusFirstSignal] = useState(0);
   const dirty = screen === "ready" && version !== savedVersion;
@@ -219,7 +235,7 @@ function WriteInstance({ route }: { route: Route }) {
     if (route.kind === "invalid") {
       writeGeneration.current += 1;
       controllers.current.forEach((pending) => pending.abort()); controllers.current.clear();
-      busyLock.current = false; setBusy(null); setShowPublish(false);
+      busyLock.current = false; setBusy(null); setShowPublish(false); setShowCategoryPicker(false); setShowHelp(false);
       uploadLock.current = false; setUploading(false);
       uploadController.current = null;
       loadedRoute.current = routeKey;
@@ -232,6 +248,7 @@ function WriteInstance({ route }: { route: Route }) {
     writeGeneration.current += 1;
     controllers.current.forEach((pending) => pending.abort()); controllers.current.clear();
     busyLock.current = false; setBusy(null); setShowPublish(false); setShowWikiPicker(false);
+    setShowCategoryPicker(false); setShowHelp(false); setTagFocused(false);
     uploadLock.current = false; setUploading(false);
     uploadController.current = null;
     draftId.current = null; revision.current = null;
@@ -242,6 +259,7 @@ function WriteInstance({ route }: { route: Route }) {
     formRef.current = cleared; setForm(cleared); versionRef.current = 0; setVersion(0); setSavedVersion(0);
     loadedRoute.current = routeKey;
     const controller = new AbortController();
+    let loadFinished = false;
     controllers.current.add(controller);
     setScreen("loading"); setMessage(""); setExisting(null);
     void (async () => {
@@ -268,7 +286,7 @@ function WriteInstance({ route }: { route: Route }) {
           const page = parseDraftPage(await auth.adminRead(`/api/v1/admin/editor-drafts?postId=${route.id}&page=0&size=10`, controller.signal));
           if (controller.signal.aborted) return;
           if (page.items.length) {
-            if (!controller.signal.aborted) { setCategories(nextCategories); setKnownTags(nextTags); setExisting(page.items[0]); setScreen("existing"); }
+            if (!controller.signal.aborted) { loadFinished = true; setCategories(nextCategories); setKnownTags(nextTags); setExisting(page.items[0]); setScreen("existing"); }
             return;
           }
           const post = parseAdminPost(await auth.adminRead(`/api/v1/admin/posts/${route.id}`, controller.signal));
@@ -282,6 +300,12 @@ function WriteInstance({ route }: { route: Route }) {
           nextForm = blankForm(route.kind === "new" ? route.title ?? "" : "",
             route.kind === "new" ? route.section : "TECH", route.kind === "new" ? route.projectId : null,
             route.kind === "new" ? route.courseId : null);
+          if (route.kind === "new" && route.section === "NOTE_CHAPTER" && route.courseId !== null) {
+            // 관리자 상세에는 비공개·비출간 회차도 포함되므로 표시 개수 대신 실제 마지막 순서를 쓴다.
+            const detail = await auth.adminRead(`/api/v1/admin/courses/${route.courseId}`, controller.signal);
+            if (controller.signal.aborted) return;
+            nextForm.chapterOrder = nextChapterOrder(detail);
+          }
           setSavedAt("");
         }
         let parent = nextForm.projectId === null ? null : projectList.items.find((item) => item.id === nextForm.projectId) ?? null;
@@ -296,12 +320,13 @@ function WriteInstance({ route }: { route: Route }) {
         setCategories(nextCategories); setKnownTags(nextTags); setProjects(projectList.items);
         setCourses(courseList.items);
         setProjectPage(0); setProjectPages(projectList.totalPages);
-        setProjectName(parent?.name ?? ""); setProjectSlug(parent?.slug ?? ""); setScreen("ready");
+        setProjectName(parent?.name ?? ""); setProjectSlug(parent?.slug ?? ""); loadFinished = true; setScreen("ready");
       } catch (error) {
-        if (!controller.signal.aborted) { setMessage(apiFailureMessage(error)); setScreen("error"); }
+        if (!controller.signal.aborted) { loadFinished = true; setMessage(apiFailureMessage(error)); setScreen("error"); }
       } finally { controllers.current.delete(controller); }
     })();
-    return () => { controller.abort(); controllers.current.delete(controller); };
+    return () => { controller.abort(); controllers.current.delete(controller);
+      if (!loadFinished && loadedRoute.current === routeKey) loadedRoute.current = null; };
   }, [auth.adminRead, auth.status, auth.user?.role, route.kind, routeKey, retry, router]);
 
   /** 원고의 새 값을 즉시 ref에도 반영해 저장 클릭 직전 입력을 빠뜨리지 않는다. */
@@ -378,7 +403,9 @@ function WriteInstance({ route }: { route: Route }) {
       tags: snapshot.tags, visibility: snapshot.visibility, section: snapshot.section,
       projectId: snapshot.projectId, courseId: snapshot.courseId, relatedProjectId: snapshot.relatedProjectId,
       documentOrder: snapshot.documentOrder, chapterOrder: snapshot.chapterOrder,
-      summary: snapshot.summary, projectMetadata: snapshot.projectMetadata });
+      summary: snapshot.summary, projectMetadata: snapshot.projectMetadata,
+      techSeriesOrder: snapshot.section === "TECH" && categoryOptions(categories).find((item) => item.id === snapshot.categoryId)?.depth === 3 ?
+        snapshot.techSeriesOrder : null });
     const currentId = draftId.current;
     const response = currentId === null ? await auth.adminWrite("POST", "/api/v1/admin/editor-drafts",
       { postId: original.current.postId, baseUpdatedAt: original.current.baseUpdatedAt, ...values }, signal) :
@@ -450,13 +477,40 @@ function WriteInstance({ route }: { route: Route }) {
 
   /** 기존 태그 집계와 입력을 비교해 유효한 새 태그만 추가한다. */
   function addTag() {
-    const name = tagInput.trim().replace(/^#/, "").toLowerCase();
+    const name = tagInput.trim().replace(/^#/, "");
+    const exists = form.tags.some((tag) => tag.toLocaleLowerCase() === name.toLocaleLowerCase());
     if (!name || [...name].length > 40 || /[\u0000-\u001f\u007f]/.test(name)) {
       setMessage("태그는 제어 문자 없이 1~40자로 입력해 주세요."); return;
     }
-    if (!form.tags.includes(name) && form.tags.length >= 16) { setMessage("태그는 최대 16개입니다."); return; }
-    if (!form.tags.includes(name)) changeForm((current) => ({ ...current, tags: [...current.tags, name] }));
+    if (!exists && form.tags.length >= 16) { setMessage("태그는 최대 16개입니다."); return; }
+    if (!exists) changeForm((current) => ({ ...current, tags: [...current.tags, name] }));
     setTagInput("");
+  }
+
+  /** 출간 시트에서 과목을 바꿀 때 새 과목의 마지막 회차 뒤를 제안한다. */
+  async function selectCourse(id: number | null) {
+    changeForm((current) => ({ ...current, courseId: id, chapterOrder: null }));
+    if (id === null) return;
+    try {
+      const detail = await auth.adminRead(`/api/v1/admin/courses/${id}`);
+      const next = nextChapterOrder(detail);
+      if (next !== null) changeForm((current) => current.courseId === id && current.chapterOrder === null ?
+        { ...current, chapterOrder: next } : current);
+    } catch (error) { setMessage(apiFailureMessage(error)); }
+  }
+
+  /** 글쓰기 분류 선택기에서 새 분류를 만들고 서버 트리를 다시 읽는다. */
+  async function createCategory(parent: CategoryNode | null, name: string): Promise<number | null> {
+    if (busyLock.current) return null;
+    const path = parent ? `${parent.path}/${name}` : name;
+    await auth.adminWrite("POST", "/api/v1/admin/categories", { path });
+    const next = parseAdminCategories(await auth.adminRead("/api/v1/admin/categories"));
+    setCategories(next);
+    const created = categoryOptions(next).find((option) => option.label === path.replaceAll("/", " › "));
+    if (created) changeForm((current) => ({ ...current, categoryId: created.id,
+      techSeriesOrder: current.section === "TECH" && created.depth === 3 && original.current.postId === null ?
+        created.count + 1 : null }));
+    return created?.id ?? null;
   }
 
   if (auth.status === "checking") return <main id="main-content" className="write-page" role="status">관리자 세션을 확인하고 있습니다…</main>;
@@ -476,55 +530,37 @@ function WriteInstance({ route }: { route: Route }) {
     <Link className="primary-button" href={`/write/?draftId=${existing.id}`}>편집본 이어쓰기</Link></main>;
 
   const options = categoryOptions(categories);
-  return <main id="main-content" className="write-page">
-    <div className="write-top"><Link href="/admin/drafts/" className="back-link">← 나가기</Link>
-      <span className="write-kind">{{ TECH: "Tech", PROJECT_HOME: "프로젝트 대문", PROJECT_DOC: "프로젝트 문서", NOTE_CHAPTER: "Notes 회차" }[form.section]} · {original.current.postId === null ? "새 글" : "기존 글 편집"}</span></div>
+  const selectedCategory = options.find((item) => item.id === form.categoryId);
+  const selectedProject = projects.find((item) => item.id === form.relatedProjectId);
+  const sectionLocked = draftId.current !== null || original.current.postId !== null;
+  const actionLabel = form.section === "PROJECT_HOME" ? original.current.postId === null ? "프로젝트 만들기" : "저장" :
+    original.current.postId === null ? "출간하기" : "수정하기";
+  const suggestedTags = knownTags.filter((item) => !form.tags.some((tag) => tag.toLocaleLowerCase() === item.name.toLocaleLowerCase()) &&
+    (!tagInput.trim() || item.name.toLowerCase().includes(tagInput.trim().toLowerCase()))).slice(0, 4);
+  return <main id="main-content" className="write-page editor-design-page">
+    <div className="write-surface">
+    <div className="write-top"><Link href="/admin/drafts/" className="back-link">← 나가기</Link></div>
     <h1 className="sr-only">글쓰기</h1>
     <label className="sr-only" htmlFor="write-title">글 제목</label>
     <input id="write-title" className="write-title" value={form.title} placeholder="제목 없음"
       onChange={(event) => changeForm((current) => ({ ...current, title: event.target.value }))} disabled={busy === "publish"}
       onKeyDown={(event) => { if ((event.key === "Enter" || event.key === "ArrowDown") &&
         !event.nativeEvent.isComposing && event.keyCode !== 229) { event.preventDefault(); setFocusFirstSignal((n) => n + 1); } }} />
-    <div className="write-meta">
-      <label htmlFor="write-slug">글 주소</label>
-      <input id="write-slug" value={form.slug} maxLength={160} placeholder="example-post" autoComplete="off"
-        onChange={(event) => changeForm((current) => ({ ...current, slug: event.target.value }))} disabled={busy === "publish"} />
-      {form.section === "TECH" && <><label htmlFor="write-category">분류</label>
-      <select id="write-category" value={form.categoryId ?? ""} disabled={busy === "publish"}
-        onChange={(event) => changeForm((current) => ({ ...current, categoryId: event.target.value ? Number(event.target.value) : null }))}>
-        <option value="">분류 없음</option>
-        {form.categoryId !== null && !options.some((option) => option.id === form.categoryId) &&
-          <option value={form.categoryId}>삭제된 분류 · 해제하거나 다른 분류를 선택해 주세요</option>}
-        {options.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
-      </select>
-      <label htmlFor="write-related-project">관련 프로젝트</label>
-      <select id="write-related-project" value={form.relatedProjectId ?? ""} disabled={busy === "publish"}
-        onChange={(event) => changeForm((current) => ({ ...current, relatedProjectId: event.target.value ? Number(event.target.value) : null }))}>
-        <option value="">없음</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
-      </select></>}
-      {form.section === "PROJECT_DOC" && <><label htmlFor="write-project">프로젝트</label>
-        <select id="write-project" value={form.projectId ?? ""} disabled={busy === "publish"}
-          onChange={(event) => changeForm((current) => ({ ...current, projectId: Number(event.target.value) }))}>
-          {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
-        </select></>}
-      {form.section === "NOTE_CHAPTER" && <><label htmlFor="write-course">과목</label>
-        <select id="write-course" value={form.courseId ?? ""} disabled={busy === "publish"}
-          onChange={(event) => changeForm((current) => ({ ...current, courseId: Number(event.target.value) }))}>
-          {courses.map((course) => <option key={course.id} value={course.id}>{course.field} › {course.name}</option>)}
-        </select></>}
-      <label htmlFor="write-visibility">열람 범위</label>
-      <select id="write-visibility" value={form.visibility} disabled={busy === "publish"}
-        onChange={(event) => changeForm((current) => ({ ...current, visibility: event.target.value as "PUBLIC" | "PRIVATE",
-          projectMetadata: current.projectMetadata && { ...current.projectMetadata, visibility: event.target.value as "PUBLIC" | "PRIVATE" } }))}>
-        <option value="PUBLIC">전체 공개</option><option value="PRIVATE">로그인 회원 공개</option>
-      </select>
-    </div>
-    {form.section === "PROJECT_HOME" && form.projectMetadata && <div className="write-project-fields card">
-      <label htmlFor="write-project-status">상태</label><select id="write-project-status" value={form.projectMetadata.status}
-        onChange={(event) => changeForm((current) => ({ ...current, projectMetadata: current.projectMetadata &&
-          { ...current.projectMetadata, status: event.target.value as ProjectMetadata["status"] } }))}>
-        <option value="PLAN">기획 중</option><option value="DEV">개발 중</option><option value="MAINT">유지보수 중</option><option value="DONE">완료</option>
-      </select>
+    {form.section !== "TECH" && <div className={`write-kind editor-kind-line${form.section === "PROJECT_HOME" ? " editor-kind-home" : ""}`}>
+      <strong>{form.section === "PROJECT_HOME" || form.section === "PROJECT_DOC" ? "Projects" : "Notes"}</strong>
+      <span>·</span><span>{form.section === "PROJECT_HOME" ? "프로젝트 대문" : form.section === "PROJECT_DOC" ? projectName || "프로젝트 문서" :
+        courses.find((course) => course.id === form.courseId)?.name ?? "과목"}</span>
+      {form.section !== "PROJECT_HOME" && <><span>·</span><span>{form.section === "PROJECT_DOC" ? `문서 ${form.documentOrder ?? 1}` : `${form.chapterOrder ?? 1}강`}</span></>}
+      <small>{form.section === "PROJECT_HOME" ? "제목이 곧 프로젝트 이름입니다" : "출간할 때 순서를 바꿀 수 있어요"}</small>
+    </div>}
+    {form.section === "PROJECT_HOME" && form.projectMetadata && <div className="write-project-fields">
+      <span className="editor-project-label">상태</span><div className="editor-project-status" role="radiogroup" aria-label="상태">
+        {([["PLAN", "기획 중"], ["DEV", "개발 중"], ["MAINT", "유지보수 중"], ["DONE", "완료"]] as const).map(([status, label]) =>
+          <button type="button" key={status} role="radio" aria-checked={form.projectMetadata?.status === status}
+            className={form.projectMetadata?.status === status ? "selected" : ""}
+            onClick={() => changeForm((current) => ({ ...current, projectMetadata: current.projectMetadata &&
+              { ...current.projectMetadata, status } }))}><span className={`dot ${status.toLowerCase()}`} />{label}</button>)}
+      </div>
       <label htmlFor="write-start-period">기간</label><div className="write-period"><input id="write-start-period" placeholder="YYYY.MM" value={form.projectMetadata.startPeriod}
         onChange={(event) => changeForm((current) => ({ ...current, projectMetadata: current.projectMetadata &&
           { ...current.projectMetadata, startPeriod: event.target.value } }))} />
@@ -538,17 +574,49 @@ function WriteInstance({ route }: { route: Route }) {
         onChange={(names) => changeForm((current) => ({ ...current, projectMetadata: current.projectMetadata &&
           { ...current.projectMetadata, stackBadgeNames: names } }))} disabled={busy !== null} />
     </div>}
-    {form.section === "TECH" && <div className="write-tags"><span className="write-label">태그</span><div className="write-tag-chips">{form.tags.map((tag) =>
-      <button key={tag} type="button" disabled={busy === "publish"} aria-label={`${tag} 태그 제거`}
-        onClick={() => changeForm((current) => ({ ...current, tags: current.tags.filter((item) => item !== tag) }))}>#{tag} ×</button>)}</div>
-      <label className="sr-only" htmlFor="write-tag">태그 추가</label>
-      <input id="write-tag" list="editor-known-tags" value={tagInput} placeholder="태그 입력 후 Enter"
-        disabled={busy === "publish"} onChange={(event) => setTagInput(event.target.value)}
-        onKeyDown={(event) => { if (event.key === "Enter" && !event.nativeEvent.isComposing && event.keyCode !== 229) { event.preventDefault(); addTag(); } }} />
-      <datalist id="editor-known-tags">{knownTags.filter((tag) => !form.tags.includes(tag.name)).map((tag) =>
-        <option key={tag.name} value={tag.name} />)}</datalist>
-      <button type="button" className="small-button" onClick={addTag} disabled={busy === "publish"}>추가</button>
-    </div>}
+    {(form.section === "TECH" || form.section === "PROJECT_DOC") && <>
+      <div className="write-tags"><div className="write-tag-chips">{form.tags.map((tag) =>
+        <button key={tag} type="button" disabled={busy === "publish"} aria-label={`${tag} 태그 제거`}
+          onClick={() => changeForm((current) => ({ ...current, tags: current.tags.filter((item) => item !== tag) }))}>#{tag} ×</button>)}</div>
+        <div className="editor-tag-input-wrap"><label className="sr-only" htmlFor="write-tag">태그 추가</label>
+          <input id="write-tag" value={tagInput} placeholder="태그 입력 후 Enter" autoComplete="off"
+            disabled={busy === "publish"} onChange={(event) => setTagInput(event.target.value)}
+            onFocus={() => setTagFocused(true)} onBlur={() => window.setTimeout(() => setTagFocused(false), 120)}
+            onKeyDown={(event) => { if (event.key === "Enter" && !event.nativeEvent.isComposing && event.keyCode !== 229) { event.preventDefault(); addTag(); } }} />
+          {tagFocused && (suggestedTags.length > 0 || tagInput.trim()) && <div className="editor-tag-suggestions">
+            {suggestedTags.map((item) => <button type="button" key={item.name} onMouseDown={(event) => event.preventDefault()}
+              onClick={() => { setTagInput(""); if (!form.tags.some((tag) => tag.toLocaleLowerCase() === item.name.toLocaleLowerCase()))
+                changeForm((current) => ({ ...current, tags: [...current.tags, item.name] })); }}>
+              <span>#{item.name}</span><small>{item.count}</small></button>)}
+            {tagInput.trim() && !knownTags.some((item) => item.name.toLocaleLowerCase() === tagInput.trim().toLocaleLowerCase()) &&
+              <button type="button" onMouseDown={(event) => event.preventDefault()} onClick={addTag}>"{tagInput.trim()}" 새 태그로 추가</button>}
+          </div>}
+        </div>
+      </div>
+      <div className="editor-meta-row editor-category-row"><span>분류</span>
+        <button type="button" className="editor-compact-button" disabled={busy === "publish"}
+          aria-expanded={showCategoryPicker} aria-label="분류 고르기" onClick={() => setShowCategoryPicker((open) => !open)}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2-2H5a2 2 0 0 1-2-2z" /></svg>
+          {selectedCategory?.label ?? (form.categoryId ? "삭제된 분류" : "분류 없음")} <span aria-hidden="true">⌄</span></button>
+        {form.categoryId !== null && <button type="button" className="editor-clear-button" onClick={() => changeForm((current) =>
+          ({ ...current, categoryId: null, techSeriesOrder: null }))}>해제</button>}
+        {showCategoryPicker && <CategoryPicker nodes={categories} selected={form.categoryId} busy={busy !== null}
+          onSelect={(id) => changeForm((current) => {
+            const picked = options.find((item) => item.id === id);
+            return { ...current, categoryId: id, techSeriesOrder: current.section === "TECH" ?
+              picked?.depth === 3 && original.current.postId === null ? picked.count + 1 :
+                current.categoryId === id ? current.techSeriesOrder : null : null };
+          })}
+          onCreate={createCategory} onClose={() => setShowCategoryPicker(false)} />}
+      </div>
+      {form.section === "TECH" && <div className="editor-meta-row"><span>프로젝트</span><label className={`editor-compact-button editor-project-select${form.relatedProjectId ? " selected" : ""}`}>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 9h18" /></svg>
+        {selectedProject?.name ?? "프로젝트 없음"}<span aria-hidden="true">⌄</span>
+        <select aria-label="관련 프로젝트" value={form.relatedProjectId ?? ""} disabled={busy === "publish"}
+          onChange={(event) => changeForm((current) => ({ ...current, relatedProjectId: event.target.value ? Number(event.target.value) : null }))}>
+          <option value="">없음</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}{project.visibility === "PRIVATE" ? " (비공개)" : ""}</option>)}
+        </select></label></div>}
+    </>}
     <AnnotationReader mode="editor" identity={annotationIdentity} items={currentAnnotationModel?.items ?? []}>
       <BlockEditor ref={editorRef} value={form.document} disabled={busy === "publish" || uploading}
         annotationPreview={currentAnnotationModel} annotationSessionKey={`${auth.epoch}:${routeKey}:${screen}`}
@@ -556,41 +624,66 @@ function WriteInstance({ route }: { route: Route }) {
         onChange={(next) => changeForm((current) => ({ ...current, document: next }))} />
     </AnnotationReader>
     {message && <p className="write-message" role="status">{message}</p>}
-    <div className="write-spacer" />
-    {showHelp && <div id="write-help" className="write-help-popover card" role="region" aria-label="글쓰기 도움말"
-      onKeyDown={(event) => { if (event.key === "Escape") setShowHelp(false); }}><div className="write-help-heading">
-        <strong>글쓰기 도움말</strong><button type="button" aria-label="도움말 닫기" onClick={() => setShowHelp(false)}>×</button></div>
-      <p>문단·표·한 단계 접기·이미지·수식·Mermaid 도식을 편집할 수 있습니다. 문단에 $$ 또는 ```mermaid를 입력하고 끝에서 Enter를 누르면 전용 블록으로 바뀝니다.</p>
-      <p>JPEG/PNG 파일을 선택·드롭·붙여넣어 이미지를 넣을 수 있습니다. 이미지를 제거하면 문서 연결이 해제되고, 저장 뒤 해당 글의 읽기 권한이 철회됩니다.</p>
-      <p>주석 [*]은 선택한 글자에 주석 표시를 넣습니다. 중첩 접기와 지원하지 않는 구문은 원문으로 보존합니다.</p></div>}
-    <div className="write-toolbar"><span className="write-save-state" aria-live="polite">{uploading ? "이미지 업로드 중…" : busy === "save" ? "저장 중…" :
-      busy === "publish" ? "출간 중…" : dirty ? "저장하지 않은 변경" : savedAt ? `임시저장됨 · ${savedTime(savedAt)} KST` : "아직 저장하지 않음"}</span>
+    </div>
+    <div className="write-toolbar">
+      <button type="button" className="editor-tool-icon" aria-label="이미지 넣기" title="이미지 넣기" disabled={busy !== null || uploading}
+        onClick={() => editorRef.current?.chooseImage()}><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2" /><circle cx="9" cy="10" r="2" /><path d="m21 16-5-5-9 9" /></svg></button>
+      <button type="button" className="editor-tool-icon editor-tool-text" aria-label="주석 넣기" title="주석 넣기 [* ]" disabled={busy !== null || uploading}
+        onPointerDown={() => editorRef.current?.captureAnnotationSelection()}
+        onClick={() => { if (!editorRef.current?.insertAnnotation()) setMessage("글자 조합을 마친 뒤 주석을 삽입해 주세요."); }}>[*]</button>
+      <button type="button" className="editor-tool-icon" aria-label="표 넣기" title="표 넣기 (/표)" disabled={busy !== null || uploading}
+        onClick={() => editorRef.current?.insertTable()}><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 10h18M3 15h18M9 4v16M15 4v16" /></svg></button>
+      <button type="button" className="editor-tool-icon editor-tool-text editor-wiki-tool" aria-label="다른 글 링크" title="다른 글 링크 [[ ]]" disabled={busy !== null || uploading}
+        onPointerDown={() => editorRef.current?.captureAnnotationSelection()}
+        onClick={() => { setShowWikiPicker((open) => !open); setShowHelp(false); }}>[[ ]]</button>
+      <button type="button" className={`editor-tool-icon${showHelp ? " active" : ""}`} aria-label="단축키 도움말" title="단축키" aria-controls="write-help" aria-expanded={showHelp}
+        onClick={() => { setShowHelp((open) => !open); setShowWikiPicker(false); }}><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.9" aria-hidden="true"><path d="M9 18h6M10 21h4M12 3a6 6 0 0 0-3.5 10.9c.7.6 1.2 1.3 1.3 2.1h4.4c.1-.8.6-1.5 1.3-2.1A6 6 0 0 0 12 3z" /></svg></button>
+      {showHelp && <ShortcutHelp />}
+      {showWikiPicker && <WikiLinkPicker onClose={() => setShowWikiPicker(false)} onInsert={(title) => {
+        if (editorRef.current?.insertWikiLink(title)) { setShowWikiPicker(false); setMessage("글 링크를 본문에 넣었습니다."); }
+        else setMessage("글자 조합을 마친 뒤 글 링크를 삽입해 주세요.");
+      }} />}
+      <span className="write-save-state" aria-live="polite">{uploading ? "이미지 업로드 중…" : busy === "save" ? "저장 중…" :
+      busy === "publish" ? "출간 중…" : dirty ? "저장하지 않은 변경" : savedAt ? `임시저장됨 · ${savedTime(savedAt)} KST` : ""}</span>
       {uploading && <button type="button" className="small-button" onClick={() => {
         uploadController.current?.abort(); setMessage("이미지 업로드를 취소했습니다. 원고는 유지됩니다.");
       }}>업로드 취소</button>}
-      <button type="button" className="small-button" aria-controls="write-help" aria-expanded={showHelp}
-        onClick={() => setShowHelp((current) => !current)}>도움말</button>
-      <button type="button" className="small-button write-annotation-button" aria-label="주석 삽입" disabled={busy !== null || uploading}
-        onPointerDown={() => editorRef.current?.captureAnnotationSelection()}
-        onClick={() => { if (!editorRef.current?.insertAnnotation())
-          setMessage("글자 조합을 마친 뒤 주석을 삽입해 주세요."); }}>주석 [*]</button>
-      <button type="button" className="small-button" aria-label="글 링크 선택기 열기" disabled={busy !== null || uploading}
-        onPointerDown={() => editorRef.current?.captureAnnotationSelection()}
-        onClick={() => setShowWikiPicker(true)}>글 링크</button>
-      <Link href="/admin/drafts/" className="write-drafts-link">임시저장 목록</Link>
-      <button type="button" className="small-button" onClick={() => void save()} disabled={busy !== null || uploading}>임시저장</button>
-      <button type="button" className="primary-button" onClick={() => setShowPublish(true)} disabled={busy !== null || uploading}>출간하기</button></div>
-    {showWikiPicker && <WikiLinkPicker onClose={() => setShowWikiPicker(false)} onInsert={(title) => {
-      if (editorRef.current?.insertWikiLink(title)) { setShowWikiPicker(false); setMessage("글 링크를 본문에 넣었습니다."); }
-      else setMessage("글자 조합을 마친 뒤 글 링크를 삽입해 주세요.");
-    }} />}
+      <button type="button" className="editor-save-button" onClick={() => void save()} disabled={busy !== null || uploading}>임시저장</button>
+      <button type="button" className="primary-button" onClick={() => {
+        if (form.section === "PROJECT_HOME" && !form.slug) changeForm((current) => ({ ...current,
+          slug: current.title.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") ||
+            `project-${Date.now().toString(36)}` }));
+        setShowPublish(true);
+      }} disabled={busy !== null || uploading}>{actionLabel}</button></div>
     {showPublish && <PublishSheet title={form.title} slug={form.slug} section={form.section} summary={form.summary}
       summaryPreview={summaryFromBody(serializeEditorMarkdown(form.document))}
-      visibility={form.visibility} busy={busy !== null || uploading} error={message}
+      visibility={form.visibility} busy={busy !== null || uploading} sectionLocked={sectionLocked} error={message} actionLabel={actionLabel}
+      categoryLabel={selectedCategory?.label ?? "분류 없음"} categoryDepth={selectedCategory?.depth ?? null}
+      categoryCount={selectedCategory?.count ?? 0} techSeriesOrder={form.techSeriesOrder}
+      relatedProjectId={form.relatedProjectId}
+      projectId={form.projectId} courseId={form.courseId} documentOrder={form.documentOrder}
+      chapterOrder={form.chapterOrder} projectMetadata={form.projectMetadata}
+      projects={projects.map((project) => ({ id: project.id, label: project.name, slug: project.slug }))}
+      courses={courses.map((course) => ({ id: course.id, label: course.name, slug: course.slug,
+        field: course.field, count: course.chapterCount }))}
       onSlug={(slug) => changeForm((current) => ({ ...current, slug }))}
       onSummary={(summary) => changeForm((current) => ({ ...current, summary }))}
       onVisibility={(visibility) => changeForm((current) => ({ ...current, visibility,
         projectMetadata: current.projectMetadata && { ...current.projectMetadata, visibility } }))}
+      onSection={(section) => changeForm((current) => section === "TECH" ? { ...current, section,
+        projectId: null, courseId: null, projectMetadata: null, techSeriesOrder: null } : section === "PROJECT_DOC" ? { ...current, section,
+          relatedProjectId: null, courseId: null, projectMetadata: null,
+          techSeriesOrder: null, projectId: current.projectId ?? projects[0]?.id ?? null,
+          documentOrder: current.documentOrder ?? 1 } : {
+            ...current, section, categoryId: null, tags: [], relatedProjectId: null, projectId: null,
+            projectMetadata: null, techSeriesOrder: null, courseId: current.courseId ?? courses[0]?.id ?? null,
+            chapterOrder: current.chapterOrder ?? 1 })}
+      onRelatedProject={(id) => changeForm((current) => ({ ...current, relatedProjectId: id }))}
+      onProject={(id) => changeForm((current) => ({ ...current, projectId: id }))}
+      onCourse={(id) => { void selectCourse(id); }}
+      onDocumentOrder={(order) => changeForm((current) => ({ ...current, documentOrder: order }))}
+      onChapterOrder={(order) => changeForm((current) => ({ ...current, chapterOrder: order }))}
+      onTechSeriesOrder={(order) => changeForm((current) => ({ ...current, techSeriesOrder: order }))}
       onClose={() => setShowPublish(false)} onPublish={() => void publish()} />}
   </main>;
 }

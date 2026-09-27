@@ -1,5 +1,5 @@
 import type { Root } from "mdast";
-import { type AnnotationItem } from "./annotation-syntax";
+import { parseAnnotationMarkdown, type AnnotationItem } from "./annotation-syntax";
 import { blockMarkdown, emptyBlock, ensureBlockBoundaries, serializeEditorMarkdown,
   type EditorBlock, type MarkdownDocument } from "./editor-markdown";
 import { escapeToggleTitle } from "./editor-toggle";
@@ -28,6 +28,23 @@ type CandidateNode = { type: string; raw?: string;
 
 const INLINE_TYPES = new Set(["p", "h1", "h2", "h3", "ul", "ol", "todo", "quote"]);
 const INSERTION = "[* ]";
+
+/** {@link parseAnnotationMarkdown}가 식별한 주석 원문만 요약 미리보기에서 제외한다. */
+export function stripInlineAnnotations(source: string): string {
+  if (!source.includes("[*")) return source;
+  const spans: Array<{ start: number; end: number }> = [];
+  const visit = (node: CandidateNode) => {
+    if (node.type === "kenAnnotationCandidate" && node.raw?.startsWith("[*") && node.raw.endsWith("]")) {
+      const start = node.position?.start.offset;
+      const end = node.position?.end.offset;
+      if (start !== undefined && end !== undefined && source.slice(start, end) === node.raw) spans.push({ start, end });
+    }
+    for (const child of node.children ?? []) visit(child);
+  };
+  visit(parseAnnotationMarkdown(source) as CandidateNode);
+  return spans.sort((left, right) => right.start - left.start).reduce((text, span) =>
+    text.slice(0, span.start) + text.slice(span.end), source);
+}
 
 /** 최상위와 한 단계 접기 자식을 실제 표시 순서로 모으고 다른 블록은 제외한다. */
 function editableTargets(document: MarkdownDocument): Target[] {

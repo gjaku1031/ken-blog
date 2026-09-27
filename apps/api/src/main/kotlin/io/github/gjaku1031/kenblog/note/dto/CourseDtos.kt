@@ -70,13 +70,13 @@ data class NotesListResponse(val items: List<CourseSummaryResponse>)
 data class CourseAdminResponse(val id: Long, val slug: String, val field: String, val name: String,
     val description: String, val status: CourseStatus, val createdAt: LocalDateTime, val updatedAt: LocalDateTime)
 
-/** 본문 없이 권한별 표시 번호를 부여한 회차 탐색 행. */
+/** [ChapterRow]에서 본문 없이 권한별 표시 번호와 저장된 회차 요약을 부여한 탐색 행. */
 data class ChapterSummaryResponse(val id: Long, val title: String, val slug: String, val position: Int,
-    val publishedDate: LocalDate, val visibility: PostVisibility, val locked: Boolean = false)
+    val publishedDate: LocalDate, val visibility: PostVisibility, val summary: String?, val locked: Boolean = false)
 
-/** 목록·사이드바에서 본문을 읽지 않는 출간 회차 SQL 행. */
+/** [ChapterSummaryResponse]의 목록·사이드바에서 본문을 읽지 않는 출간 회차 SQL 행. */
 data class ChapterRow(val id: Long, val title: String, val slug: String, val chapterOrder: Int,
-    val publishedAt: LocalDateTime, val visibility: PostVisibility)
+    val publishedAt: LocalDateTime, val visibility: PostVisibility, val summary: String)
 
 /** 과목 소개와 현재 역할로 읽을 수 있는 회차 목록. */
 data class CourseDetailResponse(val course: CourseSummaryResponse, val chapters: List<ChapterSummaryResponse>)

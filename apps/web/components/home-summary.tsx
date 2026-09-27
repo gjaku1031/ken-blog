@@ -8,12 +8,12 @@ import { parseProfile, type HomeProfile } from "@/lib/profile";
 import { useAuth } from "./auth-provider";
 import { ProfileCard } from "./profile-card";
 
-/** 현재 KST 날짜의 자정에 해당하는 UTC 날짜 문자열을 만든다. */
+/** 현재 KST 날짜의 자정에 해당하는 UTC 날짜 문자열을 만든다. {@link kstToday} */
 function kstToday(): string {
   return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Seoul", year: "numeric", month: "2-digit", day: "2-digit" }).format(new Date());
 }
 
-/** 화면 너비에 맞는 주 수를 일요일 시작 날짜 격자로 변환한다. */
+/** 화면 너비에 맞는 주 수를 일요일 시작 날짜 격자로 변환한다. {@link heatmapDays} */
 function heatmapDays(today: string, weeks: number): Array<{ date: string; weekday: number; future: boolean }> {
   const end = new Date(`${today}T00:00:00Z`);
   const start = new Date(end); start.setUTCDate(start.getUTCDate() - start.getUTCDay() - (weeks - 1) * 7);
@@ -25,18 +25,19 @@ function heatmapDays(today: string, weeks: number): Array<{ date: string; weekda
   return days;
 }
 
-/** API의 실제 KST 출간 건수만 색 농도와 접근 가능한 제목으로 보여 준다. */
+/** API의 실제 KST 출간 건수만 색 농도와 접근 가능한 제목으로 보여 준다. {@link ActivityCard} */
 function ActivityCard({ activity }: { activity: Activity }) {
   const area = useRef<HTMLDivElement>(null);
   const [today, setToday] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
+  const [tappedDate, setTappedDate] = useState("");
   const [weeks, setWeeks] = useState(8);
   useEffect(() => { const date = kstToday(); setToday(date); setSelectedDate(date); }, []);
   useEffect(() => {
     if (!area.current) return;
     const observer = new ResizeObserver((entries) => {
       const width = entries[0]?.contentRect.width ?? 0;
-      if (width > 0) setWeeks(Math.max(8, Math.min(53, Math.floor((width - 24) / 14))));
+      if (width > 0) setWeeks(Math.max(8, Math.min(53, Math.round((width - 18) / 14))));
     });
     observer.observe(area.current);
     return () => observer.disconnect();
@@ -46,14 +47,13 @@ function ActivityCard({ activity }: { activity: Activity }) {
   const visible = days.filter((day) => !day.future);
   const postCount = visible.reduce((sum, day) => sum + (counts.get(day.date) ?? 0), 0);
   const activeDays = visible.filter((day) => (counts.get(day.date) ?? 0) > 0).length;
-  const months = Math.max(1, Math.round(weeks * 7 / 30));
+  const months = Math.max(1, Math.round(weeks * 7 / 30.44));
   const monthLabels = Array.from({ length: weeks }, (_, index) => {
-    const current = days[index * 7];
-    const previous = index > 0 ? days[(index - 1) * 7] : null;
-    return current && (index === 0 || current.date.slice(0, 7) !== previous?.date.slice(0, 7)) ?
-      `${Number(current.date.slice(5, 7))}월` : "";
+    const week = days.slice(index * 7, index * 7 + 7);
+    const first = week.find((day) => day.date.endsWith("-01"));
+    return first ? `${Number(first.date.slice(5, 7))}월` : "";
   });
-  /** 화살표로 하루 또는 한 주씩 이동하고 활성 날짜 하나만 탭 순서에 둔다. */
+  /** 화살표로 하루 또는 한 주씩 이동하고 활성 날짜 하나만 탭 순서에 둔다. {@link moveDate} */
   function moveDate(date: string, key: string) {
     const current = visible.findIndex((day) => day.date === date);
     const offset = key === "ArrowUp" ? -1 : key === "ArrowDown" ? 1 : key === "ArrowLeft" ? -7 : key === "ArrowRight" ? 7 : 0;
@@ -63,25 +63,30 @@ function ActivityCard({ activity }: { activity: Activity }) {
     return true;
   }
   return <section className="activity-card card"><div className="activity-heading"><h2>글쓰기 기록</h2>
-    <span>지난 {months}개월 · 글 {postCount}개 · {activeDays}일</span></div>
+    <span>지난 {weeks >= 52 ? "1년" : `${months}개월`} · 글 {postCount}개 · {activeDays}일</span></div>
     <div className="heatmap-area" ref={area}><div className="heat-months" style={{ gridTemplateColumns: `repeat(${weeks}, 11px)` }}>
       {monthLabels.map((label, index) => <span key={index}>{label}</span>)}
     </div><div className="heat-weekdays" aria-hidden="true"><span>월</span><span>수</span><span>금</span></div>
     <div className="heatmap" style={{ gridTemplateColumns: `repeat(${weeks}, 11px)` }} role="group"
       aria-label={`지난 ${months}개월 날짜별 출간 글 수. 화살표 키로 날짜 이동`}>
-      {days.map((day) => { const count = counts.get(day.date) ?? 0; return day.future ? <span key={day.date}
+      {days.map((day, index) => { const count = counts.get(day.date) ?? 0;
+        const date = new Date(`${day.date}T00:00:00Z`);
+        const label = `${date.getUTCMonth() + 1}월 ${date.getUTCDate()}일 (${["일", "월", "화", "수", "목", "금", "토"][day.weekday]}) · ${count ? `글 ${count}개` : "글 없음"}`;
+        return day.future ? <span key={day.date}
         className="heat-day heat-future" aria-hidden="true" /> : <button key={day.date} id={`heat-${day.date}`} type="button"
-        className={`heat-day heat-level-${count === 0 ? 0 : count === 1 ? 1 : count === 2 ? 2 : count === 3 ? 3 : 4}`}
-        aria-label={`${day.date} 글 ${count}개`} aria-pressed={selectedDate === day.date}
-        tabIndex={selectedDate === day.date ? 0 : -1} onClick={() => setSelectedDate(day.date)}
+        className={`heat-day heat-level-${count === 0 ? 0 : count === 1 ? 1 : count === 2 ? 2 : count === 3 ? 3 : 4}${
+          tappedDate === day.date ? " heat-tapped" : ""}${
+          index < 14 ? " heat-edge-left" : index >= days.length - 14 ? " heat-edge-right" : ""}`}
+        aria-label={label} data-tooltip={label} aria-pressed={selectedDate === day.date}
+        tabIndex={selectedDate === day.date ? 0 : -1} onClick={() => { setSelectedDate(day.date);
+          if (window.matchMedia("(hover: none)").matches) setTappedDate((current) => current === day.date ? "" : day.date); }}
         onKeyDown={(event) => { if (moveDate(day.date, event.key)) event.preventDefault(); }} />; })}
     </div></div><div className="heat-legend">적음 <span className="heat-level-0" /><span className="heat-level-1" />
       <span className="heat-level-2" /><span className="heat-level-3" /><span className="heat-level-4" /> 많음</div>
-    {selectedDate && <p className="heat-selection" aria-live="polite">{selectedDate} · 글 {counts.get(selectedDate) ?? 0}개</p>}
   </section>;
 }
 
-/** 홈의 저장된 소개와 권한별 글쓰기 기록을 독립적으로 읽는다. */
+/** 홈의 저장된 소개와 권한별 글쓰기 기록을 독립적으로 읽는다. {@link SummaryInstance} */
 function SummaryInstance() {
   const auth = useAuth();
   const params = useSearchParams();

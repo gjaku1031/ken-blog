@@ -31,13 +31,13 @@ class StackBadgeService(
     private val images: ManagedImageNormalizer,
     private val storage: OciObjectStorage,
 ) {
-    /** @return 비공개 프로젝트 사용 수를 제외한 이름순 전체 뱃지. */
+    /** [StackBadgeEntity.id] 등록순으로 공개 뱃지를 반환한다. @return 비공개 프로젝트 사용 수를 제외한 목록. */
     @Transactional(readOnly = true)
-    fun list(): List<StackBadgeResponse> = badges.findAll().sortedBy { it.name.lowercase(Locale.ROOT) }.map { it.response(false) }
+    fun list(): List<StackBadgeResponse> = badges.findAll().sortedBy { it.id ?: Long.MAX_VALUE }.map { it.response(false) }
 
-    /** @return 관리자에게만 전체 프로젝트 사용 수를 포함해 전달할 뱃지 목록. */
+    /** [StackBadgeEntity.id] 등록순으로 관리자에게 전체 프로젝트 사용 수를 포함해 전달한다. */
     @Transactional(readOnly = true)
-    fun listAdmin(): List<StackBadgeResponse> = badges.findAll().sortedBy { it.name.lowercase(Locale.ROOT) }.map { it.response(true) }
+    fun listAdmin(): List<StackBadgeResponse> = badges.findAll().sortedBy { it.id ?: Long.MAX_VALUE }.map { it.response(true) }
 
     /** @return 프로젝트 출간 속성에서 사용할 선택 순서의 뱃지 목록. */
     @Transactional(readOnly = true)

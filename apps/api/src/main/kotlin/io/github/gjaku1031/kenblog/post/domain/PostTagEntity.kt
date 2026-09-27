@@ -7,7 +7,7 @@ import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.Table
 
-/** 한 게시글의 정규화 태그 한 개와 입력 순서를 저장하는 FK 행. */
+/** [TagNames.normalize]의 검색 키와 입력 대소문자를 보존한 표시 이름을 저장하는 FK 행. */
 @Entity
 @Table(name = "post_tags")
 class PostTagEntity protected constructor() {
@@ -28,16 +28,21 @@ class PostTagEntity protected constructor() {
     lateinit var name: String
         protected set
 
+    @Column(name = "display_name", nullable = false, length = 40)
+    lateinit var displayName: String
+        protected set
+
     /**
      * 검증한 이름을 지정 게시글의 0 기반 위치에 놓음.
      *
      * @param postId 잠근 게시글의 ID
      * @param position 정규화·중복 제거 후 위치
-     * @param name 정규화된 태그명
+     * @param name 첫 입력의 대소문자를 보존한 표시 이름
      */
     internal constructor(postId: Long, position: Int, name: String) : this() {
         this.postId = postId
         this.position = position
-        this.name = name
+        this.name = TagNames.normalize(name)
+        this.displayName = name
     }
 }

@@ -4,6 +4,7 @@ import io.github.gjaku1031.kenblog.attachment.service.AttachmentLinkService
 import io.github.gjaku1031.kenblog.category.domain.CategoryConflictException
 import io.github.gjaku1031.kenblog.category.domain.CategoryNotFoundException
 import io.github.gjaku1031.kenblog.category.repository.CategoryRepository
+import io.github.gjaku1031.kenblog.draft.service.EditorDraftService
 import io.github.gjaku1031.kenblog.post.domain.DuplicatePostSlugException
 import io.github.gjaku1031.kenblog.post.domain.InvalidPostDraftException
 import io.github.gjaku1031.kenblog.post.domain.InvalidPostRequestException
@@ -107,7 +108,9 @@ class PostService(
             val view = metadata.getValue(row.id)
             PostSummaryResponse(row.id, row.title, row.slug, row.createdAt, row.updatedAt,
                 row.status, row.visibility, row.publishedAt, view.category, view.tags,
-                row.section, row.projectId, null, row.courseId, row.summary, row.pinOrder, row.viewCount)
+                row.section, row.projectId, null, row.courseId, row.summary, row.pinOrder, row.viewCount,
+                row.techSeriesOrder, row.projectName, row.courseName, row.courseField,
+                row.documentOrder, row.chapterOrder)
         }
         return PostPageResponse(items, page, size, result.totalElements, result.totalPages)
     }
@@ -326,14 +329,15 @@ class PostService(
     @Transactional
     fun replaceTaxonomy(id: Long, categoryId: Long?, rawTags: List<String>): PostDetailResponse {
         if (id <= 0) throw InvalidPostRequestException()
-        val normalized = TagNames.normalizeAll(rawTags)
+        val normalized = TagNames.displayAll(rawTags)
         return try {
             if (categoryId != null) {
                 if (categoryId <= 0) throw InvalidPostRequestException()
                 categories.findSharedById(categoryId) ?: throw CategoryNotFoundException()
             }
             val post = lockedPost(id)
-            requireTech(post)
+            if (post.section != PostSection.TECH && post.section != PostSection.PROJECT_DOC)
+                throw ProjectConflictException()
             if (post.categoryId == categoryId && tags.findNamesByPostId(id) == normalized) return post.adminDetail()
             post.changeCategory(categoryId, now())
             repository.saveAndFlush(post)
@@ -389,7 +393,8 @@ class PostService(
                 io.github.gjaku1031.kenblog.project.domain.ProjectMetadata(project.status, project.startPeriod,
                     project.endPeriod, project.overview, project.visibility, project.updatedAt,
                     stackBadges.listForProject(project.id!!).map { it.name })
-            else null, courseId, course?.slug, chapterOrder, summary, pinOrder, viewCount, bodySha256)
+            else null, courseId, course?.slug, chapterOrder, summary, pinOrder, viewCount, bodySha256,
+            techSeriesOrder)
     }
 
     /** 일반 관리자 글 쓰기가 대문·문서의 부모 원자성 규칙을 우회하지 못하게 차단. */
@@ -435,6 +440,17 @@ class PostService(
         val post = lockedPost(id)
         requireTech(post)
         post.relateProject(projectId, now())
+        repository.saveAndFlush(post)
+    }
+
+    /** [EditorDraftService.publish]가 잠근 소분류에서 검증한 번호를 TECH 원문에 저장. */
+    @Transactional
+    fun setTechSeriesOrder(id: Long, order: Int?) {
+        val post = lockedPost(id)
+        requireTech(post)
+        if (order != null && (order <= 0 || post.categoryId == null)) throw InvalidPostRequestException()
+        if (post.techSeriesOrder == order) return
+        post.changeTechSeriesOrder(order, now())
         repository.saveAndFlush(post)
     }
 

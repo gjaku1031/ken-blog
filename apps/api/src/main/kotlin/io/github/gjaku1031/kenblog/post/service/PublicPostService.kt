@@ -68,10 +68,12 @@ class PublicPostService(
         }
         if (categoryId != null && categoryId <= 0) throw InvalidPostRequestException()
         val normalizedTag = tag?.let(TagNames::normalize)
-        val categoryPath = categoryId?.let { categories.findByIdOrNull(it)?.path
+        val category = categoryId?.let { categories.findByIdOrNull(it)
             ?: return PublicPostPageResponse(emptyList(), page, size, 0, 0) }
+        val categoryPath = category?.path
         val result = repository.findPublishedSummaries(
             PostStatus.PUBLISHED, PostVisibility.PUBLIC, authentication.canReadPrivate(),
+            category?.depth == 3,
             categoryPath, categoryPath?.let { "$it/%" }, normalizedTag, PageRequest.of(page, size),
         )
         val metadata = taxonomy.batch(result.content.map { it.id }, result.content.map { it.categoryId })
@@ -153,7 +155,7 @@ class PublicPostService(
             category = view.category, tags = view.tags, section = section, projectSlug = project?.slug,
             relatedProject = related, courseSlug = course?.slug, bodySha256 = bodySha256,
             series = series(postId, section, categoryId, courseId, includePrivate),
-            summary = summary, pinOrder = pinOrder, viewCount = viewCount)
+            summary = summary, pinOrder = pinOrder, viewCount = viewCount, techSeriesOrder = techSeriesOrder)
     }
 
     /** @return 현재 DB 제목·출간일과 유효한 캐시 또는 DB 본문을 결합한 PUBLIC 상세. */
@@ -163,7 +165,7 @@ class PublicPostService(
             relatedProject = relatedProjectId?.let { repository.findReadableProject(it, PostSection.PROJECT_HOME,
                 PostStatus.PUBLISHED, PostVisibility.PUBLIC, false) },
             series = series(id, PostSection.TECH, categoryId, null, false),
-            summary = summary, pinOrder = pinOrder, viewCount = viewCount)
+            summary = summary, pinOrder = pinOrder, viewCount = viewCount, techSeriesOrder = techSeriesOrder)
 
     /** @return 본문을 읽지 않은 익명 PRIVATE 잠금 상세. */
     private fun PrivatePostLockRow.lockedDetail(): PublicPostDetailResponse =

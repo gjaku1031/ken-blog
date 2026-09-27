@@ -32,7 +32,7 @@ interface CoursePostRepository : JpaRepository<PostEntity, Long> {
 
     /** @return 현재 역할로 보이는 회차를 저장 순서로 정렬한 목록. */
     @Query("select new io.github.gjaku1031.kenblog.note.dto.ChapterRow(" +
-        "p.id, p.title, p.slug, p.chapterOrder, p.publishedAt, p.visibility) from PostEntity p " +
+        "p.id, p.title, p.slug, p.chapterOrder, p.publishedAt, p.visibility, p.summary) from PostEntity p " +
         "where p.courseId = :courseId and p.section = :section " +
         "and p.status = :published and (:includePrivate = true or p.visibility = :publicVisibility) " +
         "order by p.chapterOrder asc, p.id asc")
@@ -42,7 +42,7 @@ interface CoursePostRepository : JpaRepository<PostEntity, Long> {
 
     /** @return 직접 주소의 출간 회차를 본문 없이 찾은 현재 상태. */
     @Query("select new io.github.gjaku1031.kenblog.note.dto.ChapterRow(" +
-        "p.id, p.title, p.slug, p.chapterOrder, p.publishedAt, p.visibility) from PostEntity p " +
+        "p.id, p.title, p.slug, p.chapterOrder, p.publishedAt, p.visibility, p.summary) from PostEntity p " +
         "where p.courseId = :courseId and p.slug = :slug and p.section = :section and p.status = :published")
     fun findPublishedBySlug(@Param("courseId") courseId: Long, @Param("slug") slug: String,
         @Param("section") section: PostSection, @Param("published") published: PostStatus): ChapterRow?

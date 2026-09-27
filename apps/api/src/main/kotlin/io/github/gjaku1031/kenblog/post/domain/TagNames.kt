@@ -4,6 +4,18 @@ import java.util.Locale
 
 /** 게시글 태그와 공개 필터에 동일한 Unicode 길이·정규화 계약을 적용. */
 object TagNames {
+    /** [normalize]로 대소문자 무관 중복을 판정하면서 첫 입력의 표시 철자를 보존. */
+    fun displayAll(rawNames: List<String>): List<String> {
+        val names = LinkedHashMap<String, String>()
+        for (raw in rawNames) {
+            val display = raw.trim()
+            val canonical = normalize(display)
+            if (display.codePointCount(0, display.length) !in 1..40) throw InvalidPostRequestException()
+            names.putIfAbsent(canonical, display)
+            if (names.size > 16) throw InvalidPostRequestException()
+        }
+        return names.values.toList()
+    }
     /**
      * 앞뒤 공백 제거·ROOT 소문자화 후 1~40 Unicode 문자 및 제어 문자 금지를 확인.
      *

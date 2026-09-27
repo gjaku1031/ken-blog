@@ -52,7 +52,7 @@ export type WikiLinkResult = { requestedTitle: string; status: "LOCKED" | "MISSI
   ({ requestedTitle: string; status: "READABLE"; id: number; title: string } & PostDestination);
 
 /** 본문 없이 제공되는 검색·역링크의 읽기 가능한 최소 글 정보. */
-export type WikiTitleItem = { id: number; title: string } & PostDestination;
+export type WikiTitleItem = { id: number; title: string; projectName?: string | null; courseName?: string | null } & PostDestination;
 /** 관리자 제목 검색의 7개 결과와 입력 문자열의 정확한 해석. */
 export type WikiTitleSearch = { items: WikiTitleItem[]; exact: WikiLinkResult };
 /** 공개 역링크 한 페이지의 최소 정보. */
@@ -214,10 +214,13 @@ export function parseWikiLinkResults(value: unknown, requested: readonly string[
 
 /** 검색·역링크가 본문이나 비공개 메타데이터를 실수로 노출하지 않도록 필드를 제한한다. */
 function parseWikiTitleItem(value: unknown): WikiTitleItem {
-  if (!isRecord(value) || Object.keys(value).some((key) => !["id", "title", "slug", "section", "projectSlug", "courseSlug"].includes(key)) ||
+  if (!isRecord(value) || Object.keys(value).some((key) => !["id", "title", "slug", "section", "projectSlug", "courseSlug", "projectName", "courseName"].includes(key)) ||
     !Number.isSafeInteger(value.id) || (value.id as number) <= 0 ||
-    typeof value.title !== "string" || !value.title) throw new ApiFailure("response");
-  return { id: value.id as number, title: value.title, ...destination(value) };
+    typeof value.title !== "string" || !value.title ||
+    (value.projectName != null && typeof value.projectName !== "string") ||
+    (value.courseName != null && typeof value.courseName !== "string")) throw new ApiFailure("response");
+  return { id: value.id as number, title: value.title, ...destination(value),
+    projectName: value.projectName as string | null ?? null, courseName: value.courseName as string | null ?? null };
 }
 
 /** 관리자 제목 검색의 정확한 대상과 최대 7개 후보를 검증한다. */

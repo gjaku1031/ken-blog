@@ -118,6 +118,7 @@ data class PostDetailResponse(
     val pinOrder: Int? = null,
     val viewCount: Long = 0,
     val bodySha256: String = "",
+    val techSeriesOrder: Int? = null,
 )
 
 /**
@@ -152,6 +153,12 @@ data class PostSummaryResponse(
     val summary: String = "",
     val pinOrder: Int? = null,
     val viewCount: Long = 0,
+    val techSeriesOrder: Int? = null,
+    val projectName: String? = null,
+    val courseName: String? = null,
+    val courseField: String? = null,
+    val documentOrder: Int? = null,
+    val chapterOrder: Int? = null,
 )
 
 /** 관리자 페이지 SQL에서 본문·태그를 제외하고 가져온 게시글 기본 행. */
@@ -171,6 +178,12 @@ data class AdminPostRow(
     val summary: String,
     val pinOrder: Int?,
     val viewCount: Long,
+    val techSeriesOrder: Int?,
+    val projectName: String?,
+    val courseName: String?,
+    val courseField: String?,
+    val documentOrder: Int?,
+    val chapterOrder: Int?,
 )
 
 /**
@@ -240,6 +253,7 @@ data class PublicPostCacheRow(
     val summary: String,
     val pinOrder: Int?,
     val viewCount: Long,
+    val techSeriesOrder: Int?,
 )
 
 /**
@@ -293,6 +307,7 @@ data class PublicPostDetailResponse(
     val summary: String = "",
     val pinOrder: Int? = null,
     val viewCount: Long = 0,
+    val techSeriesOrder: Int? = null,
 )
 
 /** 소분류 Tech 또는 과목 회차의 권한별 시리즈 이동 행. */

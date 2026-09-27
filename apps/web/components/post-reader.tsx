@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ApiFailure, apiFailureMessage, apiJson, parsePostDetail, postDestination, recordPostView, type PostDetail } from "@/lib/api";
+import { ApiFailure, apiFailureMessage, apiJson, parseCategories, parsePostDetail, postDestination, recordPostView, type PostDetail } from "@/lib/api";
+import { categoryLabelPath } from "@/lib/category-label";
 import { useAuth } from "./auth-provider";
 import { SafeMarkdown } from "./safe-markdown";
 import { buildReadingDocument } from "@/lib/reading-document";
@@ -14,7 +15,12 @@ import { readPinnedIds } from "@/lib/feed";
 
 type DetailState = { status: "loading" | "ready" | "error"; post: PostDetail | null; privatePost: boolean; error: string };
 
-/** 같은 세션 세대의 실제 공개 상세와 익명 접근 범위를 함께 확인한다. */
+/** 실제 본문 글자 수로 원본의 500자당 1분 규칙을 계산한다. {@link readingMinutes} */
+function readingMinutes(body: string): number {
+  return Math.max(1, Math.round(body.length / 500));
+}
+
+/** 같은 세션 세대의 실제 공개 상세와 익명 접근 범위를 함께 확인한다. {@link ReaderInstance} */
 function ReaderInstance({ slug }: { slug: string }) {
   const { status, user, readCredentials, refresh, adminWrite } = useAuth();
   const router = useRouter();
@@ -28,6 +34,7 @@ function ReaderInstance({ slug }: { slug: string }) {
   const [deleting, setDeleting] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteError, setDeleteError] = useState("");
+  const [categoryLabel, setCategoryLabel] = useState<string | null>(null);
   const reading = useMemo(() => state.status === "ready" && state.post && !state.post.locked ?
     buildReadingDocument(state.post.body ?? "") : null, [state]);
 
@@ -50,6 +57,9 @@ function ReaderInstance({ slug }: { slug: string }) {
           privatePost = guest.locked;
         }
         if (live) setState({ status: "ready", post, privatePost, error: "" });
+        if (post.category && !post.locked) void apiJson<unknown>("/api/v1/categories", credentials, controller.signal)
+          .then(parseCategories).then((nodes) => { if (live) setCategoryLabel(categoryLabelPath(nodes, post.category!.id)); })
+          .catch(() => undefined);
       } catch (error) {
         if (error instanceof ApiFailure && error.status === 401) void refresh();
         if (live) setState({ status: "error", post: null, privatePost: false, error: apiFailureMessage(error) });
@@ -65,7 +75,7 @@ function ReaderInstance({ slug }: { slug: string }) {
     void recordPostView(post.id).then(setViewCount).catch(() => undefined);
   }, [state]);
 
-  /** 서버의 전체 핀 순서를 사용해 현재 글의 고정 여부를 변경한다. */
+  /** 서버의 전체 핀 순서를 사용해 현재 글의 고정 여부를 변경한다. {@link togglePin} */
   async function togglePin(post: PostDetail) {
     if (pinBusy) return;
     setPinBusy(true); setPinError("");
@@ -79,7 +89,7 @@ function ReaderInstance({ slug }: { slug: string }) {
     finally { setPinBusy(false); }
   }
 
-  /** 확인한 Tech 글만 삭제하고 목록으로 이동한다. */
+  /** 확인한 Tech 글만 삭제하고 목록으로 이동한다. {@link deletePost} */
   async function deletePost(post: PostDetail) {
     if (deleteBusy) return;
     setDeleteBusy(true); setDeleteError("");
@@ -92,23 +102,28 @@ function ReaderInstance({ slug }: { slug: string }) {
   const next = series?.items[series.position ?? 0];
 
   return <main id="main-content" className="post-page page-container">
-    <Link href="/tech/" className="back-link">← Tech</Link>
+    <Link href={state.post?.relatedProject ? `/project/?slug=${encodeURIComponent(state.post.relatedProject.slug)}` : "/tech/"}
+      className="back-link">← {state.post?.relatedProject?.name ?? "Tech"}</Link>
     {state.status === "loading" && <div className="message-card card" role="status">글을 불러오고 있습니다…</div>}
     {state.status === "error" && <div className="message-card card" role="alert">{state.error}<br />
       <button type="button" className="small-button" onClick={() => { setState({ status: "loading", post: null, privatePost: false, error: "" }); setRetry((n) => n + 1); }}>다시 시도</button></div>}
     {state.status === "ready" && state.post && <article>
       {!state.privatePost && !state.post.locked && <PublicAnalytics virtualPath={`/post/${state.post.slug}`} />}
-      <div className="post-overline">Tech{state.post.category ? ` · ${state.post.category.path.replaceAll("/", " › ")}` : ""}</div>
+      <div className="post-overline"><Link href="/tech/">Tech</Link>{state.post.category && <>
+        <span>·</span><Link href={`/?categoryId=${state.post.category.id}`}>{categoryLabel ?? state.post.category.name}</Link></>}
+        {state.post.relatedProject && <><span>·</span><Link href={`/project/?slug=${encodeURIComponent(state.post.relatedProject.slug)}`}>
+          {state.post.relatedProject.name}</Link></>}
+        {state.privatePost && <span className="private-label">· 비공개</span>}</div>
       <h1>{state.post.title}</h1>
       <div className="detail-meta"><time className="mono" dateTime={state.post.publishedDate}>{state.post.publishedDate.replaceAll("-", ".")}</time>
-        {(viewCount ?? state.post.viewCount) != null && <span>조회 {(viewCount ?? state.post.viewCount)?.toLocaleString("ko-KR")}</span>}
-        <span aria-label="열람 범위">{state.privatePost ? "로그인 회원 공개" : "전체 공개"}</span>
-        {state.post.relatedProject && <Link href={`/project/?slug=${encodeURIComponent(state.post.relatedProject.slug)}`}>
-          {state.post.relatedProject.name}</Link>}
+        {!state.post.locked && <span>· {readingMinutes(state.post.body ?? "")}분</span>}
+        {(viewCount ?? state.post.viewCount) != null && <span>· 조회 {(viewCount ?? state.post.viewCount)?.toLocaleString("ko-KR")}</span>}
         {status === "authenticated" && user?.role === "ADMIN" && <>
-          <Link href={`/write/?postId=${state.post.id}`}>수정</Link>
           <button type="button" className="detail-pin-button" disabled={pinBusy} onClick={() => void togglePin(state.post!)}>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"
+              strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 3h6l-1 6 3 3v2H7v-2l3-3-1-6ZM12 14v7" /></svg>
             {(pinState ?? state.post.pinOrder !== null) ? "핀 해제" : "핀 고정"}</button>
+          <Link href={`/write/?postId=${state.post.id}`}>수정</Link>
           <button type="button" className="danger-text" onClick={() => setDeleting(true)}>삭제</button></>}</div>
       {pinError && <p role="alert" className="inline-error">{pinError}</p>}
       {deleting && <div className="inline-confirm" role="alertdialog" aria-label="Tech 글 삭제 확인"><p>“{state.post.title}” 글을 삭제할까요?</p>
@@ -124,24 +139,28 @@ function ReaderInstance({ slug }: { slug: string }) {
         <div className={reading?.toc.length || series ? "post-reading-layout has-toc" : "post-reading-layout"}>
           <div className="post-main-content">
             <SafeMarkdown body={state.post.body ?? ""} source={{ kind: "post", postId: state.post.id }} reading={reading ?? undefined} />
-            {series && <nav className="series-previous-next" aria-label="시리즈 이전 글과 다음 글">
-              {previous ? <Link href={`/post/?slug=${encodeURIComponent(previous.slug)}`}>← 이전 글<br /><strong>{previous.title}</strong></Link> : <span />}
-              {next ? <Link href={`/post/?slug=${encodeURIComponent(next.slug)}`}>다음 글 →<br /><strong>{next.title}</strong></Link> : <span />}
-            </nav>}
             <PostBacklinks slug={slug} />
+            {series && <nav className="series-previous-next" aria-label="시리즈 이전 글과 다음 글">
+              {previous ? <Link href={`/post/?slug=${encodeURIComponent(previous.slug)}`}><span>← 이전 글 · {series.position - 1}편</span>
+                <strong>{previous.title}</strong></Link> : <span />}
+              {next ? <Link href={`/post/?slug=${encodeURIComponent(next.slug)}`}><span>다음 글 · {series.position + 1}편 →</span>
+                <strong>{next.title}</strong></Link> : <span className="series-end">시리즈의 마지막 글입니다</span>}
+            </nav>}
           </div>
           {(reading?.toc.length || series) && <aside className="post-side-rail">
-            {series && <nav className="series-nav" aria-label="시리즈 글 목록"><h2>시리즈 · {series.position}/{series.items.length}</h2>
-              <ol>{series.items.map((item) => <li key={item.id}><Link href={`/post/?slug=${encodeURIComponent(item.slug)}`}
-                aria-current={item.id === state.post?.id ? "page" : undefined}>{item.order}. {item.title}</Link></li>)}</ol></nav>}
             {reading && <TableOfContents items={reading.toc} />}
+            {series && <nav className="series-nav" aria-label="시리즈 글 목록"><h2>시리즈 · {state.post.category?.name ?? "Tech"}
+              <span>{series.position}/{series.items.length}</span></h2>
+              <ol>{series.items.map((item) => <li key={item.id}><Link href={`/post/?slug=${encodeURIComponent(item.slug)}`}
+                aria-current={item.id === state.post?.id ? "page" : undefined}><span className="series-number">{item.order}</span>
+                <span>{item.title}</span></Link></li>)}</ol></nav>}
           </aside>}
         </div>}
     </article>}
   </main>;
 }
 
-/** 정적 `/post/` 경로의 slug 쿼리를 검증하고 세션 변경 시 상세 데이터를 폐기한다. */
+/** 정적 `/post/` 경로의 slug 쿼리를 검증하고 세션 변경 시 상세 데이터를 폐기한다. {@link PostReader} */
 export function PostReader() {
   const slug = useSearchParams().get("slug") ?? "";
   const auth = useAuth();

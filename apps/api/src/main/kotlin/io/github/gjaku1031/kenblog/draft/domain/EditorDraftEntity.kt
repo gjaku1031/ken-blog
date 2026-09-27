@@ -59,6 +59,10 @@ class EditorDraftEntity protected constructor() {
     var categoryId: Long? = null
         protected set
 
+    @Column(name = "tech_series_order")
+    var techSeriesOrder: Int? = null
+        protected set
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 16)
     var section: PostSection = PostSection.TECH
@@ -135,6 +139,7 @@ class EditorDraftEntity protected constructor() {
         this.body = values.body
         this.summary = values.summary
         this.categoryId = values.categoryId
+        this.techSeriesOrder = values.techSeriesOrder
         assignProjectValues(values)
         this.tagsSnapshot = values.tags.joinToString(TAG_SEPARATOR)
         this.visibility = values.visibility
@@ -150,6 +155,7 @@ class EditorDraftEntity protected constructor() {
         body = values.body
         summary = values.summary
         categoryId = values.categoryId
+        techSeriesOrder = values.techSeriesOrder
         assignProjectValues(values)
         tagsSnapshot = values.tags.joinToString(TAG_SEPARATOR)
         visibility = values.visibility
@@ -202,4 +208,5 @@ data class EditorDraftValues(
     val courseId: Long? = null,
     val chapterOrder: Int? = null,
     val summary: String = "",
+    val techSeriesOrder: Int? = null,
 )

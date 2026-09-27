@@ -16,6 +16,7 @@ import io.github.gjaku1031.kenblog.post.dto.PinOrderResponse
 import io.github.gjaku1031.kenblog.post.repository.ContentFeedRepository
 import io.github.gjaku1031.kenblog.post.repository.ContentStateRepository
 import io.github.gjaku1031.kenblog.post.repository.PostRepository
+import io.github.gjaku1031.kenblog.project.repository.ProjectRepository
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -31,8 +32,9 @@ import org.springframework.transaction.annotation.Transactional
 @Service
 class ContentFeedService(private val feeds: ContentFeedRepository, private val posts: PostRepository,
     private val categories: CategoryRepository, private val taxonomy: PostTaxonomyMetadata,
-    private val chapters: CoursePostRepository, private val state: ContentStateRepository) {
-    /** @return Tech/Notes 구획과 분류·태그에서 공개 가능한 최신 또는 핀 페이지. */
+    private val chapters: CoursePostRepository, private val state: ContentStateRepository,
+    private val projects: ProjectRepository) {
+    /** @return 전체에는 프로젝트 문서를 포함하고 Tech/Notes 구획에서는 해당 글만 조회한 최신 또는 핀 페이지. */
     @Transactional(readOnly = true)
     fun feed(section: String, sort: String, page: Int, size: Int, categoryId: Long?, tag: String?,
         authentication: Authentication?): ContentFeedPage {
@@ -54,7 +56,8 @@ class ContentFeedService(private val feeds: ContentFeedRepository, private val p
         val path = category?.path
         val normalizedTag = tag?.takeIf(String::isNotBlank)?.let(TagNames::normalize)
         val result = feeds.feed(PostStatus.PUBLISHED, PostSection.TECH, PostSection.NOTE_CHAPTER,
-            selected, PostVisibility.PUBLIC, authentication.canReadPrivate(), pinned,
+            PostSection.PROJECT_DOC, selected, PostSection.PROJECT_HOME, PostVisibility.PUBLIC,
+            authentication.canReadPrivate(), pinned,
             category?.depth == 3 && !pinned,
             path, path?.let { "$it/%" }, normalizedTag, PageRequest.of(page, size))
         return page(result.content, page, size, result.totalElements, result.totalPages, authentication.canReadPrivate())
@@ -81,7 +84,7 @@ class ContentFeedService(private val feeds: ContentFeedRepository, private val p
         val first = today.minusMonths(months.toLong()).plusDays(1)
         val from = first.atStartOfDay(SEOUL).withZoneSameInstant(ZoneOffset.UTC).toLocalDateTime()
         val counts = feeds.activityDates(PostStatus.PUBLISHED, PostSection.TECH, PostSection.NOTE_CHAPTER,
-            PostSection.PROJECT_HOME,
+            PostSection.PROJECT_DOC, PostSection.PROJECT_HOME,
             authentication.canReadPrivate(), PostVisibility.PUBLIC, from)
             .map { it.atZone(ZoneOffset.UTC).withZoneSameInstant(SEOUL).toLocalDate() }
             .filter { !it.isBefore(first) && !it.isAfter(today) }
@@ -95,7 +98,7 @@ class ContentFeedService(private val feeds: ContentFeedRepository, private val p
     @Transactional(readOnly = true)
     fun pins(): PinOrderResponse = PinOrderResponse(posts.findPinnedIds())
 
-    /** 현재 선택한 전체 핀 순열을 검증하고 저장. */
+    /** [ProjectRepository.findById]의 출간 대문 소속 문서까지 검증해 전체 핀 순열을 저장. */
     @Transactional
     fun replacePins(ids: List<Long>): PinOrderResponse {
         if (ids.size > 1000 || ids.any { it <= 0 } || ids.toSet().size != ids.size)
@@ -105,14 +108,25 @@ class ContentFeedService(private val feeds: ContentFeedRepository, private val p
         val all = (current + ids).distinct().sorted().map { id ->
             posts.findLockedById(id) ?: throw InvalidPostRequestException()
         }
-        if (all.filter { it.id in ids }.any { it.status != PostStatus.PUBLISHED ||
-            it.section !in setOf(PostSection.TECH, PostSection.NOTE_CHAPTER) }) throw InvalidPostRequestException()
+        if (all.filter { it.id in ids }.any { post ->
+            post.status != PostStatus.PUBLISHED || post.section !in setOf(
+                PostSection.TECH, PostSection.NOTE_CHAPTER, PostSection.PROJECT_DOC) ||
+                (post.section == PostSection.PROJECT_DOC && !hasPublishedProjectHome(post.projectId))
+        }) throw InvalidPostRequestException()
         all.forEach { it.movePin(null) }
         posts.flush()
         val byId = all.associateBy { it.id }
         ids.forEachIndexed { index, id -> byId.getValue(id).movePin(index + 1) }
         posts.flush()
         return PinOrderResponse(ids)
+    }
+
+    /** 프로젝트 문서의 [PostSection.PROJECT_HOME]이 현재 출간 상태인지 확인. */
+    private fun hasPublishedProjectHome(projectId: Long?): Boolean {
+        val project = projectId?.let(projects::findByIdOrNull) ?: return false
+        val home = project.homePostId?.let(posts::findByIdOrNull) ?: return false
+        return home.status == PostStatus.PUBLISHED && home.section == PostSection.PROJECT_HOME &&
+            home.projectId == project.id
     }
 
     /** @return 본문 없는 페이지에 일괄 taxonomy와 권한별 회차 번호를 결합. */
@@ -137,9 +151,10 @@ class ContentFeedService(private val feeds: ContentFeedRepository, private val p
             ContentFeedItem(row.id, row.title, row.slug, row.section, row.summary,
                 row.publishedAt.atZone(ZoneOffset.UTC).withZoneSameInstant(SEOUL).toLocalDate(),
                 row.visibility, view.category, view.tags, row.projectSlug, row.courseSlug,
+                row.projectName, row.courseName, row.courseField,
                 siblings?.indexOf(row.id)?.takeIf { it >= 0 }?.plus(1), siblings?.size,
                 row.pinOrder, row.viewCount, if ((series?.size ?: 0) > 1) seriesPosition else null,
-                series?.size?.takeIf { it > 1 })
+                series?.size?.takeIf { it > 1 }, row.techSeriesOrder)
         }, page, size, total, pages)
     }
 

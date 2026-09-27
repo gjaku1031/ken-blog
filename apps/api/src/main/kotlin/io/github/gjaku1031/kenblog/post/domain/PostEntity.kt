@@ -67,6 +67,10 @@ class PostEntity protected constructor() {
     var categoryId: Long? = null
         protected set
 
+    @Column(name = "tech_series_order")
+    var techSeriesOrder: Int? = null
+        protected set
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 16)
     var section: PostSection = PostSection.TECH
@@ -195,8 +199,15 @@ class PostEntity protected constructor() {
      * @param now UTC 수정 시각
      */
     internal fun changeCategory(categoryId: Long?, now: LocalDateTime) {
+        if (this.categoryId != categoryId) this.techSeriesOrder = null
         this.categoryId = categoryId
         this.updatedAt = now
+    }
+
+    /** [PostService]가 검증한 TECH 소분류 번호를 원문 수정 시각과 함께 적용. */
+    internal fun changeTechSeriesOrder(order: Int?, now: LocalDateTime) {
+        techSeriesOrder = order
+        updatedAt = now
     }
 
     /** 새 PROJECT_HOME 또는 PROJECT_DOC 글의 소속과 문서 순서를 지정. */

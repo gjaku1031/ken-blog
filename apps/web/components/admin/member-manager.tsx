@@ -40,7 +40,7 @@ function parseIssuedInvite(value: unknown): IssuedInvite {
   return { displayName: member.displayName, username: member.username, url: url.toString() };
 }
 
-/** 발급한 계정과 한 번만 반환되는 링크를 이 화면에서만 표시한다. */
+/** {@link parseMembers}의 계정과 한 번만 반환되는 초대 링크를 이 화면에서만 표시한다. */
 export function MemberManager() {
   const auth = useAuth();
   const [page, setPage] = useState(0);
@@ -105,14 +105,15 @@ export function MemberManager() {
   return <><div className="admin-heading"><h1>회원 관리</h1><span>{data?.totalElements ?? "—"}명</span>
     <button type="button" className="primary-button" onClick={() => setOpen((value) => !value)}>{open ? "닫기" : "+ 계정 발급"}</button></div>
     {open && <form className="member-create card" onSubmit={(event) => void create(event)}>
-      <label>이름<input value={form.displayName} required maxLength={100}
+      <label>이름<input value={form.displayName} required maxLength={100} autoFocus placeholder="표시될 이름"
         onChange={(event) => setForm((current) => ({ ...current, displayName: event.target.value }))} /></label>
-      <label>계정명<input value={form.username} required maxLength={64} pattern="[a-z][a-z0-9_-]{2,63}"
+      <label>계정명<input value={form.username} required maxLength={64} pattern="[a-z][a-z0-9_-]{2,63}" placeholder="영문 소문자 계정명"
         autoComplete="off" onChange={(event) => setForm((current) => ({ ...current, username: event.target.value }))} /></label>
-      <label>역할<select value={form.role} onChange={(event) => setForm((current) => ({ ...current, role: event.target.value as typeof current.role }))}>
-        <option value="USER">열람자</option><option value="ADMIN">관리자</option></select></label>
-      <button type="button" className="small-button" onClick={() => setOpen(false)}>취소</button>
-      <button type="submit" className="primary-button" disabled={busy}>계정 발급·초대 링크 만들기</button>
+      <div className="member-role"><span>역할</span><div role="group" aria-label="새 회원 역할">
+        <button type="button" aria-pressed={form.role === "USER"} onClick={() => setForm((current) => ({ ...current, role: "USER" }))}>열람자</button>
+        <button type="button" aria-pressed={form.role === "ADMIN"} onClick={() => setForm((current) => ({ ...current, role: "ADMIN" }))}>관리자</button></div></div>
+      <div className="member-create-actions"><button type="button" className="small-button" onClick={() => setOpen(false)}>취소</button>
+        <button type="submit" className="primary-button" disabled={busy}>발급하고 초대 링크 만들기</button></div>
     </form>}
     {error && <p role="alert" className="inline-error">{error} <button type="button" onClick={() => setRetry((value) => value + 1)}>다시 조회</button></p>}
     {message && <p role="status">{message}</p>}
@@ -122,15 +123,18 @@ export function MemberManager() {
         <input type="text" readOnly value={invite.url} onFocus={(event) => event.target.select()} /></label>
         <button type="button" className="small-button" onClick={() => void copyInvite(invite)}>링크 복사</button></div>)}
       {copyMessage && <p role="status">{copyMessage}</p>}</section>}
-    <div className="admin-table-wrap card"><table className="admin-table"><thead><tr><th>이름</th><th>계정명</th><th>역할</th><th>발급일</th><th>관리</th></tr></thead><tbody>
+    <div className="admin-table-wrap card"><table className="admin-table member-table"><colgroup><col /><col style={{ width: 240 }} />
+      <col style={{ width: 88 }} /><col style={{ width: 116 }} /><col style={{ width: 250 }} /></colgroup>
+      <thead><tr><th>이름</th><th>계정명</th><th>역할</th><th>발급일</th><th><span className="sr-only">관리</span></th></tr></thead><tbody>
       {data?.items.map((item) => <tr key={item.id}><td>{item.displayName}</td><td className="mono">{item.username}</td>
-        <td>{item.role === "ADMIN" ? "관리자" : "열람자"}</td><td>{item.createdAt.slice(0, 10)}</td>
+        <td className="member-role-cell">{item.role === "ADMIN" ? "관리자" : "열람자"}</td><td className="member-issued-date">{item.createdAt.slice(0, 10).replaceAll("-", ".")}</td>
         <td>{!item.self && (deleting === item.id ? <span className="admin-row-actions">계정을 삭제할까요?
           <button type="button" onClick={() => setDeleting(null)}>취소</button><button type="button" className="danger-text" disabled={busy}
             onClick={() => void remove(item.id)}>삭제</button></span> : <button type="button" onClick={() => setDeleting(item.id)}>삭제</button>)}</td></tr>)}
-    </tbody></table>{data?.items.length === 0 && <p className="message-card">발급된 회원이 없습니다.</p>}</div>
-    {data && data.totalElements > 10 && <nav className="number-pager" aria-label="회원 페이지">
+    </tbody></table>{data?.items.length === 0 && <p className="message-card">발급된 회원이 없습니다.</p>}
+    {data && data.totalElements > 10 && <nav className="number-pager" aria-label="회원 페이지"><span className="pager-count">
+      {page * 10 + 1}–{Math.min((page + 1) * 10, data.totalElements)} / {data.totalElements}명</span>
       {Array.from({ length: Math.ceil(data.totalElements / 10) }, (_, index) => <button type="button" key={index}
-        aria-current={page === index ? "page" : undefined} onClick={() => setPage(index)}>{index + 1}</button>)}</nav>}
+        aria-current={page === index ? "page" : undefined} onClick={() => setPage(index)}>{index + 1}</button>)}</nav>}</div>
   </>;
 }

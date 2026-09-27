@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import type { TocItem } from "@/lib/table-of-contents";
 
-/** 실제 최상위 제목만 관찰해 현재 위치와 키보드 이동을 표시한다. */
+/** 실제 최상위 제목만 관찰해 현재 위치와 키보드 이동을 표시한다. {@link TableOfContents} */
 export function TableOfContents({ items }: { items: readonly TocItem[] }) {
   const [active, setActive] = useState<string | null>(items[0]?.id ?? null);
   useEffect(() => {
@@ -19,7 +19,7 @@ export function TableOfContents({ items }: { items: readonly TocItem[] }) {
     return () => observer.disconnect();
   }, [items]);
   if (!items.length) return null;
-  return <nav className="post-toc" aria-label="이 글의 목차"><h2>이 글의 목차</h2><ol>
+  return <nav className="post-toc" aria-label="이 글의 목차"><h2>목차</h2><ol>
     {items.map((item) => <li key={item.id} className={item.depth === 3 ? "toc-depth-three" : undefined}>
       <a href={`#${encodeURIComponent(item.id)}`} aria-current={active === item.id ? "location" : undefined}
         onClick={(event) => {

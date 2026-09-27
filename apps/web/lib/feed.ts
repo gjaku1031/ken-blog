@@ -1,16 +1,17 @@
 import { ApiFailure, apiJson, postDestination, type CategoryRef, type PostDestination } from "./api";
 
-/** 홈·Tech·검색에서 공통으로 표시하는 본문 없는 출간 글. */
+/** 홈·Tech·검색에서 공통으로 표시하는 본문 없는 출간 글. {@link FeedItem} */
 export type FeedItem = PostDestination & { id: number; title: string; summary: string | null; publishedDate: string;
   visibility: "PUBLIC" | "PRIVATE"; category: CategoryRef | null; tags: string[];
+  projectName: string | null; courseName: string | null; courseField: string | null;
   chapterPosition: number | null; chapterTotal: number | null; seriesPosition: number | null;
   seriesTotal: number | null; pinOrder: number | null; viewCount: number | null };
-/** 필터와 권한이 반영된 목록 한 페이지. */
+/** 필터와 권한이 반영된 목록 한 페이지. {@link FeedPage} */
 export type FeedPage = { items: FeedItem[]; page: number; size: number; totalElements: number; totalPages: number };
-/** KST 날짜별 출간 건수. */
+/** KST 날짜별 출간 건수. {@link Activity} */
 export type Activity = { items: Array<{ date: string; count: number }>; postCount: number; activeDays: number };
 
-/** JSON 객체와 숫자 필드의 타입을 검증한다. */
+/** JSON 객체와 숫자 필드의 타입을 검증한다. {@link record} */
 function record(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new ApiFailure("response");
   return value as Record<string, unknown>;
@@ -25,7 +26,9 @@ export function parseFeedItem(value: unknown): FeedItem {
     (item.visibility !== "PUBLIC" && item.visibility !== "PRIVATE") ||
     (item.section !== "TECH" && item.section !== "NOTE_CHAPTER" &&
       item.section !== "PROJECT_HOME" && item.section !== "PROJECT_DOC") ||
-    !Array.isArray(item.tags) || !item.tags.every((tag) => typeof tag === "string")) throw new ApiFailure("response");
+    !Array.isArray(item.tags) || !item.tags.every((tag) => typeof tag === "string") ||
+    [item.projectName, item.courseName, item.courseField].some((field) => field != null && typeof field !== "string"))
+    throw new ApiFailure("response");
   const route: PostDestination = { slug: item.slug, section: item.section,
     projectSlug: item.projectSlug as string | null ?? null, courseSlug: item.courseSlug as string | null ?? null };
   postDestination(route);
@@ -40,12 +43,14 @@ export function parseFeedItem(value: unknown): FeedItem {
     Number.isSafeInteger(item[name]) && (item[name] as number) >= 0 ? item[name] as number : null;
   return { id: item.id as number, title: item.title, ...route, summary: item.summary as string | null ?? null,
     publishedDate: item.publishedDate, visibility: item.visibility, category, tags: item.tags as string[],
+    projectName: item.projectName as string | null ?? null, courseName: item.courseName as string | null ?? null,
+    courseField: item.courseField as string | null ?? null,
     chapterPosition: numberOrNull("chapterPosition"), chapterTotal: numberOrNull("chapterTotal"),
     seriesPosition: numberOrNull("seriesPosition"), seriesTotal: numberOrNull("seriesTotal"),
     pinOrder: numberOrNull("pinOrder"), viewCount: numberOrNull("viewCount") };
 }
 
-/** 목록 페이지의 실제 총건수와 행을 검사한다. */
+/** 목록 페이지의 실제 총건수와 행을 검사한다. {@link parseFeedPage} */
 export function parseFeedPage(value: unknown): FeedPage {
   const item = record(value);
   if (!Array.isArray(item.items) || ![item.page, item.size, item.totalElements, item.totalPages].every((number) =>
@@ -54,7 +59,7 @@ export function parseFeedPage(value: unknown): FeedPage {
     totalElements: item.totalElements as number, totalPages: item.totalPages as number };
 }
 
-/** 전체 페이지의 핀 ID를 실제 순서대로 읽어 목록 일부만 변경하는 오류를 막는다. */
+/** 전체 페이지의 핀 ID를 실제 순서대로 읽어 목록 일부만 변경하는 오류를 막는다. {@link readPinnedIds} */
 export async function readPinnedIds(credentials: RequestCredentials): Promise<number[]> {
   const ids: number[] = [];
   let page = 0; let totalPages = 1;
@@ -66,7 +71,7 @@ export async function readPinnedIds(credentials: RequestCredentials): Promise<nu
   return ids;
 }
 
-/** 잔디 API의 날짜와 건수를 확인한다. */
+/** 잔디 API의 날짜와 건수를 확인한다. {@link parseActivity} */
 export function parseActivity(value: unknown): Activity {
   const item = record(value);
   if (!Array.isArray(item.items) || !Number.isSafeInteger(item.postCount) || !Number.isSafeInteger(item.activeDays))

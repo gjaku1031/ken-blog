@@ -3,6 +3,7 @@
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { apiFailureMessage, parseWikiTitleSearch, type WikiTitleSearch } from "@/lib/api";
 import { validWikiTitle } from "@/lib/wiki-link-syntax";
+import { parseCoursePage } from "@/lib/notes";
 import { useAuth } from "@/components/auth-provider";
 
 type Choice = { title: string; note: string; missing: boolean };
@@ -17,11 +18,12 @@ export function WikiLinkPicker({ onInsert, onClose }: { onInsert: (title: string
   const [composing, setComposing] = useState(false);
   const [active, setActive] = useState(0);
   const [retry, setRetry] = useState(0);
+  const [suggestions, setSuggestions] = useState<Choice[]>([]);
   const [state, setState] = useState<SearchState>({ query: "", value: null, error: "", loading: false });
   const title = validWikiTitle(query);
   const result = title && state.query === title ? state.value : null;
   const choices = useMemo(() => {
-    if (!result) return [];
+    if (!result) return !title ? suggestions : [];
     const output: Choice[] = result.items.map((item) => ({ title: item.title, note: "출간된 글", missing: false }));
     const exact = result.exact;
     if (exact.status === "READABLE" && !output.some((item) => item.title === exact.title))
@@ -29,9 +31,41 @@ export function WikiLinkPicker({ onInsert, onClose }: { onInsert: (title: string
     if (result.exact.status === "MISSING" && title)
       output.push({ title, note: "없는 제목으로 링크 만들기", missing: true });
     return output;
-  }, [result, title]);
+  }, [result, title, suggestions]);
 
   useEffect(() => { input.current?.focus(); }, []);
+  /** 빈 검색에는 관리자 게시글의 최근 제목을 보여 원본 선택기의 초기 목록을 채운다. */
+  useEffect(() => {
+    const controller = new AbortController();
+    void Promise.allSettled([
+      auth.adminRead("/api/v1/admin/posts?page=0&size=100", controller.signal),
+      auth.adminRead("/api/v1/admin/courses?page=0&size=100", controller.signal),
+    ]).then(([postResult, courseResult]) => {
+      const value = postResult.status === "fulfilled" ? postResult.value : null;
+      if (controller.signal.aborted || !value || typeof value !== "object" || !Array.isArray((value as { items?: unknown }).items)) return;
+      const rows = (value as { items: unknown[] }).items;
+      const courseNames = new Map<number, string>();
+      if (courseResult.status === "fulfilled") {
+        try { parseCoursePage(courseResult.value).items.forEach((course) => courseNames.set(course.id, course.name)); }
+        catch { /* 과목 이름을 읽지 못해도 글 제목 후보는 유지한다. */ }
+      }
+      const choices = rows.flatMap((entry): Choice[] => {
+        if (!entry || typeof entry !== "object") return [];
+        const row = entry as Record<string, unknown>;
+        if (row.status !== "PUBLISHED" || typeof row.title !== "string" || !validWikiTitle(row.title)) return [];
+        const note = row.section === "NOTE_CHAPTER" ? `Notes · ${courseNames.get(Number(row.courseId)) ?? "과목"}` :
+          row.section === "PROJECT_DOC" || row.section === "PROJECT_HOME" ? "Projects" : "Tech";
+        return [{ title: row.title, note, missing: false }];
+      });
+      const seen = new Set<string>();
+      setSuggestions(choices.sort((left, right) => Number(right.note.startsWith("Notes")) - Number(left.note.startsWith("Notes")))
+        .filter((choice) => { const canonical = choice.title.trim();
+          if (seen.has(canonical)) return false;
+          seen.add(canonical); return true;
+        }));
+    }).catch(() => { /* 검색 입력으로 다시 조회 가능. */ });
+    return () => controller.abort();
+  }, [auth.adminRead]);
   useEffect(() => {
     if (!title || composing) { setState({ query: "", value: null, error: "", loading: false }); return; }
     const controller = new AbortController();
@@ -62,13 +96,14 @@ export function WikiLinkPicker({ onInsert, onClose }: { onInsert: (title: string
     <label htmlFor="wiki-title-search">연결할 글 제목</label>
     <input id="wiki-title-search" ref={input} role="combobox" aria-autocomplete="list" aria-expanded={choices.length > 0}
       aria-controls={listId} aria-activedescendant={choices[active] ? `${listId}-${active}` : undefined}
+      placeholder="글 제목 검색 · Enter로 첫 항목"
       value={query} onChange={(event) => setQuery(event.target.value)} onCompositionStart={() => setComposing(true)}
       onCompositionEnd={() => setComposing(false)} onKeyDown={onKeyDown} autoComplete="off" />
     {!title && query && <p role="status">제목은 대괄호·세로줄·제어 문자 없이 1~200자로 입력해 주세요.</p>}
     {title && state.query === title && state.loading && <p role="status">제목을 찾고 있습니다…</p>}
     {title && state.query === title && state.error && <p role="alert">{state.error} <button type="button" className="small-button"
       onClick={() => setRetry((value) => value + 1)}>다시 시도</button></p>}
-    {result && choices.length === 0 && <p role="status">표시할 글이 없습니다.</p>}
+    {result && choices.length === 0 && <p role="status">찾는 글이 없습니다</p>}
     <div id={listId} role="listbox" aria-label="검색 결과" className="wiki-picker-results">
       {choices.map((choice, index) => <div key={`${choice.title}:${choice.missing}`} id={`${listId}-${index}`} role="option"
         aria-selected={active === index} className={active === index ? "wiki-picker-option active" : "wiki-picker-option"}

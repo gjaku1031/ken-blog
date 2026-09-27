@@ -7,6 +7,7 @@ import { ApiFailure, apiFailureMessage } from "@/lib/api";
 import { positiveId } from "@/lib/editor-drafts";
 import { validProjectSlug } from "@/lib/projects";
 import { useAuth } from "./auth-provider";
+import "./auth-design.css";
 
 /** URL의 다음 경로를 사이트 내부 정적 경로로만 제한한다. */
 function returnPath(value: string | null): string {
@@ -43,7 +44,7 @@ function returnPath(value: string | null): string {
   } catch { return "/tech/"; }
 }
 
-/** 계정명·비밀번호와 CSRF 세션 로그인 결과만 다루는 읽기 단계 로그인 폼. */
+/** {@link useAuth}로 계정명·비밀번호와 CSRF 세션 로그인 결과만 다루는 폼. */
 export function LoginForm() {
   const router = useRouter();
   const auth = useAuth();
@@ -79,10 +80,10 @@ export function LoginForm() {
         <Link href={destination} className="primary-button">글 보러 가기</Link></div> :
         <form onSubmit={(event) => void submit(event)}>
           <label htmlFor="username">계정명</label>
-          <input id="username" name="username" type="text" autoComplete="username" required maxLength={64}
+          <input id="username" name="username" type="text" autoComplete="username" required maxLength={64} placeholder="계정명"
             value={username} onChange={(event) => setUsername(event.target.value)} disabled={busy} />
           <label htmlFor="password">비밀번호</label>
-          <input id="password" name="password" type="password" autoComplete="current-password" required
+          <input id="password" name="password" type="password" autoComplete="current-password" required placeholder="비밀번호"
             value={password} onChange={(event) => setPassword(event.target.value)} disabled={busy} />
           {error && <p className="form-error" role="alert">{error}</p>}
           <button className="primary-button" type="submit" disabled={busy}>{busy ? "확인 중…" : "로그인"}</button>

@@ -180,9 +180,10 @@ class CourseService(private val courses: CourseRepository, private val chapters:
     private fun CourseEntity.summary(includePrivate: Boolean): CourseSummaryResponse =
         summary(visible(id!!, includePrivate))
 
-    /** @return 권한 필터의 같은 위치를 사용한 사이드바 행. */
+    /** @return [ChapterSummaryResponse]에 권한 필터의 같은 위치와 저장 요약을 적용한 사이드바 행. */
     private fun ChapterRow.summary(position: Int): ChapterSummaryResponse =
-        ChapterSummaryResponse(id, title, slug, position, publishedAt.kstDate(), visibility)
+        ChapterSummaryResponse(id, title, slug, position, publishedAt.kstDate(), visibility,
+            summary.takeIf(String::isNotBlank))
 
     /** @return UTC 최초 출간 시각의 KST 날짜. */
     private fun LocalDateTime?.kstDate(): LocalDate = (this ?: throw CourseConflictException())

@@ -71,10 +71,10 @@ export function TableBlock({ value, onChange, onDelete, disabled, focusFirst, ro
     setPendingFocus(`0-${Math.min(index, width - 2)}`);
   }
 
-  /** 없음→왼쪽→가운데→오른쪽→없음 순으로 해당 열 정렬을 바꾼다. */
+  /** 기본 왼쪽에서 가운데→오른쪽→왼쪽 순으로 해당 열 정렬을 바꾼다. */
   function cycleAlignment(index: number) {
-    const order: TableAlignment[] = [null, "left", "center", "right"];
-    const current = order.indexOf(value.align[index]);
+    const order: Exclude<TableAlignment, null>[] = ["left", "center", "right"];
+    const current = order.indexOf(value.align[index] ?? "left");
     onChange({ ...value, align: value.align.map((item, column) => column === index ? order[(current + 1) % order.length] : item) });
   }
 
@@ -108,9 +108,9 @@ export function TableBlock({ value, onChange, onDelete, disabled, focusFirst, ro
       <tfoot><tr>{value.align.map((alignment, index) => <td key={index}>
         <div className="editor-table-column-tool">
           <button type="button" disabled={disabled} onClick={() => cycleAlignment(index)}
-            aria-label={`${index + 1}열 정렬: ${alignment ? alignmentName[alignment] : "기본"}. 누르면 다음 정렬`}>
-            {alignment ? alignmentName[alignment] : "기본"}</button>
-          <button type="button" disabled={disabled || width <= 1} onClick={() => deleteColumn(index)} aria-label={`${index + 1}열 삭제`}>×</button>
+            aria-label={`${index + 1}열 정렬: ${alignmentName[alignment ?? "left"]}. 누르면 다음 정렬`}>
+            {alignmentName[alignment ?? "left"]}</button>
+          <button type="button" disabled={disabled || width <= 1} onClick={() => deleteColumn(index)} aria-label={`${index + 1}열 삭제`}>열 삭제</button>
         </div>
       </td>)}<td className="editor-table-tool-heading">열 도구</td></tr></tfoot></table>
     </div>
@@ -118,9 +118,10 @@ export function TableBlock({ value, onChange, onDelete, disabled, focusFirst, ro
       <button type="button" disabled={disabled || value.rows.length >= TABLE_MAX_ROWS} onClick={() => {
         onChange({ ...value, rows: [...value.rows, Array(width).fill("")] });
         setPendingFocus(`${value.rows.length}-0`);
-      }}>+ 행 추가</button>
-      <button type="button" disabled={disabled || width >= TABLE_MAX_COLUMNS} onClick={addColumn}>+ 열 추가</button>
+      }} aria-label="행 추가">+ 행</button>
+      <button type="button" disabled={disabled || width >= TABLE_MAX_COLUMNS} onClick={addColumn} aria-label="열 추가">+ 열</button>
       <button type="button" disabled={disabled} onClick={() => { if (window.confirm("표 전체를 삭제할까요?")) onDelete(); }}>표 삭제</button>
+      <span className="editor-table-action-hint">칸에서 Enter를 누르면 아래 칸으로</span>
     </div>
     <p className="editor-table-help">셀 Enter: 아래 셀 · 마지막 행에서 새 행 · Esc: 표 이동 · 최대 {TABLE_MAX_ROWS}행, {TABLE_MAX_COLUMNS}열</p>
   </div>;

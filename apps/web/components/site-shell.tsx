@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { useAuth } from "./auth-provider";
 import { PublicAnalytics, disablePublicAnalytics } from "./public-analytics";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
 
-/** 원본 시안의 회전된 드릴 비트 로고를 벡터 경로로 표시한다. */
+/** 원본 시안의 회전된 드릴 비트 로고를 벡터 경로로 표시한다. {@link DrillLogo} */
 function DrillLogo() {
   return <svg width="32" height="32" viewBox="0 0 48 48" fill="none" stroke="currentColor" strokeWidth="2.6"
     strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">
@@ -19,7 +19,17 @@ function DrillLogo() {
   </svg>;
 }
 
-/** 정적 라우트에 공유하는 네비게이션·테마·세션 표시·푸터. */
+/** 원본 헤더의 선형 아이콘을 {@link SiteShell} 버튼에 표시한다. */
+function HeaderIcon({ name }: { name: "search" | "moon" | "sun" | "close" }) {
+  const shared = { width: 19, height: 19, viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 2,
+    strokeLinecap: "round" as const, strokeLinejoin: "round" as const, "aria-hidden": true as const };
+  if (name === "search") return <svg {...shared}><circle cx="10.8" cy="10.8" r="6.8" /><path d="m16 16 5 5" /></svg>;
+  if (name === "moon") return <svg {...shared}><path d="M20.6 14.1A8.6 8.6 0 0 1 9.9 3.4 8.6 8.6 0 1 0 20.6 14.1Z" /></svg>;
+  if (name === "sun") return <svg {...shared}><circle cx="12" cy="12" r="4" /><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42" /></svg>;
+  return <svg {...shared}><path d="M5 5l14 14M19 5 5 19" /></svg>;
+}
+
+/** 정적 라우트에 공유하는 네비게이션·테마·세션 표시·푸터. {@link SiteShell} */
 export function SiteShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -28,6 +38,41 @@ export function SiteShell({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [logoutError, setLogoutError] = useState("");
   const [search, setSearch] = useState("");
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchKeyboardFocus, setSearchKeyboardFocus] = useState(false);
+  const searchInput = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    /** {@link SiteShell}의 검색 입력으로 Tab 이동할 때만 포커스 테두리를 표시한다. */
+    const keyboard = (event: KeyboardEvent) => { if (event.key === "Tab") setSearchKeyboardFocus(true); };
+    /** {@link SiteShell}의 포인터 입력에서는 원본의 중립 테두리를 유지한다. */
+    const pointer = () => setSearchKeyboardFocus(false);
+    document.addEventListener("keydown", keyboard);
+    document.addEventListener("pointerdown", pointer);
+    return () => { document.removeEventListener("keydown", keyboard); document.removeEventListener("pointerdown", pointer); };
+  }, []);
+
+  useEffect(() => {
+    if (currentPath === "/search/") {
+      setSearchOpen(true);
+      setSearch(new URLSearchParams(window.location.search).get("q") ?? "");
+    }
+  }, [currentPath]);
+
+  useEffect(() => { if (searchOpen) searchInput.current?.focus(); }, [searchOpen]);
+
+  useEffect(() => {
+    if (!searchOpen) return;
+    const value = search.trim();
+    if (!value) { if (currentPath === "/search/") router.replace("/"); return; }
+    const timer = window.setTimeout(() => {
+      const target = `/search/?q=${encodeURIComponent(value)}`;
+      if (window.location.pathname + window.location.search !== `${basePath}${target}`) {
+        disablePublicAnalytics(); router.replace(target);
+      }
+    }, 180);
+    return () => window.clearTimeout(timer);
+  }, [search, searchOpen, currentPath, router]);
 
   useEffect(() => {
     let saved: string | null = null;
@@ -51,7 +96,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
       window.removeEventListener("popstate", disablePublicAnalytics); };
   }, [currentPath]);
 
-  /** 사용자가 고른 색을 로컬에만 저장하고 즉시 적용한다. */
+  /** 사용자가 고른 색을 로컬에만 저장하고 즉시 적용한다. {@link toggleTheme} */
   function toggleTheme() {
     const next = theme === "light" ? "dark" : "light";
     setTheme(next);
@@ -59,17 +104,24 @@ export function SiteShell({ children }: { children: ReactNode }) {
     try { window.localStorage.setItem("ken-blog-theme", next); } catch { /* 선택은 현재 화면에만 적용한다. */ }
   }
 
-  /** 클라이언트 이동과 Pages basePath를 모두 고려해 현재 메뉴를 표시한다. */
+  /** 클라이언트 이동과 Pages basePath를 모두 고려해 현재 메뉴를 표시한다. {@link isCurrent} */
   function isCurrent(path: string) {
+    if (path === "/" && currentPath === "/search/") return true;
     if (path === "/projects/" && currentPath === "/project/") return true;
     return currentPath === path || (path !== "/" && currentPath.startsWith(path));
   }
 
-  /** 먼저 화면 세션을 비운 뒤 서버 세션 삭제 오류만 공개 안내로 표시한다. */
+  /** 먼저 화면 세션을 비운 뒤 서버 세션 삭제 오류만 공개 안내로 표시한다. {@link handleLogout} */
   async function handleLogout() {
     setLogoutError("");
     try { await auth.logout(); }
     catch { setLogoutError("서버 로그아웃을 완료하지 못했습니다. 연결을 확인해 주세요."); }
+  }
+
+  /** 검색어만 지우고 {@link searchInput}에 포커스를 유지한다. */
+  function clearSearch() {
+    setSearch("");
+    searchInput.current?.focus();
   }
 
   return <div className="site-root">
@@ -83,20 +135,28 @@ export function SiteShell({ children }: { children: ReactNode }) {
             <Link key={href} href={href} aria-current={isCurrent(href) ? "page" : undefined}>{label}</Link>)}
         </nav>
         <div className="header-actions">
-          <form className="header-search" role="search" onSubmit={(event) => {
+          {searchOpen ? <form className="header-search is-open" role="search" data-keyboard-focus={searchKeyboardFocus} onSubmit={(event) => {
             event.preventDefault(); const value = search.trim(); if (value) { disablePublicAnalytics(); router.push(`/search/?q=${encodeURIComponent(value)}`); }
           }}><label className="sr-only" htmlFor="site-search">글 검색</label>
-            <input id="site-search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="검색" />
-            <button type="submit" aria-label="검색">⌕</button></form>
-          {auth.status === "authenticated" && auth.user?.role === "ADMIN" && <>
-            <Link href="/admin/" className="header-text-button">관리</Link>
-          </>}
+            <HeaderIcon name="search" /><input ref={searchInput} id="site-search" type="search" value={search}
+              onChange={(event) => setSearch(event.target.value)} onKeyDown={(event) => { if (event.key === "Escape") {
+                setSearchOpen(false); if (currentPath === "/search/") router.push("/"); } }}
+              placeholder="제목 · 본문 · 태그 검색" />
+            {search && <button type="button" className="header-search-clear" aria-label="검색어 지우기" onClick={clearSearch}>
+              <HeaderIcon name="close" /></button>}
+            <button type="button" className="header-search-close" aria-label="검색 닫기" onClick={() => {
+              setSearchOpen(false); setSearch(""); if (currentPath === "/search/") router.push("/");
+            }}><HeaderIcon name="close" /></button></form> : <button type="button" className="icon-button header-search-toggle"
+              aria-label="검색 열기" onClick={() => setSearchOpen(true)}><HeaderIcon name="search" /></button>}
           <button type="button" className="icon-button" onClick={toggleTheme}
             aria-label={theme === "light" ? "다크 모드로 전환" : "라이트 모드로 전환"} title={theme === "light" ? "다크 모드" : "라이트 모드"}>
-            {theme === "light" ? "☾" : "☀"}
+            <HeaderIcon name={theme === "light" ? "moon" : "sun"} />
           </button>
+          {auth.status === "authenticated" && auth.user?.role === "ADMIN" &&
+            <Link href="/admin/" className="header-text-button">관리</Link>}
           {auth.status === "authenticated" && auth.user ? <>
-            <span className="account-name">{auth.user.username}</span>
+            <span className="account-avatar" title={auth.user.username} aria-label={`${auth.user.username} 계정`}>
+              {auth.user.username.slice(0, 1).toUpperCase()}</span>
             <button type="button" className="header-text-button" onClick={() => void handleLogout()}>로그아웃</button>
           </> : <Link href="/login/" className="header-text-button">로그인</Link>}
         </div>

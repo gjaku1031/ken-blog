@@ -1,12 +1,14 @@
 "use client";
 
+import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useState, type FormEvent } from "react";
 import { ApiFailure, apiFailureMessage, apiJson } from "@/lib/api";
 import { parseProfile, publicImageUrl, type HomeProfile } from "@/lib/profile";
 import { useAuth } from "../auth-provider";
 import { ProfileCard } from "../profile-card";
 
-/** 공개 프로필 저장본과 로컬 편집본을 사진까지 분리해 관리한다. */
+/** {@link ProfileCard}의 로컬 미리보기와 공개 프로필 저장본을 사진까지 분리해 관리한다. */
 export function ProfileManager() {
   const auth = useAuth();
   const [saved, setSaved] = useState<HomeProfile | null>(null);
@@ -69,15 +71,23 @@ export function ProfileManager() {
     {status && <button type="button" className="small-button" onClick={() => setRetry((value) => value + 1)}>다시 시도</button>}</div>;
 
   return <div className="profile-manager"><form className="admin-form card" onSubmit={(event) => void save(event)}><fieldset disabled={busy}>
-    <h2>홈 소개</h2><label>사진<input type="file" accept="image/*" onChange={(event) => choosePhoto(event.target.files?.[0] ?? null)} /></label>
-    <button type="button" className="small-button" onClick={() => { setFile(null); setPreview(null); setPhotoMode("remove"); }}>사진 빼기</button>
+    <div className="profile-photo-control"><span className="profile-edit-avatar" aria-label="현재 프로필 사진">
+      {photo ? <Image src={photo} alt="" width={64} height={64} unoptimized /> : form.name.trim().slice(0, 1) || "?"}</span>
+      <div><label className="small-button profile-upload-button">사진 올리기<input type="file" accept="image/*"
+        onChange={(event) => choosePhoto(event.target.files?.[0] ?? null)} /></label>
+        {(photo || form.photoUrl) && <button type="button" className="small-button" onClick={() => {
+          setFile(null); setPreview(null); setPhotoMode("remove"); }}>사진 빼기</button>}</div></div>
     {(["name", "tagline", "intro", "github", "phone"] as const).map((key) => <label key={key}>
-      {{ name: "이름", tagline: "한 줄 소개", intro: "소개", github: "GitHub 주소", phone: "연락처" }[key]}
+      {{ name: "이름", tagline: "한 줄 소개", intro: "소개", github: "GitHub", phone: "연락처" }[key]}
       {key === "intro" ? <textarea rows={5} value={form[key]} onChange={(event) => setForm((current) => current &&
-        ({ ...current, [key]: event.target.value }))} /> : <input value={form[key]} onChange={(event) => setForm((current) => current &&
-        ({ ...current, [key]: event.target.value }))} />}</label>)}
+        ({ ...current, [key]: event.target.value }))} placeholder="두세 줄 정도" /> : <input value={form[key]}
+          type={key === "github" ? "url" : key === "phone" ? "tel" : "text"}
+          placeholder={{ name: "표시될 이름", tagline: "이름 옆에 붙는 한 줄", github: "https://github.com/아이디",
+            phone: "비워 두면 홈에 안 보입니다" }[key]}
+          onChange={(event) => setForm((current) => current && ({ ...current, [key]: event.target.value }))} />}</label>)}
     <div className="admin-form-actions"><button type="button" className="small-button" onClick={reset}>되돌리기</button>
       <button type="submit" className="primary-button" disabled={busy}>{busy ? "저장 중…" : "저장"}</button></div>
     {status && <p role="status">{status}</p>}</fieldset>
-  </form><div className="profile-preview"><h2>미리보기</h2><ProfileCard profile={form} previewPhoto={photo} /></div></div>;
+  </form><div className="profile-preview"><div className="profile-preview-heading"><h2>미리보기</h2>
+    <Link href="/" className="small-button">홈에서 보기</Link></div><ProfileCard profile={form} previewPhoto={photo} /></div></div>;
 }

@@ -12,7 +12,7 @@ export type DraftDetail = {
   title: string; slug: string; body: string; categoryId: number | null; tags: string[];
   visibility: "PUBLIC" | "PRIVATE"; createdAt: string; updatedAt: string; attachmentIds: number[]; wikiTargets: string[];
   section: DraftSection; projectId: number | null; courseId: number | null; relatedProjectId: number | null;
-  documentOrder: number | null; chapterOrder: number | null; summary: string;
+  documentOrder: number | null; chapterOrder: number | null; techSeriesOrder: number | null; summary: string;
   projectMetadata: ProjectMetadata | null;
 };
 /** 목록 SQL이 본문 열을 읽지 않는 편집본 한 행. */
@@ -24,11 +24,11 @@ export type AdminPost = { id: number; title: string; slug: string; body: string;
   status: "DRAFT" | "PUBLISHED"; visibility: "PUBLIC" | "PRIVATE";
   category: { id: number } | null; tags: string[]; attachmentIds: number[]; wikiTargets: string[];
   section: DraftSection; projectId: number | null; projectSlug: string | null; courseId: number | null; courseSlug: string | null;
-  relatedProjectId: number | null; documentOrder: number | null; chapterOrder: number | null;
+  relatedProjectId: number | null; documentOrder: number | null; chapterOrder: number | null; techSeriesOrder: number | null;
   summary: string; projectMetadata: ProjectMetadata | null };
 /** 전체 교체 저장과 신규 편집본 생성에서 공통으로 보내는 값. */
 export type DraftValues = Pick<DraftDetail, "title" | "slug" | "body" | "categoryId" | "tags" | "visibility" | "attachmentIds" | "wikiTargets" |
-  "section" | "projectId" | "courseId" | "relatedProjectId" | "documentOrder" | "chapterOrder" |
+  "section" | "projectId" | "courseId" | "relatedProjectId" | "documentOrder" | "chapterOrder" | "techSeriesOrder" |
   "summary" | "projectMetadata">;
 
 /** DTO 검증에 사용할 JSON 객체 가드. */
@@ -113,6 +113,7 @@ function draftFields(value: unknown): DraftSummary {
     relatedProjectId: item.relatedProjectId == null ? null : integer(item.relatedProjectId, 1),
     documentOrder: item.documentOrder == null ? null : integer(item.documentOrder, 1),
     chapterOrder: item.chapterOrder == null ? null : integer(item.chapterOrder, 1),
+    techSeriesOrder: item.techSeriesOrder == null ? null : integer(item.techSeriesOrder, 1),
     summary: typeof item.summary === "string" ? item.summary : "" };
 }
 
@@ -153,6 +154,7 @@ export function parseAdminPost(value: unknown): AdminPost {
     relatedProjectId: item.relatedProjectId == null ? null : integer(item.relatedProjectId, 1),
     documentOrder: item.documentOrder == null ? null : integer(item.documentOrder, 1),
     chapterOrder: item.chapterOrder == null ? null : integer(item.chapterOrder, 1),
+    techSeriesOrder: item.techSeriesOrder == null ? null : integer(item.techSeriesOrder, 1),
     summary: typeof item.summary === "string" ? item.summary : "",
     projectMetadata: projectMetadata(item.projectMetadata) };
 }
@@ -168,6 +170,6 @@ export function draftValues(values: DraftValues): DraftValues {
     tags: [...values.tags], visibility: values.visibility, attachmentIds: [...values.attachmentIds],
     wikiTargets: [...values.wikiTargets], section: values.section, projectId: values.projectId, courseId: values.courseId,
     relatedProjectId: values.relatedProjectId, documentOrder: values.documentOrder,
-    chapterOrder: values.chapterOrder, summary: values.summary,
+    chapterOrder: values.chapterOrder, techSeriesOrder: values.techSeriesOrder, summary: values.summary,
     projectMetadata: values.projectMetadata ? { ...values.projectMetadata } : null };
 }

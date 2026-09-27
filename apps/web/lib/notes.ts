@@ -1,15 +1,15 @@
 import { ApiFailure } from "./api";
 
-/** 권한별 과목 목록에 필요한 소개와 회차 수. */
+/** 권한별 과목 목록에 필요한 소개와 회차 수. {@link CourseSummary} */
 export type CourseSummary = { id: number; slug: string; field: string; name: string; description: string;
   status: "IN_PROGRESS" | "COMPLETED"; chapterCount: number; latestPublishedDate: string | null };
-/** 과목 안에서 현재 역할로 볼 수 있는 회차. */
+/** 과목 안에서 현재 역할로 볼 수 있는 회차. {@link ChapterSummary} */
 export type ChapterSummary = { id: number; slug: string; title: string; position: number; publishedDate: string;
-  visibility: "PUBLIC" | "PRIVATE"; locked: boolean };
-/** 과목 소개와 사이드바를 채우는 공개 상세. */
+  visibility: "PUBLIC" | "PRIVATE"; locked: boolean; summary: string | null };
+/** 과목 소개와 사이드바를 채우는 공개 상세. {@link CourseDetail} */
 export type CourseDetail = { course: CourseSummary; chapters: ChapterSummary[] };
 
-/** JSON 객체인지 확인해 잘못된 응답을 빈 목록과 구별한다. */
+/** JSON 객체인지 확인해 잘못된 응답을 빈 목록과 구별한다. {@link record} */
 function record(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new ApiFailure("response");
   return value as Record<string, unknown>;
@@ -43,10 +43,12 @@ export function parseChapterSummary(value: unknown): ChapterSummary {
   if (!Number.isSafeInteger(item.id) || (item.id as number) < 1 || typeof item.slug !== "string" ||
     typeof item.title !== "string" || !Number.isSafeInteger(item.position) || (item.position as number) < 1 ||
     typeof item.publishedDate !== "string" ||
-    (item.visibility !== "PUBLIC" && item.visibility !== "PRIVATE") || typeof item.locked !== "boolean")
+    (item.visibility !== "PUBLIC" && item.visibility !== "PRIVATE") || typeof item.locked !== "boolean" ||
+    (item.summary != null && typeof item.summary !== "string"))
     throw new ApiFailure("response");
   return { id: item.id as number, slug: item.slug, title: item.title, position: item.position as number,
-    publishedDate: item.publishedDate, visibility: item.visibility, locked: item.locked };
+    publishedDate: item.publishedDate, visibility: item.visibility, locked: item.locked,
+    summary: item.summary as string | null ?? null };
 }
 
 /** {@link CourseDetail}에 속한 회차를 권한별 응답 그대로 유지한다. */

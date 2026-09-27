@@ -8,7 +8,7 @@ import { formatProjectPeriod, parseProjectPage, projectStatusLabel, type Project
 import { useAuth } from "./auth-provider";
 import { publicImageUrl } from "@/lib/profile";
 
-/** 역할별 출간 프로젝트만 읽고 이후 페이지는 사용자가 요청할 때 이어 붙인다. */
+/** 역할별 출간 프로젝트만 읽고 이후 페이지는 사용자가 요청할 때 이어 붙인다. {@link ProjectsInstance} */
 function ProjectsInstance() {
   const auth = useAuth();
   const [items, setItems] = useState<ProjectSummary[]>([]);
@@ -41,11 +41,15 @@ function ProjectsInstance() {
     return () => { live = false; controller.abort(); };
   }, [auth.status, auth.readCredentials, auth.refresh, page, retry]);
 
+  useEffect(() => {
+    if (!loading && !error && loaded + 1 < totalPages) setPage(loaded + 1);
+  }, [loading, error, loaded, totalPages]);
+
   return <main id="main-content" className="page-container projects-page">
     <h1>Projects</h1>
     {items.length === 0 && !loading && !error && <p className="projects-empty">아직 출간된 프로젝트가 없습니다.</p>}
     <div className="projects-grid">
-      {items.map((item) => <article key={item.id} className="project-card card">
+      {items.map((item) => <article key={item.id} className="project-card card hv">
         <div className="project-card-top"><span className={`project-status project-status-${item.status.toLowerCase()}`}>
           <span aria-hidden="true" />{projectStatusLabel(item.status)}</span>
           {formatProjectPeriod(item.startPeriod, item.endPeriod, item.status) && <span className="mono project-period">
@@ -59,17 +63,16 @@ function ProjectsInstance() {
         <div className="project-card-counts">문서 {item.documentCount}개{item.relatedTechCount > 0 ? ` · 관련 글 ${item.relatedTechCount}개` : ""}</div>
       </article>)}
       {auth.status === "authenticated" && auth.user?.role === "ADMIN" && <Link
-        className="project-card project-create-card" href="/write/?section=project-home">+ 새 프로젝트</Link>}
+        className="project-card project-create-card" href="/write/?section=project-home"><span aria-hidden="true">＋</span>
+        <span>새 프로젝트</span></Link>}
     </div>
     {loading && <p role="status">프로젝트를 불러오고 있습니다…</p>}
     {error && <p role="alert">{error} <button type="button" className="small-button"
       onClick={() => setRetry((value) => value + 1)}>다시 시도</button></p>}
-    {!loading && !error && loaded + 1 < totalPages && <button type="button" className="small-button"
-      onClick={() => setPage(loaded + 1)}>프로젝트 더 보기</button>}
   </main>;
 }
 
-/** 세션이 바뀌면 이전 PRIVATE 카드와 대기 응답을 함께 폐기한다. */
+/** 세션이 바뀌면 이전 PRIVATE 카드와 대기 응답을 함께 폐기한다. {@link ProjectsList} */
 export function ProjectsList() {
   const auth = useAuth();
   return <ProjectsInstance key={auth.epoch} />;

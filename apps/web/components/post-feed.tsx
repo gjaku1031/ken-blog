@@ -7,6 +7,8 @@ import { ApiFailure, apiFailureMessage, apiJson, parseCategories, parseTags, pos
   type CategoryNode, type TagCount } from "@/lib/api";
 import { parseFeedPage, readPinnedIds, type FeedItem, type FeedPage } from "@/lib/feed";
 import { useAuth } from "./auth-provider";
+import { InlineSummary } from "./inline-summary";
+import { categoryLabelPath } from "@/lib/category-label";
 
 type FeedMode = "home" | "tech";
 type FeedSort = "new" | "pin";
@@ -15,7 +17,7 @@ type FeedState = { status: "loading" | "ready" | "error"; items: FeedItem[]; pag
 const feedCache = new Map<string, FeedState>();
 const categoryExpansion = new Map<number, boolean>();
 
-/** 필터와 정렬을 쿼리 문자열로 보존하는 정적 페이지 주소를 만든다. */
+/** 필터와 정렬을 쿼리 문자열로 보존하는 정적 페이지 주소를 만든다. {@link feedHref} */
 function feedHref(mode: FeedMode, categoryId: number | null, tag: string | null, sort: FeedSort): string {
   const params = new URLSearchParams();
   if (categoryId !== null) params.set("categoryId", String(categoryId));
@@ -24,16 +26,12 @@ function feedHref(mode: FeedMode, categoryId: number | null, tag: string | null,
   return `${mode === "home" ? "/" : "/tech/"}${params.size ? `?${params}` : ""}`;
 }
 
-/** 현재 권한 트리에서 선택한 분류 경로를 찾는다. */
+/** 현재 권한 트리에서 선택한 분류 경로를 찾는다. {@link categoryPath} */
 function categoryPath(nodes: CategoryNode[], id: number): string | null {
-  for (const node of nodes) {
-    if (node.id === id) return node.path.replaceAll("/", " › ");
-    const nested = categoryPath(node.children, id); if (nested) return nested;
-  }
-  return null;
+  return categoryLabelPath(nodes, id);
 }
 
-/** 선택 분류가 하위 노드에 있는지 확인해 접힌 트리의 현재 위치를 보존한다. */
+/** 선택 분류가 하위 노드에 있는지 확인해 접힌 트리의 현재 위치를 보존한다. {@link containsCategory} */
 function containsCategory(node: CategoryNode, selected: number | null): boolean {
   return selected !== null && (node.id === selected || node.children.some((child) => containsCategory(child, selected)));
 }
@@ -44,8 +42,8 @@ function CategoryLinkItem({ node, selected, tag, mode, sort }: { node: CategoryN
   const [expanded, setExpanded] = useState(() => categoryExpansion.get(node.id) ?? containsCategory(node, selected));
   return <li><div className="category-line"><Link
     href={feedHref("home", selected === node.id ? null : node.id, tag, sort)} aria-current={selected === node.id ? "page" : undefined}
-    onClick={() => { if (selected !== node.id) { categoryExpansion.set(node.id, true); setExpanded(true); } }}>
-    <span>{node.name}</span>{(!expanded || node.directCount > 0) &&
+    onClick={() => { const next = selected !== node.id; categoryExpansion.set(node.id, next); setExpanded(next); }}>
+    <span>{node.name}</span>{(expanded ? node.directCount : node.totalCount) > 0 &&
       <span className="mono side-count">{expanded ? node.directCount : node.totalCount}</span>}</Link>
     {node.children.length > 0 && <button type="button" aria-expanded={expanded} aria-label={`${node.name} 하위 분류 ${expanded ? "접기" : "펼치기"}`}
       onClick={() => setExpanded((current) => { categoryExpansion.set(node.id, !current); return !current; })}>
@@ -53,44 +51,71 @@ function CategoryLinkItem({ node, selected, tag, mode, sort }: { node: CategoryN
     {expanded && node.children.length > 0 && <CategoryLinks nodes={node.children} selected={selected} tag={tag} mode={mode} sort={sort} />}</li>;
 }
 
-/** 현재 권한의 분류 트리를 같은 깊이의 목록으로 표시한다. */
+/** 현재 권한의 분류 트리를 같은 깊이의 목록으로 표시한다. {@link CategoryLinks} */
 function CategoryLinks({ nodes, selected, tag, mode, sort }: { nodes: CategoryNode[]; selected: number | null;
   tag: string | null; mode: FeedMode; sort: FeedSort }) {
   return <ul className="category-tree">{nodes.map((node) => <CategoryLinkItem key={node.id} node={node}
     selected={selected} tag={tag} mode={mode} sort={sort} />)}</ul>;
 }
 
-/** 섹션 소속과 실제 요약·회차 번호·권한을 카드에 표시한다. */
-export function FeedCard({ post, mode, categoryId, tag, sort, pinAction, pinDrop, onPinDragStart }: { post: FeedItem; mode: FeedMode;
+/** {@link FeedInstance}와 검색 결과에 같은 분류·태그 탐색을 표시한다. */
+export function FeedAside({ categories, tags, categoryId = null, tag = null, mode = "home", sort = "new" }: {
+  categories: CategoryNode[]; tags: TagCount[]; categoryId?: number | null; tag?: string | null;
+  mode?: FeedMode; sort?: FeedSort }) {
+  return <aside className="feed-sidebar" aria-label="Tech 탐색"><section className="side-card card"><h2>분류</h2>
+    <CategoryLinks nodes={categories} selected={categoryId} tag={tag} mode={mode} sort={sort} /></section>
+    <section className="side-card card"><h2>태그</h2><div className="tag-cloud">{tags.map((item) => <Link key={item.name}
+      href={feedHref(mode, categoryId, tag === item.name ? null : item.name, sort)}>#{item.name}</Link>)}</div></section>
+  </aside>;
+}
+
+/** {@link FeedInstance}의 다음 페이지 요청 중 원본 카드 형태의 대기 상태를 표시한다. */
+export function FeedSkeleton() {
+  return <div className="post-card card feed-skeleton" role="status" aria-label="글을 불러오고 있습니다">
+    <span /><span /><span /><span />
+  </div>;
+}
+
+/** 섹션 소속과 실제 요약·회차 번호·권한을 카드에 표시한다. {@link FeedCard} */
+export function FeedCard({ post, mode, categoryId, tag, sort, categories = [], pinAction, pinDrop, onPinDragStart }: { post: FeedItem; mode: FeedMode;
   categoryId: number | null; tag: string | null; sort: FeedSort;
+  categories?: CategoryNode[];
   pinAction?: (post: FeedItem, direction?: -1 | 1) => void; pinDrop?: (target: FeedItem) => void;
   onPinDragStart?: (post: FeedItem) => void }) {
   const href = postDestination(post);
-  const category = post.category?.path.replaceAll("/", " › ");
+  const category = post.category ? categoryLabelPath(categories, post.category.id) ?? post.category.name : null;
   return <article className="post-card card" draggable={!!pinDrop} onDragStart={(event) => {
     if (!pinDrop) return; onPinDragStart?.(post); event.dataTransfer.setData("text/plain", String(post.id)); event.dataTransfer.effectAllowed = "move";
   }} onDragOver={(event) => { if (pinDrop) event.preventDefault(); }} onDrop={(event) => {
     if (!pinDrop) return; event.preventDefault(); pinDrop(post);
-  }}><div className="card-meta"><span>{post.section === "TECH" ? "Tech" :
-    post.section === "NOTE_CHAPTER" ? "Notes" : "Projects"}</span>
-    {category && <span>· {category}</span>}
+  }}><div className="card-meta"><strong>{post.section === "TECH" ? "Tech" :
+    post.section === "NOTE_CHAPTER" ? "Notes" : "Projects"}</strong>
+    {post.section === "TECH" && category && <Link href={feedHref("home", post.category?.id ?? null, null, "new")}>· {category}</Link>}
+    {post.section === "PROJECT_DOC" && category && <span>· {category}</span>}
     {post.section === "TECH" && post.seriesPosition && post.seriesTotal &&
-      <span>· 시리즈 {post.seriesPosition}/{post.seriesTotal}</span>}
-    {post.section === "NOTE_CHAPTER" && post.chapterPosition && <span>· {post.chapterPosition}강 / {post.chapterTotal}</span>}
-    {post.visibility === "PRIVATE" && <span>· 비공개</span>}{post.pinOrder !== null && <span>· 고정</span>}</div>
-    <h2><Link href={href}>{post.title}</Link></h2>
-    {post.summary && <p className="post-summary">{post.summary}</p>}
+      <span>· {post.seriesPosition} / {post.seriesTotal}</span>}
+    {post.section === "NOTE_CHAPTER" && post.courseName && <span>· {post.courseField ? `${post.courseField} › ` : ""}{post.courseName}</span>}
+    {post.section === "NOTE_CHAPTER" && post.chapterPosition && <span>· {post.chapterPosition}강 {post.chapterPosition}/{post.chapterTotal}</span>}
+    {post.projectName && <span>· {post.projectName}</span>}
+    {post.visibility === "PRIVATE" && <span className="private-label">· 비공개</span>}
+    {post.pinOrder !== null && <span>· 고정</span>}</div>
+    <div className="card-title-row"><h2><Link href={href}>{post.title}</Link></h2>
+      {pinAction && sort === "pin" && <div className="card-pin-controls">
+        <button type="button" aria-label={`${post.title} 위로`} onClick={() => pinAction(post, -1)}><svg width="14" height="14"
+          viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><path d="m6 15 6-6 6 6" /></svg></button>
+        <button type="button" aria-label={`${post.title} 아래로`} onClick={() => pinAction(post, 1)}><svg width="14" height="14"
+          viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden="true"><path d="m6 9 6 6 6-6" /></svg></button>
+        <span className="pin-drag-handle" aria-hidden="true"><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+          {[6, 12, 18].flatMap((y) => [9, 15].map((x) => <circle key={`${x}:${y}`} cx={x} cy={y} r="1.6" />))}</svg></span>
+      </div>}</div>
+    {post.summary && <p className="post-summary"><InlineSummary text={post.summary} /></p>}
     <div className="card-bottom"><div className="tag-list">{post.tags.map((name) => <Link key={name}
       href={feedHref(mode, categoryId, tag === name ? null : name, sort)}>#{name}</Link>)}</div>
       <time className="mono" dateTime={post.publishedDate}>{post.publishedDate.replaceAll("-", ".")}</time></div>
-    {pinAction && <div className="card-pin-controls"><button type="button" onClick={() => pinAction(post)}>
-      {post.pinOrder === null ? "핀 고정" : "핀 해제"}</button>{sort === "pin" && <>
-        <button type="button" aria-label={`${post.title} 위로`} onClick={() => pinAction(post, -1)}>▲</button>
-        <button type="button" aria-label={`${post.title} 아래로`} onClick={() => pinAction(post, 1)}>▼</button></>}</div>}
   </article>;
 }
 
-/** 필터·세션마다 새로 요청하고 다음 10개를 뷰포트 근처에서 이어 붙인다. */
+/** 필터·세션마다 새로 요청하고 다음 10개를 뷰포트 근처에서 이어 붙인다. {@link FeedInstance} */
 function FeedInstance({ mode, categoryId, tag, sort }: { mode: FeedMode; categoryId: number | null; tag: string | null; sort: FeedSort }) {
   const auth = useAuth();
   const cacheKey = `${auth.epoch}:${mode}:${categoryId}:${tag}:${sort}`;
@@ -166,7 +191,7 @@ function FeedInstance({ mode, categoryId, tag, sort }: { mode: FeedMode; categor
     return () => observer.disconnect();
   }, [state.status, state.page, state.pages, moreError, loadMore]);
 
-  /** 서버의 전체 핀 순서를 기준으로 고정·해제·위아래 이동을 원자적으로 저장한다. */
+  /** 서버의 전체 핀 순서를 기준으로 고정·해제·위아래 이동을 원자적으로 저장한다. {@link changePin} */
   async function changePin(post: FeedItem, direction?: -1 | 1) {
     if (pinBusy) return;
     setPinBusy(true); setPinError("");
@@ -185,7 +210,7 @@ function FeedInstance({ mode, categoryId, tag, sort }: { mode: FeedMode; categor
     finally { setPinBusy(false); }
   }
 
-  /** 드래그 대상의 전체 핀 순서를 다시 읽고 놓은 카드 앞에 이동한다. */
+  /** 드래그 대상의 전체 핀 순서를 다시 읽고 놓은 카드 앞에 이동한다. {@link dropPin} */
   async function dropPin(target: FeedItem) {
     const movedId = dragged.current;
     dragged.current = null;
@@ -207,39 +232,37 @@ function FeedInstance({ mode, categoryId, tag, sort }: { mode: FeedMode; categor
   return <div className="content-grid"><section className="feed-column" aria-labelledby="feed-title">
     <div className="section-heading"><h2 id="feed-title">{mode === "home" ? sort === "pin" ? "고정한 글" : "최근 글" :
       sort === "pin" ? "Tech · 고정한 글" : "Tech"}</h2>
-      {state.status === "ready" && <span className="mono feed-total">{state.total}편</span>}
-      {mode === "tech" && auth.user?.role === "ADMIN" && <Link href="/write/" className="feed-write-link">+ 글쓰기</Link>}
+      {mode === "tech" && auth.user?.role === "ADMIN" && <Link href="/write/" className="feed-write-link">글쓰기</Link>}
       <nav className="feed-sort" aria-label="글 정렬"><Link href={feedHref(mode, categoryId, tag, "new")}
         aria-current={sort === "new" ? "page" : undefined}>최신</Link><Link href={feedHref(mode, categoryId, tag, "pin")}
-        aria-current={sort === "pin" ? "page" : undefined}>핀</Link></nav></div>
+        aria-current={sort === "pin" ? "page" : undefined}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M9 3h6l-1 6 3 3v2H7v-2l3-3-1-6ZM12 14v7" /></svg>핀</Link></nav></div>
     {(categoryId !== null || tag) && <div className="active-filters">
       {categoryId !== null && <Link href={feedHref(mode, null, tag, sort)}>{categoryPath(state.categories, categoryId) ?? "분류"} ×</Link>}
       {tag && <Link href={feedHref(mode, categoryId, null, sort)}>#{tag} ×</Link>}
+      {state.status === "ready" && <span className="mono feed-total">{state.total}편</span>}
       <Link href={feedHref(mode, null, null, sort)}>필터 해제</Link></div>}
-    {state.status === "loading" && <div className="message-card card" role="status">글을 불러오고 있습니다…</div>}
+    {state.status === "loading" && <FeedSkeleton />}
     {state.status === "error" && <div className="message-card card" role="alert">{state.error}<br />
       <button type="button" className="small-button" onClick={() => setRetry((value) => value + 1)}>다시 시도</button></div>}
     {pinError && <p role="alert" className="inline-error">{pinError}</p>}
     {sort === "pin" && auth.user?.role === "ADMIN" && state.items.length > 1 &&
-      <p className="pin-order-help">카드를 끌거나 ▲ ▼ 버튼으로 고정 순서를 바꿀 수 있습니다.</p>}
+      <p className="pin-order-help">고정한 글입니다. 카드를 드래그하거나 ▲▼로 순서를 바꿀 수 있어요 (관리자만).</p>}
     {state.status === "ready" && <>{state.items.length ? <div className="post-list">{state.items.map((post) => <FeedCard
-      key={post.id} post={post} mode={mode} categoryId={categoryId} tag={tag} sort={sort}
+      key={post.id} post={post} mode={mode} categoryId={categoryId} tag={tag} sort={sort} categories={state.categories}
       pinAction={auth.user?.role === "ADMIN" && !pinBusy ? (item, direction) => void changePin(item, direction) : undefined}
       pinDrop={auth.user?.role === "ADMIN" && sort === "pin" && !pinBusy ? (target) => void dropPin(target) : undefined}
       onPinDragStart={auth.user?.role === "ADMIN" && sort === "pin" && !pinBusy ? (item) => { dragged.current = item.id; } : undefined} />)}</div> :
-      <div className="message-card card">{sort === "pin" ? "고정한 글이 없습니다." : "아직 글이 없습니다."}</div>}
+      <div className="message-card card">{sort === "pin" ? "고정한 글이 없습니다. 글 페이지에서 '핀 고정'을 눌러 보세요." : "아직 글이 없습니다."}</div>}
       {moreError && <p role="alert" className="inline-error">{moreError}</p>}
-      {state.page + 1 < state.pages && <button type="button" className="load-more" disabled={loadingMore}
-        onClick={() => void loadMore()}>{loadingMore ? "불러오는 중…" : "글 더 보기"}</button>}
+      {state.page + 1 < state.pages && <button type="button" className="feed-more" disabled={loadingMore}
+        onClick={() => void loadMore()} aria-label="글 더 보기"><FeedSkeleton /></button>}
       <div ref={sentinel} className="load-sentinel" aria-hidden="true" /></>}
-  </section><aside className="feed-sidebar" aria-label="Tech 탐색"><section className="side-card card"><h2>분류</h2>
-    {state.status === "ready" && <CategoryLinks nodes={state.categories} selected={categoryId} tag={tag} mode={mode} sort={sort} />}</section>
-    <section className="side-card card"><h2>태그</h2><div className="tag-cloud">{state.tags.map((item) => <Link key={item.name}
-      href={feedHref(mode, categoryId, tag === item.name ? null : item.name, sort)}>#{item.name}</Link>)}</div></section>
-  </aside></div>;
+  </section><FeedAside categories={state.categories} tags={state.tags} categoryId={categoryId} tag={tag}
+    mode={mode} sort={sort} /></div>;
 }
 
-/** URL 필터와 권한 세대가 달라지면 이전 PRIVATE 피드 응답을 버린다. */
+/** URL 필터와 권한 세대가 달라지면 이전 PRIVATE 피드 응답을 버린다. {@link PostFeed} */
 export function PostFeed({ mode }: { mode: FeedMode }) {
   const params = useSearchParams();
   const auth = useAuth();

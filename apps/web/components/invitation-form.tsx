@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { ApiFailure, apiFailureMessage, apiRequest, fetchCsrf } from "@/lib/api";
+import "./auth-design.css";
 
-/** 링크 fragment의 일회용 토큰을 주소에서 지운 뒤 계정 이름을 확인한다. */
+/** {@link apiRequest} 전에 링크 fragment의 일회용 토큰을 주소에서 지우고 계정 이름을 확인한다. */
 export function InvitationForm() {
   const [token, setToken] = useState<string | null>(null);
   const [tokenChecked, setTokenChecked] = useState(false);
@@ -60,10 +61,10 @@ export function InvitationForm() {
     finally { setBusy(false); }
   }
 
-  return <main id="main-content" className="login-page"><div className="login-card card"><h1>비밀번호 설정</h1>
+  return <main id="main-content" className="login-page"><div className="login-card card invite-card"><h1>비밀번호 설정</h1>
     {state === "loading" && <p role="status">초대를 확인하고 있습니다…</p>}
     {state === "error" && <p role="alert">{error}</p>}
-    {state === "ready" && <form onSubmit={(event) => void complete(event)}><p>{displayName} · {username}</p>
+    {state === "ready" && <form onSubmit={(event) => void complete(event)}><p className="invite-identity">{displayName} · {username}</p>
       <label htmlFor="invite-password">새 비밀번호</label><input id="invite-password" type="password" autoComplete="new-password"
         value={password} onChange={(event) => setPassword(event.target.value)} required />
       <label htmlFor="invite-confirm">비밀번호 확인</label><input id="invite-confirm" type="password" autoComplete="new-password"
