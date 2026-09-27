@@ -1,0 +1,3 @@
+ALTER TABLE home_profile
+    DROP COLUMN phone,
+    ADD COLUMN email VARCHAR(254) NOT NULL DEFAULT '';

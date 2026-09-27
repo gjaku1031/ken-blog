@@ -35,7 +35,7 @@ class HomeProfileService(
     fun update(request: HomeProfileRequest): HomeProfileResponse {
         val clean = validate(request)
         val profile = profiles.findByIdOrNull(1) ?: HomeProfileEntity(now())
-        profile.update(clean.name, clean.tagline, clean.intro, clean.github, clean.phone, now())
+        profile.update(clean.name, clean.tagline, clean.intro, clean.github, clean.email, now())
         return profiles.saveAndFlush(profile).response()
     }
 
@@ -53,7 +53,7 @@ class HomeProfileService(
             }
         }
         val profile = profiles.findByIdOrNull(1) ?: HomeProfileEntity(now())
-        profile.update(clean.name, clean.tagline, clean.intro, clean.github, clean.phone, now())
+        profile.update(clean.name, clean.tagline, clean.intro, clean.github, clean.email, now())
         val previous = if (key != null || removePhoto) profile.replacePhoto(key, now()) else null
         val saved = profiles.saveAndFlush(profile).response()
         if (previous != null) cleanupAfterCommit(previous)
@@ -95,16 +95,30 @@ class HomeProfileService(
 
     /** @return object key 없이 공개할 카드 DTO. */
     private fun HomeProfileEntity.response(): HomeProfileResponse =
-        HomeProfileResponse(name, tagline, intro, github, phone, photoObjectKey?.let { "/api/v1/profile/photo?v=$updatedAt" })
+        HomeProfileResponse(name, tagline, intro, github, email, photoObjectKey?.let { "/api/v1/profile/photo?v=$updatedAt" })
 
     /** @return 모든 텍스트 필드를 단일 요청에서 검증·정리한 확정 입력. */
     private fun validate(request: HomeProfileRequest): HomeProfileRequest {
         val clean = HomeProfileRequest(field(request.name, 100), field(request.tagline, 240),
             field(request.intro, 5000, multiline = true), field(request.github, 500),
-            field(request.phone, 40))
-        if (clean.name.isBlank() || (clean.phone.isNotEmpty() && !PHONE.matches(clean.phone)) ||
+            email(request.email))
+        if (clean.name.isBlank() ||
             (clean.github.isNotEmpty() && !isGithubUrl(clean.github))) badInput()
         return clean
+    }
+
+    /** @return 선택적인 공개 이메일. 제어문자·긴 주소·잘못된 형식은 명확한 400으로 거부. */
+    private fun email(value: String): String {
+        if (value.any(Character::isISOControl)) badEmail()
+        return value.trim().also { if (it.length > 254 || (it.isNotEmpty() && !isEmail(it))) badEmail() }
+    }
+
+    /** @return 길이 제한과 ASCII dot-atom/local·DNS 도메인 형식을 만족하는 공개 이메일 여부. */
+    private fun isEmail(value: String): Boolean {
+        val parts = value.split('@')
+        if (parts.size != 2 || parts[0].length !in 1..64 || parts[1].length !in 1..253 || !EMAIL_LOCAL.matches(parts[0])) return false
+        val labels = parts[1].split('.')
+        return labels.size >= 2 && labels.last().length >= 2 && labels.all { DOMAIN_LABEL.matches(it) }
     }
 
     /** @return 제어문자·길이가 검증된 단일 입력 필드. */
@@ -141,7 +155,11 @@ class HomeProfileService(
     /** @return 안전한 홈 소개 입력 오류. */
     private fun badInput(): Nothing = throw OperationFailure(HttpStatus.BAD_REQUEST, "홈 소개 입력을 확인하세요.")
 
+    /** @return 안전하고 이메일 필드를 특정하는 입력 오류. */
+    private fun badEmail(): Nothing = throw OperationFailure(HttpStatus.BAD_REQUEST, "이메일 주소를 확인하세요.")
+
     private companion object {
-        val PHONE = Regex("\\+?[0-9]{1,39}")
+        val EMAIL_LOCAL = Regex("[A-Za-z0-9!#\u0024%&'*+/=?^_`{|}~-]+(?:\\.[A-Za-z0-9!#\u0024%&'*+/=?^_`{|}~-]+)*")
+        val DOMAIN_LABEL = Regex("[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?")
     }
 }

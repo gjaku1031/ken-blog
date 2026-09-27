@@ -721,6 +721,9 @@ button:disabled { cursor: not-allowed; opacity: .6; }
 @keyframes feed-shimmer { to { background-position-x: -200%; } }
 @media (prefers-reduced-motion: reduce) { .feed-skeleton span { animation: none; } }
 .profile-links a { display: inline-flex; align-items: center; gap: 5px; }
+.profile-links .profile-email-link { min-width: 0; max-width: 100%; }
+.profile-links .profile-email-link svg { flex: 0 0 15px; }
+.profile-links .profile-email-link span { min-width: 0; overflow-wrap: anywhere; }
 .heat-day:hover { outline: 1.5px solid var(--text); outline-offset: 1px; }
 .heat-day[data-tooltip]:hover::after, .heat-day[data-tooltip]:focus-visible::after { content: attr(data-tooltip); position: absolute;
   z-index: 8; left: 50%; bottom: calc(100% + 8px); transform: translateX(-50%); padding: 7px 10px;

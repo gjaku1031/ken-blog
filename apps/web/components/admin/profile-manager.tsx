@@ -54,13 +54,15 @@ export function ProfileManager() {
     try {
       const fields = new FormData();
       fields.set("profile", new Blob([JSON.stringify({ name: form.name, tagline: form.tagline, intro: form.intro,
-        github: form.github, phone: form.phone })], { type: "application/json" }));
+        github: form.github, email: form.email })], { type: "application/json" }));
       if (photoMode === "upload" && file) fields.set("file", file);
       fields.set("removePhoto", String(photoMode === "remove"));
       const result = parseProfile(await auth.adminForm("POST", "/api/v1/admin/profile/save", fields));
       setSaved(result); setForm(result); setFile(null); setPreview(null); setPhotoMode("keep"); setStatus("저장했습니다.");
     } catch (failure) { setStatus(failure instanceof ApiFailure && failure.status === 415 ?
-      "지원하지 않는 사진 형식입니다. PNG, JPEG 또는 WebP 이미지를 선택해 주세요." : apiFailureMessage(failure)); }
+      "지원하지 않는 사진 형식입니다. PNG, JPEG 또는 WebP 이미지를 선택해 주세요." :
+      failure instanceof ApiFailure && failure.status === 400 ?
+        "이름, GitHub 주소, 이메일 입력을 확인해 주세요." : apiFailureMessage(failure)); }
     finally { setBusy(false); }
   }
 
@@ -77,13 +79,15 @@ export function ProfileManager() {
         onChange={(event) => choosePhoto(event.target.files?.[0] ?? null)} /></label>
         {(photo || form.photoUrl) && <button type="button" className="small-button" onClick={() => {
           setFile(null); setPreview(null); setPhotoMode("remove"); }}>사진 빼기</button>}</div></div>
-    {(["name", "tagline", "intro", "github", "phone"] as const).map((key) => <label key={key}>
-      {{ name: "이름", tagline: "한 줄 소개", intro: "소개", github: "GitHub", phone: "연락처" }[key]}
-      {key === "intro" ? <textarea rows={5} value={form[key]} onChange={(event) => setForm((current) => current &&
+    {(["name", "tagline", "intro", "github", "email"] as const).map((key) => <label key={key}>
+      {{ name: "이름", tagline: "한 줄 소개", intro: "소개", github: "GitHub", email: "이메일" }[key]}
+      {key === "intro" ? <textarea rows={5} maxLength={5000} value={form[key]} onChange={(event) => setForm((current) => current &&
         ({ ...current, [key]: event.target.value }))} placeholder="두세 줄 정도" /> : <input value={form[key]}
-          type={key === "github" ? "url" : key === "phone" ? "tel" : "text"}
+          type={key === "github" ? "url" : key === "email" ? "email" : "text"}
           placeholder={{ name: "표시될 이름", tagline: "이름 옆에 붙는 한 줄", github: "https://github.com/아이디",
-            phone: "비워 두면 홈에 안 보입니다" }[key]}
+            email: "name@example.com (비워 두면 홈에 표시하지 않음)" }[key]}
+          maxLength={key === "name" ? 100 : key === "tagline" ? 240 : key === "github" ? 500 : 254}
+          autoComplete={key === "email" ? "email" : undefined} required={key === "name"}
           onChange={(event) => setForm((current) => current && ({ ...current, [key]: event.target.value }))} />}</label>)}
     <div className="admin-form-actions"><button type="button" className="small-button" onClick={reset}>되돌리기</button>
       <button type="submit" className="primary-button" disabled={busy}>{busy ? "저장 중…" : "저장"}</button></div>
