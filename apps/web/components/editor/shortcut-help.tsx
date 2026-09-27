@@ -14,10 +14,11 @@ const blocks = [
   ["이미지", "파일을 블록 위·아래 삽입선에 놓기 · 붙여넣기 · 하단 이미지 버튼", "—"],
 ];
 const keys = [
+  ["태그 입력 + Enter", "태그 추가"],
   ["Enter", "다음 블록 · 빈 목록에서 목록 나가기"],
   ["Backspace", "빈 블록이면 일반 문단으로, 또 누르면 위 블록과 합치기"],
   ["Esc", "선택 해제 · 코드 · 다이어그램 · 수식 블록 닫고 렌더"],
-  ["⌘/Ctrl + Enter", "코드 블록 안에서 다음 블록 만들기"],
+  ["⌘/Ctrl + Enter", "코드·수식·다이어그램 블록 안에서 다음 블록 만들기"],
   ["↑ ↓", "블록 사이 이동"], ["Tab · Shift+Tab", "접기 안으로 넣기 · 밖으로 빼기"],
   ["손잡이 Shift + 클릭", "같은 편집기 안의 연속된 블록 선택"],
   ["손잡이 Ctrl/⌘ + 클릭", "블록을 선택 목록에 추가하거나 빼기"],
@@ -29,11 +30,12 @@ const keys = [
 export function ShortcutHelp() {
   return <div id="write-help" className="write-help-popover" role="region" aria-label="마크다운 단축키">
     <div className="editor-help-title"><strong>마크다운 단축키</strong><span>줄 맨 앞에 입력</span></div>
-    <table><thead><tr><th>입력</th><th>블록</th><th>마무리</th></tr></thead><tbody>
-      {blocks.map(([input, description, ending]) => <tr key={input}><td>{input}</td><td>{description}</td><td>{ending}</td></tr>)}
+    <table className="shortcut-blocks"><thead><tr><th scope="col">입력</th><th scope="col">블록</th><th scope="col">마무리</th></tr></thead><tbody>
+      {blocks.map(([input, description, ending]) => <tr key={input}><td data-label="입력">{input}</td>
+        <td data-label="블록">{description}</td><td data-label="마무리">{ending}</td></tr>)}
     </tbody></table>
-    <table><thead><tr><th>키</th><th>동작</th></tr></thead><tbody>
-      {keys.map(([key, action]) => <tr key={key}><td>{key}</td><td>{action}</td></tr>)}
+    <table className="shortcut-keys"><thead><tr><th scope="col">키</th><th scope="col">동작</th></tr></thead><tbody>
+      {keys.map(([key, action]) => <tr key={key}><td data-label="키">{key}</td><td data-label="동작">{action}</td></tr>)}
     </tbody></table>
   </div>;
 }

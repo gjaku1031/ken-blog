@@ -622,7 +622,6 @@ function WriteInstance({ route }: { route: Route }) {
       <span>·</span><span>{form.section === "PROJECT_HOME" ? "프로젝트 대문" : form.section === "PROJECT_DOC" ? projectName || "프로젝트 문서" :
         courses.find((course) => course.id === form.courseId)?.name ?? "과목"}</span>
       {form.section !== "PROJECT_HOME" && <><span>·</span><span>{form.section === "PROJECT_DOC" ? `문서 ${form.documentOrder ?? 1}` : `${form.chapterOrder ?? 1}강`}</span></>}
-      <small>{form.section === "PROJECT_HOME" ? "제목이 곧 프로젝트 이름입니다" : "출간할 때 순서를 바꿀 수 있어요"}</small>
     </div>}
     {form.section === "PROJECT_HOME" && form.projectMetadata && <div className="write-project-fields">
       <span className="editor-project-label">상태</span><div className="editor-project-status" role="radiogroup" aria-label="상태">
@@ -650,7 +649,7 @@ function WriteInstance({ route }: { route: Route }) {
         <button key={tag} type="button" disabled={busy === "publish"} aria-label={`${tag} 태그 제거`}
           onClick={() => changeForm((current) => ({ ...current, tags: current.tags.filter((item) => item !== tag) }))}>#{tag} ×</button>)}</div>
         <div className="editor-tag-input-wrap"><label className="sr-only" htmlFor="write-tag">태그 추가</label>
-          <input id="write-tag" value={tagInput} placeholder="태그 입력 후 Enter" autoComplete="off"
+          <input id="write-tag" value={tagInput} placeholder="태그 추가" autoComplete="off"
             disabled={busy === "publish"} onChange={(event) => setTagInput(event.target.value)}
             onFocus={() => setTagFocused(true)} onBlur={() => window.setTimeout(() => setTagFocused(false), 120)}
             onKeyDown={(event) => { if (event.key === "Enter" && !event.nativeEvent.isComposing && event.keyCode !== 229) { event.preventDefault(); addTag(); } }} />

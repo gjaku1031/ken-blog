@@ -512,13 +512,14 @@ button:disabled { cursor: not-allowed; opacity: .6; }
 .theme-switch[aria-checked="true"] .theme-switch-thumb { transform: translateX(20px); color: var(--accent-d); }
 .home-summary { display: grid; gap: 18px; margin: 0 0 32px; grid-template-columns: minmax(0, 1fr) 426px; margin-bottom: 38px; }
 .profile-card, .activity-card { min-width: 0; min-height: 210px; padding: 22px 24px; }
+.profile-card { display: flex; flex-direction: column; }
 .profile-head { display: flex; align-items: center; gap: 15px; }
 .profile-avatar { width: 64px; height: 64px; flex: 0 0 64px; display: grid; place-items: center; border-radius: 50%; overflow: hidden; font-size: 26px; font-weight: 700; border: 1px solid var(--line); background: var(--soft); color: var(--text2); }
 .profile-avatar img { width: 64px; height: 64px; object-fit: cover; }
 .profile-head h2 { margin: 0; font-size: 20px; }
 .profile-head p { margin: 0; color: var(--muted); font-size: 13px; }
 .profile-intro { margin: 16px 0 10px; color: var(--text2); white-space: pre-line; font-size: 14.5px; line-height: 1.7; }
-.profile-links { display: flex; flex-wrap: wrap; gap: 5px 16px; color: var(--accent-d); font-size: 13px; }
+.profile-links { display: flex; flex-wrap: wrap; gap: 5px 16px; margin-top: auto; color: var(--accent-d); font-size: 13px; }
 .activity-heading { display: flex; align-items: baseline; flex-wrap: wrap; gap: 5px 12px; margin: 0 0 18px; }
 .activity-heading h2 { margin: 0; font-size: 15px; }
 .activity-heading span { color: var(--muted); font-size: 12px; }

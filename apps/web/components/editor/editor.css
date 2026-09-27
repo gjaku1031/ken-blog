@@ -60,8 +60,6 @@
 
 @media (max-width: 860px) {
   .editor-design-page .block-editor .block-controls .drag-handle { display: inline-flex; align-items: center; justify-content: center; touch-action: manipulation; }
-  .editor-design-page .block-editor .block-controls .block-move-up,
-  .editor-design-page .block-editor .block-controls .block-move-down { display: inline-flex; align-items: center; justify-content: center; }
 }
 
 @media (max-width: 420px) {

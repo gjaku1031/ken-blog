@@ -16,6 +16,10 @@ export type CodeFenceData = { character: "`" | "~"; length: number; openingInden
   closingIndent: string; closingTrailing?: string };
 export type EditorBlock = {
   id: string; type: BlockType; text: string; raw: string; after: string; dirty: boolean;
+  /** 마지막 입력 줄을 보여 주기 위한 화면 전용 문단. 저장 원문에는 포함하지 않는다. */
+  transient?: boolean;
+  /** 빈 입력 줄에서 사용자가 Enter로 남긴 실제 빈 문단. */
+  intentionalBlank?: boolean;
   lang?: string; codeFence?: CodeFenceData; done?: boolean; ordinal?: number;
   table?: TableData; toggle?: ToggleData; image?: ImageData;
 };
@@ -91,8 +95,10 @@ function listSpans(node: SourceNode, source: string): Span[] | null {
     const start = item.position?.start.offset;
     const end = item.position?.end.offset;
     const raw = start === undefined || end === undefined ? "" : source.slice(start, end);
-    if (start === undefined || end === undefined || /\r|\n/.test(raw) || item.children?.length !== 1 ||
-      item.children[0].type !== "paragraph" || !/^\s*(?:[-+*]|\d+[.)])\s+(?:\[[ xX]\]\s+)?/.test(raw)) return null;
+    const emptyItem = /^\s*(?:[-+*]|\d+[.)])(?:[ \t]+\[[ xX]\])?[ \t]*$/.test(raw);
+    const textItem = item.children?.length === 1 && item.children[0].type === "paragraph" &&
+      /^\s*(?:[-+*]|\d+[.)])[ \t]+(?:\[[ xX]\][ \t]+)?/.test(raw);
+    if (start === undefined || end === undefined || /\r|\n/.test(raw) || !emptyItem && !textItem) return null;
     spans.push({ start, end, node: { ...item, type: node.ordered ? "orderedItem" : "unorderedItem" } });
   }
   return spans;
@@ -156,8 +162,21 @@ export function parseEditorMarkdown(source: string, depth = 0): MarkdownDocument
     const after = source.slice(span.end, normalized[index + 1]?.start ?? source.length);
     return decodeBlock(raw, after, span.node, Boolean(span.forcedRaw), depth);
   });
+  const newline = source.includes("\r\n") ? "\r\n" : "\n";
+  const last = blocks.at(-1);
+  if (last) {
+    const count = last.after.length / newline.length;
+    if (Number.isInteger(count) && count >= 2 && last.after === newline.repeat(count)) {
+      // 말미의 순수 개행만 빈 문단으로 복원한다. 원문 공백은 같은 순서로 블록에 분배한다.
+      last.after = newline.repeat(2);
+      for (let index = 1; index < count; index += 1) {
+        blocks.push({ ...emptyBlock("p", newline), dirty: false, intentionalBlank: true,
+          after: index < count - 1 ? newline : "" });
+      }
+    }
+  }
   if (!blocks.length && !source) blocks.push({ ...emptyBlock(), after: "" });
-  return { head, blocks, newline: source.includes("\r\n") ? "\r\n" : "\n" };
+  return { head, blocks, newline };
 }
 
 /** AST 분류를 원문 문법으로 재확인하고 모호한 구간은 읽기 전용으로 둔다. */
@@ -191,6 +210,10 @@ function decodeBlock(raw: string, after: string, node: SourceNode, forcedRaw: bo
     if (match) return { ...base, type: `h${match[1].length}` as BlockType, text: match[2] };
   }
   if (node.type === "unorderedItem" || node.type === "orderedItem") {
+    const empty = /^\s*(?:([-+*])|(\d+)[.)])(?:[ \t]+\[([ xX])\])?[ \t]*$/.exec(raw);
+    if (empty) return { ...base, type: empty[3] === undefined ?
+      (node.type === "orderedItem" ? "ol" : "ul") : "todo",
+      text: "", done: empty[3]?.toLowerCase() === "x", ordinal: empty[2] ? Number(empty[2]) : undefined };
     const match = /^\s*(?:([-+*])|(\d+)[.)])[ \t]+(?:\[([ xX])\][ \t]+)?([^\r\n]*)$/.exec(raw);
     if (match) return { ...base, type: match[3] === undefined ? (node.type === "orderedItem" ? "ol" : "ul") : "todo",
       text: match[4], done: match[3]?.toLowerCase() === "x", ordinal: match[2] ? Number(match[2]) : undefined };
@@ -277,7 +300,9 @@ export function blockMarkdown(block: EditorBlock, newline = "\n"): string {
 
 /** head·각 블록 원문·원래 구분 공백을 이어 붙여 무수정 라운드트립을 보장한다. */
 export function serializeEditorMarkdown(document: MarkdownDocument): string {
-  return document.head + document.blocks.map((block) => blockMarkdown(block, document.newline) + block.after).join("");
+  return document.head + document.blocks.filter((block, index) =>
+    !(index === document.blocks.length - 1 && block.transient && block.type === "p" && !block.text && !block.raw))
+    .map((block) => blockMarkdown(block, document.newline) + block.after).join("");
 }
 
 /** 구조 변경 뒤 이웃 블록이 하나의 목록·문단으로 합쳐지지 않게 경계만 보강한다. */
@@ -285,7 +310,11 @@ export function ensureBlockBoundaries(document: MarkdownDocument): MarkdownDocum
   const blocks = document.blocks.map((block, index) => {
     const next = document.blocks[index + 1];
     if (!next) return block;
-    const needed = block.type === next.type && ["ul", "ol", "todo"].includes(block.type) ? 1 : 2;
+    // 화면 전용 마지막 입력 줄은 아직 원문의 새 단락이 아니므로 앞 블록의 공백도 변경하지 않는다.
+    if (index + 1 === document.blocks.length - 1 && next.transient && next.type === "p" && !next.text && !next.raw)
+      return block;
+    const afterIntentionalBlank = block.intentionalBlank && block.type === "p" && !block.text && !block.raw;
+    const needed = afterIntentionalBlank || block.type === next.type && ["ul", "ol", "todo"].includes(block.type) ? 1 : 2;
     // HTML·들여쓴 코드의 raw slice가 개행으로 끝나기도 하므로 after만 세면 원문 빈 줄을 늘린다.
     const whitespace = (blockMarkdown(block, document.newline) + block.after).match(/[ \t\r\n]*$/)?.[0] ?? "";
     const present = whitespace.match(/\r?\n/g)?.length ?? 0;

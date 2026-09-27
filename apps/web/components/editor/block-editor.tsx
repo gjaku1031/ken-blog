@@ -9,6 +9,7 @@ import { emptyTable, parsePipeHeaderCommand, TABLE_MAX_COLUMNS, TABLE_MAX_CELL_L
 import { TableBlock } from "@/components/editor/table-block";
 import { ToggleBlock } from "@/components/editor/toggle-block";
 import { ImageBlock } from "@/components/editor/image-block";
+import { CodeLanguagePicker } from "@/components/editor/code-language-picker";
 import { insertAnnotationAt, insertInlineTextAt, type EditorAnnotationModel, type EditorAnnotationSelection } from "@/lib/editor-annotation";
 import { validWikiTitle } from "@/lib/wiki-link-syntax";
 import { captureBlockInsertion, moveEditorBlocks, resolveBlockInsertion, type BlockInsertion } from "@/lib/editor-block-move";
@@ -32,7 +33,6 @@ const blockNames: Record<BlockType, string> = { p: "문단", h1: "제목 1", h2:
 const shortcuts: Record<string, BlockType> = { "#": "h1", "##": "h2", "###": "h3", "-": "ul", "*": "ul",
   "1.": "ol", "[]": "todo", "[ ]": "todo", "|": "quote" };
 const DRAG_FORMAT = "application/x-ken-blog-editor-block";
-const CODE_LANGUAGES = ["kotlin", "java", "javascript", "typescript", "json", "sql", "bash", "yaml", "python", "css", "html", "markdown"];
 const CODE_LANGUAGE_PATTERN = /^[A-Za-z0-9_-]{0,32}$/;
 
 /** {@link BlockEditor}의 선택 상태를 해제할 빈 여백과 기존 클릭 동작을 구별한다. */
@@ -78,10 +78,36 @@ function parseActiveSource(block: EditorBlock, source: string): Pick<EditorBlock
 }
 
 /** 기본 블록을 키보드와 마우스로 편집하고 원문 블록은 읽기 전용으로 보존한다. */
-export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEditorInner({ value, onChange, disabled = false,
+export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEditorInner({ value: suppliedValue, onChange: onDocumentChange, disabled = false,
   focusFirstSignal = 0, focusBlock, depth = 0, onOutdentFrom, onImageFile, onImageReject,
   annotationPreview, annotationController, annotationSessionKey }: Props, ref) {
   const editorToken = useId();
+  const trailing = useRef<EditorBlock | null>(null);
+  /** {@link MarkdownDocument}의 마지막 실문단 아래에 안정된 ID의 화면 전용 입력 줄을 붙인다. */
+  function withTrailing(document: MarkdownDocument): MarkdownDocument {
+    const last = document.blocks.at(-1);
+    if (last?.type === "p" && !last.text && !last.raw && !last.intentionalBlank) return document;
+    if (!trailing.current || document.blocks.some((block) => block.id === trailing.current?.id))
+      trailing.current = { ...emptyBlock("p", document.newline), after: "", transient: true };
+    return { ...document, blocks: [...document.blocks, trailing.current] };
+  }
+  const value = withTrailing(suppliedValue);
+  /** 입력을 시작한 화면 전용 줄만 실문단으로 승격하고 나머지는 원고에서 제외한다. */
+  function withoutTrailing(document: MarkdownDocument): MarkdownDocument {
+    const blocks = document.blocks.flatMap((block) => {
+      if (!block.transient) return [block];
+      if (block.type === "p" && !block.text && !block.raw) return [];
+      const { transient: _transient, ...materialized } = block;
+      return [materialized];
+    });
+    return { ...document, blocks };
+  }
+  /** {@link onDocumentChange}에 화면 전용 빈 문단을 전달하지 않는다. */
+  function onChange(next: MarkdownDocument) {
+    const actual = withoutTrailing(next);
+    latest.current = withTrailing(actual);
+    onDocumentChange(actual);
+  }
   const [activeId, setActiveId] = useState<string | null>(null);
   const [focusTarget, setFocusTarget] = useState<FocusTarget | null>(null);
   const [tableFocus, setTableFocus] = useState<{ id: string; serial: number } | null>(null);
@@ -385,7 +411,7 @@ export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEd
 
   /** 업로드 완료 시점의 최신 원고에서 ID 경계를 찾아 이미지와 이어 쓸 문단을 삽입한다. {@link BlockInsertion} */
   function insertUploaded(image: ImageData, anchor: BlockInsertion, replaceEmptyId: string | null) {
-    const current = latest.current;
+    const current = withoutTrailing(latest.current);
     const blocks = [...current.blocks];
     const index = resolveBlockInsertion(current, anchor);
     const picture = emptyImageBlock(image, current.newline);
@@ -424,7 +450,7 @@ export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEd
   /** 업로드 요청 전 ID 경계를 잡아 이후 원고 편집에도 첨부 삽입 위치를 유지한다. {@link insertUploaded} */
   function acceptImageFile(file: File, slot: DropSlot | null = null) {
     if (disabled || !onImageFile) return;
-    const current = latest.current;
+    const current = withoutTrailing(latest.current);
     const targetIndex = activeId ? current.blocks.findIndex((block) => block.id === activeId) : -1;
     const index = slot ? slotIndex(current, slot) : targetIndex < 0 ? current.blocks.length : targetIndex + 1;
     const preferred = slot?.side === "before" ? "before" : "after";
@@ -495,6 +521,16 @@ export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEd
     const group = value.blocks[groupIndex];
     if (disabled || group.type !== "toggle" || !group.toggle) return;
     const inner = group.toggle.inner;
+    if (childIndex === inner.blocks.length) {
+      // 접기 자식의 화면 전용 마지막 줄에서 Shift+Tab을 누르면 바깥쪽 입력 줄로 옮긴다.
+      const following = value.blocks[groupIndex + 1];
+      if (following?.type === "p" && !following.text && !following.raw) { activate(following.id, 0); return; }
+      const added = { ...emptyBlock("p", value.newline), after: group.after };
+      const blocks = [...value.blocks];
+      blocks[groupIndex] = { ...group, after: value.newline.repeat(2) };
+      blocks.splice(groupIndex + 1, 0, added);
+      onChange(ensureBlockBoundaries({ ...value, blocks })); activate(added.id, 0); return;
+    }
     const moved = inner.blocks.slice(childIndex);
     if (!moved.length) return;
     const kept = inner.blocks.slice(0, childIndex);
@@ -518,7 +554,7 @@ export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEd
     const inner = group.toggle.inner;
     const onlyPlaceholder = inner.blocks.length === 1 && inner.blocks[0].type === "p" &&
       !inner.blocks[0].text && !inner.blocks[0].raw;
-    const child = { ...current, after: value.newline.repeat(2) };
+    const child = { ...current, transient: undefined, after: value.newline.repeat(2) };
     const children = onlyPlaceholder ? [child] : [...inner.blocks, child];
     const updated = { ...group, dirty: true, after: current.after, toggle: {
       ...group.toggle, inner: ensureBlockBoundaries({ ...inner, blocks: children }),
@@ -534,6 +570,7 @@ export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEd
   function removeAt(index: number) {
     const blocks = [...value.blocks];
     const removed = blocks[index];
+    if (removed?.transient) { if (index > 0) activate(blocks[index - 1].id); return; }
     if (blocks.length === 1) {
       const replacement = emptyBlock("p", value.newline);
       onChange({ ...value, blocks: [{ ...replacement, after: removed.after }] });
@@ -602,6 +639,16 @@ export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEd
         return;
       }
       if (event.ctrlKey || event.metaKey) return;
+      if (block.transient && !text && start === end) {
+        event.preventDefault();
+        // 가상 줄에서 누른 Enter는 실제 빈 문단을 한 개 남기고 새 가상 줄로 이동한다.
+        const blocks = value.blocks.map((item) => item.id === block.id ?
+          { ...item, transient: undefined, intentionalBlank: true, after: "" } : item);
+        onChange(ensureBlockBoundaries({ ...value, blocks }));
+        const next = latest.current.blocks.at(-1);
+        if (next?.transient) activate(next.id, 0);
+        return;
+      }
       if (block.type === "p" && start === end && text === "---") {
         event.preventDefault();
         const blocks = [...value.blocks];
@@ -626,6 +673,10 @@ export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEd
         event.preventDefault(); edit(block.id, (old) => ({ ...old, type: "code", lang: codeCommand[1], text: "",
           codeFence: { character: "`", length: 3, openingIndent: "", closingIndent: "" }, dirty: true }));
         activate(block.id, 0); return;
+      }
+      if (!block.transient && ["p", "h1", "h2", "h3", "quote"].includes(block.type) &&
+        start === end && end === text.length && value.blocks[index + 1]?.transient) {
+        event.preventDefault(); activate(value.blocks[index + 1].id, 0); return;
       }
       event.preventDefault();
       if (["ul", "ol", "todo"].includes(block.type) && !text) {
@@ -683,9 +734,9 @@ export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEd
   /** 선택 ID를 원래 순서대로 하나의 묶음으로 옮기고 최종 위치를 강조한다. {@link moveEditorBlocks} */
   function reorder(ids: readonly string[], boundaryIndex: number) {
     if (disabled) return;
-    const current = latest.current;
+    const current = withoutTrailing(latest.current);
     const moving = current.blocks.filter((block) => ids.includes(block.id)).map((block) => block.id);
-    const next = moveEditorBlocks(current, moving, boundaryIndex);
+    const next = moveEditorBlocks(current, moving, Math.min(boundaryIndex, current.blocks.length));
     setDropSlot(null);
     if (!next) return;
     rememberPositions();
@@ -697,28 +748,20 @@ export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEd
     flashTimer.current = setTimeout(() => setFlashIds(new Set()), 800);
   }
 
-  /** 화살표는 손잡이 선택이 있으면 전체 묶음을, 없으면 해당 블록 하나를 한 칸 이동한다. {@link reorder} */
+  /** 손잡이의 키보드 명령은 선택 묶음 또는 해당 블록 하나를 한 칸 이동한다. {@link reorder} */
   function move(from: number, to: number) {
     if (disabled || from === to || from < 0 || from >= value.blocks.length) return;
     const id = value.blocks[from].id;
+    if (value.blocks[from].transient) return;
     const ids = selectedIds.has(id) ? [...selectedIds] : [id];
-    const positions = value.blocks.flatMap((block, index) => ids.includes(block.id) ? [index] : []);
+    const actual = withoutTrailing(value).blocks;
+    const positions = actual.flatMap((block, index) => ids.includes(block.id) ? [index] : []);
     const first = Math.min(...positions);
-    const nextUnselected = value.blocks.findIndex((block, index) => index > first && !ids.includes(block.id));
+    const nextUnselected = actual.findIndex((block, index) => index > first && !ids.includes(block.id));
     const boundary = to < from ? first - 1 : nextUnselected < 0 ? -1 : nextUnselected + 1;
-    if (boundary < 0 || boundary > value.blocks.length) return;
+    if (boundary < 0 || boundary > actual.length) return;
     selectionAnchor.current = id;
     reorder(ids, boundary);
-  }
-
-  /** 선택 묶음 전체를 기준으로 화살표 이동 가능성을 계산해 {@link move} 버튼 상태를 맞춘다. */
-  function canMove(index: number, direction: "up" | "down"): boolean {
-    const block = value.blocks[index];
-    if (!block || disabled) return false;
-    const group = selectedIds.has(block.id) ? selectedIds : new Set([block.id]);
-    const first = value.blocks.findIndex((item) => group.has(item.id));
-    return direction === "up" ? first > 0 :
-      value.blocks.some((item, position) => position > first && !group.has(item.id));
   }
 
   /** 손잡이 Shift 범위·Ctrl/⌘ 개별 선택을 현재 {@link BlockEditor}의 형제 블록으로 제한한다. */
@@ -866,7 +909,7 @@ export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEd
       const bottom = Math.max(startY, pageY);
       setSelectionBox({ left: left - window.scrollX, top: top - window.scrollY,
         width: Math.max(1, right - left), height: Math.max(1, bottom - top) });
-      const ids = [...editor.querySelectorAll<HTMLElement>(":scope > .editor-block")].flatMap((element) => {
+      const ids = [...editor.querySelectorAll<HTMLElement>(":scope > .editor-block:not([data-transient='true'])")].flatMap((element) => {
         const rect = element.getBoundingClientRect();
         const gutterRect = element.querySelector<HTMLElement>(":scope > .editor-box-gutter")?.getBoundingClientRect();
         const hitLeft = gutterRect?.width ? Math.min(rect.left, gutterRect.left) : rect.left;
@@ -994,11 +1037,12 @@ export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEd
     {selectionBox && <div className="editor-selection-box" style={selectionBox} aria-hidden="true" />}
     {(selectedIds.size > 0 && !selectionBox || selectionBox && keepSelectionBarSpace) &&
       <div className={`editor-selection-bar${selectionBox ? " editor-selection-bar-hidden" : ""}`} role="status">
-      <span>{selectedIds.size}개 블록 선택됨 · 손잡이나 화살표로 함께 이동</span>
+      <span>{selectedIds.size}개 블록 선택됨 · 손잡이로 함께 이동</span>
       <button type="button" onClick={() => { setSelectedIds(new Set()); selectionAnchor.current = null; }}>선택 해제</button>
     </div>}
     {pendingUpload && <span className="sr-only" role="status">이미지 업로드 중 · 표시한 삽입 위치에 추가됩니다</span>}
     {value.blocks.map((block, index) => <div key={block.id} data-block-id={block.id}
+      data-transient={block.transient ? "true" : undefined}
       data-drop-side={dropSlot?.targetId === block.id ? dropSlot.side : undefined}
       data-upload-before={pendingUpload && resolveBlockInsertion(value, pendingUpload.anchor) === index ? "true" : undefined}
       className={`editor-block editor-${block.type}${selectedIds.has(block.id) ? " editor-block-selected" : ""}${flashIds.has(block.id) ? " editor-block-flash" : ""}`}
@@ -1017,7 +1061,7 @@ export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEd
       {depth === 0 && <div className="editor-box-gutter" aria-hidden="true" />}
       <div className={`block-controls${depth === 1 || (depth === 0 && index > 0 && value.blocks[index - 1].type === "toggle") ? " block-controls-transfer" : ""}`}
         aria-label={`${index + 1}번 블록 이동`}>
-        <button type="button" className="drag-handle" disabled={disabled} draggable={!disabled}
+        {!block.transient && <button type="button" className="drag-handle" disabled={disabled} draggable={!disabled}
           aria-pressed={selectedIds.has(block.id)}
           onPointerDown={(event) => { handlePointerType.current = event.pointerType; }}
           onClick={(event) => selectHandle(event, block.id, index)}
@@ -1030,9 +1074,7 @@ export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEd
           beginDrag(event, block.id);
         }} onDragEnd={(event) => {
           event.stopPropagation(); dragIds.current = []; setDropSlot(null);
-        }} aria-label={`${index + 1}번 블록 선택 또는 끌어 이동`}>⋮⋮</button>
-        <button type="button" className="block-move-up" disabled={!canMove(index, "up")} onClick={() => move(index, index - 1)} aria-label={`${index + 1}번 블록 위로 이동`}>↑</button>
-        <button type="button" className="block-move-down" disabled={!canMove(index, "down")} onClick={() => move(index, index + 1)} aria-label={`${index + 1}번 블록 아래로 이동`}>↓</button>
+        }} aria-label={`${index + 1}번 블록 선택 또는 끌어 이동`}>⋮⋮</button>}
         {depth === 1 && onOutdentFrom && <button type="button" disabled={disabled} onClick={() => onOutdentFrom(index)}
           aria-label={`${index + 1}번 블록부터 접기 밖으로 빼기`}>↤</button>}
         {depth === 0 && index > 0 && value.blocks[index - 1].type === "toggle" && block.type !== "toggle" &&
@@ -1095,11 +1137,11 @@ export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEd
           activeId === block.id ? <div className="block-input-wrap">
             {block.type === "code" && <div className="editor-code-options">
               <label htmlFor={`${block.id}-language`}>코드 언어</label>
-              <input id={`${block.id}-language`} type="text" list={`${block.id}-languages`} autoComplete="off"
+              <CodeLanguagePicker id={`${block.id}-language`}
                 value={block.lang ?? ""} disabled={disabled} aria-invalid={languageError?.id === block.id}
-                aria-describedby={`${block.id}-language-help${languageError?.id === block.id ? ` ${block.id}-language-error` : ""}`}
-                onChange={(event) => changeCodeLanguage(block.id, event.target.value)}
-                onKeyDown={(event) => {
+                aria-describedby={languageError?.id === block.id ? `${block.id}-language-error` : undefined}
+                onChange={(language) => changeCodeLanguage(block.id, language)}
+                onEditorKeyDown={(event) => {
                   if (event.nativeEvent.isComposing) return;
                   if (event.key === "Escape") {
                     event.preventDefault(); setActiveId(null); setFocusTarget({ id: block.id, offset: 0 });
@@ -1109,9 +1151,6 @@ export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEd
                     else refs.current.get(block.id)?.focus();
                   }
                 }} />
-              <datalist id={`${block.id}-languages`}>{CODE_LANGUAGES.map((language) =>
-                <option key={language} value={language} />)}</datalist>
-              <span id={`${block.id}-language-help`} className="editor-code-help">언어를 비우면 일반 코드로 표시합니다. Ctrl/⌘ Enter로 아래 문단을 추가합니다.</span>
               {languageError?.id === block.id && <span id={`${block.id}-language-error`} className="editor-code-error" role="alert">
                 {languageError.message}</span>}
             </div>}
@@ -1121,8 +1160,7 @@ export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEd
             <textarea id={`${block.id}-text`} ref={(node) => { if (node) refs.current.set(block.id, node); }}
               data-annotation-block-id={ANNOTATION_TEXT_TYPES.has(block.type) ? block.id : undefined}
               aria-label={`${index + 1}번 ${blockNames[block.type]} 블록`} rows={Math.max(1, block.text.split("\n").length)}
-              aria-describedby={block.type === "math" ? `${block.id}-math-help` : block.type === "mermaid" ? `${block.id}-mermaid-help` : undefined}
-              value={visibleBlockText(block)} disabled={disabled} placeholder={block.type === "p" ? "내용을 입력하세요. 마크다운 단축키가 바로 적용됩니다" : "블록 내용을 입력하세요"}
+              value={visibleBlockText(block)} disabled={disabled} placeholder={block.type === "p" ? "내용을 입력하세요" : "블록 내용을 입력하세요"}
               onChange={(event) => {
                 const nextText = event.target.value;
                 const shortcut = block.type === "p" && !composing.current && nextText.endsWith(" ") ?
@@ -1149,20 +1187,18 @@ export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEd
               }, 0); }}
               onKeyDown={(event) => handleKey(event, block, index)} />
             {block.type === "math" && <div className="editor-math-actions">
-              <span id={`${block.id}-math-help`} className="editor-math-help">TeX 원문 입력 · Enter 줄바꿈 · Esc 미리보기 · Ctrl/⌘ Enter 아래 문단</span>
               <button type="button" disabled={disabled} onClick={() => {
                 if (window.confirm("수식 블록과 내용을 삭제할까요?")) removeAt(index);
               }}>수식 삭제</button>
             </div>}
             {block.type === "mermaid" && <div className="editor-mermaid-actions">
-              <span id={`${block.id}-mermaid-help`} className="editor-mermaid-help">Mermaid 원문 입력 · Enter 줄바꿈 · Esc 미리보기 · Ctrl/⌘ Enter 아래 문단</span>
               <button type="button" disabled={disabled} onClick={() => {
                 if (window.confirm("도식 블록과 내용을 삭제할까요?")) removeAt(index);
               }}>도식 삭제</button>
             </div>}
           </div> : <div className="editor-preview">
             <div inert={!annotationPreview?.byBlock.get(block.id)?.length}>{block.type === "p" && !block.text && !block.raw ?
-              <span className="editor-empty-placeholder">내용을 입력하세요. 마크다운 단축키가 바로 적용됩니다</span> :
+              <span className="editor-empty-placeholder">내용을 입력하세요</span> :
               block.type === "math" && !block.text ?
               <span className="editor-math-empty">빈 수식 · 클릭하여 편집</span> :
               block.type === "mermaid" && !block.text ?
@@ -1185,6 +1221,8 @@ export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEd
         {pendingUpload ? "이미지 업로드 중 · 이 위치에 삽입됩니다" : "여기에 삽입"}</div>}
     <button type="button" className="editor-add" disabled={disabled} onClick={() => {
       if (!value.blocks.length) { const block = emptyBlock("p", value.newline); onChange({ ...value, blocks: [block] }); activate(block.id, 0); }
+      else if (value.blocks.at(-1)?.type === "p" && !value.blocks.at(-1)?.text && !value.blocks.at(-1)?.raw)
+        activate(value.blocks[value.blocks.length - 1].id, 0);
       else insertAfter(value.blocks.length - 1, "p");
     }}>+ 문단 추가</button>
     <button type="button" className="editor-add" disabled={disabled} onClick={addTable}>+ 표 추가</button>
