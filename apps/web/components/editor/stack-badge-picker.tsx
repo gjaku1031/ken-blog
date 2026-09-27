@@ -2,40 +2,54 @@
 
 import Image from "next/image";
 import { useEffect, useId, useMemo, useRef, useState, type KeyboardEvent, type PointerEvent as ReactPointerEvent } from "react";
-import { ApiFailure, apiFailureMessage } from "@/lib/api";
+import { apiFailureMessage } from "@/lib/api";
 import { publicImageUrl } from "@/lib/profile";
-import { normalizeBadge, parseStackBadges, type StackBadge } from "@/lib/stack-badges";
+import { parseStackBadges, type StackBadge } from "@/lib/stack-badges";
 import { useAuth } from "@/components/auth-provider";
 
-type Choice = { kind: "existing"; badge: StackBadge } | { kind: "register"; name: string };
 type BadgeDrag = { pointerId: number; handle: HTMLButtonElement; name: string; startX: number; startY: number; active: boolean };
 
 /** {@link StackBadgePicker}의 선택·검색에서 서버와 같은 대소문자 무시 이름 키를 만든다. */
 function nameKey(name: string): string { return name.trim().toLowerCase(); }
 
-/** {@link StackBadgePicker}에서 Google Cloud의 검색 별칭을 표시 이름과 함께 찾는다. */
+/** {@link searchRank}에서 공백·점·하이픈·밑줄만 무시하고 C++·C#은 구분한다. */
+function compactKey(name: string): string { return nameKey(name).replace(/[\s._-]+/g, ""); }
+
+/** {@link searchRank}에서 표시 이름을 유지하면서 의미가 분명한 기술 약어를 찾는다. */
 function searchTerms(name: string): string[] {
   const key = nameKey(name);
-  return key === "google cloud" ? [key, "gcp"] : [key];
+  if (key === "google cloud") return [key, "gcp"];
+  if (key === "kotlin multiplatform") return [key, "kmp"];
+  if (key === "javascript") return [key, "js"];
+  if (key === "typescript") return [key, "ts"];
+  if (key === "kubernetes") return [key, "k8s"];
+  if (key === "oracle cloud") return [key, "oci"];
+  if (key === "postgresql") return [key, "postgres"];
+  return [key];
 }
 
-/** {@link StackBadgePicker}의 새 뱃지 이름이 서버의 길이·제어 문자 조건을 만족하는지 확인한다. */
-function validName(name: string): boolean {
-  const clean = name.trim();
-  return clean.length > 0 && clean.length <= 100 && !/[\u0000-\u001f\u007f-\u009f]/.test(clean);
+/** {@link searchTerms}의 정확한 이름·별칭, 접두어, 포함 순으로 후보를 정렬한다. */
+function searchRank(name: string, query: string): number {
+  const needle = nameKey(query);
+  const compact = compactKey(query);
+  const terms = searchTerms(name);
+  if (terms[0] === needle) return 0;
+  if (terms.slice(1).includes(needle)) return 1;
+  if (compact && compactKey(terms[0]) === compact) return 2;
+  if (compact && terms.slice(1).some((term) => compactKey(term) === compact)) return 3;
+  if (terms.some((term) => term.startsWith(needle))) return 4;
+  if (compact && terms.some((term) => compactKey(term).startsWith(compact))) return 5;
+  if (terms.some((term) => term.includes(needle))) return 6;
+  if (compact && terms.some((term) => compactKey(term).includes(compact))) return 7;
+  return Number.POSITIVE_INFINITY;
 }
 
-/** {@link parseStackBadges}의 실제 레지스트리와 선택된 이름을 연결해 대문 뱃지 자동완성·즉석 등록을 제공한다. */
+/** {@link parseStackBadges}의 실제 레지스트리만 검색·선택하고 대문 기술 스택 순서를 편집한다. */
 export function StackBadgePicker({ value, onChange, onCatalogChange, disabled = false }: {
   value: string[]; onChange: (names: string[]) => void; onCatalogChange?: (badges: StackBadge[] | null) => void; disabled?: boolean;
 }) {
   const auth = useAuth();
   const inputRef = useRef<HTMLInputElement>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
-  const uploadRef = useRef<AbortController | null>(null);
-  const catalogRef = useRef<StackBadge[]>([]);
-  const registeredRef = useRef<StackBadge[]>([]);
-  const pendingName = useRef("");
   const valueRef = useRef(value);
   const onChangeRef = useRef(onChange);
   const chipsRef = useRef<HTMLDivElement>(null);
@@ -50,7 +64,6 @@ export function StackBadgePicker({ value, onChange, onCatalogChange, disabled = 
   const [active, setActive] = useState(0);
   const [composing, setComposing] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [retry, setRetry] = useState(0);
   const [dropBoundary, setDropBoundary] = useState<number | null>(null);
@@ -66,10 +79,7 @@ export function StackBadgePicker({ value, onChange, onCatalogChange, disabled = 
     void auth.adminRead("/api/v1/admin/stack-badges", controller.signal)
       .then((result) => {
         if (!controller.signal.aborted) {
-          const fromServer = parseStackBadges(result);
-          const next = [...fromServer, ...registeredRef.current.filter((badge) =>
-            !fromServer.some((item) => item.id === badge.id))];
-          catalogRef.current = next;
+          const next = parseStackBadges(result);
           setBadges(next); onCatalogChange?.(next); setError("");
         }
       })
@@ -80,7 +90,7 @@ export function StackBadgePicker({ value, onChange, onCatalogChange, disabled = 
     return () => controller.abort();
   }, [auth.adminRead, onCatalogChange, retry]);
 
-  useEffect(() => () => { uploadRef.current?.abort(); if (flashTimer.current) clearTimeout(flashTimer.current); }, []);
+  useEffect(() => () => { if (flashTimer.current) clearTimeout(flashTimer.current); }, []);
 
   useEffect(() => {
     const onEscape = (event: globalThis.KeyboardEvent) => {
@@ -99,22 +109,13 @@ export function StackBadgePicker({ value, onChange, onCatalogChange, disabled = 
     };
   }, []);
 
-  const choices = useMemo<Choice[]>(() => {
-    const needle = nameKey(query);
+  const choices = useMemo<StackBadge[]>(() => {
     const chosen = new Set(value.map(nameKey));
-    const matching = badges.filter((badge) => !chosen.has(nameKey(badge.name)) &&
-      searchTerms(badge.name).some((term) => term.includes(needle)))
+    return badges.filter((badge) => !chosen.has(nameKey(badge.name)) && Number.isFinite(searchRank(badge.name, query)))
       .sort((left, right) => {
-        const prefix = Number(searchTerms(right.name).some((term) => term.startsWith(needle))) -
-          Number(searchTerms(left.name).some((term) => term.startsWith(needle)));
-        return prefix || (right.projectCount ?? 0) - (left.projectCount ?? 0) || left.name.localeCompare(right.name, "ko");
+        return searchRank(left.name, query) - searchRank(right.name, query) ||
+          (right.projectCount ?? 0) - (left.projectCount ?? 0) || left.name.localeCompare(right.name, "ko");
       });
-    const options: Choice[] = matching.map((badge) => ({ kind: "existing", badge }));
-    const clean = query.trim();
-    if (validName(clean) && !badges.some((badge) => searchTerms(badge.name).includes(nameKey(clean))) &&
-      !value.some((name) => searchTerms(name).includes(nameKey(clean))))
-      options.push({ kind: "register", name: clean });
-    return options;
   }, [badges, query, value]);
   const activeIndex = choices.length ? Math.min(active, choices.length - 1) : 0;
 
@@ -131,57 +132,7 @@ export function StackBadgePicker({ value, onChange, onCatalogChange, disabled = 
     inputRef.current?.focus();
   }
 
-  /** {@link StackBadgePicker}의 미등록 이름을 보관하고 팝업 밖의 파일 입력을 바로 연다. */
-  function choose(choice: Choice) {
-    if (disabled || uploading) return;
-    if (choice.kind === "existing") { select(choice.badge); return; }
-    if (valueRef.current.length >= 30) { setError("기술 스택은 30개까지 선택할 수 있습니다."); return; }
-    pendingName.current = choice.name;
-    setOpen(false);
-    fileRef.current?.click();
-  }
-
-  /** {@link normalizeBadge}의 64×64 PNG를 실제 관리자 API에 등록한 뒤 프로젝트 선택에도 추가한다. */
-  async function register(file: File) {
-    const name = pendingName.current;
-    pendingName.current = "";
-    if (!validName(name) || disabled || uploading) return;
-    if (file.type !== "image/png" && file.type !== "image/jpeg") {
-      setError("PNG 또는 JPEG 이미지를 선택해 주세요."); return;
-    }
-    if (file.size === 0 || file.size > 10 * 1024 * 1024) {
-      setError("10MiB 이하 이미지를 선택해 주세요."); return;
-    }
-    const controller = new AbortController();
-    uploadRef.current = controller;
-    setUploading(true); setError("");
-    try {
-      const png = await normalizeBadge(file);
-      if (controller.signal.aborted) return;
-      const fields = new FormData();
-      fields.set("name", name); fields.set("file", png);
-      const badge = parseStackBadges([await auth.adminForm("POST", "/api/v1/admin/stack-badges", fields, controller.signal)])[0];
-      if (controller.signal.aborted) return;
-      registeredRef.current = [...registeredRef.current.filter((item) => item.id !== badge.id), badge];
-      const next = [...catalogRef.current.filter((item) => item.id !== badge.id), badge];
-      catalogRef.current = next;
-      setBadges(next); onCatalogChange?.(next);
-      select(badge);
-    } catch (failure) {
-      if (!controller.signal.aborted) {
-        setError(failure instanceof ApiFailure && failure.status === 409 ?
-          "이미 등록된 이름입니다. 목록을 새로고침한 뒤 기존 뱃지를 선택해 주세요." :
-          failure instanceof ApiFailure && failure.status === 415 ?
-            "PNG 또는 JPEG 이미지를 선택해 주세요." : apiFailureMessage(failure));
-        if (failure instanceof ApiFailure && failure.status === 409) setRetry((current) => current + 1);
-      }
-    } finally {
-      if (uploadRef.current === controller) uploadRef.current = null;
-      if (!controller.signal.aborted) setUploading(false);
-    }
-  }
-
-  /** {@link choose}의 ↑↓·Enter·Esc 탐색과 빈 입력 Backspace의 마지막 선택 제거를 처리한다. */
+  /** {@link select}의 ↑↓·Enter·Esc 탐색과 빈 입력 Backspace의 마지막 선택 제거를 처리한다. */
   function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {
     if (event.key === "Escape") { event.preventDefault(); setOpen(false); return; }
     if (composing || event.nativeEvent.isComposing || event.keyCode === 229) return;
@@ -198,7 +149,7 @@ export function StackBadgePicker({ value, onChange, onCatalogChange, disabled = 
       event.preventDefault();
       if (!open) { setOpen(true); return; }
       const choice = choices[activeIndex];
-      if (choice) choose(choice);
+      if (choice) select(choice);
     }
   }
 
@@ -231,7 +182,7 @@ export function StackBadgePicker({ value, onChange, onCatalogChange, disabled = 
   function reorder(name: string, boundary: number) {
     const current = valueRef.current;
     const from = current.indexOf(name);
-    if (disabled || uploading || from < 0) return;
+    if (disabled || from < 0) return;
     const target = Math.max(0, Math.min(current.length, boundary));
     const to = target > from ? target - 1 : target;
     if (to === from) return;
@@ -244,7 +195,7 @@ export function StackBadgePicker({ value, onChange, onCatalogChange, disabled = 
 
   /** {@link reorder}용 손잡이 포인터를 잡고 제거 버튼 클릭과 구분한다. */
   function beginDrag(event: ReactPointerEvent<HTMLButtonElement>, name: string) {
-    if (disabled || uploading || !event.isPrimary || event.pointerType === "mouse" && event.button !== 0) return;
+    if (disabled || !event.isPrimary || event.pointerType === "mouse" && event.button !== 0) return;
     event.preventDefault();
     event.currentTarget.focus();
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -281,7 +232,7 @@ export function StackBadgePicker({ value, onChange, onCatalogChange, disabled = 
     if (boundary !== null) reorder(drag.name, boundary);
   }
 
-  const locked = disabled || uploading;
+  const locked = disabled;
   return <div className="stack-picker" onBlur={(event) => {
     if (!(event.relatedTarget instanceof Node) || !event.currentTarget.contains(event.relatedTarget)) setOpen(false);
   }}>
@@ -329,28 +280,19 @@ export function StackBadgePicker({ value, onChange, onCatalogChange, disabled = 
         onCompositionStart={() => setComposing(true)} onCompositionEnd={() => setComposing(false)} onKeyDown={onKeyDown} />
       {open && !locked && <div id={listId} className="stack-picker-options" role="listbox" aria-label="기술 스택 후보">
         {choices.map((choice, index) => {
-          const image = choice.kind === "existing" ? publicImageUrl(choice.badge.imageUrl) : null;
-          return <button key={choice.kind === "existing" ? choice.badge.id : `new:${choice.name}`} type="button" role="option"
+          const image = publicImageUrl(choice.imageUrl);
+          return <button key={choice.id} type="button" role="option"
             id={`${listId}-${index}`} aria-selected={activeIndex === index} className={activeIndex === index ? "stack-picker-option active" : "stack-picker-option"}
-            onMouseDown={(event) => event.preventDefault()} onMouseEnter={() => setActive(index)} onClick={() => choose(choice)}>
-            {choice.kind === "existing" ? <><span className="stack-picker-option-name">{image && <Image src={image} width={22}
-              height={22} unoptimized alt="" />}{choice.badge.name}</span><span className="stack-picker-option-count">
-              프로젝트 {choice.badge.projectCount ?? 0}</span></> : <span className="stack-picker-option-name">
-              “{choice.name}” 새 뱃지 등록 · 이미지 고르기</span>}
+            onMouseDown={(event) => event.preventDefault()} onMouseEnter={() => setActive(index)} onClick={() => select(choice)}>
+            <span className="stack-picker-option-name">{image && <Image src={image} width={22}
+              height={22} unoptimized alt="" />}{choice.name}</span><span className="stack-picker-option-count">
+              프로젝트 {choice.projectCount ?? 0}</span>
           </button>;
         })}
-        {!loading && choices.length === 0 && <p className="stack-picker-empty">선택할 뱃지가 없습니다.</p>}
+        {!loading && !error && choices.length === 0 && <p className="stack-picker-empty">검색 결과가 없습니다.</p>}
       </div>}
     </div>
-    <input ref={fileRef} hidden tabIndex={-1} type="file" accept="image/png,image/jpeg"
-      aria-label="새 기술 스택 뱃지 이미지" disabled={locked} onChange={(event) => {
-        const file = event.target.files?.[0];
-        event.target.value = "";
-        if (file) void register(file);
-        else pendingName.current = "";
-      }} />
     {loading && <p className="stack-picker-status" role="status">기술 스택을 불러오고 있습니다…</p>}
-    {uploading && <p className="stack-picker-status" role="status">뱃지를 등록하고 있습니다…</p>}
     {error && <p className="inline-error" role="alert">{error} <button type="button" className="small-button"
       disabled={locked} onClick={() => setRetry((current) => current + 1)}>목록 다시 읽기</button></p>}
   </div>;

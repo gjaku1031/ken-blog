@@ -189,39 +189,27 @@ button:disabled { cursor: not-allowed; opacity: .6; }
 .projects-heading > button { flex: 0 0 auto; }
 .projects-empty { color: var(--muted); }
 .projects-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; }
-.projects-order-editor { width: min(100%, 760px); padding: 22px 24px; }
-.projects-order-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
-.projects-order-top h2 { margin: 0 0 4px; font-size: 18px; }
-.projects-order-top p { margin: 0; color: var(--muted); font-size: 13px; }
-.projects-order-top > button { flex: 0 0 auto; }
-.projects-order-list { max-height: min(520px, 62vh); overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; list-style: none;
-  display: grid; grid-template-columns: minmax(0, 1fr); gap: 7px; margin: 18px 0; padding: 2px 4px 2px 1px; }
-.projects-order-list > li[data-project-order-id] { position: relative; display: flex; align-items: center; gap: 12px;
-  min-width: 0; max-width: 100%; min-height: 56px; box-sizing: border-box; padding: 7px 9px 7px 14px;
-  border: 1px solid var(--line2); border-radius: 8px; background: var(--card); }
-.projects-order-list > li.is-dragging { border-color: var(--accent); background: var(--tint); }
-.projects-order-list > li.drop-before::before, .projects-order-drop-end::before { content: ""; position: absolute;
-  left: 4px; right: 4px; top: -5px; height: 3px; border-radius: 3px; background: var(--accent); }
-.projects-order-drop-end { position: relative; height: 3px; }
-.projects-order-number { flex: 0 0 24px; color: var(--muted); font: 12px var(--font-mono), monospace; }
-.projects-order-name { display: flex; align-items: baseline; flex: 1 1 auto; min-width: 0; gap: 8px; }
-.projects-order-name strong { display: block; min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
-.projects-order-name small { flex: 0 0 auto; color: var(--pv-fg); font-size: 11px; }
-.projects-order-handle { display: grid; place-items: center; flex: 0 0 38px; width: 38px; height: 38px; border: 0;
-  border-radius: 6px; background: transparent; color: var(--muted); font-size: 20px; cursor: grab;
-  touch-action: none; user-select: none; }
-.projects-order-handle:hover, .projects-order-handle:focus-visible { background: var(--soft); color: var(--text); }
-.projects-order-handle:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.projects-order-handle:active { cursor: grabbing; }
-.projects-order-handle:disabled { opacity: .5; cursor: default; }
-.projects-order-error { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; color: var(--danger); font-size: 13px; }
-.projects-order-actions { display: flex; justify-content: flex-end; gap: 8px; }
-@media (max-width: 600px) {
-  .projects-order-editor { padding: 18px 15px; }
-  .projects-order-list > li[data-project-order-id] { gap: 8px; padding-left: 9px; }
-  .projects-order-name { display: block; }
-  .projects-order-name small { display: block; margin-top: 2px; }
-}
+.projects-grid .project-card { position: relative; min-width: 0; }
+.projects-grid .project-card-top:has(> .project-order-handle) { padding-right: 45px; }
+.projects-grid .project-card[draggable="true"] { cursor: grab; }
+.projects-grid .project-card[draggable="true"]:active { cursor: grabbing; }
+.projects-grid.is-orderable .project-card.is-dragging { opacity: .4; }
+.projects-grid.is-orderable .project-card.drop-before::before,
+.projects-grid.is-orderable .project-card.drop-after::after { content: ""; position: absolute; top: 8px; bottom: 8px;
+  width: 3px; border-radius: 3px; background: var(--accent); pointer-events: none; z-index: 2; }
+.projects-grid.is-orderable .project-card.drop-before::before { left: -11px; }
+.projects-grid.is-orderable .project-card.drop-after::after { right: -11px; }
+.project-order-handle { position: absolute; top: 15px; right: 15px; display: grid; place-items: center;
+  width: 40px; height: 40px; padding: 0; border: 1px solid var(--line2); border-radius: 8px;
+  background: var(--card); color: var(--muted); cursor: grab; touch-action: none; user-select: none; }
+.project-order-handle:hover, .project-order-handle:focus-visible { border-color: var(--accent); background: var(--tint); color: var(--accent-d); }
+.project-order-handle:active { cursor: grabbing; }
+.project-order-handle:disabled { opacity: .5; cursor: default; }
+.project-order-ghost { position: fixed; z-index: 30; box-sizing: border-box; max-width: min(220px, 80vw); max-height: 36px;
+  overflow: hidden; padding: 5px 10px; border: 1px solid var(--accent); border-radius: 7px; background: var(--card);
+  color: var(--text); box-shadow: var(--shadow2); line-height: 24px; white-space: nowrap; text-overflow: ellipsis;
+  pointer-events: none; opacity: .95; }
+.project-order-notice { margin: 0 0 16px; color: var(--text2); font-size: 13px; }
 .project-card { display: flex; flex-direction: column; min-height: 200px; gap: 10px; padding: 22px 24px; }
 .project-card-top { display: flex; align-items: center; flex-wrap: wrap; min-width: 0; gap: 7px; }
 .project-status { display: inline-flex; align-items: center; gap: 7px; font-weight: 600; white-space: nowrap; font-size: 12.5px; }
@@ -474,6 +462,10 @@ button:disabled { cursor: not-allowed; opacity: .6; }
 }
 @media (max-width: 860px) {
   .projects-grid { grid-template-columns: minmax(0, 1fr); }
+  .projects-grid.is-orderable .project-card.drop-before::before,
+  .projects-grid.is-orderable .project-card.drop-after::after { left: 8px; right: 8px; width: auto; height: 3px; }
+  .projects-grid.is-orderable .project-card.drop-before::before { top: -11px; bottom: auto; }
+  .projects-grid.is-orderable .project-card.drop-after::after { top: auto; bottom: -11px; }
   .project-layout { grid-template-columns: minmax(0, 1fr); gap: 18px; }
   .project-sidebar { position: static; max-height: none; }
   .project-main { padding: 25px; }
@@ -633,6 +625,10 @@ button:disabled { cursor: not-allowed; opacity: .6; }
 .stack-badges span { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--line2); height: 28px; padding: 3px 6px; border-radius: 6px; color: var(--text2); font-size: 12.5px; font-weight: 700; }
 .stack-badges img { width: 20px; height: 20px; }
 .stack-badges img, .stack-picker img { padding: 1px; border-radius: 3px; background: #fff; object-fit: contain; }
+.projects-grid .project-card .stack-badges { min-width: 0; gap: 4px; }
+.projects-grid .project-card .stack-badges span { min-width: 0; max-width: 100%; min-height: 24px; height: auto;
+  gap: 3px; padding: 2px 4px; font-size: 12px; line-height: 1.35; overflow-wrap: anywhere; }
+.projects-grid .project-card .stack-badges img { flex: 0 0 16px; width: 16px; height: 16px; }
 .write-project-fields { display: grid; grid-template-columns: 80px minmax(0, 1fr); gap: 12px; align-items: start; margin: 20px 0; padding: 18px; }
 .write-project-fields > label { padding-top: 8px; color: var(--muted); font-size: 13px; }
 .write-project-fields input, .write-project-fields textarea, .write-project-fields select,
@@ -853,9 +849,30 @@ button:disabled { cursor: not-allowed; opacity: .6; }
 .course-create input, .course-create select, .course-edit input, .course-edit select { height: 44px; border-radius: 8px; font-size: 15px; font-weight: 400; }
 .course-create input:focus-visible { outline: none; border-color: var(--accent); }
 .course-create .primary-button, .course-edit .primary-button { min-height: 36px; }
+.course-create > .field-choice, .course-edit > .field-choice { position: relative; display: grid; align-items: stretch; gap: 5px; min-width: 0; }
+.field-choice-label { line-height: 1.65; }
+.field-choice-trigger { display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  width: 100%; min-width: 0; height: 44px; padding: 0 12px; border: 1px solid var(--line2); border-radius: 8px;
+  background: var(--card); color: var(--text); text-align: left; font-size: 15px; font-weight: 400; }
+.field-choice-trigger:hover, .field-choice-trigger[aria-expanded="true"] { border-color: var(--accent); }
+.field-choice-trigger:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.field-choice-trigger > span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.field-choice-placeholder { color: var(--muted); }
+.field-choice-trigger svg { flex: 0 0 16px; width: 16px; height: 16px; color: var(--muted); transition: transform .16s ease; }
+.field-choice-trigger[aria-expanded="true"] svg { transform: rotate(180deg); }
+.field-choice-options { position: absolute; top: calc(100% + 5px); left: 0; right: 0; z-index: 15;
+  max-width: 100%; max-height: min(280px, 40dvh); overflow-y: auto; overscroll-behavior: contain;
+  padding: 5px; border: 1px solid var(--line2); border-radius: 9px; background: var(--card); box-shadow: var(--shadow2); }
+.field-choice-option { display: flex; align-items: center; justify-content: space-between; gap: 8px; min-height: 36px;
+  padding: 7px 9px; border-radius: 6px; color: var(--text); font-size: 14px; font-weight: 400;
+  overflow-wrap: anywhere; cursor: pointer; }
+.field-choice-option.is-active, .field-choice-option:hover { background: var(--tint); color: var(--accent-d); }
+.field-choice-check { flex: 0 0 auto; color: var(--accent-d); font-weight: 700; }
+.field-choice-add { margin-top: 4px; border-top: 1px solid var(--line); border-radius: 0 0 6px 6px; color: var(--accent-d); font-weight: 700; }
 .field-new { display: flex; position: relative; }
 .field-new input { padding-right: 34px; }
 .field-new button { position: absolute; right: 6px; top: 7px; width: 30px; height: 30px; border: 0; background: transparent; color: var(--muted); }
+.field-new button:hover, .field-new button:focus-visible { color: var(--text); background: var(--soft); border-radius: 6px; }
 .course-edit .course-status { padding: 0; border: 0; margin: 0; min-width: 0; }
 .course-status legend { padding: 0; margin-bottom: 7px; color: var(--text2); font-size: 13px; font-weight: 700; }
 .course-status button { height: 36px; margin-right: 8px; padding: 0 10px; border: 0; border-radius: 6px;
