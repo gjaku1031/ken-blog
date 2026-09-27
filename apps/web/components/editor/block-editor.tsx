@@ -35,6 +35,17 @@ const DRAG_FORMAT = "application/x-ken-blog-editor-block";
 const CODE_LANGUAGES = ["kotlin", "java", "javascript", "typescript", "json", "sql", "bash", "yaml", "python", "css", "html", "markdown"];
 const CODE_LANGUAGE_PATTERN = /^[A-Za-z0-9_-]{0,32}$/;
 
+/** {@link BlockEditor}의 선택 상태를 해제할 빈 여백과 기존 클릭 동작을 구별한다. */
+function selectionDismissClick(target: Element, editor: HTMLDivElement): "keep" | "clear" | "clear-only" {
+  if (target.closest(".editor-selection-bar, .block-controls, .editor-image-figure")) return "keep";
+  const previewTrigger = target.closest(".editor-preview-trigger");
+  if (!previewTrigger && target.closest(
+    "a, button, input, textarea, select, label, summary, [contenteditable], [draggable='true'], " +
+    "[role='button'], [role='link'], [role='combobox'], [role='listbox'], [role='dialog']")) return "keep";
+  if (editor.contains(target) && target.closest(".block-editor") !== editor) return "keep";
+  return editor.contains(target) && target.closest(".editor-click-below") ? "clear-only" : "clear";
+}
+
 /** 텍스트 블록의 Markdown 접두어를 활성 입력에만 붙이고 {@link blockMarkdown} 저장 모델은 유지한다. */
 function sourcePrefix(block: EditorBlock): string {
   if (block.type === "h1" || block.type === "h2" || block.type === "h3")
@@ -117,6 +128,68 @@ export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEd
       new Set([...current].filter((id) => available.has(id))) : current);
     if (selectionAnchor.current && !available.has(selectionAnchor.current)) selectionAnchor.current = null;
   }, [value.blocks]);
+
+  /** 빈 공간의 primary 포인터 클릭만 해제하고 마퀴·드래그와 컨트롤 클릭은 유지한다. {@link selectionDismissClick} */
+  useEffect(() => {
+    if (!selectedIds.size) return;
+    let candidate: { pointerId: number; x: number; y: number; moved: boolean; released: boolean } | null = null;
+    let expiry: ReturnType<typeof setTimeout> | null = null;
+    let dismissal: ReturnType<typeof setTimeout> | null = null;
+    const clearExpiry = () => { if (expiry) { clearTimeout(expiry); expiry = null; } };
+    const clearDismissal = () => { if (dismissal) { clearTimeout(dismissal); dismissal = null; } };
+    const down = (event: globalThis.PointerEvent) => {
+      candidate = null; clearExpiry();
+      const editor = root.current;
+      if (!editor || !event.isPrimary || event.button !== 0 || event.shiftKey || event.ctrlKey ||
+        event.metaKey || event.altKey || !(event.target instanceof Element) ||
+        selectionDismissClick(event.target, editor) === "keep") return;
+      candidate = { pointerId: event.pointerId, x: event.clientX, y: event.clientY, moved: false, released: false };
+    };
+    const move = (event: globalThis.PointerEvent) => {
+      if (candidate && candidate.pointerId === event.pointerId &&
+        Math.hypot(event.clientX - candidate.x, event.clientY - candidate.y) >= 4) candidate.moved = true;
+    };
+    const up = (event: globalThis.PointerEvent) => {
+      if (candidate?.pointerId === event.pointerId) {
+        candidate.released = true;
+        // 터치의 호환 click은 pointerup보다 늦게 오므로 짧은 타이머에서 후보를 지우지 않는다.
+        expiry = setTimeout(() => { candidate = null; expiry = null; }, 1_200);
+      }
+    };
+    const cancel = (event: globalThis.PointerEvent) => {
+      if (candidate?.pointerId === event.pointerId) { candidate = null; clearExpiry(); }
+    };
+    const blur = () => { candidate = null; clearExpiry(); };
+    const click = (event: globalThis.MouseEvent) => {
+      const pending = candidate;
+      candidate = null; clearExpiry();
+      const editor = root.current;
+      if (!pending?.released || pending.moved || event.button !== 0 || event.detail === 0 ||
+        Math.hypot(event.clientX - pending.x, event.clientY - pending.y) >= 4 ||
+        suppressMarqueeClick.current || !editor || !(event.target instanceof Element)) return;
+      const action = selectionDismissClick(event.target, editor);
+      if (action === "keep") return;
+      if (action === "clear-only") { event.preventDefault(); event.stopPropagation(); }
+      // 다음 task에서 선택 표시를 지워 현재 click의 전파·기본 동작 중 타깃이 움직이지 않게 한다.
+      clearDismissal();
+      dismissal = setTimeout(() => { setSelectedIds(new Set()); selectionAnchor.current = null; dismissal = null; }, 0);
+    };
+    document.addEventListener("pointerdown", down, true);
+    window.addEventListener("pointermove", move, true);
+    window.addEventListener("pointerup", up, true);
+    window.addEventListener("pointercancel", cancel, true);
+    window.addEventListener("blur", blur);
+    document.addEventListener("click", click, true);
+    return () => {
+      clearExpiry(); clearDismissal();
+      document.removeEventListener("pointerdown", down, true);
+      window.removeEventListener("pointermove", move, true);
+      window.removeEventListener("pointerup", up, true);
+      window.removeEventListener("pointercancel", cancel, true);
+      window.removeEventListener("blur", blur);
+      document.removeEventListener("click", click, true);
+    };
+  }, [selectedIds.size]);
 
   /** 실제 재배치 전후의 블록 좌표 차이만 애니메이션하고 감소된 동작 설정을 존중한다. {@link BlockEditor} */
   useLayoutEffect(() => {
