@@ -109,14 +109,14 @@ function blankForm(title = "", section: DraftSection = "TECH", projectId: number
     stackBadgeNames: [],
   } : null;
   const homeTemplate = "**역할** [역할] · **인원** [인원]\n\n## 배경\n\n[배경과 목표]\n\n## 문제 → 해결 → 결과\n\n- **문제** — \n- **해결** — \n- **결과** — \n\n## 핵심 기능\n\n1. **[기능]** — [설명]\n\n## 구조\n\n```mermaid\nflowchart LR\n  A[클라이언트] --> B[API 서버]\n  B --> C[(DB)]\n```\n\n## 내가 한 일\n\n- \n\n## 배운 점 · 다음 단계\n\n- ";
-  return { title, slug: "", categoryId: null, tags: [], visibility: "PUBLIC", section, projectId, courseId,
+  return { title, categoryId: null, tags: [], visibility: "PUBLIC", section, projectId, courseId,
     relatedProjectId: null, documentOrder: null, chapterOrder: null, techSeriesOrder: null, summary: "", projectMetadata,
     document: parseEditorMarkdown(section === "PROJECT_HOME" ? homeTemplate : "") };
 }
 
 /** 기존 원문을 아직 서버에 저장하지 않은 편집본의 초기 값으로 읽는다. */
 function formFromPost(post: AdminPost): Form {
-  return { title: post.title, slug: post.slug, categoryId: post.category?.id ?? null,
+  return { title: post.title, categoryId: post.category?.id ?? null,
     tags: [...post.tags], visibility: post.visibility, section: post.section, projectId: post.projectId,
     relatedProjectId: post.relatedProjectId, documentOrder: post.documentOrder, courseId: post.courseId,
     chapterOrder: post.chapterOrder, techSeriesOrder: post.techSeriesOrder, summary: post.summary,
@@ -125,7 +125,7 @@ function formFromPost(post: AdminPost): Form {
 
 /** 편집본 원문을 원문 보존 블록으로 열고 revision은 별도로 추적한다. */
 function formFromDraft(draft: DraftDetail): Form {
-  return { title: draft.title, slug: draft.slug, categoryId: draft.categoryId, tags: [...draft.tags],
+  return { title: draft.title, categoryId: draft.categoryId, tags: [...draft.tags],
     visibility: draft.visibility, section: draft.section, projectId: draft.projectId,
     relatedProjectId: draft.relatedProjectId, documentOrder: draft.documentOrder, courseId: draft.courseId,
     chapterOrder: draft.chapterOrder, techSeriesOrder: draft.techSeriesOrder, summary: draft.summary,
@@ -155,7 +155,7 @@ function nextChapterOrder(detail: unknown): number | null {
 function writeError(error: unknown): string {
   if (error instanceof Error && error.message === "attachment-limit") return "본문 이미지는 최대 100개까지 연결할 수 있습니다. 이미지를 줄인 뒤 다시 저장해 주세요.";
   if (error instanceof ApiFailure && error.status === 409) return "다른 수정과 충돌했습니다. 현재 입력은 유지됩니다. 다른 탭의 편집본 또는 원문을 확인한 뒤 다시 조회해 주세요.";
-  if (error instanceof ApiFailure && error.status === 400) return "제목·주소·본문·태그의 형식과 길이를 확인해 주세요. 현재 입력은 유지됩니다.";
+  if (error instanceof ApiFailure && error.status === 400) return "제목·본문·태그의 형식과 길이를 확인해 주세요. 현재 입력은 유지됩니다.";
   if (error instanceof ApiFailure && error.status === 404) return "편집본·원본 글 또는 선택한 분류를 찾을 수 없습니다. 현재 입력은 유지됩니다.";
   if (error instanceof ApiFailure && error.status === 403) return "권한 또는 CSRF 확인에 실패했습니다. 원고는 유지됩니다. 다시 시도해 주세요.";
   return `${apiFailureMessage(error)} 현재 입력은 유지됩니다.`;
@@ -437,7 +437,7 @@ function WriteInstance({ route }: { route: Route }) {
     const attachmentIds = collectAttachmentIds(body);
     if (attachmentIds.length > 100) throw new Error("attachment-limit");
     const wikiTargets = collectWikiTargets(body);
-    const values = draftValues({ title: snapshot.title, slug: snapshot.slug,
+    const values = draftValues({ title: snapshot.title,
       body, attachmentIds, wikiTargets, categoryId: snapshot.categoryId,
       tags: snapshot.tags, visibility: snapshot.visibility, section: snapshot.section,
       projectId: snapshot.projectId, courseId: snapshot.courseId, relatedProjectId: snapshot.relatedProjectId,
@@ -484,10 +484,9 @@ function WriteInstance({ route }: { route: Route }) {
     if (uploadLock.current) { setMessage("이미지 업로드가 끝난 뒤 출간해 주세요. 원고는 유지됩니다."); return; }
     if (busyLock.current) return;
     const snapshot = formRef.current;
-    if (!snapshot.title.trim() || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(snapshot.slug) ||
-      [...snapshot.title].length > 200 || snapshot.slug.length > 160 ||
+    if (!snapshot.title.trim() || [...snapshot.title].length > 200 ||
       new TextEncoder().encode(serializeEditorMarkdown(snapshot.document)).length > 1024 * 1024) {
-      setMessage("출간하려면 제목·글 주소·본문 크기를 확인해 주세요."); setShowPublish(false); return;
+      setMessage("출간하려면 제목·본문 크기를 확인해 주세요."); setShowPublish(false); return;
     }
     busyLock.current = true; setBusy("publish"); setMessage("");
     const generation = writeGeneration.current;
@@ -722,13 +721,9 @@ function WriteInstance({ route }: { route: Route }) {
         uploadController.current?.abort(); setMessage("이미지 업로드를 취소했습니다. 원고는 유지됩니다.");
       }}>업로드 취소</button>}
       <button type="button" className="editor-save-button" onClick={() => void save()} disabled={busy !== null || uploading || categoryCreating}>임시저장</button>
-      <button type="button" className="primary-button" onClick={() => {
-        if (form.section === "PROJECT_HOME" && !form.slug) changeForm((current) => ({ ...current,
-          slug: current.title.toLowerCase().normalize("NFKD").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") ||
-            `project-${Date.now().toString(36)}` }));
-        setShowPublish(true);
-      }} disabled={busy !== null || uploading || categoryCreating}>{actionLabel}</button></div>
-    {showPublish && <PublishSheet title={form.title} slug={form.slug} section={form.section} summary={form.summary}
+      <button type="button" className="primary-button" onClick={() => setShowPublish(true)}
+        disabled={busy !== null || uploading || categoryCreating}>{actionLabel}</button></div>
+    {showPublish && <PublishSheet title={form.title} section={form.section} summary={form.summary}
       summaryPreview={summaryFromBody(serializeEditorMarkdown(form.document))}
       visibility={form.visibility} busy={busy !== null || uploading} sectionLocked={sectionLocked} error={message} actionLabel={actionLabel}
       categoryLabel={selectedCategory?.label ?? "분류 없음"} categoryDepth={selectedCategory?.depth ?? null}
@@ -736,10 +731,9 @@ function WriteInstance({ route }: { route: Route }) {
       relatedProjectId={form.relatedProjectId}
       projectId={form.projectId} courseId={form.courseId} documentOrder={form.documentOrder}
       chapterOrder={form.chapterOrder} projectMetadata={form.projectMetadata}
-      projects={projects.map((project) => ({ id: project.id, label: project.name, slug: project.slug }))}
-      courses={courses.map((course) => ({ id: course.id, label: course.name, slug: course.slug,
+      projects={projects.map((project) => ({ id: project.id, label: project.name }))}
+      courses={courses.map((course) => ({ id: course.id, label: course.name,
         field: course.field, count: course.chapterCount }))}
-      onSlug={(slug) => changeForm((current) => ({ ...current, slug }))}
       onSummary={(summary) => changeForm((current) => ({ ...current, summary }))}
       onVisibility={(visibility) => changeForm((current) => ({ ...current, visibility,
         projectMetadata: current.projectMetadata && { ...current.projectMetadata, visibility } }))}

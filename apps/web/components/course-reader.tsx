@@ -34,7 +34,7 @@ function CourseShell({ slug, chapterSlug }: { slug: string; chapterSlug: string 
   const [pinned, setPinned] = useState<Record<number, boolean>>({});
   const viewed = useRef(new Set<number>());
   const [viewCounts, setViewCounts] = useState<Record<number, number>>({});
-  const [form, setForm] = useState({ slug: "", field: "", name: "", description: "", status: "IN_PROGRESS" as "IN_PROGRESS" | "COMPLETED" });
+  const [form, setForm] = useState({ field: "", name: "", description: "", status: "IN_PROGRESS" as "IN_PROGRESS" | "COMPLETED" });
   const [fieldOptions, setFieldOptions] = useState<string[]>([]);
   const reading = useMemo(() => chapter && !chapter.locked ? buildReadingDocument(chapter.body ?? "") : null, [chapter]);
   const chapters = detail?.chapters ?? [];
@@ -52,7 +52,7 @@ function CourseShell({ slug, chapterSlug }: { slug: string; chapterSlug: string 
 
   /** 마지막 저장본에서 편집 입력을 다시 만들고 임시 취소 상태를 지운다. {@link cancelEdit} */
   function cancelEdit() {
-    if (detail) setForm({ slug: detail.course.slug, field: detail.course.field, name: detail.course.name,
+    if (detail) setForm({ field: detail.course.field, name: detail.course.name,
       description: detail.course.description, status: detail.course.status });
     setEditing(false); setMessage("");
   }
@@ -69,7 +69,7 @@ function CourseShell({ slug, chapterSlug }: { slug: string; chapterSlug: string 
         if (!controller.signal.aborted) {
           setDetail(result); setLoading(false);
           setFieldOptions((current) => [...new Set([result.course.field, ...current])]);
-          setForm({ slug: result.course.slug, field: result.course.field, name: result.course.name,
+          setForm({ field: result.course.field, name: result.course.name,
             description: result.course.description, status: result.course.status });
           void apiJson<unknown>("/api/v1/notes", credentials, controller.signal).then((value) => {
             if (!controller.signal.aborted) setFieldOptions([...new Set(parseCoursePage(value).items.map((item) => item.field))]);
@@ -100,11 +100,11 @@ function CourseShell({ slug, chapterSlug }: { slug: string; chapterSlug: string 
     return () => controller.abort();
   }, [auth.status, auth.epoch, auth.readCredentials, slug, chapterSlug, detail, retry]);
 
-  /** {@link parseCourseSummary}로 수정 결과를 확인한 뒤 slug 변경 시 새 주소로 이동한다. */
+  /** {@link parseCourseSummary}로 수정 결과를 확인하고 서버가 유지한 주소로 다시 조회한다. */
   async function saveCourse(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (!detail || !form.field.trim() || !form.name.trim() || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(form.slug)) {
-      setMessage("분야·과목 이름·영문 주소를 확인해 주세요."); return;
+    if (!detail || !form.field.trim() || !form.name.trim()) {
+      setMessage("분야와 과목 이름을 확인해 주세요."); return;
     }
     setSaving(true); setMessage("");
     try {

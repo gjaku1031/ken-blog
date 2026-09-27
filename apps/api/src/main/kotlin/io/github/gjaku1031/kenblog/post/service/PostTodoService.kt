@@ -70,7 +70,7 @@ class PostTodoService(private val posts: PostRepository, private val projects: P
         lines[request.line - 1] = match.groupValues[1] + replacement + match.groupValues[3]
         val changed = lines.joinToString("\n")
         val oldHash = post.bodySha256
-        post.replaceDraft(post.title, post.slug, changed, now())
+        post.replaceDraft(post.title, changed, now())
         posts.saveAndFlush(post)
         cache.evictAfterCommit(id, oldHash)
         return PostTodoResponse(post.body, post.bodySha256)

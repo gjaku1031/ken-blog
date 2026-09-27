@@ -89,10 +89,9 @@ class ProjectEntity protected constructor() {
         updatedAt = now
     }
 
-    /** 프로젝트 이름·주소를 HOME 글과 같은 값으로 갱신. */
-    internal fun rename(name: String, slug: String, now: LocalDateTime) {
+    /** 프로젝트 이름만 갱신하고 기존 공개 주소를 유지. */
+    internal fun rename(name: String, now: LocalDateTime) {
         this.name = name
-        this.slug = slug
         updatedAt = now
     }
 

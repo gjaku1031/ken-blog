@@ -68,9 +68,9 @@ interface PostApi {
     ) request: JsonNode): ResponseEntity<PostDetailResponse>
 
     /**
-     * 필수 JSON 세 필드로 초안을 생성.
+     * 필수 제목·본문으로 초안을 생성하며 주소는 서버가 발급.
      *
-     * @param request 제목·slug·본문 전체 입력
+     * @param request 제목·본문 전체 입력
      * @return 상세 [PostDetailResponse]와 관리자 조회 Location의 HTTP 201
      */
     @PostMapping(consumes = [MediaType.APPLICATION_JSON_VALUE], produces = [MediaType.APPLICATION_JSON_VALUE])
@@ -80,7 +80,7 @@ interface PostApi {
         ApiResponse(responseCode = "400", description = "입력 또는 JSON 오류", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
         ApiResponse(responseCode = "401", description = "인증 필요", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
         ApiResponse(responseCode = "403", description = "관리자 권한 또는 CSRF 필요", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
-        ApiResponse(responseCode = "409", description = "slug 중복", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
+        ApiResponse(responseCode = "409", description = "자동 주소 충돌", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
         ApiResponse(responseCode = "503", description = "DB 연결 장애", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
     ])
     fun create(@RequestBody @io.swagger.v3.oas.annotations.parameters.RequestBody(
@@ -127,10 +127,10 @@ interface PostApi {
     fun detail(@PathVariable("id") id: Long): ResponseEntity<PostDetailResponse>
 
     /**
-     * 양수 ID 게시글의 제목·slug·본문을 모두 교체.
+     * 양수 ID 게시글의 제목·본문을 교체하고 주소를 유지.
      *
      * @param id 수정할 게시글 식별자
-     * @param request 필수 세 필드의 새 값
+     * @param request 제목·본문의 새 값
      * @return ID·생성 시각을 유지한 [PostDetailResponse]
      */
     @PutMapping("/{id}", consumes = [MediaType.APPLICATION_JSON_VALUE], produces = [MediaType.APPLICATION_JSON_VALUE])
@@ -141,7 +141,6 @@ interface PostApi {
         ApiResponse(responseCode = "401", description = "인증 필요", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
         ApiResponse(responseCode = "403", description = "관리자 권한 또는 CSRF 필요", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
         ApiResponse(responseCode = "404", description = "게시글 없음", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
-        ApiResponse(responseCode = "409", description = "slug 중복", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
         ApiResponse(responseCode = "503", description = "DB 연결 장애", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
     ])
     fun update(@PathVariable("id") id: Long, @RequestBody @io.swagger.v3.oas.annotations.parameters.RequestBody(

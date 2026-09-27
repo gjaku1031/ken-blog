@@ -7,11 +7,10 @@ import io.github.gjaku1031.kenblog.post.domain.PostVisibility
 import io.github.gjaku1031.kenblog.post.domain.PostStatus
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.util.Locale
 import tools.jackson.databind.JsonNode
 
 /** 과목 등록·전체 수정에 필요한 값. */
-data class CourseWriteRequest(val slug: String, val field: String, val name: String,
+data class CourseWriteRequest(val field: String, val name: String,
     val description: String, val status: CourseStatus)
 
 /** [CourseWriteRequest]를 타입 강제 변환 없이 읽는 입력 경계. */
@@ -19,7 +18,6 @@ object CourseRequests {
     /** @return 필수 문자열·상태와 상한을 확인한 과목 값. */
     fun write(node: JsonNode): CourseWriteRequest {
         if (!node.isObject) throw InvalidCourseRequestException()
-        val slug = string(node, "slug").trim().lowercase(Locale.ROOT)
         val field = string(node, "field").trim()
         val name = string(node, "name").trim()
         val description = string(node, "description").trim()
@@ -28,12 +26,11 @@ object CourseRequests {
             "COMPLETED" -> CourseStatus.COMPLETED
             else -> throw InvalidCourseRequestException()
         }
-        if (slug.length !in 1..160 || !SLUG.matches(slug) || field.isBlank() ||
-            field.codePointCount(0, field.length) > 100 || name.isBlank() || description.isBlank() ||
+        if (field.isBlank() || field.codePointCount(0, field.length) > 100 || name.isBlank() || description.isBlank() ||
             name.codePointCount(0, name.length) > 200 || description.codePointCount(0, description.length) > 500 ||
             listOf(field, name, description).any { value -> value.any { Character.isISOControl(it) } })
             throw InvalidCourseRequestException()
-        return CourseWriteRequest(slug, field, name, description, status)
+        return CourseWriteRequest(field, name, description, status)
     }
 
     /** @return 누락·null·숫자를 거부한 필수 문자열. */
@@ -56,7 +53,6 @@ object CourseRequests {
         return ids
     }
 
-    private val SLUG = Regex("[a-z0-9]+(?:-[a-z0-9]+)*")
 }
 
 /** 공개 과목 카드와 과목 소개 공통 필드. */

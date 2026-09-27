@@ -3,14 +3,14 @@
 import { useEffect, useRef, type FormEvent } from "react";
 import type { DraftSection, ProjectMetadata } from "@/lib/editor-drafts";
 
-type Option = { id: number; label: string; slug?: string; field?: string; count?: number };
-type Props = { title: string; slug: string; section: DraftSection; summary: string; summaryPreview: string;
+type Option = { id: number; label: string; field?: string; count?: number };
+type Props = { title: string; section: DraftSection; summary: string; summaryPreview: string;
   visibility: "PUBLIC" | "PRIVATE"; busy: boolean; sectionLocked: boolean; error: string; categoryLabel: string; actionLabel: string;
   categoryDepth: number | null; categoryCount: number; techSeriesOrder: number | null;
   relatedProjectId: number | null; projectId: number | null; courseId: number | null;
   documentOrder: number | null; chapterOrder: number | null; projectMetadata: ProjectMetadata | null;
   projects: Option[]; courses: Option[];
-  onSlug: (value: string) => void; onSummary: (value: string) => void;
+  onSummary: (value: string) => void;
   onVisibility: (value: "PUBLIC" | "PRIVATE") => void; onSection: (value: DraftSection) => void;
   onRelatedProject: (value: number | null) => void; onProject: (value: number | null) => void;
   onCourse: (value: number | null) => void; onDocumentOrder: (value: number | null) => void;
@@ -20,10 +20,10 @@ type Props = { title: string; slug: string; section: DraftSection; summary: stri
 const statuses: Record<ProjectMetadata["status"], string> = { PLAN: "기획 중", DEV: "개발 중", MAINT: "유지보수 중", DONE: "완료" };
 
 /** 원본 36·37·39 상태의 두 열 출간 시트를 실제 편집본 필드에 연결한다. */
-export function PublishSheet({ title, slug, section, summary, summaryPreview, visibility, busy, sectionLocked, error, categoryLabel, actionLabel,
+export function PublishSheet({ title, section, summary, summaryPreview, visibility, busy, sectionLocked, error, categoryLabel, actionLabel,
   categoryDepth, categoryCount, techSeriesOrder,
   relatedProjectId, projectId, courseId, documentOrder, chapterOrder, projectMetadata, projects, courses,
-  onSlug, onSummary, onVisibility, onSection, onRelatedProject, onProject, onCourse, onDocumentOrder,
+  onSummary, onVisibility, onSection, onRelatedProject, onProject, onCourse, onDocumentOrder,
   onChapterOrder, onTechSeriesOrder, onClose, onPublish }: Props) {
   const dialog = useRef<HTMLDialogElement>(null);
   useEffect(() => {
@@ -38,10 +38,6 @@ export function PublishSheet({ title, slug, section, summary, summaryPreview, vi
   const home = section === "PROJECT_HOME";
   const selectedField = courses.find((course) => course.id === courseId)?.field ?? courses[0]?.field ?? "";
   const fields = [...new Set(courses.map((course) => course.field ?? ""))];
-  const parentSlug = section === "PROJECT_DOC" ? projects.find((project) => project.id === projectId)?.slug ?? "" :
-    section === "NOTE_CHAPTER" ? courses.find((course) => course.id === courseId)?.slug ?? "" : "";
-  const addressPrefix = section === "PROJECT_DOC" ? `project/?slug=${encodeURIComponent(parentSlug)}&doc=` :
-    section === "NOTE_CHAPTER" ? `course/?slug=${encodeURIComponent(parentSlug)}&chapter=` : "post/?slug=";
   return <dialog ref={dialog} tabIndex={-1} className={`publish-dialog editor-publish-sheet${home ? " editor-publish-home" : ""}`}
     onCancel={(event) => { if (busy) event.preventDefault(); else onClose(); }} onClose={onClose} aria-label="출간 설정">
     <form onSubmit={submit}>
@@ -121,9 +117,6 @@ export function PublishSheet({ title, slug, section, summary, summaryPreview, vi
           <button type="button" role="radio" aria-checked={visibility === "PRIVATE"} className={`editor-publish-option${visibility === "PRIVATE" ? " selected" : ""}`}
             disabled={busy} onClick={() => onVisibility("PRIVATE")}><span className="editor-publish-radio" /><span><strong>비공개</strong><small>로그인한 회원(내가 발급한 계정)만</small></span></button>
         </div>
-        {!home && <div className="editor-publish-field"><label htmlFor="publish-slug">주소</label>
-          <div className="editor-publish-slug"><span title={`https://gjaku1031.github.io/ken-blog/${addressPrefix}${encodeURIComponent(slug)}`}>{addressPrefix}</span><input id="publish-slug" value={slug} maxLength={160}
-            disabled={busy} onChange={(event) => onSlug(event.target.value)} autoComplete="off" aria-label="주소 슬러그" /></div></div>}
         {error && <p className="form-error" role="alert">{error}</p>}
         <div className="publish-actions"><button type="button" onClick={onClose} disabled={busy}>취소</button>
           <button type="submit" className="primary-button" disabled={busy}>{busy ? "출간 중…" : actionLabel}</button></div>

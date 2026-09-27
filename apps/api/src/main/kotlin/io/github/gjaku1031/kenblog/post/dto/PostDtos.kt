@@ -17,7 +17,6 @@ import tools.jackson.databind.JsonNode
  * 관리자 POST·PUT의 전체 교체 입력. 필수 문자열 누락과 JSON null은 역직렬화에서 400으로 판정함.
  *
  * @property title 앞뒤 공백을 제거해 검증할 제목
- * @property slug 소문자 ASCII 형식으로 정규화할 주소
  * @property body 빈 문자열도 허용하는 원문 본문
  * @property attachmentIds 생략·null이면 기존 연결 유지, 명시적 배열이면 전체 교체
  * @property wikiTargets 명시적 위키 대상 제목; 생략·null은 본문 변경 여부에 따라 유지 또는 해제
@@ -25,8 +24,6 @@ import tools.jackson.databind.JsonNode
 data class PostWriteRequest(
     @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["string"], description = "1~200자 제목")
     val title: String,
-    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["string"], description = "1~160자 소문자 ASCII slug")
-    val slug: String,
     @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["string"], description = "UTF-8 최대 1 MiB, 빈 문자열 허용")
     val body: String,
     @field:Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, types = ["array", "null"], description = "선택적 READY 첨부 ID 최대 100개; 새 글 생략 시 빈 연결")
@@ -37,10 +34,10 @@ data class PostWriteRequest(
 
 /** 관리자 게시글 JSON의 문자열과 선택적 첨부 목록을 강제 변환 없이 파싱. */
 object PostWriteRequests {
-    /** @return 필수 세 문자열과 정렬된 첨부 ID 선언; 잘못된 JSON은 HTTP 400. */
+    /** @return 제목·본문과 첨부 ID 선언; 이전 클라이언트의 slug는 읽지 않음. */
     fun fromJson(node: JsonNode): PostWriteRequest {
         if (!node.isObject) throw InvalidPostRequestException()
-        return PostWriteRequest(string(node, "title"), string(node, "slug"), string(node, "body"),
+        return PostWriteRequest(string(node, "title"), string(node, "body"),
             AttachmentIds.parse(node.get("attachmentIds")), WikiDeclarations.parse(node.get("wikiTargets")))
     }
 

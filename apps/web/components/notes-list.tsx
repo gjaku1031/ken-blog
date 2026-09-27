@@ -57,7 +57,7 @@ function NotesInstance() {
     setSaving(true); setError("");
     try {
       const created = parseCourseSummary(await auth.adminWrite("POST", "/api/v1/admin/courses", {
-        ...form, slug: `course-${crypto.randomUUID()}`, field: form.field.trim(), name: form.name.trim(), status: "IN_PROGRESS",
+        ...form, field: form.field.trim(), name: form.name.trim(), status: "IN_PROGRESS",
       }));
       router.push(`/course/?slug=${encodeURIComponent(created.slug)}`);
     } catch (failure) { setError(apiFailureMessage(failure)); }

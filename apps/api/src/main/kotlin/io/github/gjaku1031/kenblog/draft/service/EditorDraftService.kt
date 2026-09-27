@@ -16,6 +16,7 @@ import io.github.gjaku1031.kenblog.draft.dto.response
 import io.github.gjaku1031.kenblog.draft.repository.EditorDraftRepository
 import io.github.gjaku1031.kenblog.post.dto.PostDetailResponse
 import io.github.gjaku1031.kenblog.post.domain.PostNotFoundException
+import io.github.gjaku1031.kenblog.post.domain.ContentAddress
 import io.github.gjaku1031.kenblog.post.domain.PostSection
 import io.github.gjaku1031.kenblog.post.domain.PostStatus
 import io.github.gjaku1031.kenblog.post.repository.PostRepository
@@ -54,7 +55,7 @@ class EditorDraftService(
     private val courses: CourseService,
 ) {
     /**
-     * 빈 제목·미완성 slug를 허용한 독립 편집본을 생성.
+     * 빈 제목을 허용하고 신규 주소를 서버에서 발급한 독립 편집본을 생성.
      * 기존 글이면 현재 원본 시각과 단일 편집본 제약을 잠금·DB 고유키로 확인.
      *
      * @return revision 0인 저장 결과
@@ -74,8 +75,10 @@ class EditorDraftService(
         if (section == PostSection.TECH && request.relatedProjectId != null) projects.requirePublishedParent(request.relatedProjectId)
         var inheritedIds: List<Long> = emptyList()
         var inheritedWiki: List<String> = emptyList()
+        var originalSlug: String? = null
         if (request.postId != null) {
             val original = posts.findLockedById(request.postId) ?: throw PostNotFoundException()
+            originalSlug = original.slug
             if (original.section != section || original.projectId != request.projectId ||
                 original.courseId != request.courseId) {
                 throw EditorDraftConflictException()
@@ -86,7 +89,9 @@ class EditorDraftService(
             if (request.attachmentIds == null) inheritedIds = attachmentLinks.postIds(request.postId)
             if (request.wikiTargets == null && request.body == original.body) inheritedWiki = wikiLinks.postTitles(request.postId)
         }
-        val draft = drafts.saveAndFlush(EditorDraftEntity(request.postId, request.baseUpdatedAt, request.values(section), now()))
+        val address = originalSlug ?: ContentAddress.create(section)
+        val draft = drafts.saveAndFlush(EditorDraftEntity(request.postId, request.baseUpdatedAt,
+            request.values(section).copy(slug = address), now()))
         val draftId = draft.id ?: error("Persisted editor draft has no ID")
         attachmentLinks.replaceDraft(draftId, request.attachmentIds ?: inheritedIds)
         wikiLinks.replaceDraft(draftId, request.wikiTargets ?: inheritedWiki)
@@ -143,7 +148,9 @@ class EditorDraftService(
             draft.section != section) throw EditorDraftConflictException()
         if (draft.revision != request.revision) throw EditorDraftConflictException()
         val previousBody = draft.body
-        draft.replace(request.values(section), now())
+        val address = draft.postId?.let { posts.findByIdOrNull(it)?.slug ?: throw PostNotFoundException() }
+            ?: ContentAddress.publishDraft(draft.slug, section)
+        draft.replace(request.values(section).copy(slug = address), now())
         drafts.saveAndFlush(draft)
         if (request.attachmentIds != null) attachmentLinks.replaceDraft(id, request.attachmentIds)
         if (request.wikiTargets != null || previousBody != request.body) wikiLinks.replaceDraft(id, request.wikiTargets ?: emptyList())
@@ -195,21 +202,20 @@ class EditorDraftService(
         val post = when (section) {
             PostSection.TECH -> {
                 if (draft.relatedProjectId != null) projects.requirePublishedParent(draft.relatedProjectId!!)
-                if (original == null) postService.createDraft(draft.title, draft.slug, draft.body)
-                else postService.updateDraft(original.id!!, draft.title, draft.slug, draft.body)
+                if (original == null) postService.createDraftFromEditor(draft)
+                else postService.updateDraft(original.id!!, draft.title, draft.body)
             }
             PostSection.PROJECT_HOME -> {
                 val metadata = draft.projectMetadata() ?: throw ProjectConflictException()
                 if (original == null) {
                     if (parent != null || metadata.baseProjectUpdatedAt != null) throw ProjectConflictException()
-                    val created = projects.createProject(draft.title, draft.slug, metadata)
-                    val home = postService.createProjectPost(draft.title, draft.slug, draft.body,
-                        section, created.id!!, null)
+                    val created = projects.createProject(draft, metadata)
+                    val home = postService.createProjectPost(draft, section, created.id!!, null)
                     projects.attachHome(created, home.id!!)
                     home
                 } else {
                     if (parent == null || parent.homePostId != original.id) throw ProjectConflictException()
-                    val home = postService.updateProjectPost(original.id!!, draft.title, draft.slug,
+                    val home = postService.updateProjectPost(original.id!!, draft.title,
                         draft.body, section, parent.id!!)
                     projects.updateHome(parent, home, metadata)
                     home
@@ -218,16 +224,16 @@ class EditorDraftService(
             PostSection.PROJECT_DOC -> {
                 if (parent == null) throw ProjectConflictException()
                 projects.requirePublishedParent(parent.id!!)
-                if (original == null) postService.createProjectPost(draft.title, draft.slug, draft.body,
+                if (original == null) postService.createProjectPost(draft,
                     section, parent.id!!, projects.nextDocumentOrder(parent))
-                else postService.updateProjectPost(original.id!!, draft.title, draft.slug,
+                else postService.updateProjectPost(original.id!!, draft.title,
                     draft.body, section, parent.id!!)
             }
             PostSection.NOTE_CHAPTER -> {
                 if (course == null) throw CourseConflictException()
-                if (original == null) postService.createChapterPost(draft.title, draft.slug, draft.body,
+                if (original == null) postService.createChapterPost(draft,
                     course.id!!, courses.nextChapterOrder(course.id!!))
-                else postService.updateChapterPost(original.id!!, draft.title, draft.slug,
+                else postService.updateChapterPost(original.id!!, draft.title,
                     draft.body, course.id!!)
             }
         }

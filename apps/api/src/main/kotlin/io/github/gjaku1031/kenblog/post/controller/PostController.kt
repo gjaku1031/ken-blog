@@ -37,14 +37,14 @@ class PostController(private val service: PostService, private val navigation: W
     }
 
     /**
-     * 역직렬화된 필수 세 필드를 기존 [PostService.createDraft]로 저장.
+     * 제목·본문을 [PostService.createDraft]로 저장하며 주소는 서버에서 발급.
      *
      * @param request 전체 초안 입력
      * @return Location과 no-store를 가진 HTTP 201 상세 응답
      */
     override fun create(request: JsonNode): ResponseEntity<PostDetailResponse> {
         val input = PostWriteRequests.fromJson(request)
-        val response = service.createDraftDetail(input.title, input.slug, input.body, input.attachmentIds, input.wikiTargets)
+        val response = service.createDraftDetail(input.title, input.body, input.attachmentIds, input.wikiTargets)
         return ResponseEntity.created(URI.create("/api/v1/admin/posts/${response.id}"))
             .cacheControl(CacheControl.noStore()).body(response)
     }
@@ -73,17 +73,17 @@ class PostController(private val service: PostService, private val navigation: W
     }
 
     /**
-     * 필수 세 필드로 기존 게시글 내용을 원자적으로 전체 교체.
+     * 제목·본문으로 기존 게시글 내용을 원자적으로 교체하고 주소를 유지.
      *
      * @param id 수정할 게시글 ID
-     * @param request 새 제목·slug·본문
+     * @param request 새 제목·본문
      * @return no-store 상세 응답
      */
     override fun update(id: Long, request: JsonNode): ResponseEntity<PostDetailResponse> {
         if (id <= 0) throw InvalidPostRequestException()
         val input = PostWriteRequests.fromJson(request)
         return ResponseEntity.ok().cacheControl(CacheControl.noStore())
-            .body(service.updateDraftDetail(id, input.title, input.slug, input.body, input.attachmentIds, input.wikiTargets))
+            .body(service.updateDraftDetail(id, input.title, input.body, input.attachmentIds, input.wikiTargets))
     }
 
     /**

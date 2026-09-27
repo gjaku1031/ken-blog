@@ -113,7 +113,7 @@ interface EditorDraftApi {
         ApiResponse(responseCode = "401", description = "인증 필요"),
         ApiResponse(responseCode = "403", description = "ADMIN 또는 CSRF 필요"),
         ApiResponse(responseCode = "404", description = "편집본 또는 분류 없음"),
-        ApiResponse(responseCode = "409", description = "revision·원본·slug·동시 충돌"),
+        ApiResponse(responseCode = "409", description = "revision·원본·자동 주소·동시 충돌"),
         ApiResponse(responseCode = "503", description = "DB 연결 장애"),
     ])
     fun publish(@PathVariable("id") id: Long,

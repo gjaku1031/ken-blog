@@ -27,7 +27,7 @@ export type AdminPost = { id: number; title: string; slug: string; body: string;
   relatedProjectId: number | null; documentOrder: number | null; chapterOrder: number | null; techSeriesOrder: number | null;
   summary: string; projectMetadata: ProjectMetadata | null };
 /** 전체 교체 저장과 신규 편집본 생성에서 공통으로 보내는 값. */
-export type DraftValues = Pick<DraftDetail, "title" | "slug" | "body" | "categoryId" | "tags" | "visibility" | "attachmentIds" | "wikiTargets" |
+export type DraftValues = Pick<DraftDetail, "title" | "body" | "categoryId" | "tags" | "visibility" | "attachmentIds" | "wikiTargets" |
   "section" | "projectId" | "courseId" | "relatedProjectId" | "documentOrder" | "chapterOrder" | "techSeriesOrder" |
   "summary" | "projectMetadata">;
 
@@ -166,7 +166,7 @@ export function parseAdminTags(value: unknown): TagCount[] { return parseTags(va
 
 /** 저장되지 않은 현재 값을 편집본 API의 전필드 교체 계약으로 직렬화한다. */
 export function draftValues(values: DraftValues): DraftValues {
-  return { title: values.title, slug: values.slug, body: values.body, categoryId: values.categoryId,
+  return { title: values.title, body: values.body, categoryId: values.categoryId,
     tags: [...values.tags], visibility: values.visibility, attachmentIds: [...values.attachmentIds],
     wikiTargets: [...values.wikiTargets], section: values.section, projectId: values.projectId, courseId: values.courseId,
     relatedProjectId: values.relatedProjectId, documentOrder: values.documentOrder,

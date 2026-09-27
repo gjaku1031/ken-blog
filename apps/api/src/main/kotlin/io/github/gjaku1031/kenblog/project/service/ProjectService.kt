@@ -1,6 +1,8 @@
 package io.github.gjaku1031.kenblog.project.service
 
 import io.github.gjaku1031.kenblog.post.domain.PostEntity
+import io.github.gjaku1031.kenblog.post.domain.ContentAddress
+import io.github.gjaku1031.kenblog.draft.domain.EditorDraftEntity
 import io.github.gjaku1031.kenblog.post.domain.PostSection
 import io.github.gjaku1031.kenblog.post.domain.PostStatus
 import io.github.gjaku1031.kenblog.post.domain.PostVisibility
@@ -145,12 +147,12 @@ class ProjectService(
 
     /** @return 새 HOME 출간에서 부모 행을 먼저 만들고 글 생성 후 연결할 객체. */
     @Transactional
-    fun createProject(name: String, slug: String, metadata: ProjectMetadata): ProjectEntity = conflicts {
+    fun createProject(draft: EditorDraftEntity, metadata: ProjectMetadata): ProjectEntity = conflicts {
         val normalized = ProjectMetadataRequests.validate(metadata)
-        val normalizedName = name.trim()
-        val normalizedSlug = slug.trim().lowercase(Locale.ROOT)
-        if (normalizedName.isBlank() || normalizedName.codePointCount(0, normalizedName.length) > 200 ||
-            normalizedSlug.length > 160 || !SLUG.matches(normalizedSlug)) throw InvalidProjectRequestException()
+        val normalizedName = draft.title.trim()
+        val normalizedSlug = ContentAddress.publishDraft(draft.slug, PostSection.PROJECT_HOME)
+        if (normalizedName.isBlank() || normalizedName.codePointCount(0, normalizedName.length) > 200)
+            throw InvalidProjectRequestException()
         projects.saveAndFlush(ProjectEntity(normalizedSlug, normalizedName, normalized, now())).also {
             stackBadges.replaceProjectStack(it.id!!, normalized.stackBadgeNames)
         }
@@ -164,14 +166,14 @@ class ProjectService(
         projects.saveAndFlush(project)
     }
 
-    /** 기존 HOME 출간의 프로젝트 기준 시각을 확인하고 메타·이름·주소를 일괄 교체. */
+    /** 기존 HOME 출간의 프로젝트 기준 시각을 확인하고 메타·이름을 교체하며 주소는 유지. */
     @Transactional
     fun updateHome(project: ProjectEntity, post: PostEntity, metadata: ProjectMetadata) = conflicts {
         val projectId = project.id ?: error("Persisted project has no ID")
         if (project.homePostId != post.id || post.projectId != projectId ||
             project.updatedAt != metadata.baseProjectUpdatedAt) throw ProjectConflictException()
         val normalized = ProjectMetadataRequests.validate(metadata)
-        project.rename(post.title, post.slug, now())
+        project.rename(post.title, now())
         project.replace(normalized, now())
         projects.saveAndFlush(project)
         stackBadges.replaceProjectStack(projectId, normalized.stackBadgeNames)

@@ -28,8 +28,6 @@ data class EditorDraftCreateRequest(
     @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["string"])
     val title: String,
     @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["string"])
-    val slug: String,
-    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["string"])
     val body: String,
     @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["integer", "null"], format = "int64")
     val categoryId: Long?,
@@ -59,7 +57,7 @@ data class EditorDraftCreateRequest(
 ) {
     /** @return 정규화·상한 검사를 마친 내용과 프로젝트 스냅샷. */
     fun values(fallbackSection: PostSection = PostSection.TECH): EditorDraftValues =
-        EditorDraftValues(title, slug, body, categoryId, tags, visibility, section ?: fallbackSection,
+        EditorDraftValues(title, "", body, categoryId, tags, visibility, section ?: fallbackSection,
             projectId, relatedProjectId, documentOrder, projectMetadata, courseId, chapterOrder, summary, techSeriesOrder)
 }
 
@@ -69,8 +67,6 @@ data class EditorDraftUpdateRequest(
     val revision: Long,
     @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["string"])
     val title: String,
-    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["string"])
-    val slug: String,
     @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["string"])
     val body: String,
     @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["integer", "null"], format = "int64")
@@ -101,7 +97,7 @@ data class EditorDraftUpdateRequest(
 ) {
     /** @return 검증한 전체 교체 내용과 불변 섹션·소속 후보. */
     fun values(fallbackSection: PostSection = PostSection.TECH): EditorDraftValues =
-        EditorDraftValues(title, slug, body, categoryId, tags, visibility, section ?: fallbackSection,
+        EditorDraftValues(title, "", body, categoryId, tags, visibility, section ?: fallbackSection,
             projectId, relatedProjectId, documentOrder, projectMetadata, courseId, chapterOrder, summary, techSeriesOrder)
 }
 
@@ -219,7 +215,7 @@ object EditorDraftRequests {
         val base = nullableTime(node, "baseUpdatedAt")
         if ((postId == null) != (base == null)) throw InvalidEditorDraftRequestException()
         val values = values(node)
-        return EditorDraftCreateRequest(postId, base, values.title, values.slug, values.body,
+        return EditorDraftCreateRequest(postId, base, values.title, values.body,
             values.categoryId, values.tags, values.visibility, AttachmentIds.parse(node.get("attachmentIds")),
             WikiDeclarations.parse(node.get("wikiTargets")), section(node), optionalId(node, "projectId"),
             optionalId(node, "relatedProjectId"), optionalOrder(node), metadata(node, values.visibility),
@@ -232,7 +228,7 @@ object EditorDraftRequests {
         requireObject(node)
         val revision = revision(node)
         val values = values(node)
-        return EditorDraftUpdateRequest(revision, values.title, values.slug, values.body,
+        return EditorDraftUpdateRequest(revision, values.title, values.body,
             values.categoryId, values.tags, values.visibility, AttachmentIds.parse(node.get("attachmentIds")),
             WikiDeclarations.parse(node.get("wikiTargets")), section(node), optionalId(node, "projectId"),
             optionalId(node, "relatedProjectId"), optionalOrder(node), metadata(node, values.visibility),
@@ -249,9 +245,8 @@ object EditorDraftRequests {
     /** @return 스칼라·태그 타입과 저장 상한을 검증하고 태그만 정규화한 내용. */
     private fun values(node: JsonNode): EditorDraftValues {
         val title = string(node, "title")
-        val slug = string(node, "slug")
         val body = string(node, "body")
-        if (title.codePointCount(0, title.length) > 200 || slug.codePointCount(0, slug.length) > 160 ||
+        if (title.codePointCount(0, title.length) > 200 ||
             body.toByteArray(Charsets.UTF_8).size > 1024 * 1024) throw InvalidEditorDraftRequestException()
         val categoryId = nullableId(node, "categoryId")
         val tagsNode = field(node, "tags")
@@ -269,7 +264,7 @@ object EditorDraftRequests {
             "PRIVATE" -> PostVisibility.PRIVATE
             else -> throw InvalidEditorDraftRequestException()
         }
-        return EditorDraftValues(title, slug, body, categoryId, tags, visibility)
+        return EditorDraftValues(title, "", body, categoryId, tags, visibility)
     }
 
     /** @return 객체가 아닌 본문을 400으로 거부. */

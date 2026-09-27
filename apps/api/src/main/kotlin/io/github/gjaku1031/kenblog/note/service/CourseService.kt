@@ -18,6 +18,7 @@ import io.github.gjaku1031.kenblog.note.dto.adminResponse
 import io.github.gjaku1031.kenblog.note.repository.CoursePostRepository
 import io.github.gjaku1031.kenblog.note.repository.CourseRepository
 import io.github.gjaku1031.kenblog.post.domain.PostEntity
+import io.github.gjaku1031.kenblog.post.domain.ContentAddress
 import io.github.gjaku1031.kenblog.post.domain.PostSection
 import io.github.gjaku1031.kenblog.post.domain.PostStatus
 import io.github.gjaku1031.kenblog.post.domain.PostVisibility
@@ -80,7 +81,7 @@ class CourseService(private val courses: CourseRepository, private val chapters:
     /** @return 과목 생성과 DB 고유 주소 확인을 마친 관리자 값. */
     @Transactional
     fun create(request: CourseWriteRequest): io.github.gjaku1031.kenblog.note.dto.CourseAdminResponse = conflicts {
-        courses.saveAndFlush(CourseEntity(request.slug, request.field, request.name,
+        courses.saveAndFlush(CourseEntity(ContentAddress.createCourse(), request.field, request.name,
             request.description, request.status, now())).adminResponse()
     }
 
@@ -88,7 +89,7 @@ class CourseService(private val courses: CourseRepository, private val chapters:
     @Transactional
     fun update(id: Long, request: CourseWriteRequest): io.github.gjaku1031.kenblog.note.dto.CourseAdminResponse = conflicts {
         val course = lockedParent(id)
-        course.replace(request.slug, request.field, request.name, request.description, request.status, now())
+        course.replace(request.field, request.name, request.description, request.status, now())
         courses.saveAndFlush(course).adminResponse()
     }
 

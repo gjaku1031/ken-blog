@@ -5,6 +5,8 @@ import io.github.gjaku1031.kenblog.category.domain.CategoryConflictException
 import io.github.gjaku1031.kenblog.category.domain.CategoryNotFoundException
 import io.github.gjaku1031.kenblog.category.repository.CategoryRepository
 import io.github.gjaku1031.kenblog.draft.service.EditorDraftService
+import io.github.gjaku1031.kenblog.draft.domain.EditorDraftEntity
+import io.github.gjaku1031.kenblog.post.domain.ContentAddress
 import io.github.gjaku1031.kenblog.post.domain.DuplicatePostSlugException
 import io.github.gjaku1031.kenblog.post.domain.InvalidPostDraftException
 import io.github.gjaku1031.kenblog.post.domain.InvalidPostRequestException
@@ -65,16 +67,14 @@ class PostService(
     private val stackBadges: StackBadgeService,
 ) {
     /**
-     * 제목과 slug를 정규화한 후 초안을 원자적으로 저장.
+     * 제목을 검증하고 주소를 서버에서 발급한 후 초안을 원자적으로 저장.
      *
-     * 제목은 Unicode 코드 포인트 1~200자, slug는 소문자 ASCII 영숫자와 단일
-     * 하이픈 구분자로 1~160자, 본문은 UTF-8 1 MiB 이하. DB의 고유 제약이
+     * 제목은 Unicode 코드 포인트 1~200자, 본문은 UTF-8 1 MiB 이하. DB의 고유 제약이
      * 동시 저장 경쟁을 최종 판정함.
      * [PostRepository.saveAndFlush]는 SQL을 동기화하지만 트랜잭션을 커밋하지 않음.
      * 이 호출 중 MySQL `uk_posts_slug` 중복 오류만 도메인 예외로 변환함.
      *
      * @param title 앞뒤 공백을 제거할 제목
-     * @param slug 앞뒤 공백 제거 및 소문자 변환할 주소
      * @param body 원문 그대로 저장할 초안 본문
      * @return ID와 생성·수정 시각이 채워진 [PostEntity]
      * @throws InvalidPostDraftException 입력 계약을 충족하지 않을 때
@@ -82,11 +82,20 @@ class PostService(
      * @throws DataIntegrityViolationException 다른 저장 제약 오류가 발생할 때
      */
     @Transactional
-    fun createDraft(title: String, slug: String, body: String): PostEntity {
-        val values = validateDraft(title, slug, body)
-        val post = PostEntity(values.title, values.slug, values.body, now())
+    fun createDraft(title: String, body: String): PostEntity =
+        createTechDraft(title, body, ContentAddress.create(PostSection.TECH))
+
+    /** @return [EditorDraftEntity]의 자동 주소를 유지하며 새 TECH 원본 생성. */
+    @Transactional
+    fun createDraftFromEditor(draft: EditorDraftEntity): PostEntity =
+        createTechDraft(draft.title, draft.body, ContentAddress.publishDraft(draft.slug, PostSection.TECH))
+
+    /** @return 서버에서 발급하거나 저장한 편집본에서 승계한 주소로 생성한 TECH 원본. */
+    private fun createTechDraft(title: String, body: String, slug: String): PostEntity {
+        val values = validateDraft(title, body)
+        val post = PostEntity(values.title, slug, values.body, now())
         post.replaceSummary(PostSummaryText.fromBody(values.body))
-        return saveDraft(post, values.slug)
+        return saveDraft(post, slug)
     }
 
     /**
@@ -116,32 +125,30 @@ class PostService(
     }
 
     /**
-     * 양수 ID의 게시글을 찾아 제목·slug·본문 전체를 한 트랜잭션에서 교체.
+     * 양수 ID의 게시글을 찾아 제목·본문을 한 트랜잭션에서 교체하고 주소는 유지.
      *
-     * 동일 slug 유지도 DB 고유 제약에 맡기며, 충돌이나 다른 쓰기 실패 시 모든 필드가 롤백됨.
+     * 다른 쓰기 실패 시 모든 필드가 롤백됨.
      * [PostRepository.findLockedById]로 상태 전환과 같은 행을 잠가 출간 필드 덮어쓰기를 방지함.
      * 커밋 뒤 변경 전 본문 버전 키를 best-effort 제거함.
      *
      * @param id 수정할 양수 식별자
      * @param title 앞뒤 공백을 제거할 새 제목
-     * @param slug 정규화할 새 주소
      * @param body 원문 그대로 저장할 새 본문
      * @return ID·생성 시각을 유지하고 수정 시각을 갱신한 [PostEntity]
      * @throws InvalidPostRequestException ID가 양수가 아닐 때
      * @throws PostNotFoundException 해당 글이 없을 때
      * @throws InvalidPostDraftException 입력 계약이 잘못되었을 때
-     * @throws DuplicatePostSlugException 다른 글의 slug와 충돌할 때
      */
     @Transactional
-    fun updateDraft(id: Long, title: String, slug: String, body: String): PostEntity {
+    fun updateDraft(id: Long, title: String, body: String): PostEntity {
         if (id <= 0) throw InvalidPostRequestException()
         val post = repository.findLockedById(id) ?: throw PostNotFoundException()
         requireTech(post)
         val previousHash = post.bodySha256
-        val values = validateDraft(title, slug, body)
-        post.replaceDraft(values.title, values.slug, values.body, now())
+        val values = validateDraft(title, body)
+        post.replaceDraft(values.title, values.body, now())
         post.replaceSummary(PostSummaryText.fromBody(values.body))
-        return saveDraft(post, values.slug).also { cache.evictAfterCommit(id, previousHash) }
+        return saveDraft(post, post.slug).also { cache.evictAfterCommit(id, previousHash) }
     }
 
     /**
@@ -254,9 +261,9 @@ class PostService(
      * @throws io.github.gjaku1031.kenblog.attachment.domain.AttachmentFailure ID가 없거나 READY가 아닐 때
      */
     @Transactional
-    fun createDraftDetail(title: String, slug: String, body: String, attachmentIds: List<Long>? = null,
+    fun createDraftDetail(title: String, body: String, attachmentIds: List<Long>? = null,
         wikiTargets: List<String>? = null): PostDetailResponse {
-        val post = createDraft(title, slug, body)
+        val post = createDraft(title, body)
         attachmentLinks.replacePost(post.id ?: error("Persisted post has no ID"), attachmentIds ?: emptyList())
         wikiLinks.replacePost(post.id ?: error("Persisted post has no ID"), wikiTargets ?: emptyList())
         return post.adminDetail()
@@ -272,13 +279,13 @@ class PostService(
      * @throws io.github.gjaku1031.kenblog.attachment.domain.AttachmentFailure ID가 없거나 READY가 아닐 때
      */
     @Transactional
-    fun updateDraftDetail(id: Long, title: String, slug: String, body: String, attachmentIds: List<Long>? = null,
+    fun updateDraftDetail(id: Long, title: String, body: String, attachmentIds: List<Long>? = null,
         wikiTargets: List<String>? = null): PostDetailResponse {
         if (id <= 0) throw InvalidPostRequestException()
         val locked = repository.findLockedById(id) ?: throw PostNotFoundException()
         requireTech(locked)
         val previousBody = locked.body
-        val post = updateDraft(id, title, slug, body)
+        val post = updateDraft(id, title, body)
         if (attachmentIds != null) attachmentLinks.replacePost(id, attachmentIds)
         if (wikiTargets != null || previousBody != body) wikiLinks.replacePost(id, wikiTargets ?: emptyList())
         return post.adminDetail()
@@ -402,27 +409,30 @@ class PostService(
 
     /** 이미 잠근 프로젝트 아래 새 HOME 또는 DOC 글을 저장. */
     @Transactional
-    fun createProjectPost(title: String, slug: String, body: String, section: PostSection,
+    fun createProjectPost(draft: EditorDraftEntity, section: PostSection,
         projectId: Long, order: Int?): PostEntity {
         if (section !in setOf(PostSection.PROJECT_HOME, PostSection.PROJECT_DOC) || projectId <= 0 ||
             (section == PostSection.PROJECT_DOC && (order ?: 0) <= 0)) throw ProjectConflictException()
-        val values = validateDraft(title, slug, body)
-        val entity = PostEntity(values.title, values.slug, values.body, now())
+        val values = validateDraft(draft.title, draft.body)
+        val slug = if (section == PostSection.PROJECT_HOME)
+            (projects.findByIdOrNull(projectId) ?: throw ProjectConflictException()).slug
+        else ContentAddress.publishDraft(draft.slug, section)
+        val entity = PostEntity(values.title, slug, values.body, now())
         entity.assignProject(section, projectId, order)
-        return saveDraft(entity, values.slug)
+        return saveDraft(entity, slug)
     }
 
     /** 부모 잠금과 소속 확인 뒤 공개 원문의 HOME·DOC 내용만 교체. */
     @Transactional
-    fun updateProjectPost(id: Long, title: String, slug: String, body: String,
+    fun updateProjectPost(id: Long, title: String, body: String,
         section: PostSection, projectId: Long): PostEntity {
         val post = lockedPost(id)
         if (section !in setOf(PostSection.PROJECT_HOME, PostSection.PROJECT_DOC) ||
             post.section != section || post.projectId != projectId) throw ProjectConflictException()
         val previousHash = post.bodySha256
-        val values = validateDraft(title, slug, body)
-        post.replaceDraft(values.title, values.slug, values.body, now())
-        return saveDraft(post, values.slug).also { cache.evictAfterCommit(id, previousHash) }
+        val values = validateDraft(title, body)
+        post.replaceDraft(values.title, values.body, now())
+        return saveDraft(post, post.slug).also { cache.evictAfterCommit(id, previousHash) }
     }
 
     /** 프로젝트 원문만 별도 부모 트랜잭션에서 출간. */
@@ -465,24 +475,25 @@ class PostService(
 
     /** 과목 잠금 뒤 검증한 회차 원문을 새 게시글로 저장. */
     @Transactional
-    fun createChapterPost(title: String, slug: String, body: String, courseId: Long, order: Int): PostEntity {
+    fun createChapterPost(draft: EditorDraftEntity, courseId: Long, order: Int): PostEntity {
         if (courseId <= 0 || order <= 0) throw io.github.gjaku1031.kenblog.note.domain.CourseConflictException()
-        val values = validateDraft(title, slug, body)
-        val post = PostEntity(values.title, values.slug, values.body, now())
+        val values = validateDraft(draft.title, draft.body)
+        val slug = ContentAddress.publishDraft(draft.slug, PostSection.NOTE_CHAPTER)
+        val post = PostEntity(values.title, slug, values.body, now())
         post.assignCourse(courseId, order)
-        return saveDraft(post, values.slug)
+        return saveDraft(post, slug)
     }
 
     /** 과목과 소속을 다시 확인한 뒤 회차 원문만 갱신. */
     @Transactional
-    fun updateChapterPost(id: Long, title: String, slug: String, body: String, courseId: Long): PostEntity {
+    fun updateChapterPost(id: Long, title: String, body: String, courseId: Long): PostEntity {
         val post = lockedPost(id)
         if (post.section != PostSection.NOTE_CHAPTER || post.courseId != courseId)
             throw io.github.gjaku1031.kenblog.note.domain.CourseConflictException()
         val previousHash = post.bodySha256
-        val values = validateDraft(title, slug, body)
-        post.replaceDraft(values.title, values.slug, values.body, now())
-        return saveDraft(post, values.slug).also { cache.evictAfterCommit(id, previousHash) }
+        val values = validateDraft(title, body)
+        post.replaceDraft(values.title, values.body, now())
+        return saveDraft(post, post.slug).also { cache.evictAfterCommit(id, previousHash) }
     }
 
     /** 기존 출간 경로와 동일하게 회차의 첫 출간 시각을 보존. */
@@ -495,27 +506,22 @@ class PostService(
     }
 
     /**
-     * 기존 생성·새 수정 경로에서 같은 제목·slug·본문 계약을 적용.
+     * 기존 생성·새 수정 경로에서 같은 제목·본문 계약을 적용.
      *
      * @param title 원본 제목
-     * @param slug 원본 주소
      * @param body 원본 본문
-     * @return 정규화된 제목·slug와 변형하지 않은 본문
+     * @return 정규화된 제목과 변형하지 않은 본문
      * @throws InvalidPostDraftException 길이·형식 상한을 벗어날 때
      */
-    private fun validateDraft(title: String, slug: String, body: String): DraftValues {
+    private fun validateDraft(title: String, body: String): DraftValues {
         val normalizedTitle = title.trim()
-        val normalizedSlug = normalizeSlug(slug)
         if (normalizedTitle.isBlank() || normalizedTitle.codePointCount(0, normalizedTitle.length) > MAX_TITLE_LENGTH) {
             throw InvalidPostDraftException("제목은 공백이 아닌 1~200자여야 합니다.")
-        }
-        if (normalizedSlug.length > MAX_SLUG_LENGTH || !SLUG_PATTERN.matches(normalizedSlug)) {
-            throw InvalidPostDraftException("slug는 1~160자의 소문자 영숫자와 단일 하이픈으로 구성해야 합니다.")
         }
         if (body.toByteArray(Charsets.UTF_8).size > MAX_BODY_BYTES) {
             throw InvalidPostDraftException("본문은 UTF-8로 1 MiB 이하여야 합니다.")
         }
-        return DraftValues(normalizedTitle, normalizedSlug, body)
+        return DraftValues(normalizedTitle, body)
     }
 
     /**
@@ -558,7 +564,7 @@ class PostService(
         }
 
     /** 생성·수정 경로에 공통으로 전달하는 검증된 초안 값. */
-    private data class DraftValues(val title: String, val slug: String, val body: String)
+    private data class DraftValues(val title: String, val body: String)
 
     private companion object {
         const val MAX_TITLE_LENGTH = 200

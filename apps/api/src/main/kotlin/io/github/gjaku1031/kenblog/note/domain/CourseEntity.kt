@@ -50,17 +50,17 @@ class CourseEntity protected constructor() {
     lateinit var updatedAt: LocalDateTime
         protected set
 
-    /** [replace]와 동일한 정규화 값으로 과목을 생성. */
+    /** [replace]와 동일한 소개 값 및 서버 발급 주소로 과목을 생성. */
     internal constructor(slug: String, field: String, name: String, description: String,
         status: CourseStatus, now: LocalDateTime) : this() {
-        replace(slug, field, name, description, status, now)
+        this.slug = slug
+        replace(field, name, description, status, now)
         createdAt = now
     }
 
     /** 관리자 수정에서 소개 속성과 수정 시각을 원자적으로 교체. */
-    internal fun replace(slug: String, field: String, name: String, description: String,
+    internal fun replace(field: String, name: String, description: String,
         status: CourseStatus, now: LocalDateTime) {
-        this.slug = slug
         this.field = field
         this.name = name
         this.description = description

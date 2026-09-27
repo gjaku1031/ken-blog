@@ -24,7 +24,7 @@ enum class PostSection { TECH, PROJECT_HOME, PROJECT_DOC, NOTE_CHAPTER }
  * Flyway의 `posts` 행에 대응하는 초안·출간 게시글 저장 모델.
  *
  * 시간은 UTC의 [LocalDateTime]으로 저장하며 생성 시 [updatedAt]은 [createdAt]과 같음.
- * [replaceDraft]는 출간 상태를 건드리지 않고 검증된 내용만 교체함.
+ * [replaceDraft]는 출간 상태와 공개 주소를 건드리지 않고 검증된 내용만 교체함.
  * 최초 [publishedAt]은 철회·재출간·공개 범위 변경에도 유지함.
  */
 @Entity
@@ -141,13 +141,11 @@ class PostEntity protected constructor() {
      * [PostService.updateDraft]에서 검증한 전체 초안 내용을 한 트랜잭션에서 교체.
      *
      * @param title 정규화한 제목
-     * @param slug 정규화한 slug
      * @param body 원문 그대로 저장할 본문
      * @param updatedAt UTC 수정 시각
      */
-    internal fun replaceDraft(title: String, slug: String, body: String, updatedAt: LocalDateTime) {
+    internal fun replaceDraft(title: String, body: String, updatedAt: LocalDateTime) {
         this.title = title
-        this.slug = slug
         this.body = body
         this.bodySha256 = PostBodyHash.sha256(body)
         this.updatedAt = updatedAt
