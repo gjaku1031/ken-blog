@@ -19,7 +19,7 @@ function returnPath(value: string | null): string {
     const pathname = rawPath === "/" ? "/" : rawPath.endsWith("/") ? rawPath : `${rawPath}/`;
     const known = new Set(["/", "/tech/", "/post/", "/projects/", "/project/", "/notes/", "/course/",
       "/write/", "/admin/", "/admin/posts/", "/admin/drafts/", "/admin/categories/",
-      "/admin/stacks/", "/admin/profile/"]);
+      "/admin/profile/"]);
     if (url.origin !== "https://ken-blog.invalid" || !known.has(pathname) || url.hash) return "/tech/";
     if (pathname === "/post/") {
       const entries = [...url.searchParams.entries()];

@@ -60,7 +60,15 @@ export function SiteShell({ children }: { children: ReactNode }) {
     }
   }, [currentPath]);
 
-  useEffect(() => { if (searchOpen) searchInput.current?.focus(); }, [searchOpen]);
+  useEffect(() => {
+    if (!searchOpen) return;
+    // 컨테이너의 첫 확장 프레임을 그린 뒤 입력에 초점을 옮긴다.
+    let nextFrame = 0;
+    const firstFrame = requestAnimationFrame(() => {
+      nextFrame = requestAnimationFrame(() => searchInput.current?.focus({ preventScroll: true }));
+    });
+    return () => { cancelAnimationFrame(firstFrame); cancelAnimationFrame(nextFrame); };
+  }, [searchOpen]);
 
   useEffect(() => {
     if (!searchOpen) return;
@@ -144,23 +152,23 @@ export function SiteShell({ children }: { children: ReactNode }) {
             <Link key={href} href={href} aria-current={isCurrent(href) ? "page" : undefined}>{label}</Link>)}
         </nav>
         <div className="header-actions">
-          <button ref={searchToggle} type="button" className={`icon-button header-search-toggle${searchOpen ? " is-open" : ""}`}
-            aria-label="검색 열기" aria-expanded={searchOpen} aria-controls="site-search" aria-hidden={searchOpen}
-            tabIndex={searchOpen ? -1 : 0}
-            onClick={() => setSearchOpen(true)}><HeaderIcon name="search" /></button>
-          <form className={`header-search${searchOpen ? " is-open" : ""}`} role="search" aria-hidden={!searchOpen}
-            inert={!searchOpen} data-keyboard-focus={searchKeyboardFocus} onKeyDown={(event) => {
+          <div className={`header-search-unit${searchOpen ? " is-open" : ""}`} data-keyboard-focus={searchKeyboardFocus}>
+            <button ref={searchToggle} type="button" className="header-search-toggle"
+              aria-label={searchOpen ? "검색 닫기" : "검색 열기"} aria-expanded={searchOpen} aria-controls="site-search"
+              onClick={() => { if (searchOpen) closeSearch(false); else setSearchOpen(true); }}><HeaderIcon name="search" /></button>
+            <form className="header-search" role="search" aria-hidden={!searchOpen}
+              inert={!searchOpen} onKeyDown={(event) => {
               if (event.key === "Escape") { event.preventDefault(); closeSearch(false); }
-            }} onSubmit={(event) => {
-            event.preventDefault(); const value = search.trim(); if (value) { disablePublicAnalytics(); router.push(`/search/?q=${encodeURIComponent(value)}`); }
-          }}><label className="sr-only" htmlFor="site-search">글 검색</label>
-            <HeaderIcon name="search" /><input ref={searchInput} id="site-search" type="search" value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              placeholder="제목 · 본문 · 태그 검색" />
-            {search && <button type="button" className="header-search-clear" aria-label="검색어 지우기" onClick={clearSearch}>
-              <HeaderIcon name="close" /></button>}
-            <button type="button" className="header-search-close" aria-label="검색 닫기"
-              onClick={() => closeSearch(true)}><HeaderIcon name="close" /></button></form>
+              }} onSubmit={(event) => {
+                event.preventDefault(); const value = search.trim(); if (value) { disablePublicAnalytics(); router.push(`/search/?q=${encodeURIComponent(value)}`); }
+              }}><label className="sr-only" htmlFor="site-search">글 검색</label>
+              <input ref={searchInput} id="site-search" type="search" value={search}
+                onChange={(event) => setSearch(event.target.value)} placeholder="제목 · 본문 · 태그 검색" />
+              {search && <button type="button" className="header-search-clear" aria-label="검색어 지우기" onClick={clearSearch}>
+                <HeaderIcon name="close" /></button>}
+              <button type="button" className="header-search-close" aria-label="검색 닫기"
+                onClick={() => closeSearch(true)}><HeaderIcon name="close" /></button></form>
+          </div>
           <button type="button" className="theme-switch" role="switch" aria-checked={theme === "dark"}
             aria-label="다크 모드" title={theme === "dark" ? "다크 모드 켜짐" : "다크 모드 꺼짐"} onClick={toggleTheme}>
             <span className="theme-switch-track"><span className="theme-switch-thumb">

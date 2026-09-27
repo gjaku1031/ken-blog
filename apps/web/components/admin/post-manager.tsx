@@ -160,7 +160,7 @@ export function PostManager() {
           <button type="button" className="danger-text" disabled={busy !== null} onClick={() => void remove(item)}>삭제</button></> : <>
           {(item.section === "TECH" || item.section === "NOTE_CHAPTER" || item.section === "PROJECT_DOC") && item.status === "PUBLISHED" &&
             <button type="button" disabled={busy !== null} onClick={() => void pin(item)}>{item.pinOrder == null ? "핀 고정" : "핀 해제"}</button>}
-          <Link href={`/write/?postId=${item.id}`}>수정</Link><button type="button" onClick={() => setDeleting(item.id)}>삭제</button></>}</div></td></tr>)}
+          <Link href={`/write/?postId=${item.id}`}>수정</Link><button type="button" className="danger-text" onClick={() => setDeleting(item.id)}>삭제</button></>}</div></td></tr>)}
     </tbody></table>{!loading && !filtered.length && <p className="message-card">해당하는 글이 없습니다.</p>}
     {filtered.length > 10 && <nav className="number-pager" aria-label="글 관리 페이지">
       <span className="pager-count">{page * 10 + 1}–{Math.min((page + 1) * 10, filtered.length)} / {filtered.length}편</span>
