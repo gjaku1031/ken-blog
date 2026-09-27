@@ -70,11 +70,17 @@ main.write-page.editor-design-page {
 .editor-category-footer { display: flex; justify-content: flex-end; padding: 6px 10px 10px; }
 .editor-category-footer .primary-button { min-height: 32px; padding: 0 12px; font-size: 13px; }
 .editor-design-page .block-editor { display: flex; flex-direction: column; gap: 0; margin-top: 28px; padding: 0; }
-.editor-design-page .editor-block { padding: 2px 0; }
+.editor-design-page .editor-block { margin-left: -12px; padding: 2px 0 2px 12px; }
 .editor-design-page .editor-block.editor-h1 { margin-top: 22px; }
 .editor-design-page .editor-block.editor-h2 { margin-top: 18px; }
 .editor-design-page .editor-block.editor-h3 { margin-top: 12px; }
-.editor-design-page .block-controls { left: -36px; top: 4px; }
+.editor-design-page .block-controls { left: -24px; top: 4px; }
+.editor-design-page .editor-box-gutter { display: none; }
+@media (min-width: 861px) {
+  .editor-design-page .editor-box-gutter { position: absolute; top: 0; bottom: 0; left: -26px; display: block;
+    width: 26px; cursor: crosshair; }
+  .editor-design-page .editor-block > .block-controls:not(.block-controls-transfer) { left: -54px; }
+}
 .editor-design-page .block-controls:not(.block-controls-transfer) { flex-direction: column; }
 .editor-design-page .block-controls button { background: transparent; }
 .editor-design-page .block-controls .drag-handle[aria-pressed="true"] { background: var(--tint); color: var(--accent-d); }

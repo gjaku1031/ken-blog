@@ -14,6 +14,7 @@ import { PublicAnalytics } from "./public-analytics";
 import { readPinnedIds } from "@/lib/feed";
 
 type DetailState = { status: "loading" | "ready" | "error"; post: PostDetail | null; privatePost: boolean; error: string };
+const seriesPageSize = 6;
 
 /** 실제 본문 글자 수로 원본의 500자당 1분 규칙을 계산한다. {@link readingMinutes} */
 function readingMinutes(body: string): number {
@@ -35,6 +36,9 @@ function ReaderInstance({ slug }: { slug: string }) {
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [deleteError, setDeleteError] = useState("");
   const [categoryLabel, setCategoryLabel] = useState<string | null>(null);
+  const [selectedSeriesPage, setSelectedSeriesPage] = useState<number | null>(null);
+  const [railFits, setRailFits] = useState(false);
+  const railRef = useRef<HTMLElement | null>(null);
   const reading = useMemo(() => state.status === "ready" && state.post && !state.post.locked ?
     buildReadingDocument(state.post.body ?? "") : null, [state]);
 
@@ -100,6 +104,22 @@ function ReaderInstance({ slug }: { slug: string }) {
   const series = state.post?.series;
   const previous = series?.items[(series.position ?? 0) - 2];
   const next = series?.items[series.position ?? 0];
+  const seriesPageCount = series ? Math.ceil(series.items.length / seriesPageSize) : 0;
+  const currentSeriesPage = series ? Math.floor((series.position - 1) / seriesPageSize) : 0;
+  const seriesPage = Math.min(selectedSeriesPage ?? currentSeriesPage, Math.max(0, seriesPageCount - 1));
+  const visibleSeries = series?.items.slice(seriesPage * seriesPageSize, (seriesPage + 1) * seriesPageSize);
+
+  /** 레일 전체가 화면에 들어갈 때만 고정해 목차와 페이지 버튼을 계속 접근 가능하게 둔다. */
+  useEffect(() => {
+    const rail = railRef.current;
+    if (!rail) return;
+    const measure = () => setRailFits(rail.getBoundingClientRect().height <= window.innerHeight - 120);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(rail);
+    window.addEventListener("resize", measure);
+    return () => { observer.disconnect(); window.removeEventListener("resize", measure); };
+  }, [state.status, state.post?.id, seriesPage]);
 
   return <main id="main-content" className="post-page page-container">
     <Link href={state.post?.relatedProject ? `/project/?slug=${encodeURIComponent(state.post.relatedProject.slug)}` : "/tech/"}
@@ -147,13 +167,21 @@ function ReaderInstance({ slug }: { slug: string }) {
                 <strong>{next.title}</strong></Link> : <span className="series-end">시리즈의 마지막 글입니다</span>}
             </nav>}
           </div>
-          {(reading?.toc.length || series) && <aside className="post-side-rail">
+          {(reading?.toc.length || series) && <aside ref={railRef} className={`post-side-rail${railFits ? " can-stick" : ""}`}>
             {reading && <TableOfContents items={reading.toc} />}
             {series && <nav className="series-nav" aria-label="시리즈 글 목록"><h2>시리즈 · {state.post.category?.name ?? "Tech"}
               <span>{series.position}/{series.items.length}</span></h2>
-              <ol>{series.items.map((item) => <li key={item.id}><Link href={`/post/?slug=${encodeURIComponent(item.slug)}`}
+              <ol>{visibleSeries?.map((item) => <li key={item.id}><Link href={`/post/?slug=${encodeURIComponent(item.slug)}`}
+                title={item.title}
                 aria-current={item.id === state.post?.id ? "page" : undefined}><span className="series-number">{item.order}</span>
-                <span>{item.title}</span></Link></li>)}</ol></nav>}
+                <span>{item.title}</span></Link></li>)}</ol>
+              {seriesPageCount > 1 && <div className="series-pagination">
+                <button type="button" disabled={seriesPage === 0} onClick={() => setSelectedSeriesPage(seriesPage - 1)}
+                  aria-label="이전 시리즈 목록 페이지">이전</button>
+                <span aria-live="polite" aria-atomic="true">{seriesPage + 1} / {seriesPageCount}</span>
+                <button type="button" disabled={seriesPage === seriesPageCount - 1}
+                  onClick={() => setSelectedSeriesPage(seriesPage + 1)} aria-label="다음 시리즈 목록 페이지">다음</button>
+              </div>}</nav>}
           </aside>}
         </div>}
     </article>}

@@ -1,7 +1,7 @@
 "use client";
 
 import { forwardRef, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState,
-  type ClipboardEvent, type DragEvent, type KeyboardEvent, type MouseEvent } from "react";
+  type ClipboardEvent, type DragEvent, type KeyboardEvent, type MouseEvent, type PointerEvent as ReactPointerEvent } from "react";
 import { SafeMarkdown } from "@/components/safe-markdown";
 import { blockMarkdown, emptyBlock, emptyImageBlock, emptyToggleBlock, ensureBlockBoundaries, type BlockType, type EditorBlock, type MarkdownDocument } from "@/lib/editor-markdown";
 import type { ImageData } from "@/lib/editor-image";
@@ -24,6 +24,7 @@ export type BlockEditorHandle = { captureAnnotationSelection: () => void; insert
 type AnnotationController = { selection: EditorAnnotationSelection | null; composing: boolean; suppressNext: boolean };
 type FocusTarget = { id: string; offset: number | "end" };
 type DropSlot = { targetId: string | null; side: "before" | "after" | "end"; kind: "blocks" | "file" };
+type SelectionBox = { left: number; top: number; width: number; height: number };
 const ANNOTATION_TEXT_TYPES = new Set<BlockType>(["p", "h1", "h2", "h3", "ul", "ol", "todo", "quote"]);
 /** 편집과 미리보기 조작에 쓰는 블록 종류별 한국어 이름. */
 const blockNames: Record<BlockType, string> = { p: "문단", h1: "제목 1", h2: "제목 2", h3: "제목 3",
@@ -84,6 +85,12 @@ export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEd
   const handlePointerType = useRef<string>("");
   const selectionAnchor = useRef<string | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(() => new Set());
+  const [selectionBox, setSelectionBox] = useState<SelectionBox | null>(null);
+  const [keepSelectionBarSpace, setKeepSelectionBarSpace] = useState(false);
+  const marqueeCleanup = useRef<(() => void) | null>(null);
+  const marqueeFocusFrame = useRef(0);
+  const suppressMarqueeClick = useRef(false);
+  const suppressMarqueeClickTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [dropSlot, setDropSlot] = useState<DropSlot | null>(null);
   const [pendingUpload, setPendingUpload] = useState<{ serial: number; anchor: BlockInsertion } | null>(null);
   const uploadSerial = useRef(0);
@@ -99,6 +106,9 @@ export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEd
   useEffect(() => () => {
     if (compositionTimer.current) clearTimeout(compositionTimer.current);
     if (flashTimer.current) clearTimeout(flashTimer.current);
+    if (suppressMarqueeClickTimer.current) clearTimeout(suppressMarqueeClickTimer.current);
+    cancelAnimationFrame(marqueeFocusFrame.current);
+    marqueeCleanup.current?.();
     if (composing.current) annotation.composing = false;
   }, [annotation]);
   useEffect(() => {
@@ -743,7 +753,122 @@ export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEd
     }
   }
 
+  /** {@link BlockEditor}의 빈 여백·블록 선택 여백에서만 마우스 박스 선택을 시작한다.
+   * 텍스트 입력·손잡이를 제외하고 `selectedIds`와 `selectionAnchor`를 함께 갱신한다. */
+  function startBoxSelection(event: ReactPointerEvent<HTMLDivElement>) {
+    const editor = root.current;
+    if (!editor || disabled || composing.current || event.pointerType !== "mouse" || event.button !== 0 ||
+      event.shiftKey || event.ctrlKey || event.metaKey || event.altKey || marqueeCleanup.current) return;
+    const target = event.target;
+    if (!(target instanceof Element) || target.closest(".block-editor") !== editor ||
+      target.closest(".editor-selection-bar, .block-controls, button, input, textarea, select, [contenteditable]")) return;
+    const block = target.closest<HTMLElement>(".editor-block");
+    const gutter = target.closest(".editor-box-gutter");
+    if (block && (block.parentElement !== editor || !gutter && (
+      event.clientX < block.getBoundingClientRect().left ||
+      event.clientX >= block.getBoundingClientRect().left + 12))) return;
+    if (!block && target !== editor && !target.closest(".editor-click-below")) return;
+    event.preventDefault();
+    cancelAnimationFrame(marqueeFocusFrame.current);
+    setKeepSelectionBarSpace(selectedIds.size > 0);
+    const pointerId = event.pointerId;
+    const startX = event.clientX + window.scrollX;
+    const startY = event.clientY + window.scrollY;
+    let clientX = event.clientX;
+    let clientY = event.clientY;
+    let selecting = false;
+    let selectedBlockIds: string[] = [];
+    let frame = 0;
+
+    /** 문서 좌표의 선택 사각형과 직속 블록의 교차를 다시 계산한다. */
+    const update = () => {
+      const pageX = clientX + window.scrollX;
+      const pageY = clientY + window.scrollY;
+      if (!selecting && Math.hypot(pageX - startX, pageY - startY) < 4) return;
+      selecting = true;
+      window.getSelection()?.removeAllRanges();
+      const left = Math.min(startX, pageX);
+      const right = Math.max(startX, pageX);
+      const top = Math.min(startY, pageY);
+      const bottom = Math.max(startY, pageY);
+      setSelectionBox({ left: left - window.scrollX, top: top - window.scrollY,
+        width: Math.max(1, right - left), height: Math.max(1, bottom - top) });
+      const ids = [...editor.querySelectorAll<HTMLElement>(":scope > .editor-block")].flatMap((element) => {
+        const rect = element.getBoundingClientRect();
+        const gutterRect = element.querySelector<HTMLElement>(":scope > .editor-box-gutter")?.getBoundingClientRect();
+        const hitLeft = gutterRect?.width ? Math.min(rect.left, gutterRect.left) : rect.left;
+        return hitLeft + window.scrollX <= right && rect.right + window.scrollX >= left &&
+          rect.top + window.scrollY <= bottom && rect.bottom + window.scrollY >= top ?
+          [element.dataset.blockId ?? ""] : [];
+      }).filter(Boolean);
+      selectedBlockIds = ids;
+      selectionAnchor.current = ids[0] ?? null;
+      setSelectedIds((current) => current.size === ids.length && ids.every((id) => current.has(id)) ? current : new Set(ids));
+    };
+
+    /** 화면 가장자리에서 문서를 움직이고 같은 포인터 위치로 선택 범위를 확장한다. */
+    const autoScroll = () => {
+      if (selecting) {
+        const edge = 48;
+        const distance = clientY < edge ? clientY - edge : clientY > window.innerHeight - edge ?
+          clientY - (window.innerHeight - edge) : 0;
+        if (distance) {
+          const before = window.scrollY;
+          window.scrollBy(0, Math.max(-20, Math.min(20, distance / 2)));
+          if (window.scrollY !== before) update();
+        }
+      }
+      frame = requestAnimationFrame(autoScroll);
+    };
+    const cleanup = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", finish);
+      window.removeEventListener("pointercancel", cancel);
+      window.removeEventListener("keydown", escape);
+      window.removeEventListener("blur", cancel);
+      cancelAnimationFrame(frame);
+      marqueeCleanup.current = null;
+    };
+    const move = (moveEvent: globalThis.PointerEvent) => {
+      if (moveEvent.pointerId !== pointerId) return;
+      clientX = moveEvent.clientX; clientY = moveEvent.clientY;
+      if (selecting) moveEvent.preventDefault();
+      update();
+    };
+    const finish = (upEvent: globalThis.PointerEvent) => {
+      if (upEvent.pointerId !== pointerId) return;
+      if (selecting) {
+        suppressMarqueeClick.current = true;
+        if (suppressMarqueeClickTimer.current) clearTimeout(suppressMarqueeClickTimer.current);
+        suppressMarqueeClickTimer.current = setTimeout(() => { suppressMarqueeClick.current = false; }, 0);
+        const firstId = selectedBlockIds[0];
+        if (firstId) marqueeFocusFrame.current = requestAnimationFrame(() => {
+          const first = [...(root.current?.querySelectorAll<HTMLElement>(":scope > .editor-block") ?? [])]
+            .find((element) => element.dataset.blockId === firstId);
+          first?.querySelector<HTMLButtonElement>(":scope > .block-controls .drag-handle")?.focus({ preventScroll: true });
+        });
+      }
+      cleanup(); setSelectionBox(null); setKeepSelectionBarSpace(false);
+    };
+    const cancel = () => { cleanup(); setSelectionBox(null); setKeepSelectionBarSpace(false); };
+    const escape = (keyEvent: globalThis.KeyboardEvent) => {
+      if (keyEvent.key !== "Escape") return;
+      keyEvent.preventDefault();
+      cancel(); setSelectedIds(new Set()); selectionAnchor.current = null;
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", finish);
+    window.addEventListener("pointercancel", cancel);
+    window.addEventListener("keydown", escape);
+    window.addEventListener("blur", cancel);
+    frame = requestAnimationFrame(autoScroll);
+    marqueeCleanup.current = cleanup;
+  }
+
   return <div className="block-editor" aria-label="글 본문 편집기" ref={root}
+    onClickCapture={(event) => { if (suppressMarqueeClick.current) {
+      event.preventDefault(); event.stopPropagation(); suppressMarqueeClick.current = false;
+    } }}
     onFocusCapture={(event) => {
       const target = event.target;
       if (!(target instanceof HTMLElement) || target.closest(".block-editor") !== event.currentTarget) return;
@@ -753,6 +878,7 @@ export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEd
     onPointerDownCapture={(event) => {
       if ((event.target as Element).closest(".block-editor") === event.currentTarget)
         clearAnnotationSelectionForInput(event.target);
+      startBoxSelection(event);
     }}
     onKeyDownCapture={(event) => {
       if (event.key === "Escape" && selectedIds.size &&
@@ -792,7 +918,9 @@ export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEd
     }}
     onDragLeave={(event) => { if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setDropSlot(null); }}
     onDrop={(event) => dropOn(event, slotAt(event.clientY, dragKind(event) ?? "file"))}>
-    {selectedIds.size > 0 && <div className="editor-selection-bar" role="status">
+    {selectionBox && <div className="editor-selection-box" style={selectionBox} aria-hidden="true" />}
+    {(selectedIds.size > 0 && !selectionBox || selectionBox && keepSelectionBarSpace) &&
+      <div className={`editor-selection-bar${selectionBox ? " editor-selection-bar-hidden" : ""}`} role="status">
       <span>{selectedIds.size}개 블록 선택됨 · 손잡이나 화살표로 함께 이동</span>
       <button type="button" onClick={() => { setSelectedIds(new Set()); selectionAnchor.current = null; }}>선택 해제</button>
     </div>}
@@ -813,6 +941,7 @@ export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEd
       onDrop={(event) => { const rect = event.currentTarget.getBoundingClientRect();
         dropOn(event, { targetId: block.id, side: event.clientY < rect.top + rect.height / 2 ? "before" : "after",
           kind: dragKind(event) ?? "file" }); }}>
+      {depth === 0 && <div className="editor-box-gutter" aria-hidden="true" />}
       <div className={`block-controls${depth === 1 || (depth === 0 && index > 0 && value.blocks[index - 1].type === "toggle") ? " block-controls-transfer" : ""}`}
         aria-label={`${index + 1}번 블록 이동`}>
         <button type="button" className="drag-handle" disabled={disabled} draggable={!disabled}

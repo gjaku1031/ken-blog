@@ -118,7 +118,7 @@ export function FeedCard({ post, mode, categoryId, tag, sort, categories = [], p
   </article>;
 }
 
-/** 필터·세션마다 새로 요청하고 다음 10개를 뷰포트 근처에서 이어 붙인다. {@link FeedInstance} */
+/** 이전 탐색 범위를 즉시 복원하고 진입할 때마다 갱신하며 다음 10개를 이어 붙인다. {@link FeedInstance} */
 function FeedInstance({ mode, categoryId, tag, sort }: { mode: FeedMode; categoryId: number | null; tag: string | null; sort: FeedSort }) {
   const auth = useAuth();
   const cacheKey = `${auth.epoch}:${mode}:${categoryId}:${tag}:${sort}`;
@@ -142,26 +142,33 @@ function FeedInstance({ mode, categoryId, tag, sort }: { mode: FeedMode; categor
 
   useEffect(() => {
     if (auth.status === "checking") return;
-    if (retry === 0 && feedCache.has(cacheKey)) return;
     const controller = new AbortController();
-    setState((current) => ({ ...current, status: "loading", items: [], error: "" }));
+    const cached = feedCache.get(cacheKey);
+    const lastCachedPage = cached?.status === "ready" ? cached.page : 0;
+    if (retry > 0 || !cached) setState((current) => ({ ...current, status: "loading", items: [], error: "" }));
+    loadingLock.current = true;
     void (async () => {
       try {
         const credentials = await auth.readCredentials(controller.signal);
-        const [feed, categories, tags] = await Promise.all([
-          apiJson<unknown>(query(0), credentials, controller.signal),
+        const [feeds, categories, tags] = await Promise.all([
+          Promise.all(Array.from({ length: lastCachedPage + 1 }, (_, page) =>
+            apiJson<unknown>(query(page), credentials, controller.signal))),
           apiJson<unknown>("/api/v1/categories", credentials, controller.signal),
           apiJson<unknown>("/api/v1/tags", credentials, controller.signal),
         ]);
-        const page = parseFeedPage(feed);
-        if (!controller.signal.aborted) setState({ status: "ready", items: page.items, page: 0,
-          total: page.totalElements, pages: page.totalPages, categories: parseCategories(categories),
+        const pages = feeds.map(parseFeedPage);
+        const first = pages[0];
+        const currentPage = Math.max(0, Math.min(lastCachedPage, first.totalPages - 1));
+        const items = [...new Map(pages.slice(0, currentPage + 1).flatMap((page) =>
+          page.items.map((item) => [item.id, item] as const))).values()];
+        if (!controller.signal.aborted) setState({ status: "ready", items, page: currentPage,
+          total: first.totalElements, pages: first.totalPages, categories: parseCategories(categories),
           tags: parseTags(tags), error: "" });
       } catch (failure) {
         if (controller.signal.aborted) return;
         if (failure instanceof ApiFailure && failure.status === 401) auth.expire();
         setState((current) => ({ ...current, status: "error", items: [], error: apiFailureMessage(failure) }));
-      }
+      } finally { if (!controller.signal.aborted) loadingLock.current = false; }
     })();
     return () => controller.abort();
   }, [auth.status, auth.epoch, auth.readCredentials, auth.expire, query, retry, cacheKey]);

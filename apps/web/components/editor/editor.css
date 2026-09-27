@@ -30,7 +30,10 @@
 .editor-math-actions button:focus-visible, .editor-mermaid-actions button:focus-visible { outline: 3px solid var(--accent); outline-offset: 1px; }
 .editor-math-empty, .editor-mermaid-empty { display: block; min-height: 35px; padding: 6px 0; color: var(--muted); }
 
-.editor-selection-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 4px 0 9px; padding: 7px 10px; border: 1px solid var(--accent); border-radius: 6px; background: var(--tint); color: var(--text); font-size: 12px; }
+.editor-selection-box { position: fixed; z-index: 20; border: 1px solid var(--accent); border-radius: 3px;
+  background: var(--tint); opacity: .65; pointer-events: none; }
+.editor-selection-bar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 4px 0 9px; padding: 7px 10px; border: 1px solid var(--accent); border-radius: 6px; background: var(--tint); color: var(--text); font-size: 12px; user-select: none; }
+.editor-selection-bar-hidden { visibility: hidden; }
 .editor-selection-bar button { border: 0; background: transparent; color: var(--accent-d); font: inherit; font-weight: 700; cursor: pointer; }
 .editor-block.editor-block-selected { border-radius: 5px; background: var(--tint); box-shadow: inset 3px 0 var(--accent); }
 .editor-block[data-drop-side="before"]::before, .editor-block[data-drop-side="after"]::after,

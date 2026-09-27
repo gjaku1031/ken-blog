@@ -72,14 +72,6 @@ export function PublishSheet({ title, section, summary, summaryPreview, visibili
               <select id="publish-related-project" value={relatedProjectId ?? ""} disabled={busy}
                 onChange={(event) => onRelatedProject(event.target.value ? Number(event.target.value) : null)}>
                 <option value="">없음</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.label}</option>)}</select></div>
-            {categoryDepth === 3 && <div className="editor-publish-field"><label htmlFor="publish-tech-series">시리즈 순서</label>
-              <div className="editor-publish-series"><input id="publish-tech-series" type="number" min="1" max="2147483647" step="1"
-                value={techSeriesOrder ?? ""} disabled={busy}
-                onChange={(event) => { const raw = event.target.value;
-                  const order = Number(raw);
-                  onTechSeriesOrder(/^\d+$/.test(raw) && order >= 1 && order <= 2147483647 ? order : null);
-                }} />
-                <span>이 분류에 글 {categoryCount}편 · 번호는 바꿀 수 있어요</span></div></div>}
           </>}
           {section === "PROJECT_DOC" && <>
             <div className="editor-publish-field"><label htmlFor="publish-project">프로젝트</label>
@@ -117,6 +109,14 @@ export function PublishSheet({ title, section, summary, summaryPreview, visibili
           <button type="button" role="radio" aria-checked={visibility === "PRIVATE"} className={`editor-publish-option${visibility === "PRIVATE" ? " selected" : ""}`}
             disabled={busy} onClick={() => onVisibility("PRIVATE")}><span className="editor-publish-radio" /><span><strong>비공개</strong><small>로그인한 회원(내가 발급한 계정)만</small></span></button>
         </div>
+        {section === "TECH" && categoryDepth === 3 && <div className="editor-publish-field"><label htmlFor="publish-tech-series">시리즈 순서</label>
+          <div className="editor-publish-series"><input id="publish-tech-series" type="number" min="1" max="2147483647" step="1"
+            value={techSeriesOrder ?? ""} disabled={busy}
+            onChange={(event) => { const raw = event.target.value;
+              const order = Number(raw);
+              onTechSeriesOrder(/^\d+$/.test(raw) && order >= 1 && order <= 2147483647 ? order : null);
+            }} />
+            <span>이 분류에 글 {categoryCount}편 · 번호는 바꿀 수 있어요</span></div></div>}
         {error && <p className="form-error" role="alert">{error}</p>}
         <div className="publish-actions"><button type="button" onClick={onClose} disabled={busy}>취소</button>
           <button type="submit" className="primary-button" disabled={busy}>{busy ? "출간 중…" : actionLabel}</button></div>
