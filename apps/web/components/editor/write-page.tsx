@@ -21,6 +21,7 @@ import { BlockEditor, type BlockEditorHandle } from "./block-editor";
 import { PublishSheet } from "./publish-sheet";
 import { WikiLinkPicker } from "./wiki-link-picker";
 import { StackBadgePicker } from "./stack-badge-picker";
+import type { StackBadge } from "@/lib/stack-badges";
 import { CategoryPicker } from "./category-picker";
 import { ProjectPicker } from "./project-picker";
 import { ShortcutHelp } from "./shortcut-help";
@@ -198,6 +199,7 @@ function WriteInstance({ route }: { route: Route }) {
   const [projectError, setProjectError] = useState("");
   const [projectName, setProjectName] = useState("");
   const [projectSlug, setProjectSlug] = useState("");
+  const [stackBadgeCatalog, setStackBadgeCatalog] = useState<StackBadge[] | null>(null);
   const [tagInput, setTagInput] = useState("");
   const [message, setMessage] = useState("");
   const [savedAt, setSavedAt] = useState("");
@@ -642,7 +644,7 @@ function WriteInstance({ route }: { route: Route }) {
           { ...current.projectMetadata, overview: event.target.value } }))} />
       <label htmlFor="write-stack">기술 스택</label><StackBadgePicker value={form.projectMetadata.stackBadgeNames}
         onChange={(names) => changeForm((current) => ({ ...current, projectMetadata: current.projectMetadata &&
-          { ...current.projectMetadata, stackBadgeNames: names } }))} disabled={busy !== null} />
+          { ...current.projectMetadata, stackBadgeNames: names } }))} onCatalogChange={setStackBadgeCatalog} disabled={busy !== null} />
     </div>}
     {(form.section === "TECH" || form.section === "PROJECT_DOC") && <>
       <div className="write-tags"><div className="write-tag-chips">{form.tags.map((tag) =>
@@ -729,7 +731,7 @@ function WriteInstance({ route }: { route: Route }) {
       categoryCount={selectedCategory?.count ?? 0} techSeriesOrder={form.techSeriesOrder}
       relatedProjectId={form.relatedProjectId}
       projectId={form.projectId} courseId={form.courseId} documentOrder={form.documentOrder}
-      chapterOrder={form.chapterOrder} projectMetadata={form.projectMetadata}
+      chapterOrder={form.chapterOrder} projectMetadata={form.projectMetadata} stackBadges={stackBadgeCatalog}
       projects={projects.map((project) => ({ id: project.id, label: project.name }))}
       courses={courses.map((course) => ({ id: course.id, label: course.name,
         field: course.field, count: course.chapterCount }))}

@@ -1,6 +1,7 @@
 package io.github.gjaku1031.kenblog.project.repository
 
 import io.github.gjaku1031.kenblog.project.domain.ProjectEntity
+import io.github.gjaku1031.kenblog.post.domain.ContentStateEntity
 import jakarta.persistence.LockModeType
 import org.springframework.data.jpa.repository.JpaRepository
 import org.springframework.data.jpa.repository.Lock
@@ -13,6 +14,19 @@ import org.springframework.data.repository.query.Param
 
 /** 프로젝트 대문 속성과 부모 우선 잠금 조회를 담당하는 JPA 저장소. */
 interface ProjectRepository : JpaRepository<ProjectEntity, Long> {
+    /** @return 프로젝트 생성·삭제·전체 순서 교체를 직렬화하는 단일 잠금 행. */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select s from ContentStateEntity s where s.id = 1")
+    fun lockCollection(): ContentStateEntity?
+
+    /** @return 현재 저장된 카드 순서의 전체 관리자 프로젝트. */
+    fun findAllByOrderBySortOrderAscIdDesc(): List<ProjectEntity>
+
+    /** @return 오래된 트랜잭션 스냅샷을 피하는 잠금 읽기의 현재 전체 카드. */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("select p from ProjectEntity p order by p.sortOrder asc, p.id desc")
+    fun findAllLockedForOrder(): List<ProjectEntity>
+
     /** @return 고유 주소와 일치하는 프로젝트, 없으면 `null`. */
     fun findBySlug(slug: String): ProjectEntity?
 
@@ -29,14 +43,14 @@ interface ProjectRepository : JpaRepository<ProjectEntity, Long> {
     /** @return HOME 원문이 출간됐고 현재 역할에 노출되는 프로젝트 페이지. */
     @Query(value = "select p from ProjectEntity p, PostEntity h where h.id = p.homePostId " +
         "and h.status = :published and (:includePrivate = true or (p.visibility = :publicVisibility and h.visibility = :publicVisibility)) " +
-        "order by p.createdAt desc, p.id desc",
+        "order by p.sortOrder asc, p.id desc",
         countQuery = "select count(p) from ProjectEntity p, PostEntity h where h.id = p.homePostId " +
             "and h.status = :published and (:includePrivate = true or (p.visibility = :publicVisibility and h.visibility = :publicVisibility))")
     fun findVisible(@Param("published") published: PostStatus, @Param("includePrivate") includePrivate: Boolean,
         @Param("publicVisibility") publicVisibility: PostVisibility, pageable: Pageable): Page<ProjectEntity>
 
     /** @return 관리자의 공개·비공개 프로젝트 페이지. */
-    @Query(value = "select p from ProjectEntity p order by p.createdAt desc, p.id desc",
+    @Query(value = "select p from ProjectEntity p order by p.sortOrder asc, p.id desc",
         countQuery = "select count(p) from ProjectEntity p")
     fun findAdminPage(pageable: Pageable): Page<ProjectEntity>
 }

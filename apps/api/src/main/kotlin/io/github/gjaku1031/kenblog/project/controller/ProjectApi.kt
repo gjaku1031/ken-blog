@@ -5,6 +5,7 @@ import io.github.gjaku1031.kenblog.project.dto.ProjectAdminPageResponse
 import io.github.gjaku1031.kenblog.project.dto.ProjectDetailResponse
 import io.github.gjaku1031.kenblog.project.dto.ProjectPageResponse
 import io.github.gjaku1031.kenblog.project.dto.ProjectRelatedPageResponse
+import io.github.gjaku1031.kenblog.project.dto.ProjectOrderResponse
 import io.swagger.v3.oas.annotations.Operation
 import io.swagger.v3.oas.annotations.responses.ApiResponse
 import io.swagger.v3.oas.annotations.responses.ApiResponses
@@ -52,6 +53,18 @@ interface AdminProjectApi {
     @GetMapping
     @Operation(summary = "관리자 프로젝트 목록")
     fun list(@RequestParam(defaultValue = "0") page: Int, @RequestParam(defaultValue = "20") size: Int): ResponseEntity<ProjectAdminPageResponse>
+
+    /** @return 본문 없이 전체 프로젝트 카드의 현재 저장 순서. */
+    @GetMapping("/order")
+    @Operation(summary = "관리자 프로젝트 카드 전체 순서")
+    @ApiResponses(value = [ApiResponse(responseCode = "200")])
+    fun order(): ResponseEntity<ProjectOrderResponse>
+
+    /** @return 조회 기준과 전체 순열을 확인해 저장한 HTTP 204. */
+    @PutMapping("/order")
+    @Operation(summary = "관리자 프로젝트 카드 순서 변경")
+    @ApiResponses(value = [ApiResponse(responseCode = "204"), ApiResponse(responseCode = "400"), ApiResponse(responseCode = "409")])
+    fun reorderProjects(@RequestBody request: JsonNode): ResponseEntity<Void>
 
     /** @return 원문과 전체 문서 순서를 포함한 관리자 상세. */
     @GetMapping("/{id}")

@@ -6,6 +6,8 @@ import io.github.gjaku1031.kenblog.project.dto.ProjectDetailResponse
 import io.github.gjaku1031.kenblog.project.dto.ProjectRelatedPageResponse
 import io.github.gjaku1031.kenblog.project.dto.ProjectAdminPageResponse
 import io.github.gjaku1031.kenblog.project.dto.ProjectAdminDetailResponse
+import io.github.gjaku1031.kenblog.project.dto.ProjectOrderResponse
+import io.github.gjaku1031.kenblog.project.dto.ProjectOrders
 import io.github.gjaku1031.kenblog.project.service.ProjectService
 import org.springframework.http.CacheControl
 import org.springframework.http.ResponseEntity
@@ -44,6 +46,17 @@ class AdminProjectController(private val service: ProjectService) : AdminProject
     /** @return 관리자 프로젝트 메타데이터 페이지. */
     override fun list(page: Int, size: Int): ResponseEntity<ProjectAdminPageResponse> =
         ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.adminList(page, size))
+
+    /** @return 전체 관리자 카드의 저장 순서와 최소 표시 정보. */
+    override fun order(): ResponseEntity<ProjectOrderResponse> =
+        ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.adminOrder())
+
+    /** @return 전체 순열·조회 기준을 검증하고 저장한 HTTP 204. */
+    override fun reorderProjects(request: JsonNode): ResponseEntity<Void> {
+        val (baseIds, projectIds) = ProjectOrders.parse(request)
+        service.reorderProjects(baseIds, projectIds)
+        return ResponseEntity.noContent().cacheControl(CacheControl.noStore()).build()
+    }
 
     /** @return 원문과 전체 문서 순서를 포함한 관리자 상세. */
     override fun detail(id: Long): ResponseEntity<ProjectAdminDetailResponse> =

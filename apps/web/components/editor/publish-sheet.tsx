@@ -1,7 +1,10 @@
 "use client";
 
-import { useEffect, useRef, type FormEvent } from "react";
+import Image from "next/image";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import type { DraftSection, ProjectMetadata } from "@/lib/editor-drafts";
+import { publicImageUrl } from "@/lib/profile";
+import type { StackBadge } from "@/lib/stack-badges";
 
 type Option = { id: number; label: string; field?: string; count?: number };
 type Props = { title: string; section: DraftSection; summary: string; summaryPreview: string;
@@ -9,6 +12,7 @@ type Props = { title: string; section: DraftSection; summary: string; summaryPre
   categoryDepth: number | null; categoryCount: number; techSeriesOrder: number | null;
   relatedProjectId: number | null; projectId: number | null; courseId: number | null;
   documentOrder: number | null; chapterOrder: number | null; projectMetadata: ProjectMetadata | null;
+  stackBadges: StackBadge[] | null;
   projects: Option[]; courses: Option[];
   onSummary: (value: string) => void;
   onVisibility: (value: "PUBLIC" | "PRIVATE") => void; onSection: (value: DraftSection) => void;
@@ -19,10 +23,17 @@ type Props = { title: string; section: DraftSection; summary: string; summaryPre
 
 const statuses: Record<ProjectMetadata["status"], string> = { PLAN: "기획 중", DEV: "개발 중", MAINT: "유지보수 중", DONE: "완료" };
 
+/** {@link PublishSheet}의 로고 파일이 실패하면 이름만 남기고 이미지 표시를 숨긴다. */
+function BadgeImage({ src }: { src: string }) {
+  const [failed, setFailed] = useState(false);
+  useEffect(() => setFailed(false), [src]);
+  return failed ? null : <Image src={src} alt="" width={20} height={20} unoptimized onError={() => setFailed(true)} />;
+}
+
 /** 원본 36·37·39 상태의 두 열 출간 시트를 실제 편집본 필드에 연결한다. */
 export function PublishSheet({ title, section, summary, summaryPreview, visibility, busy, sectionLocked, error, categoryLabel, actionLabel,
   categoryDepth, categoryCount, techSeriesOrder,
-  relatedProjectId, projectId, courseId, documentOrder, chapterOrder, projectMetadata, projects, courses,
+  relatedProjectId, projectId, courseId, documentOrder, chapterOrder, projectMetadata, stackBadges, projects, courses,
   onSummary, onVisibility, onSection, onRelatedProject, onProject, onCourse, onDocumentOrder,
   onChapterOrder, onTechSeriesOrder, onClose, onPublish }: Props) {
   const dialog = useRef<HTMLDialogElement>(null);
@@ -36,6 +47,8 @@ export function PublishSheet({ title, section, summary, summaryPreview, visibili
   function submit(event: FormEvent<HTMLFormElement>) { event.preventDefault(); if (!busy) onPublish(); }
 
   const home = section === "PROJECT_HOME";
+  const badgeImages = new Map((stackBadges ?? []).map((badge) =>
+    [badge.name.trim().toLowerCase(), publicImageUrl(badge.imageUrl)]));
   const selectedField = courses.find((course) => course.id === courseId)?.field ?? courses[0]?.field ?? "";
   const fields = [...new Set(courses.map((course) => course.field ?? ""))];
   return <dialog ref={dialog} tabIndex={-1} className={`publish-dialog editor-publish-sheet${home ? " editor-publish-home" : ""}`}
@@ -50,9 +63,10 @@ export function PublishSheet({ title, section, summary, summaryPreview, visibili
               {projectMetadata?.startPeriod && <span>{projectMetadata.startPeriod} – {projectMetadata.endPeriod || "현재"}</span>}</span></div>
           <div className="editor-publish-field"><span className="editor-publish-label">개요</span><span>{projectMetadata?.overview || "없음"}</span></div>
           <div className="editor-publish-field"><span className="editor-publish-label">기술 스택</span>
-            {projectMetadata?.stackBadgeNames.length ? <div className="editor-publish-stacks">{projectMetadata.stackBadgeNames.map((name) =>
-              <span key={name}><i aria-hidden="true">{name === "Java" ? "Jv" : name === "Spring Boot" ? "SB" :
-                name === "MySQL" ? "My" : name === "Docker" ? "Dk" : name.slice(0, 2)}</i>{name}</span>)}</div> : <span>없음</span>}</div>
+            {projectMetadata?.stackBadgeNames.length ? <div className="editor-publish-stacks">{projectMetadata.stackBadgeNames.map((name) => {
+              const image = badgeImages.get(name.trim().toLowerCase());
+              return <span key={name}>{image && <BadgeImage src={image} />}{name}</span>;
+            })}</div> : <span>없음</span>}</div>
         </> : <>
           <h2>어디에 올릴까요</h2>
           <div className="editor-publish-options" role="radiogroup" aria-label="게시 위치">

@@ -7,8 +7,9 @@ import { ApiFailure, apiFailureMessage, apiJson } from "@/lib/api";
 import { formatProjectPeriod, parseProjectPage, projectStatusLabel, type ProjectSummary } from "@/lib/projects";
 import { useAuth } from "./auth-provider";
 import { publicImageUrl } from "@/lib/profile";
+import { ProjectsOrderEditor } from "@/components/projects-order-editor";
 
-/** 역할별 출간 프로젝트만 읽고 이후 페이지는 사용자가 요청할 때 이어 붙인다. {@link ProjectsInstance} */
+/** 역할별 출간 프로젝트를 12개씩 읽고 이후 페이지를 자동으로 이어 붙인다. {@link ProjectsInstance} */
 function ProjectsInstance() {
   const auth = useAuth();
   const [items, setItems] = useState<ProjectSummary[]>([]);
@@ -18,6 +19,14 @@ function ProjectsInstance() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [retry, setRetry] = useState(0);
+  const [ordering, setOrdering] = useState(false);
+
+  /** 순서 편집을 닫을 때 권한별 카드 페이지를 새 저장 순서로 다시 읽는다. */
+  function refreshCards() {
+    setPage(0); setLoaded(-1); setTotalPages(0); setItems([]);
+    setRetry((value) => value + 1);
+    setOrdering(false);
+  }
 
   useEffect(() => {
     if (auth.status === "checking") return;
@@ -46,7 +55,10 @@ function ProjectsInstance() {
   }, [loading, error, loaded, totalPages]);
 
   return <main id="main-content" className="page-container projects-page">
-    <h1>Projects</h1>
+    <div className="projects-heading"><h1>Projects</h1>
+      {auth.status === "authenticated" && auth.user?.role === "ADMIN" && !ordering &&
+        <button type="button" className="small-button" onClick={() => setOrdering(true)}>순서 편집</button>}</div>
+    {ordering ? <ProjectsOrderEditor onCancel={refreshCards} onSaved={refreshCards} /> : <>
     {items.length === 0 && !loading && !error && <p className="projects-empty">아직 출간된 프로젝트가 없습니다.</p>}
     <div className="projects-grid">
       {items.map((item) => <article key={item.id} className="project-card card hv">
@@ -69,6 +81,7 @@ function ProjectsInstance() {
     {loading && <p role="status">프로젝트를 불러오고 있습니다…</p>}
     {error && <p role="alert">{error} <button type="button" className="small-button"
       onClick={() => setRetry((value) => value + 1)}>다시 시도</button></p>}
+    </>}
   </main>;
 }
 

@@ -8,6 +8,8 @@ export type ProjectSummary = { id: number; slug: string; name: string; status: P
   documentCount: number; relatedTechCount: number; stackBadges: StackBadge[] };
 /** 역할별 프로젝트 목록 페이지. */
 export type ProjectPage = { items: ProjectSummary[]; page: number; size: number; totalElements: number; totalPages: number };
+/** 관리자 순서 편집에 필요한 본문·배지 없는 프로젝트 행. */
+export type ProjectOrderItem = { id: number; name: string; slug: string; visibility: "PUBLIC" | "PRIVATE" };
 /** 관리자 선택기에 필요한 본문 없는 프로젝트 행. */
 export type AdminProject = Omit<ProjectSummary, "documentCount" | "relatedTechCount"> & {
   homePostId: number; updatedAt: string };
@@ -73,6 +75,22 @@ export function parseProjectPage(value: unknown, expectedPage: number): ProjectP
   if (!Array.isArray(item.items) || item.page !== expectedPage) throw new ApiFailure("response");
   return { items: item.items.map(summary), page: expectedPage, size: number(item.size, 1),
     totalElements: number(item.totalElements), totalPages: number(item.totalPages) };
+}
+
+/** 전체 프로젝트 순서 응답의 식별자 중복과 표시 필드를 검증한다. {@link ProjectOrderItem} */
+export function parseProjectOrder(value: unknown): ProjectOrderItem[] {
+  const response = record(value);
+  if (!Array.isArray(response.items)) throw new ApiFailure("response");
+  const seen = new Set<number>();
+  return response.items.map((entry): ProjectOrderItem => {
+    const item = record(entry);
+    const id = number(item.id, 1);
+    if (seen.has(id) || typeof item.name !== "string" || !item.name ||
+      typeof item.slug !== "string" || !validProjectSlug(item.slug) ||
+      (item.visibility !== "PUBLIC" && item.visibility !== "PRIVATE")) throw new ApiFailure("response");
+    seen.add(id);
+    return { id, name: item.name, slug: item.slug, visibility: item.visibility };
+  });
 }
 
 /** 관리자 프로젝트 목록·상세의 메타데이터만 검증한다. */

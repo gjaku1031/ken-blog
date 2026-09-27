@@ -56,6 +56,10 @@ class ProjectEntity protected constructor() {
     var homePostId: Long? = null
         protected set
 
+    @Column(name = "sort_order", nullable = false)
+    var sortOrder: Long = 0
+        protected set
+
     @Column(name = "created_at", nullable = false, columnDefinition = "datetime(6)")
     lateinit var createdAt: LocalDateTime
         protected set
@@ -65,12 +69,17 @@ class ProjectEntity protected constructor() {
         protected set
 
     /** 검증한 새 대문 속성으로 아직 HOME 글이 없는 프로젝트를 생성. */
-    internal constructor(slug: String, name: String, values: ProjectMetadata, now: LocalDateTime) : this() {
+    internal constructor(slug: String, name: String, values: ProjectMetadata, now: LocalDateTime,
+        sortOrder: Long) : this() {
         this.slug = slug
         this.name = name
+        this.sortOrder = sortOrder
         replace(values, now)
         this.createdAt = now
     }
+
+    /** 카드 순서만 바꾸며 원고의 [updatedAt]은 유지. */
+    internal fun reorder(position: Long) { sortOrder = position }
 
     /** 공개 대문 출간과 같은 트랜잭션에서 속성과 수정 시각을 교체. */
     internal fun replace(values: ProjectMetadata, now: LocalDateTime) {

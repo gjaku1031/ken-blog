@@ -16,6 +16,8 @@ import io.github.gjaku1031.kenblog.project.domain.ProjectNotFoundException
 import io.github.gjaku1031.kenblog.project.dto.ProjectAdminDetailResponse
 import io.github.gjaku1031.kenblog.project.dto.ProjectAdminDocumentResponse
 import io.github.gjaku1031.kenblog.project.dto.ProjectAdminPageResponse
+import io.github.gjaku1031.kenblog.project.dto.ProjectOrderItemResponse
+import io.github.gjaku1031.kenblog.project.dto.ProjectOrderResponse
 import io.github.gjaku1031.kenblog.project.dto.ProjectDetailResponse
 import io.github.gjaku1031.kenblog.project.dto.ProjectHomeResponse
 import io.github.gjaku1031.kenblog.project.dto.ProjectPageResponse
@@ -119,6 +121,30 @@ class ProjectService(
             result.totalElements, result.totalPages)
     }
 
+    /** @return 관리자 드래그 순서의 전체 프로젝트 ID·표시 정보; 본문과 배지 조회 제외. */
+    @Transactional(readOnly = true)
+    fun adminOrder(): ProjectOrderResponse = ProjectOrderResponse(projects.findAllByOrderBySortOrderAscIdDesc().map {
+        ProjectOrderItemResponse(it.id ?: error("Persisted project has no ID"), it.name, it.slug, it.visibility)
+    })
+
+    /**
+     * 조회 당시 전체 [baseIds]와 현재 순서가 같을 때만 [projectIds] 순열을 원자적으로 저장.
+     * 생성·삭제도 같은 단일 행을 먼저 잠가 오래된 목록의 덮어쓰기를 막음.
+     *
+     * @throws ProjectConflictException 조회 이후 프로젝트 집합이나 순서가 바뀐 경우
+     */
+    @Transactional
+    fun reorderProjects(baseIds: List<Long>, projectIds: List<Long>) = conflicts {
+        lockCollection()
+        val current = projects.findAllLockedForOrder()
+        if (current.map { it.id } != baseIds) throw ProjectConflictException()
+        val byId = current.associateBy { it.id }
+        projectIds.forEachIndexed { index, id ->
+            (byId[id] ?: throw ProjectConflictException()).reorder(index.toLong() + 1)
+        }
+        projects.flush()
+    }
+
     /** @return 현재 공개 대문과 전체 문서·처음 다섯 관련 Tech의 관리자 상세. */
     @Transactional(readOnly = true)
     fun adminDetail(id: Long): ProjectAdminDetailResponse {
@@ -153,7 +179,10 @@ class ProjectService(
         val normalizedSlug = ContentAddress.publishDraft(draft.slug, PostSection.PROJECT_HOME)
         if (normalizedName.isBlank() || normalizedName.codePointCount(0, normalizedName.length) > 200)
             throw InvalidProjectRequestException()
-        projects.saveAndFlush(ProjectEntity(normalizedSlug, normalizedName, normalized, now())).also {
+        lockCollection()
+        val minimum = projects.findAllLockedForOrder().firstOrNull()?.sortOrder ?: 1L
+        if (minimum == Long.MIN_VALUE) throw ProjectConflictException()
+        projects.saveAndFlush(ProjectEntity(normalizedSlug, normalizedName, normalized, now(), minimum - 1)).also {
             stackBadges.replaceProjectStack(it.id!!, normalized.stackBadgeNames)
         }
     }
@@ -220,6 +249,7 @@ class ProjectService(
      */
     @Transactional
     fun deleteProject(id: Long) = conflicts {
+        lockCollection()
         val project = lockedParent(id)
         project.detachHome()
         projects.saveAndFlush(project)
@@ -267,6 +297,9 @@ class ProjectService(
     private fun pageArguments(page: Int, size: Int, maximum: Int) {
         if (page < 0 || size !in 1..maximum || page.toLong() * size > Int.MAX_VALUE) throw InvalidProjectRequestException()
     }
+
+    /** 모든 프로젝트 집합 변경과 순서 저장이 공유하는 [ProjectRepository.lockCollection] 잠금. */
+    private fun lockCollection() { projects.lockCollection() ?: error("Missing content state row") }
 
     /** @return 명시적 관리자 역할만 비공개 내용을 읽을 수 있음. */
     private fun Authentication?.canReadPrivate(): Boolean = this?.authorities?.any {

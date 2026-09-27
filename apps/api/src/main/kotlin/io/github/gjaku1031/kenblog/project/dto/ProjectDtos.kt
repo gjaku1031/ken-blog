@@ -172,6 +172,43 @@ data class ProjectAdminPageResponse(
     val totalPages: Int,
 )
 
+/** 전체 관리자 카드 순서 편집에 필요한 본문 없는 행. */
+data class ProjectOrderItemResponse(
+    val id: Long,
+    val name: String,
+    val slug: String,
+    val visibility: PostVisibility,
+)
+
+/** 현재 전체 프로젝트 순서를 저장 요청의 [ProjectOrders.parse] 기준으로 반환. */
+data class ProjectOrderResponse(val items: List<ProjectOrderItemResponse>)
+
+/** 관리자 순서 요청 JSON의 양수 ID 배열과 전체 순열을 검증. */
+object ProjectOrders {
+    /** @return 조회 시점의 ID와 바꿀 ID 순서. 형식·중복·집합 오류는 400. */
+    fun parse(node: JsonNode): Pair<List<Long>, List<Long>> {
+        if (!node.isObject) throw InvalidProjectRequestException()
+        val base = ids(node.get("baseIds"))
+        val desired = ids(node.get("projectIds"))
+        if (base.size != desired.size || base.toSet() != desired.toSet()) throw InvalidProjectRequestException()
+        return base to desired
+    }
+
+    /** @return 누락·중복·범위 밖 수를 거부한 프로젝트 ID. */
+    private fun ids(node: JsonNode?): List<Long> {
+        if (node == null || !node.isArray || node.size() > 10000) throw InvalidProjectRequestException()
+        val result = ArrayList<Long>(node.size())
+        for (index in 0 until node.size()) {
+            val item = node.get(index)
+            if (!item.isIntegralNumber || !item.canConvertToLong() || item.longValue() <= 0)
+                throw InvalidProjectRequestException()
+            result.add(item.longValue())
+        }
+        if (result.size != result.toSet().size) throw InvalidProjectRequestException()
+        return result
+    }
+}
+
 /** 전체 문서 ID 순서를 빠짐없이 지정하는 원자적 교체 요청. */
 data class ProjectDocumentOrderRequest(
     @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["array"])
