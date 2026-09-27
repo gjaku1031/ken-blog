@@ -41,6 +41,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchKeyboardFocus, setSearchKeyboardFocus] = useState(false);
   const searchInput = useRef<HTMLInputElement>(null);
+  const searchToggle = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     /** {@link SiteShell}의 검색 입력으로 Tab 이동할 때만 포커스 테두리를 표시한다. */
@@ -124,6 +125,14 @@ export function SiteShell({ children }: { children: ReactNode }) {
     searchInput.current?.focus();
   }
 
+  /** 검색 입력을 접고 열기 버튼에 초점을 돌려 키보드 탐색을 이어간다. {@link SiteShell} */
+  function closeSearch(clear: boolean) {
+    setSearchOpen(false);
+    if (clear) setSearch("");
+    if (currentPath === "/search/") router.push("/");
+    requestAnimationFrame(() => searchToggle.current?.focus());
+  }
+
   return <div className="site-root">
     <PublicAnalytics />
     <a className="skip-link" href="#main-content">본문으로 건너뛰기</a>
@@ -135,22 +144,27 @@ export function SiteShell({ children }: { children: ReactNode }) {
             <Link key={href} href={href} aria-current={isCurrent(href) ? "page" : undefined}>{label}</Link>)}
         </nav>
         <div className="header-actions">
-          {searchOpen ? <form className="header-search is-open" role="search" data-keyboard-focus={searchKeyboardFocus} onSubmit={(event) => {
+          <button ref={searchToggle} type="button" className={`icon-button header-search-toggle${searchOpen ? " is-open" : ""}`}
+            aria-label="검색 열기" aria-expanded={searchOpen} aria-controls="site-search" aria-hidden={searchOpen}
+            tabIndex={searchOpen ? -1 : 0}
+            onClick={() => setSearchOpen(true)}><HeaderIcon name="search" /></button>
+          <form className={`header-search${searchOpen ? " is-open" : ""}`} role="search" aria-hidden={!searchOpen}
+            inert={!searchOpen} data-keyboard-focus={searchKeyboardFocus} onKeyDown={(event) => {
+              if (event.key === "Escape") { event.preventDefault(); closeSearch(false); }
+            }} onSubmit={(event) => {
             event.preventDefault(); const value = search.trim(); if (value) { disablePublicAnalytics(); router.push(`/search/?q=${encodeURIComponent(value)}`); }
           }}><label className="sr-only" htmlFor="site-search">글 검색</label>
             <HeaderIcon name="search" /><input ref={searchInput} id="site-search" type="search" value={search}
-              onChange={(event) => setSearch(event.target.value)} onKeyDown={(event) => { if (event.key === "Escape") {
-                setSearchOpen(false); if (currentPath === "/search/") router.push("/"); } }}
+              onChange={(event) => setSearch(event.target.value)}
               placeholder="제목 · 본문 · 태그 검색" />
             {search && <button type="button" className="header-search-clear" aria-label="검색어 지우기" onClick={clearSearch}>
               <HeaderIcon name="close" /></button>}
-            <button type="button" className="header-search-close" aria-label="검색 닫기" onClick={() => {
-              setSearchOpen(false); setSearch(""); if (currentPath === "/search/") router.push("/");
-            }}><HeaderIcon name="close" /></button></form> : <button type="button" className="icon-button header-search-toggle"
-              aria-label="검색 열기" onClick={() => setSearchOpen(true)}><HeaderIcon name="search" /></button>}
-          <button type="button" className="icon-button" onClick={toggleTheme}
-            aria-label={theme === "light" ? "다크 모드로 전환" : "라이트 모드로 전환"} title={theme === "light" ? "다크 모드" : "라이트 모드"}>
-            <HeaderIcon name={theme === "light" ? "moon" : "sun"} />
+            <button type="button" className="header-search-close" aria-label="검색 닫기"
+              onClick={() => closeSearch(true)}><HeaderIcon name="close" /></button></form>
+          <button type="button" className="theme-switch" role="switch" aria-checked={theme === "dark"}
+            aria-label="다크 모드" title={theme === "dark" ? "다크 모드 켜짐" : "다크 모드 꺼짐"} onClick={toggleTheme}>
+            <span className="theme-switch-track"><span className="theme-switch-thumb">
+              <HeaderIcon name={theme === "dark" ? "moon" : "sun"} /></span></span>
           </button>
           {auth.status === "authenticated" && auth.user?.role === "ADMIN" &&
             <Link href="/admin/" className="header-text-button">관리</Link>}

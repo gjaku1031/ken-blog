@@ -122,8 +122,7 @@ function ReaderInstance({ slug }: { slug: string }) {
   }, [state.status, state.post?.id, seriesPage]);
 
   return <main id="main-content" className="post-page page-container">
-    <Link href={state.post?.relatedProject ? `/project/?slug=${encodeURIComponent(state.post.relatedProject.slug)}` : "/tech/"}
-      className="back-link">← {state.post?.relatedProject?.name ?? "Tech"}</Link>
+    <Link href="/tech/" className="back-link">← Tech</Link>
     {state.status === "loading" && <div className="message-card card" role="status">글을 불러오고 있습니다…</div>}
     {state.status === "error" && <div className="message-card card" role="alert">{state.error}<br />
       <button type="button" className="small-button" onClick={() => { setState({ status: "loading", post: null, privatePost: false, error: "" }); setRetry((n) => n + 1); }}>다시 시도</button></div>}
@@ -131,10 +130,11 @@ function ReaderInstance({ slug }: { slug: string }) {
       {!state.privatePost && !state.post.locked && <PublicAnalytics virtualPath={`/post/${state.post.slug}`} />}
       <div className="post-overline"><Link href="/tech/">Tech</Link>{state.post.category && <>
         <span>·</span><Link href={`/?categoryId=${state.post.category.id}`}>{categoryLabel ?? state.post.category.name}</Link></>}
-        {state.post.relatedProject && <><span>·</span><Link href={`/project/?slug=${encodeURIComponent(state.post.relatedProject.slug)}`}>
-          {state.post.relatedProject.name}</Link></>}
         {state.privatePost && <span className="private-label">· 나만 보기</span>}</div>
       <h1>{state.post.title}</h1>
+      {!state.post.locked && state.post.relatedProject && <p className="post-related-project">
+        <span>[연관 프로젝트]</span> <Link href={`/project/?slug=${encodeURIComponent(state.post.relatedProject.slug)}`}>
+          {state.post.relatedProject.name}</Link></p>}
       <div className="detail-meta"><time className="mono" dateTime={state.post.publishedDate}>{state.post.publishedDate.replaceAll("-", ".")}</time>
         {!state.post.locked && <span>· {readingMinutes(state.post.body ?? "")}분</span>}
         {(viewCount ?? state.post.viewCount) != null && <span>· 조회 {(viewCount ?? state.post.viewCount)?.toLocaleString("ko-KR")}</span>}

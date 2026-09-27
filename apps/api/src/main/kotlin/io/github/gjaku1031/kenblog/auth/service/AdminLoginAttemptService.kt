@@ -33,14 +33,14 @@ class AdminLoginAttemptService(
 
     /** 실패 상태도 커밋되도록 예외 대신 결과를 반환하고 MFA 성공 때만 인증 증명을 생성. */
     @Transactional
-    fun attempt(username: String, password: String, verificationCode: String?): AdminLoginResult {
+    fun attempt(password: String, verificationCode: String?): AdminLoginResult {
         val state = lockedState()
         val config = settings.configured()
         synchronizeSettings(state, config)
         val now = Instant.now()
         if (state.lockedUntil?.isAfter(now) == true) return AdminLoginResult.Locked
 
-        val account = if (username == config?.username) accounts.findByUsername(username) else null
+        val account = config?.let { accounts.findByUsername(it.username) }
         val validPassword = account != null && password.isNotEmpty() &&
             password.toByteArray(Charsets.UTF_8).size <= 72 && encoder.matches(password, account.passwordHash)
         val validOwner = account?.enabled == true && account.role == UserRole.ADMIN

@@ -39,7 +39,7 @@ class AuthController(
     /**
      * CSRF 필터가 허용한 로그인 요청으로 인증 세션을 생성.
      *
-     * @param body 계정명·비밀번호·TOTP 또는 복구 코드
+     * @param body 비밀번호·TOTP 또는 복구 코드
      * @param request 기존 CSRF 세션 요청
      * @param response 새 세션 쿠키 응답
      * @return 로그인된 [CurrentUserResponse]

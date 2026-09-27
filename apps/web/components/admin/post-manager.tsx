@@ -147,22 +147,20 @@ export function PostManager() {
     {loading && <p role="status">글을 불러오고 있습니다…</p>}
     {error && <p role="alert" className="inline-error">{error} <button type="button" onClick={() => setRetry((value) => value + 1)}>다시 조회</button></p>}
     {message && <p role="status">{message}</p>}
-    <div className="admin-table-wrap card"><table className="admin-table post-admin-table"><colgroup><col /><col style={{ width: 84 }} />
-      <col style={{ width: 112 }} /><col style={{ width: 108 }} /><col style={{ width: 72 }} />
-      <col style={{ width: 184 }} /></colgroup><thead><tr>
+    <div className="admin-table-wrap post-admin-list-wrap card"><table className="admin-table post-admin-table"><thead><tr>
       <th>제목</th><th>섹션</th><th>공개</th><th>날짜</th><th>조회</th><th>관리</th></tr></thead><tbody>
-      {visible.map((item) => <tr key={item.id}><td><div className="post-title">{item.title}</div><small>{description(item)}</small></td>
-        <td className="post-section">{item.section === "TECH" ? "Tech" : item.section === "NOTE_CHAPTER" ? "Notes" : "Projects"}</td>
-        <td>{item.status === "PUBLISHED" ? <span className="post-visibility"><button type="button" role="switch" aria-checked={item.visibility === "PUBLIC"}
+      {visible.map((item) => <tr key={item.id}><td data-label="제목"><div className="post-title">{item.title}</div><small>{description(item)}</small></td>
+        <td className="post-section" data-label="섹션">{item.section === "TECH" ? "Tech" : item.section === "NOTE_CHAPTER" ? "Notes" : "Projects"}</td>
+        <td data-label="공개">{item.status === "PUBLISHED" ? <span className="post-visibility"><button type="button" role="switch" aria-checked={item.visibility === "PUBLIC"}
           className="visibility-toggle" disabled={busy !== null} aria-label={`${item.title} 전체 공개`}
           onClick={() => void visibility(item)} /><span>{item.visibility === "PUBLIC" ? "공개" : "나만 보기"}</span></span> : "미출간"}</td>
-        <td className="post-date">{(item.publishedAt ?? item.updatedAt).slice(0, 10).replaceAll("-", ".")}</td>
-        <td className="post-views">{item.viewCount?.toLocaleString("ko-KR") ?? "—"}</td>
-        <td className="admin-row-actions">{deleting === item.id ? <>삭제할까요? <button type="button" onClick={() => setDeleting(null)}>취소</button>
+        <td className="post-date" data-label="날짜">{(item.publishedAt ?? item.updatedAt).slice(0, 10).replaceAll("-", ".")}</td>
+        <td className="post-views" data-label="조회">{item.viewCount?.toLocaleString("ko-KR") ?? "—"}</td>
+        <td className="post-actions-cell" data-label="관리"><div className="admin-row-actions">{deleting === item.id ? <><span className="post-delete-question">삭제할까요?</span> <button type="button" onClick={() => setDeleting(null)}>취소</button>
           <button type="button" className="danger-text" disabled={busy !== null} onClick={() => void remove(item)}>삭제</button></> : <>
           {(item.section === "TECH" || item.section === "NOTE_CHAPTER" || item.section === "PROJECT_DOC") && item.status === "PUBLISHED" &&
             <button type="button" disabled={busy !== null} onClick={() => void pin(item)}>{item.pinOrder == null ? "핀 고정" : "핀 해제"}</button>}
-          <Link href={`/write/?postId=${item.id}`}>수정</Link><button type="button" onClick={() => setDeleting(item.id)}>삭제</button></>}</td></tr>)}
+          <Link href={`/write/?postId=${item.id}`}>수정</Link><button type="button" onClick={() => setDeleting(item.id)}>삭제</button></>}</div></td></tr>)}
     </tbody></table>{!loading && !filtered.length && <p className="message-card">해당하는 글이 없습니다.</p>}
     {filtered.length > 10 && <nav className="number-pager" aria-label="글 관리 페이지">
       <span className="pager-count">{page * 10 + 1}–{Math.min((page + 1) * 10, filtered.length)} / {filtered.length}편</span>

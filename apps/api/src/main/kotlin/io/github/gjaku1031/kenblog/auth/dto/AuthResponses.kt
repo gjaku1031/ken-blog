@@ -1,20 +1,20 @@
 package io.github.gjaku1031.kenblog.auth.dto
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import io.github.gjaku1031.kenblog.account.domain.UserRole
 import io.github.gjaku1031.kenblog.auth.controller.AuthController
 import io.swagger.v3.oas.annotations.media.Schema
 
 /**
- * 로그인 요청의 계정명·원문 비밀번호·일회용 검증 코드.
+ * 단일 관리자 로그인 요청의 원문 비밀번호·일회용 검증 코드.
  *
  * [password]는 인증 직후 세션에 저장하지 않으며 로그용 문자열에서도 숨김.
  *
- * @property username 대소문자를 구분하는 관리자 계정명
  * @property password 공백을 포함한 원문 비밀번호
  * @property verificationCode 6자리 TOTP 또는 32자리 복구 코드; 누락은 인증 실패
  */
+@JsonIgnoreProperties(value = ["username"])
 class LoginRequest(
-    val username: String,
     @field:Schema(accessMode = Schema.AccessMode.WRITE_ONLY, description = "로그인 검증에만 사용하는 원문 비밀번호")
     val password: String,
     @field:Schema(accessMode = Schema.AccessMode.WRITE_ONLY, description = "Google Authenticator 6자리 코드 또는 복구 코드")

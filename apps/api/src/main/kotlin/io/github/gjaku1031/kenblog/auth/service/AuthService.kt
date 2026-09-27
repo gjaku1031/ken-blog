@@ -35,14 +35,14 @@ class AuthService(
      * 비밀번호는 공백을 제거하지 않음. BCrypt의 72 UTF-8 바이트 한도 초과나 빈
      * 입력은 동일한 인증 오류로 처리하며 저장된 해시를 응답에 노출하지 않음.
      *
-     * @param body 계정명·원문 비밀번호·일회용 검증 코드
+     * @param body 원문 비밀번호·일회용 검증 코드
      * @param request 기존 CSRF 세션을 가진 HTTP 요청
      * @param response 새 세션 ID 쿠키를 담을 HTTP 응답
      * @return 현재 사용자 이름과 [UserRole]
      * @throws BadCredentialsException 입력 형식 또는 자격 증명이 맞지 않을 때
      */
     fun login(body: LoginRequest, request: HttpServletRequest, response: HttpServletResponse): CurrentUserResponse {
-        val result = attempts.attempt(body.username, body.password, body.verificationCode)
+        val result = attempts.attempt(body.password, body.verificationCode)
         val success = when (result) {
             is AdminLoginResult.Success -> result
             AdminLoginResult.Denied -> throw BadCredentialsException("Invalid credentials")

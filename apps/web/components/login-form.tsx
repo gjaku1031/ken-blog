@@ -49,7 +49,6 @@ export function LoginForm() {
   const router = useRouter();
   const auth = useAuth();
   const destination = returnPath(useSearchParams().get("returnTo"));
-  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
   const [useRecoveryCode, setUseRecoveryCode] = useState(false);
@@ -63,15 +62,15 @@ export function LoginForm() {
     event.preventDefault();
     if (pending.current) return;
     const code = verificationCode.trim();
-    if (!username.trim() || !password || !code || !useRecoveryCode && !/^\d{6}$/.test(code)) {
-      setError(useRecoveryCode ? "아이디·비밀번호·복구 코드를 확인해 주세요." : "아이디·비밀번호·인증 앱의 6자리 코드를 확인해 주세요.");
+    if (!password || !code || !useRecoveryCode && !/^\d{6}$/.test(code)) {
+      setError(useRecoveryCode ? "비밀번호·복구 코드를 확인해 주세요." : "비밀번호·인증 앱의 6자리 코드를 확인해 주세요.");
       return;
     }
     pending.current = true;
     setError("");
     setBusy(true);
     try {
-      await auth.login(username, password, code);
+      await auth.login(password, code);
       router.replace(destination);
     } catch (failure) {
       if (failure instanceof ApiFailure && failure.status === 401) setError("로그인 정보를 확인해 주세요.");
@@ -94,9 +93,6 @@ export function LoginForm() {
       {auth.status === "authenticated" ? <div className="login-done"><p>{auth.user?.username} 계정으로 로그인되어 있습니다.</p>
         <Link href={destination} className="primary-button">글 보러 가기</Link></div> :
         <form onSubmit={(event) => void submit(event)}>
-          <label htmlFor="username">아이디</label>
-          <input id="username" name="username" type="text" autoComplete="username" required maxLength={64} placeholder="아이디"
-            value={username} onChange={(event) => setUsername(event.target.value)} disabled={busy} />
           <label htmlFor="password">비밀번호</label>
           <input id="password" name="password" type="password" autoComplete="current-password" required placeholder="비밀번호"
             value={password} onChange={(event) => setPassword(event.target.value)} disabled={busy} />

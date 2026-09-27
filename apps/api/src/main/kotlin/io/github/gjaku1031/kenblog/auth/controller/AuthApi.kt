@@ -47,7 +47,7 @@ interface AuthApi {
     /**
      * 올바른 CSRF 헤더와 계정 정보로 로그인하고 세션 ID를 교체.
      *
-     * @param body 계정명·비밀번호·TOTP 또는 복구 코드
+     * @param body 비밀번호·TOTP 또는 복구 코드
      * @param request 현재 요청 및 기존 세션
      * @param response 새 세션 쿠키를 내보낼 응답
      * @return 인증된 [CurrentUserResponse]

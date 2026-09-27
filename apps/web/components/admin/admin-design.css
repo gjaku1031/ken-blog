@@ -35,14 +35,45 @@
 .admin-page .file-button input { top: 0; left: 0; }
 .admin-page .admin-row-actions button:hover, .admin-page .admin-row-actions a:hover, .admin-page .admin-table td > button:hover, .admin-page .file-button:hover { background: var(--soft); color: var(--text) !important; }
 .admin-page .admin-row-actions .danger-text:hover { color: var(--danger) !important; }
-.admin-page .admin-table .post-title { min-width: 0; max-width: 410px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.admin-page .post-admin-table td:first-child { min-width: 280px; }
-.admin-page .post-admin-table { min-width: 820px; }
-.admin-page .post-admin-table th:not(:first-child) { width: auto; }
-.admin-page .post-admin-table th:last-child { width: 164px; }
+.admin-page .admin-table .post-title { min-width: 0; font-weight: 500; }
+.admin-page .post-admin-list-wrap { overflow: visible; }
+.admin-page .post-admin-table { min-width: 0; table-layout: fixed; }
+.admin-page .post-admin-table th:nth-child(1) { width: 43%; }
+.admin-page .post-admin-table th:nth-child(2) { width: 8%; }
+.admin-page .post-admin-table th:nth-child(3) { width: 15%; }
+.admin-page .post-admin-table th:nth-child(4) { width: 13%; }
+.admin-page .post-admin-table th:nth-child(5) { width: 6%; }
+.admin-page .post-admin-table th:nth-child(6) { width: 15%; }
+.admin-page .post-admin-table th, .admin-page .post-admin-table td { min-width: 0; padding: 10px 8px; overflow-wrap: anywhere; }
+.admin-page .post-admin-table td:first-child { min-width: 0; }
+.admin-page .post-admin-table td:first-child .post-title { max-width: none; overflow: visible; text-overflow: clip; white-space: normal; line-height: 1.45; }
+.admin-page .post-admin-table td:first-child small { line-height: 1.45; overflow-wrap: anywhere; }
+.admin-page .post-admin-table .post-actions-cell { vertical-align: middle; }
+.admin-page .post-admin-table .admin-row-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 2px; white-space: normal; }
+.admin-page .post-admin-table .admin-row-actions button, .admin-page .post-admin-table .admin-row-actions a { height: 30px; padding: 0 6px; white-space: nowrap; }
+.admin-page .post-admin-table .post-delete-question { flex: 1 1 100%; text-align: right; font-size: 12px; color: var(--muted); }
 .admin-page .post-admin-table .post-section { color: var(--muted); }
 .admin-page .post-admin-table .post-date { color: var(--muted); font-size: 12.5px; white-space: nowrap; }
 .admin-page .post-admin-table .post-views { text-align: right; font-variant-numeric: tabular-nums; }
+@media (max-width: 1050px) {
+  .admin-page .post-admin-list-wrap { padding: 10px; }
+  .admin-page .post-admin-table, .admin-page .post-admin-table tbody,
+  .admin-page .post-admin-table tr, .admin-page .post-admin-table td { display: block; width: 100%; }
+  .admin-page .post-admin-table thead { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  .admin-page .post-admin-table tr { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px 14px;
+    padding: 13px; border: 1px solid var(--line); border-radius: 8px; background: var(--card); }
+  .admin-page .post-admin-table tr + tr { margin-top: 10px; }
+  .admin-page .post-admin-table td { min-width: 0; padding: 0; border: 0; }
+  .admin-page .post-admin-table td::before { content: attr(data-label); display: block; margin-bottom: 3px;
+    color: var(--muted); font-size: 11px; font-weight: 600; }
+  .admin-page .post-admin-table td:first-child, .admin-page .post-admin-table td:last-child { grid-column: 1 / -1; }
+  .admin-page .post-admin-table td:first-child::before { display: none; }
+  .admin-page .post-admin-table td:first-child .post-title { font-size: 14px; font-weight: 600; }
+  .admin-page .post-admin-table .post-views { text-align: left; }
+  .admin-page .post-admin-table .admin-row-actions { justify-content: flex-start; flex-wrap: wrap; padding-top: 7px; border-top: 1px solid var(--line); }
+  .admin-page .post-admin-table .admin-row-actions::before { display: none; }
+  .admin-page .post-admin-table .post-delete-question { flex-basis: auto; text-align: left; }
+}
 .admin-page .post-visibility { display: inline-flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12.5px; white-space: nowrap; }
 .admin-page .visibility-toggle { width: 36px; height: 20px; border: 0; border-radius: 999px; background: var(--line3); color: transparent; overflow: hidden; position: relative; padding: 0; vertical-align: middle; }
 .admin-page .visibility-toggle[aria-checked="true"] { background: var(--accent); }
