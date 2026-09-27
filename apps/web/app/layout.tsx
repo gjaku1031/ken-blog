@@ -1,13 +1,12 @@
 import type { Metadata } from "next";
 import Script from "next/script";
-import { IBM_Plex_Mono, Noto_Sans_KR } from "next/font/google";
 import type { ReactNode } from "react";
 import { AuthProvider } from "@/components/auth-provider";
 import { SiteShell } from "@/components/site-shell";
+import "@fontsource-variable/noto-sans-kr/wght.css";
+import "@fontsource/ibm-plex-mono/latin-400.css";
+import "@fontsource/ibm-plex-mono/latin-500.css";
 import "./globals.css";
-
-const sans = Noto_Sans_KR({ subsets: ["latin"], weight: ["400", "500", "700"], variable: "--font-sans" });
-const mono = IBM_Plex_Mono({ subsets: ["latin"], weight: ["400", "500"], variable: "--font-mono" });
 
 export const metadata: Metadata = {
   title: "ken.blog",
@@ -18,7 +17,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="ko">
-      <body className={`${sans.variable} ${mono.variable}`}>
+      <body>
         {process.env.NEXT_PUBLIC_GA_ENABLED === "true" && <Script id="ken-blog-ga-privacy" strategy="beforeInteractive">{
           "window['ga-disable-G-JDYNG61J70']=true;window.dataLayer=window.dataLayer||[];window.gtag=function(){dataLayer.push(arguments)};gtag('js',new Date());gtag('config','G-JDYNG61J70',{send_page_view:false});"
         }</Script>}

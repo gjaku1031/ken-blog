@@ -29,7 +29,9 @@
 - nginx 정적 웹 18082와 API18081은 loopback 한정. Funnel443 → nginx, `/ken-blog/` 정적 파일·`/api/v1/` API·health만 공개. Swagger·환경 파일·나머지 actuator 404 확인.
 - nginx에서 API 재생성 후 Docker DNS 재해석 지원, HTTP 내부 포트가 외부 redirect에 포함되지 않도록 상대 Location 사용.
 - 공개 Pages 인증 화면은 동일 경로의 OCI HTTPS 화면으로 이동. Pages의 직접 초대 URL도 fragment를 삭제하기 전에 이동.
-- 원격 CI/Pages 배포는 이 변경의 main push 후 확인. 실제 run ID와 최종 URL 검증은 로컬 인계에 기록.
+- main `dcdd504`의 Pages 배포 성공, 실제 Pages 공개 API 조회·로그인 이동·직접 관리자 URL·직접 초대 fragment 전달 및 주소 제거 검증 통과. 브라우저 오류 0.
+- 동일 커밋 CI는 API 성공·웹 Google 글꼴 변환 오류 발생. Noto Sans KR와 IBM Plex Mono를 버전 고정 Fontsource 패키지로 제공하여 빌드 시 Google 글꼴 요청 제거. 글꼴 모양과 한국어/코드 폰트 구분 유지, 폰트 라이선스 고지 동봉.
+- 폰트 수정 뒤 원격 CI/Pages의 실제 run ID와 최종 확인 결과는 로컬 인계에 기록.
 
 ## 별도 설정
 

@@ -1,5 +1,7 @@
 :root {
   color-scheme: light;
+  --font-sans: "Noto Sans KR Variable";
+  --font-mono: "IBM Plex Mono";
   --bg: #f8f9fa; --card: #fff; --text: #212529; --text2: #495057;
   --muted: #68727d; --muted2: #8b929a; --line: #e9ecef; --line2: #dee2e6;
   --soft: #f1f3f5; --tint: #e9fbf6; --accent: #1b9c85; --accent-d: #147a68;
