@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { IBM_Plex_Mono, Noto_Sans_KR } from "next/font/google";
 import type { ReactNode } from "react";
 import { AuthProvider } from "@/components/auth-provider";
@@ -17,7 +18,11 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="ko">
-      <body className={`${sans.variable} ${mono.variable}`}><AuthProvider><SiteShell>{children}</SiteShell></AuthProvider></body>
+      <body className={`${sans.variable} ${mono.variable}`}>
+        {process.env.NEXT_PUBLIC_GA_ENABLED === "true" && <Script id="ken-blog-ga-privacy" strategy="beforeInteractive">{
+          "window['ga-disable-G-JDYNG61J70']=true;window.dataLayer=window.dataLayer||[];window.gtag=function(){dataLayer.push(arguments)};gtag('js',new Date());gtag('config','G-JDYNG61J70',{send_page_view:false});"
+        }</Script>}
+        <AuthProvider><SiteShell>{children}</SiteShell></AuthProvider></body>
     </html>
   );
 }

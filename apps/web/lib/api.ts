@@ -16,6 +16,12 @@ export type PostSummary = {
   publishedDate: string;
   category: CategoryRef | null;
   tags: string[];
+  summary: string | null;
+  section: PostSection;
+  projectSlug: string | null;
+  courseSlug: string | null;
+  chapterOrder: number | null;
+  pinned: boolean;
 };
 
 /** 공개 피드 페이지와 전체 건수. */
@@ -27,8 +33,13 @@ export type PostPage = {
   totalPages: number;
 };
 
-/** 읽기 허용 시 원문, 익명 PRIVATE이면 잠금 메타데이터만 가진 상세. */
-export type PostDetail = PostSummary & { locked: boolean; body: string | null };
+/** 읽기 허용 시 원문과 소속, 익명 PRIVATE이면 최소 잠금 메타데이터만 가진 상세. */
+export type PostSection = "TECH" | "PROJECT_HOME" | "PROJECT_DOC" | "NOTE_CHAPTER";
+export type PostDestination = { slug: string; section: PostSection; projectSlug: string | null; courseSlug: string | null };
+export type PostDetail = PostSummary & PostDestination & { locked: boolean; body: string | null;
+  documentOrder: number | null; relatedProject: { id: number; name: string; slug: string } | null;
+  series?: { items: Array<{ id: number; slug: string; title: string; order: number }>; position: number } | null;
+  viewCount?: number | null; pinOrder: number | null };
 
 /** 현재 역할에서 보이는 태그의 글 수. */
 export type TagCount = { name: string; count: number };
@@ -38,10 +49,10 @@ export type CurrentUser = { username: string; role: "USER" | "ADMIN" };
 
 /** 제목 조회 API의 권한별 최소 결과. 잠금과 없음에는 대상 정보가 없다. */
 export type WikiLinkResult = { requestedTitle: string; status: "LOCKED" | "MISSING" } |
-  { requestedTitle: string; status: "READABLE"; id: number; title: string; slug: string };
+  ({ requestedTitle: string; status: "READABLE"; id: number; title: string } & PostDestination);
 
 /** 본문 없이 제공되는 검색·역링크의 읽기 가능한 최소 글 정보. */
-export type WikiTitleItem = { id: number; title: string; slug: string };
+export type WikiTitleItem = { id: number; title: string } & PostDestination;
 /** 관리자 제목 검색의 7개 결과와 입력 문자열의 정확한 해석. */
 export type WikiTitleSearch = { items: WikiTitleItem[]; exact: WikiLinkResult };
 /** 공개 역링크 한 페이지의 최소 정보. */
@@ -90,14 +101,15 @@ export function apiUrl(path: string): URL {
 export async function apiRequest(
   path: string,
   credentials: RequestCredentials,
-  options: { method?: "GET" | "POST" | "PUT" | "DELETE"; body?: unknown; csrf?: { headerName: string; token: string }; signal?: AbortSignal } = {},
+  options: { method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE"; body?: unknown;
+    csrf?: { headerName: string; token: string }; signal?: AbortSignal; timeoutMs?: number } = {},
 ): Promise<unknown> {
   const url = apiUrl(path);
   const controller = new AbortController();
   const abort = () => controller.abort();
   options.signal?.addEventListener("abort", abort, { once: true });
   if (options.signal?.aborted) controller.abort();
-  const timer = setTimeout(abort, 8_000);
+  const timer = setTimeout(abort, options.timeoutMs ?? 8_000);
   try {
     const headers: Record<string, string> = { Accept: "application/json" };
     if (options.body !== undefined) headers["Content-Type"] = "application/json";
@@ -125,8 +137,9 @@ export async function apiRequest(
 }
 
 /** JSON 응답을 읽으며 비정상 본문을 계약 오류로 바꾼다. */
-export async function apiJson<T>(path: string, credentials: RequestCredentials, signal?: AbortSignal): Promise<T> {
-  return await apiRequest(path, credentials, { signal }) as T;
+export async function apiJson<T>(path: string, credentials: RequestCredentials, signal?: AbortSignal,
+  timeoutMs?: number): Promise<T> {
+  return await apiRequest(path, credentials, { signal, timeoutMs }) as T;
 }
 
 /** 인증 변경 후 새 CSRF 토큰을 세션에서 가져온다. 원문은 메모리에만 둔다. */
@@ -138,9 +151,46 @@ export async function fetchCsrf(signal?: AbortSignal): Promise<{ headerName: str
   return { headerName: value.headerName, token: value.token };
 }
 
+/** 공개 본문을 실제로 연 뒤 CSRF 보호 조회 집계를 요청한다. */
+export async function recordPostView(postId: number, signal?: AbortSignal): Promise<number> {
+  const csrf = await fetchCsrf(signal);
+  const value = await apiRequest(`/api/v1/posts/${postId}/view`, "include", { method: "POST", csrf, signal });
+  if (!isRecord(value) || !Number.isSafeInteger(value.viewCount) || (value.viewCount as number) < 0)
+    throw new ApiFailure("response");
+  return value.viewCount as number;
+}
+
 /** 서버 응답이 객체인지 좁힌다. */
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+/** 공개 소속 필드의 새 계약을 검증하고 이전 Tech 응답은 안전하게 같은 경로로 해석한다. */
+function destination(value: Record<string, unknown>): PostDestination {
+  const slug = value.slug;
+  const section = value.section ?? "TECH";
+  const projectSlug = value.projectSlug ?? null;
+  const courseSlug = value.courseSlug ?? null;
+  if (typeof slug !== "string" || slug.length > 160 || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) ||
+    (section !== "TECH" && section !== "PROJECT_HOME" && section !== "PROJECT_DOC" && section !== "NOTE_CHAPTER") ||
+    (section === "PROJECT_HOME" || section === "PROJECT_DOC" ? typeof projectSlug !== "string" ||
+      !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(projectSlug) : projectSlug !== null) ||
+    (section === "NOTE_CHAPTER" ? typeof courseSlug !== "string" ||
+      !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(courseSlug) : courseSlug !== null)) throw new ApiFailure("response");
+  return { slug, section, projectSlug: typeof projectSlug === "string" ? projectSlug : null,
+    courseSlug: typeof courseSlug === "string" ? courseSlug : null };
+}
+
+/** Post의 실제 소속에 따라 정적 Pages 주소를 선택한다. */
+export function postDestination(value: PostDestination): string {
+  if (value.section === "TECH") return `/post/?slug=${encodeURIComponent(value.slug)}`;
+  if (value.section === "NOTE_CHAPTER") {
+    if (!value.courseSlug) throw new ApiFailure("response");
+    return `/course/?slug=${encodeURIComponent(value.courseSlug)}&chapter=${encodeURIComponent(value.slug)}`;
+  }
+  if (!value.projectSlug) throw new ApiFailure("response");
+  return `/project/?slug=${encodeURIComponent(value.projectSlug)}` +
+    (value.section === "PROJECT_DOC" ? `&doc=${encodeURIComponent(value.slug)}` : "");
 }
 
 /** 조회 요청의 순서와 PRIVATE 필드 부재를 포함해 위키 응답을 엄격히 확인한다. */
@@ -153,24 +203,21 @@ export function parseWikiLinkResults(value: unknown, requested: readonly string[
       if (Object.keys(item).length !== 2) throw new ApiFailure("response");
       return { requestedTitle: item.requestedTitle, status: item.status };
     }
-    if (item.status !== "READABLE" || Object.keys(item).length !== 5 ||
+    if (item.status !== "READABLE" || Object.keys(item).some((key) =>
+      !["requestedTitle", "status", "id", "title", "slug", "section", "projectSlug", "courseSlug"].includes(key)) ||
       typeof item.id !== "number" || !Number.isSafeInteger(item.id) || item.id <= 0 ||
-      typeof item.title !== "string" || !item.title ||
-      typeof item.slug !== "string" || item.slug.length > 160 ||
-      !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(item.slug)) throw new ApiFailure("response");
+      typeof item.title !== "string" || !item.title) throw new ApiFailure("response");
     return { requestedTitle: item.requestedTitle, status: "READABLE", id: item.id,
-      title: item.title, slug: item.slug };
+      title: item.title, ...destination(item) };
   });
 }
 
 /** 검색·역링크가 본문이나 비공개 메타데이터를 실수로 노출하지 않도록 필드를 제한한다. */
 function parseWikiTitleItem(value: unknown): WikiTitleItem {
-  if (!isRecord(value) || Object.keys(value).length !== 3 ||
+  if (!isRecord(value) || Object.keys(value).some((key) => !["id", "title", "slug", "section", "projectSlug", "courseSlug"].includes(key)) ||
     !Number.isSafeInteger(value.id) || (value.id as number) <= 0 ||
-    typeof value.title !== "string" || !value.title ||
-    typeof value.slug !== "string" || value.slug.length > 160 ||
-    !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value.slug)) throw new ApiFailure("response");
-  return { id: value.id as number, title: value.title, slug: value.slug };
+    typeof value.title !== "string" || !value.title) throw new ApiFailure("response");
+  return { id: value.id as number, title: value.title, ...destination(value) };
 }
 
 /** 관리자 제목 검색의 정확한 대상과 최대 7개 후보를 검증한다. */
@@ -217,8 +264,11 @@ function parsePostSummary(value: unknown): PostSummary {
   if (!isRecord(value) || typeof value.id !== "number" || typeof value.title !== "string" ||
     typeof value.slug !== "string" || typeof value.publishedDate !== "string" ||
     !Array.isArray(value.tags) || !value.tags.every((tag) => typeof tag === "string")) throw new ApiFailure("response");
-  return { id: value.id, title: value.title, slug: value.slug, publishedDate: value.publishedDate,
-    category: value.category === null ? null : parseCategoryRef(value.category), tags: value.tags };
+  return { id: value.id, title: value.title, publishedDate: value.publishedDate,
+    category: value.category == null ? null : parseCategoryRef(value.category), tags: value.tags,
+    summary: value.summary == null ? null : String(value.summary),
+    ...destination(value), chapterOrder: value.chapterOrder == null ? null : Number(value.chapterOrder),
+    pinned: value.pinned === true };
 }
 
 /** 잠금 여부와 본문을 포함하는 글 상세를 검사한다. */
@@ -229,7 +279,37 @@ export function parsePostDetail(value: unknown): PostDetail {
     (value.locked && (value.body !== null || value.category !== null || summary.tags.length > 0))) {
     throw new ApiFailure("response");
   }
-  return { ...summary, locked: value.locked, body: value.body };
+  const route = destination(value);
+  const related = value.relatedProject;
+  let relatedProject: PostDetail["relatedProject"] = null;
+  if (related !== null && related !== undefined) {
+    if (!isRecord(related) || !Number.isSafeInteger(related.id) || (related.id as number) <= 0 ||
+      typeof related.name !== "string" || !related.name || typeof related.slug !== "string" ||
+      !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(related.slug)) throw new ApiFailure("response");
+    relatedProject = { id: related.id as number, name: related.name, slug: related.slug };
+  }
+  const order = value.documentOrder;
+  if (order !== null && order !== undefined && (!Number.isSafeInteger(order) || (order as number) <= 0))
+    throw new ApiFailure("response");
+  let series: PostDetail["series"] = null;
+  if (value.series !== null && value.series !== undefined) {
+    const raw = value.series;
+    if (!isRecord(raw) || !Array.isArray(raw.items) || !Number.isSafeInteger(raw.position) ||
+      (raw.position as number) < 1 || (raw.position as number) > raw.items.length) throw new ApiFailure("response");
+    const items = raw.items.map((entry: unknown) => {
+      if (!isRecord(entry) || !Number.isSafeInteger(entry.id) || (entry.id as number) < 1 ||
+        typeof entry.slug !== "string" || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(entry.slug) ||
+        typeof entry.title !== "string" || !entry.title || !Number.isSafeInteger(entry.order) ||
+        (entry.order as number) < 1) throw new ApiFailure("response");
+      return { id: entry.id as number, slug: entry.slug, title: entry.title, order: entry.order as number };
+    });
+    series = { items, position: raw.position as number };
+  }
+  return { ...summary, ...route, locked: value.locked, body: value.body,
+    documentOrder: order == null ? null : order as number,
+    relatedProject: route.section === "TECH" ? relatedProject : null,
+    viewCount: Number.isSafeInteger(value.viewCount) ? value.viewCount as number : null,
+    pinOrder: Number.isSafeInteger(value.pinOrder) ? value.pinOrder as number : null, series };
 }
 
 /** 분류 트리와 권한별 건수를 재귀 검증한다. */

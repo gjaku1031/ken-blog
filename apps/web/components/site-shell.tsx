@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { useAuth } from "./auth-provider";
+import { PublicAnalytics, disablePublicAnalytics } from "./public-analytics";
 
 const basePath = process.env.NEXT_PUBLIC_BASE_PATH || "";
 
@@ -21,10 +22,12 @@ function DrillLogo() {
 /** 정적 라우트에 공유하는 네비게이션·테마·세션 표시·푸터. */
 export function SiteShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const currentPath = (pathname.startsWith(basePath) ? pathname.slice(basePath.length) : pathname) || "/";
   const auth = useAuth();
   const [theme, setTheme] = useState<"light" | "dark">("light");
   const [logoutError, setLogoutError] = useState("");
+  const [search, setSearch] = useState("");
 
   useEffect(() => {
     let saved: string | null = null;
@@ -33,6 +36,19 @@ export function SiteShell({ children }: { children: ReactNode }) {
       window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
     setTheme(next);
     document.documentElement.dataset.theme = next;
+  }, []);
+
+  useEffect(() => {
+    if (process.env.NEXT_PUBLIC_GA_ENABLED !== "true") return;
+    const beforeNavigation = (event: MouseEvent) => {
+      const anchor = event.target instanceof Element ? event.target.closest("a[href]") : null;
+      if (anchor instanceof HTMLAnchorElement && anchor.origin === window.location.origin && anchor.href !== window.location.href)
+        disablePublicAnalytics();
+    };
+    document.addEventListener("click", beforeNavigation, true);
+    window.addEventListener("popstate", disablePublicAnalytics);
+    return () => { document.removeEventListener("click", beforeNavigation, true);
+      window.removeEventListener("popstate", disablePublicAnalytics); };
   }, []);
 
   /** 사용자가 고른 색을 로컬에만 저장하고 즉시 적용한다. */
@@ -45,6 +61,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
 
   /** 클라이언트 이동과 Pages basePath를 모두 고려해 현재 메뉴를 표시한다. */
   function isCurrent(path: string) {
+    if (path === "/projects/" && currentPath === "/project/") return true;
     return currentPath === path || (path !== "/" && currentPath.startsWith(path));
   }
 
@@ -56,6 +73,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
   }
 
   return <div className="site-root">
+    <PublicAnalytics />
     <a className="skip-link" href="#main-content">본문으로 건너뛰기</a>
     <header className="site-header">
       <div className="header-inner">
@@ -65,9 +83,13 @@ export function SiteShell({ children }: { children: ReactNode }) {
             <Link key={href} href={href} aria-current={isCurrent(href) ? "page" : undefined}>{label}</Link>)}
         </nav>
         <div className="header-actions">
+          <form className="header-search" role="search" onSubmit={(event) => {
+            event.preventDefault(); const value = search.trim(); if (value) { disablePublicAnalytics(); router.push(`/search/?q=${encodeURIComponent(value)}`); }
+          }}><label className="sr-only" htmlFor="site-search">글 검색</label>
+            <input id="site-search" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="검색" />
+            <button type="submit" aria-label="검색">⌕</button></form>
           {auth.status === "authenticated" && auth.user?.role === "ADMIN" && <>
-            <Link href="/admin/drafts/" className="header-text-button">임시저장</Link>
-            <Link href="/write/" className="header-text-button">글쓰기</Link>
+            <Link href="/admin/" className="header-text-button">관리</Link>
           </>}
           <button type="button" className="icon-button" onClick={toggleTheme}
             aria-label={theme === "light" ? "다크 모드로 전환" : "라이트 모드로 전환"} title={theme === "light" ? "다크 모드" : "라이트 모드"}>
@@ -84,7 +106,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
     <div className="site-content">{children}</div>
     {!currentPath.startsWith("/write/") && <footer className="site-footer"><span>© 2026 ken.blog</span><div>
       <a href="https://github.com/gjaku1031/ken-blog" target="_blank" rel="noreferrer noopener">GitHub</a>
-      <Link href="/login/">관리자</Link>
+      <Link href="/admin/">관리자</Link>
     </div></footer>}
   </div>;
 }

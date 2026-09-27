@@ -1,0 +1,18 @@
+# KEN_BLOG_PRODUCTION_ENV_FILE=/secure/new-app.env 를 지정해 실행.
+# 이 전용 파일의 DB_URL은 새 앱용 빈 MySQL 스키마여야 함. 기존 운영 app.env 재사용 금지.
+services:
+  api:
+    build:
+      context: ./apps/api
+      dockerfile: Dockerfile
+    image: ken-blog-api:production
+    restart: unless-stopped
+    env_file:
+      - path: ${KEN_BLOG_PRODUCTION_ENV_FILE:?Dedicated production env file is required}
+        required: true
+    environment:
+      SESSION_COOKIE_SECURE: "true"
+    ports:
+      - "127.0.0.1:${API_PORT:-18081}:8080"
+    mem_limit: 768m
+    cpus: 1.0

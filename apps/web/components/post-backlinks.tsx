@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ApiFailure, apiFailureMessage, apiJson, parseWikiBacklinkPage, type WikiTitleItem } from "@/lib/api";
+import { ApiFailure, apiFailureMessage, apiJson, parseWikiBacklinkPage, postDestination, type WikiTitleItem } from "@/lib/api";
 import { useAuth } from "./auth-provider";
 
 type BacklinkState = { items: WikiTitleItem[]; loadedPage: number; hasMore: boolean;
@@ -40,7 +40,7 @@ export function PostBacklinks({ slug }: { slug: string }) {
   return <section className="post-backlinks" aria-label="이 글을 가리키는 글">
     <h2>이 글을 가리키는 글</h2>
     {state.items.length > 0 && <ul>{state.items.map((item) => <li key={item.id}>
-      <Link href={`/post/?slug=${encodeURIComponent(item.slug)}`}>{item.title}</Link></li>)}</ul>}
+      <Link href={postDestination(item)}>{item.title}</Link></li>)}</ul>}
     {state.loading && <p role="status">역링크를 불러오고 있습니다…</p>}
     {state.error && <p role="alert">{state.error} <button type="button" className="small-button"
       onClick={() => setRetry((value) => value + 1)}>다시 시도</button></p>}

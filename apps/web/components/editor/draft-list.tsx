@@ -171,8 +171,7 @@ export function DraftList() {
 
   return <div className="draft-list-shell">
     <div className="draft-list-heading">
-      <div><p className="eyebrow">관리 · 글쓰기</p><h1>임시저장 글</h1>
-        <p className="draft-list-subtitle">게시글 원문과 분리해 수동 저장한 편집본</p></div>
+      <div><h1>임시저장 글</h1></div>
       {admin && <Link className="primary-button" href="/write/">새 글 작성</Link>}
     </div>
     {page === null ? <div className="message-card card" role="alert">페이지 주소가 올바르지 않습니다. 0 이상의 페이지 번호 하나만 사용할 수 있습니다.

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useMemo, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { usePathname, useSearchParams } from "next/navigation";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -20,9 +20,55 @@ import { remarkWikiSyntax } from "../lib/wiki-link-syntax";
 import { buildReadingDocument, type ReadingDocument } from "../lib/reading-document";
 import type { TocItem } from "../lib/table-of-contents";
 import { WikiLink, WikiLinkReader } from "./wiki-link-reader";
+import { ApiFailure, apiFailureMessage } from "../lib/api";
 
 const HeadingContext = createContext<ReadonlyMap<number, TocItem>>(new Map());
 type HeadingProps = { node?: { position?: { start: { offset?: number } } }; children?: ReactNode };
+type TodoLine = { line: number; checked: boolean };
+type TodoAction = { enabled: boolean; busy: boolean; toggle: (line: number, done: boolean) => Promise<void> };
+const TodoLineContext = createContext<TodoLine | null>(null);
+const TodoActionContext = createContext<TodoAction | null>(null);
+const TODO_MARKER = /^\s*(?:[-*+]|[0-9]+[.)])\s+\[([ xX])\]/;
+
+/** {@link SafeMarkdown}의 파서가 찾은 목록 줄을 서버 원문 줄과 대조해 편집 가능한 할 일을 식별한다. */
+function sourceTodoLine(lines: readonly string[], line: number | undefined): TodoLine | null {
+  if (line === undefined || line < 1 || line > lines.length) return null;
+  const marker = TODO_MARKER.exec(lines[line - 1]);
+  return marker ? { line, checked: marker[1] !== " " } : null;
+}
+
+/** {@link SafeMarkdown}이 보내는 원문 전체의 UTF-8 SHA-256을 서버와 같은 소문자 16진수로 계산한다. */
+async function bodySha256(body: string): Promise<string> {
+  const bytes = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(body));
+  return Array.from(new Uint8Array(bytes), (value) => value.toString(16).padStart(2, "0")).join("");
+}
+
+/** {@link SafeMarkdown}의 수정 응답에서 새 원문과 충돌 검사 해시를 확인한다. */
+function todoResponse(value: unknown): { body: string; bodySha256: string } {
+  if (!value || typeof value !== "object" || !("body" in value) || !("bodySha256" in value) ||
+    typeof value.body !== "string" || typeof value.bodySha256 !== "string" || !/^[a-f0-9]{64}$/.test(value.bodySha256))
+    throw new ApiFailure("response");
+  return { body: value.body, bodySha256: value.bodySha256 };
+}
+
+/** {@link TodoLineContext}의 검증된 줄에만 관리자 수정 동작을 제공하고 실패하면 현재 표시를 유지한다. */
+function TodoCheckbox({ type, checked }: { type?: string; checked?: boolean }) {
+  const line = useContext(TodoLineContext);
+  const action = useContext(TodoActionContext);
+  const [error, setError] = useState("");
+  const isChecked = checked === true;
+  const editable = type === "checkbox" && action?.enabled === true && line !== null && line.checked === isChecked;
+  return <><input type={type} checked={isChecked} disabled={!editable || action?.busy === true} readOnly={!editable}
+    aria-label={isChecked ? "완료된 항목" : "미완료 항목"} onChange={() => {
+      if (!editable || !action || !line) return;
+      setError("");
+      void action.toggle(line.line, !isChecked).catch((failure) => {
+        if (failure instanceof DOMException && failure.name === "AbortError") return;
+        setError(failure instanceof ApiFailure && failure.status === 409 ?
+          "글이 변경되었습니다. 새로고침한 뒤 다시 시도해 주세요." : apiFailureMessage(failure));
+      });
+    }} />{error && <span className="inline-error" role="alert"> {error}</span>}</>;
+}
 
 /** 제목 컴포넌트의 정체성을 유지해 비동기 링크 결과가 도착해도 목차 초점이 남는다. */
 function ReadingH2({ node, children }: HeadingProps) {
@@ -72,15 +118,59 @@ function AnnotationDocument({ body, source, model, children }: { body: string; s
   </WikiLinkReader>;
 }
 
-/** raw HTML과 자동 이미지를 차단하며 문서 모드에서만 주석을 해석한다. */
+/** {@link TodoCheckbox}의 관리자 수정 결과를 반영하고 raw HTML·자동 이미지를 차단하며 문서 모드에서 주석을 해석한다. */
 export function SafeMarkdown({ body, source, annotationMode = "document", annotationRefs = [], reading }: {
   body: string; source?: AttachmentSource; annotationMode?: "document" | "literal" | "editor";
   annotationRefs?: readonly EditorAnnotationReference[]; reading?: ReadingDocument;
 }) {
-  const model = useMemo(() => annotationMode === "document" ? reading ?? buildReadingDocument(body) : null,
-    [annotationMode, reading, body]);
+  const auth = useAuth();
+  const sourceId = source?.kind === "post" ? source.postId : null;
+  const identity = JSON.stringify([source?.kind ?? null, sourceId, annotationMode, body]);
+  const identityRef = useRef(identity);
+  identityRef.current = identity;
+  const requestRef = useRef<AbortController | null>(null);
+  const pendingRef = useRef(false);
+  const [busy, setBusy] = useState(false);
+  const [version, setVersion] = useState({ identity, body });
+  const currentBody = version.identity === identity ? version.body : body;
+  useEffect(() => {
+    setVersion({ identity, body });
+    setBusy(false);
+    return () => { requestRef.current?.abort(); requestRef.current = null; pendingRef.current = false; };
+  }, [identity, body]);
+  const lines = useMemo(() => currentBody.split("\n"), [currentBody]);
+  const model = useMemo(() => annotationMode === "document" ?
+    currentBody === body ? reading ?? buildReadingDocument(body) : buildReadingDocument(currentBody) : null,
+  [annotationMode, reading, body, currentBody]);
   const headingIds = useMemo(() => new Map(model?.toc.map((item) => [item.offset, item])), [model]);
-  const markdown = <div className="markdown-body"><HeadingContext.Provider value={headingIds}><Markdown
+  /** {@link TodoCheckbox} 요청의 본문 해시를 계산하고 서버가 확정한 원문만 화면에 반영한다. */
+  const toggleTodo = useCallback(async (line: number, done: boolean): Promise<void> => {
+    if (sourceId === null || annotationMode !== "document" || auth.status !== "authenticated" ||
+      auth.user?.role !== "ADMIN" || pendingRef.current) return;
+    const controller = new AbortController();
+    requestRef.current = controller;
+    pendingRef.current = true;
+    setBusy(true);
+    try {
+      const expectedBodySha256 = await bodySha256(currentBody);
+      if (controller.signal.aborted || identityRef.current !== identity) return;
+      const updated = todoResponse(await auth.adminWrite("PATCH", `/api/v1/admin/posts/${sourceId}/todo`,
+        { line, done, expectedBodySha256 }, controller.signal));
+      if (controller.signal.aborted || identityRef.current !== identity) return;
+      if (await bodySha256(updated.body) !== updated.bodySha256) throw new ApiFailure("response");
+      if (controller.signal.aborted || identityRef.current !== identity) return;
+      setVersion({ identity, body: updated.body });
+    } finally {
+      if (requestRef.current === controller) {
+        requestRef.current = null;
+        pendingRef.current = false;
+        setBusy(false);
+      }
+    }
+  }, [annotationMode, auth, currentBody, identity, sourceId]);
+  const todoAction: TodoAction = { enabled: annotationMode === "document" && sourceId !== null &&
+    auth.status === "authenticated" && auth.user?.role === "ADMIN", busy, toggle: toggleTodo };
+  const markdown = <div className="markdown-body"><HeadingContext.Provider value={headingIds}><TodoActionContext.Provider value={todoAction}><Markdown
     remarkPlugins={annotationMode === "document" ?
       [remarkGfm, remarkMathSyntax, remarkWikiSyntax, remarkSafeDetails, remarkResolveAnnotations] :
       annotationMode === "editor" ?
@@ -137,6 +227,11 @@ export function SafeMarkdown({ body, source, annotationMode = "document", annota
         const standalone = node?.children.length === 1 && node.children[0].type === "element" && node.children[0].tagName === "img";
         return standalone ? <div className="attachment-paragraph">{children}</div> : <p>{children}</p>;
       },
+      /** {@link TodoCheckbox}에 파서가 지정한 원문 목록 시작 줄을 전달한다. */
+      li({ node, children, ...props }) {
+        const todo = sourceTodoLine(lines, node?.position?.start.line);
+        return <li {...props}><TodoLineContext.Provider value={todo}>{children}</TodoLineContext.Provider></li>;
+      },
       /** 허용된 링크만 열고 외부 주소는 새 탭 분리 속성을 적용한다. */
       a({ href, children }) {
         if (annotationMode === "editor") return <span>{children}</span>;
@@ -152,8 +247,8 @@ export function SafeMarkdown({ body, source, annotationMode = "document", annota
         const image = <AttachmentImage image={{ attachmentId: id, ...metadata }} source={source} />;
         return annotationMode === "editor" ? <span inert>{image}</span> : image;
       },
-      /** GFM 할 일은 상태를 보여 주되 읽기 화면에서 편집할 수 없게 한다. */
-      input({ type, checked }) { return <input type={type} checked={checked} disabled readOnly aria-label={checked ? "완료된 항목" : "미완료 항목"} />; },
+      /** GFM 입력은 {@link TodoCheckbox}에서 관리자 권한과 원문 줄을 확인한다. */
+      input({ type, checked }) { return <TodoCheckbox type={type} checked={checked} />; },
       /** HAST 코드의 실제 텍스트와 언어만 읽어 강조하고 변환 불가 구조는 원문을 남긴다. */
       pre({ node, ...props }) {
         const codeNode = node?.children.find((child) => child.type === "element" && child.tagName === "code");
@@ -163,14 +258,14 @@ export function SafeMarkdown({ body, source, annotationMode = "document", annota
         const className = codeNode.properties.className;
         const classes = Array.isArray(className) ? className.filter((item): item is string => typeof item === "string") : [];
         const language = classes.find((item) => item.startsWith("language-"))?.slice(9);
-        if (language === "mermaid" && exactMermaidFence(body, node?.position?.start?.offset, node?.position?.end?.offset))
+        if (language === "mermaid" && exactMermaidFence(currentBody, node?.position?.start?.offset, node?.position?.end?.offset))
           return annotationMode === "editor" ? <div inert><MermaidBlock source={code} /></div> : <MermaidBlock source={code} />;
         return annotationMode === "editor" ? <div inert><CodeBlock code={code} language={language} /></div> :
           <CodeBlock code={code} language={language} />;
       },
       /** 표 의미는 유지하고 가로로 긴 표에도 키보드 초점을 허용한다. */
       table({ node: _node, ...props }) { return <table {...props} tabIndex={annotationMode === "editor" ? -1 : 0} />; },
-    }}>{body}</Markdown></HeadingContext.Provider></div>;
+    }}>{currentBody}</Markdown></TodoActionContext.Provider></HeadingContext.Provider></div>;
   return annotationMode === "document" && model ?
-    <AnnotationDocument body={body} source={source} model={model}>{markdown}</AnnotationDocument> : markdown;
+    <AnnotationDocument body={currentBody} source={source} model={model}>{markdown}</AnnotationDocument> : markdown;
 }

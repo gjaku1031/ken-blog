@@ -14,6 +14,14 @@ import io.github.gjaku1031.kenblog.post.domain.InvalidPostRequestException
 import io.github.gjaku1031.kenblog.post.domain.InvalidWikiLinkRequestException
 import io.github.gjaku1031.kenblog.post.domain.WikiLinkConflictException
 import io.github.gjaku1031.kenblog.post.domain.PostNotFoundException
+import io.github.gjaku1031.kenblog.post.domain.PostTodoConflictException
+import io.github.gjaku1031.kenblog.project.domain.InvalidProjectRequestException
+import io.github.gjaku1031.kenblog.project.domain.ProjectConflictException
+import io.github.gjaku1031.kenblog.project.domain.ProjectNotFoundException
+import io.github.gjaku1031.kenblog.note.domain.InvalidCourseRequestException
+import io.github.gjaku1031.kenblog.note.domain.CourseConflictException
+import io.github.gjaku1031.kenblog.note.domain.CourseNotFoundException
+import io.github.gjaku1031.kenblog.operations.domain.OperationFailure
 import org.springframework.dao.PessimisticLockingFailureException
 import org.springframework.http.HttpHeaders
 import org.springframework.http.HttpStatus
@@ -35,9 +43,29 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
  */
 @RestControllerAdvice
 class ApiErrorHandler : ResponseEntityExceptionHandler() {
+    /** @return 기능별 안전한 공개 설명과 상태를 가진 운영 오류. */
+    @ExceptionHandler(OperationFailure::class)
+    fun handleOperation(ex: OperationFailure): ResponseEntity<ProblemDetail> =
+        ResponseEntity.status(ex.status).body(ProblemDetail.forStatusAndDetail(ex.status, ex.publicDetail))
+
+    /** @return 잘못된 프로젝트·과목 입력의 고정 400 본문. */
+    @ExceptionHandler(InvalidProjectRequestException::class, InvalidCourseRequestException::class)
+    fun handleContentInput(ex: RuntimeException): ResponseEntity<ProblemDetail> =
+        ResponseEntity.badRequest().body(ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "콘텐츠 입력을 확인하세요."))
+
+    /** @return 찾을 수 없는 프로젝트·과목의 고정 404 본문. */
+    @ExceptionHandler(ProjectNotFoundException::class, CourseNotFoundException::class)
+    fun handleContentNotFound(ex: RuntimeException): ResponseEntity<ProblemDetail> =
+        ResponseEntity.status(HttpStatus.NOT_FOUND).body(ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, "콘텐츠를 찾을 수 없습니다."))
+
+    /** @return 부모 삭제·순서 경합·공통 경로 우회의 고정 409 본문. */
+    @ExceptionHandler(ProjectConflictException::class, CourseConflictException::class)
+    fun handleContentConflict(ex: RuntimeException): ResponseEntity<ProblemDetail> =
+        ResponseEntity.status(HttpStatus.CONFLICT).body(ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, "콘텐츠 변경이 충돌했습니다."))
+
     /** @return 본문 SHA 불일치인 선언 보정을 입력 노출 없는 HTTP 409로 반환. */
-    @ExceptionHandler(WikiLinkConflictException::class)
-    fun handleWikiLinkConflict(ex: WikiLinkConflictException): ResponseEntity<ProblemDetail> =
+    @ExceptionHandler(WikiLinkConflictException::class, PostTodoConflictException::class)
+    fun handleWikiLinkConflict(ex: RuntimeException): ResponseEntity<ProblemDetail> =
         ResponseEntity.status(HttpStatus.CONFLICT)
             .body(ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, "게시글 본문이 변경됐습니다."))
 

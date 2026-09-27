@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
-import { ApiFailure, apiJson, parseWikiLinkResults, type WikiLinkResult } from "@/lib/api";
+import { ApiFailure, apiJson, parseWikiLinkResults, postDestination, type WikiLinkResult } from "@/lib/api";
 import { useAuth } from "./auth-provider";
 
 type WikiContextValue = { results: ReadonlyMap<string, WikiLinkResult>; requested: ReadonlySet<string>;
@@ -108,7 +108,8 @@ export function WikiLink({ title, label, raw, interactive = true }: {
       title="아직 없는 글 · 새 글로 작성" aria-label={`${label}, 아직 없는 글, 새 글로 작성`}>{label}</Link> :
     <span className="wiki-link wiki-missing" title="아직 없는 글" aria-label={`${label}, 아직 없는 글`}>{label}</span>;
   if (result.status !== "READABLE") return <span>{raw}</span>;
-  if (!interactive) return <span className="wiki-link wiki-readable" title={`Tech · ${result.title}`}>{label}</span>;
-  return <Link className="wiki-link wiki-readable" href={`/post/?slug=${encodeURIComponent(result.slug)}`}
-    title={`Tech · ${result.title}`}>{label}</Link>;
+  if (!interactive) return <span className="wiki-link wiki-readable"
+    title={`${result.section === "TECH" ? "Tech" : "Projects"} · ${result.title}`}>{label}</span>;
+  return <Link className="wiki-link wiki-readable" href={postDestination(result)}
+    title={`${result.section === "TECH" ? "Tech" : "Projects"} · ${result.title}`}>{label}</Link>;
 }

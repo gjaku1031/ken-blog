@@ -3,9 +3,12 @@
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
-import { ApiFailure, apiFailureMessage, type CategoryNode, type TagCount } from "@/lib/api";
+import { ApiFailure, apiFailureMessage, postDestination, type CategoryNode, type TagCount } from "@/lib/api";
 import { draftValues, parseAdminCategories, parseAdminPost, parseAdminTags, parseDraftDetail, parseDraftPage,
-  positiveId, type AdminPost, type DraftDetail, type DraftSummary, type DraftValues } from "@/lib/editor-drafts";
+  positiveId, type AdminPost, type DraftDetail, type DraftSummary, type DraftValues,
+  type DraftSection, type ProjectMetadata } from "@/lib/editor-drafts";
+import { parseAdminProject, parseAdminProjectPage, type AdminProject } from "@/lib/projects";
+import { parseCoursePage, type CourseSummary } from "@/lib/notes";
 import { parseEditorMarkdown, serializeEditorMarkdown, type MarkdownDocument } from "@/lib/editor-markdown";
 import { collectAttachmentIds, type ImageData } from "@/lib/editor-image";
 import { buildEditorAnnotationModel } from "@/lib/editor-annotation";
@@ -16,8 +19,10 @@ import { AnnotationReader } from "@/components/annotation-reader";
 import { BlockEditor, type BlockEditorHandle } from "./block-editor";
 import { PublishSheet } from "./publish-sheet";
 import { WikiLinkPicker } from "./wiki-link-picker";
+import { StackBadgePicker } from "./stack-badge-picker";
 
-type Route = { kind: "new"; title: string | null } | { kind: "post" | "draft"; id: number } | { kind: "invalid" };
+type Route = { kind: "new"; title: string | null; section: DraftSection; projectId: number | null; courseId: number | null } |
+  { kind: "post" | "draft"; id: number } | { kind: "invalid" };
 type Form = Omit<DraftValues, "body" | "attachmentIds" | "wikiTargets"> & { document: MarkdownDocument };
 type Screen = "loading" | "ready" | "existing" | "error";
 
@@ -26,21 +31,41 @@ function routeFromParams(params: URLSearchParams): Route {
   const draft = params.getAll("draftId");
   const post = params.getAll("postId");
   const titles = params.getAll("title");
+  const sections = params.getAll("section");
+  const projects = params.getAll("projectId");
+  const courses = params.getAll("courseId");
   if (draft.length > 1 || post.length > 1 || titles.length > 1 ||
+    sections.length > 1 || projects.length > 1 || courses.length > 1 ||
     Number(Boolean(draft.length)) + Number(Boolean(post.length)) + Number(Boolean(titles.length)) > 1 ||
-    [...params.keys()].some((name) => name !== "draftId" && name !== "postId" && name !== "title")) return { kind: "invalid" };
+    [...params.keys()].some((name) => !["draftId", "postId", "title", "section", "projectId", "courseId"].includes(name)) ||
+    ((draft.length || post.length) && (sections.length || projects.length || courses.length))) return { kind: "invalid" };
   if (draft.length) { const id = positiveId(draft[0]); return id === null ? { kind: "invalid" } : { kind: "draft", id }; }
   if (post.length) { const id = positiveId(post[0]); return id === null ? { kind: "invalid" } : { kind: "post", id }; }
+  if (sections.length || projects.length) {
+    if (titles.length || sections.length !== 1 ||
+      (!["project-home", "project-doc", "notes"].includes(sections[0])) ||
+      (sections[0] === "project-home" && (projects.length !== 0 || courses.length !== 0)) ||
+      (sections[0] === "project-doc" && (projects.length !== 1 || courses.length !== 0)) ||
+      (sections[0] === "notes" && (courses.length !== 1 || projects.length !== 0))) return { kind: "invalid" };
+    const projectId = projects.length ? positiveId(projects[0]) : null;
+    const courseId = courses.length ? positiveId(courses[0]) : null;
+    return sections[0] === "project-doc" && projectId === null || sections[0] === "notes" && courseId === null ? { kind: "invalid" } :
+      { kind: "new", title: null, section: sections[0] === "project-home" ? "PROJECT_HOME" :
+        sections[0] === "project-doc" ? "PROJECT_DOC" : "NOTE_CHAPTER", projectId, courseId };
+  }
   if (titles.length) {
     const title = validWikiTitle(titles[0]);
-    return title && title === titles[0] ? { kind: "new", title } : { kind: "invalid" };
+    return title && title === titles[0] ? { kind: "new", title, section: "TECH", projectId: null, courseId: null } : { kind: "invalid" };
   }
-  return { kind: "new", title: null };
+  return { kind: "new", title: null, section: "TECH", projectId: null, courseId: null };
 }
 
 /** 화면에 남겨 둔 원고 식별자로 정적 주소를 다시 만든다. */
 function routeHref(key: string): string {
   if (key === "new") return "/write/";
+  if (key === "new:project-home") return "/write/?section=project-home";
+  if (key.startsWith("new:project-doc:")) return `/write/?section=project-doc&projectId=${key.slice(16)}`;
+  if (key.startsWith("new:notes:")) return `/write/?section=notes&courseId=${key.slice(10)}`;
   if (key.startsWith("new:")) return `/write/?title=${encodeURIComponent(key.slice(4))}`;
   const [kind, id] = key.split(":");
   return `/write/?${kind === "post" ? "postId" : "draftId"}=${id}`;
@@ -53,21 +78,53 @@ function savedTime(utc: string): string {
   return new Intl.DateTimeFormat("ko-KR", { timeZone: "Asia/Seoul", dateStyle: "short", timeStyle: "short" }).format(time);
 }
 
+/** 서버의 첫 문장 추출 규칙을 따라 {@link PublishSheet}에 자동 요약을 미리 보여 준다. */
+function summaryFromBody(body: string): string {
+  let fenced = false; let math = false;
+  for (const raw of body.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (line.startsWith("```")) { fenced = !fenced; continue; }
+    if (line === "$$") { math = !math; continue; }
+    if (fenced || math || !line || line.startsWith("#") || line.startsWith(">") || line.startsWith("-") ||
+      line.startsWith("*") || line.startsWith("+ ") || line.startsWith("![") || line.startsWith("|") ||
+      line.startsWith("<") || line.startsWith("[") || /^\d+\..*/.test(line)) continue;
+    const value = line.replace(/!\[[^\]]*\](?:\([^)]*\))?/g, "")
+      .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+      .replace(/\[\[([^|\]]+)(?:\|([^\]]+))?\]\]/g, (_, title: string, label?: string) => label || title)
+      .replace(/[\*`_]/g, "").replace(/\s+/g, " ").trim();
+    if (value) return Array.from(value).slice(0, 110).join("");
+  }
+  return "";
+}
+
 /** 응답이 없는 새 글의 모든 저장 필드를 명시적으로 초기화한다. */
-function blankForm(title = ""): Form {
-  return { title, slug: "", categoryId: null, tags: [], visibility: "PUBLIC", document: parseEditorMarkdown("") };
+function blankForm(title = "", section: DraftSection = "TECH", projectId: number | null = null, courseId: number | null = null): Form {
+  const projectMetadata: ProjectMetadata | null = section === "PROJECT_HOME" ? {
+    status: "DEV", startPeriod: "", endPeriod: null, overview: "", visibility: "PUBLIC", baseProjectUpdatedAt: null,
+    stackBadgeNames: [],
+  } : null;
+  const homeTemplate = "**역할** [역할] · **인원** [인원]\n\n## 프로젝트 소개\n\n## 문제와 해결\n\n## 작업 내용\n\n## 결과와 회고\n";
+  return { title, slug: "", categoryId: null, tags: [], visibility: "PUBLIC", section, projectId, courseId,
+    relatedProjectId: null, documentOrder: null, chapterOrder: null, summary: "", projectMetadata,
+    document: parseEditorMarkdown(section === "PROJECT_HOME" ? homeTemplate : "") };
 }
 
 /** 기존 원문을 아직 서버에 저장하지 않은 편집본의 초기 값으로 읽는다. */
 function formFromPost(post: AdminPost): Form {
   return { title: post.title, slug: post.slug, categoryId: post.category?.id ?? null,
-    tags: [...post.tags], visibility: post.visibility, document: parseEditorMarkdown(post.body) };
+    tags: [...post.tags], visibility: post.visibility, section: post.section, projectId: post.projectId,
+    relatedProjectId: post.relatedProjectId, documentOrder: post.documentOrder, courseId: post.courseId,
+    chapterOrder: post.chapterOrder, summary: post.summary,
+    projectMetadata: post.projectMetadata, document: parseEditorMarkdown(post.body) };
 }
 
 /** 편집본 원문을 원문 보존 블록으로 열고 revision은 별도로 추적한다. */
 function formFromDraft(draft: DraftDetail): Form {
   return { title: draft.title, slug: draft.slug, categoryId: draft.categoryId, tags: [...draft.tags],
-    visibility: draft.visibility, document: parseEditorMarkdown(draft.body) };
+    visibility: draft.visibility, section: draft.section, projectId: draft.projectId,
+    relatedProjectId: draft.relatedProjectId, documentOrder: draft.documentOrder, courseId: draft.courseId,
+    chapterOrder: draft.chapterOrder, summary: draft.summary,
+    projectMetadata: draft.projectMetadata, document: parseEditorMarkdown(draft.body) };
 }
 
 /** 서버 트리를 깊이별 레이블을 포함한 분류 선택 목록으로 펼친다. */
@@ -90,7 +147,9 @@ function writeError(error: unknown): string {
 function WriteInstance({ route }: { route: Route }) {
   const auth = useAuth();
   const router = useRouter();
-  const routeKey = route.kind === "new" ? route.title ? `new:${route.title}` : "new" :
+  const routeKey = route.kind === "new" ? route.section === "PROJECT_HOME" ? "new:project-home" :
+    route.section === "PROJECT_DOC" ? `new:project-doc:${route.projectId}` :
+      route.section === "NOTE_CHAPTER" ? `new:notes:${route.courseId}` : route.title ? `new:${route.title}` : "new" :
     route.kind === "invalid" ? "invalid" : `${route.kind}:${route.id}`;
   const loadedRoute = useRef<string | null>(null);
   const controllers = useRef(new Set<AbortController>());
@@ -111,12 +170,20 @@ function WriteInstance({ route }: { route: Route }) {
   const [existing, setExisting] = useState<DraftSummary | null>(null);
   const [categories, setCategories] = useState<CategoryNode[]>([]);
   const [knownTags, setKnownTags] = useState<TagCount[]>([]);
+  const [projects, setProjects] = useState<AdminProject[]>([]);
+  const [courses, setCourses] = useState<CourseSummary[]>([]);
+  const [projectPage, setProjectPage] = useState(0);
+  const [projectPages, setProjectPages] = useState(0);
+  const [projectLoading, setProjectLoading] = useState(false);
+  const [projectName, setProjectName] = useState("");
+  const [projectSlug, setProjectSlug] = useState("");
   const [tagInput, setTagInput] = useState("");
   const [message, setMessage] = useState("");
   const [savedAt, setSavedAt] = useState("");
   const [busy, setBusy] = useState<"save" | "publish" | null>(null);
   const [uploading, setUploading] = useState(false);
   const [showPublish, setShowPublish] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
   const [showWikiPicker, setShowWikiPicker] = useState(false);
   const [retry, setRetry] = useState(0);
   const [focusFirstSignal, setFocusFirstSignal] = useState(0);
@@ -169,7 +236,9 @@ function WriteInstance({ route }: { route: Route }) {
     uploadController.current = null;
     draftId.current = null; revision.current = null;
     original.current = { postId: null, baseUpdatedAt: null };
-    const cleared = blankForm(route.kind === "new" ? route.title ?? "" : "");
+    const cleared = blankForm(route.kind === "new" ? route.title ?? "" : "",
+      route.kind === "new" ? route.section : "TECH", route.kind === "new" ? route.projectId : null,
+      route.kind === "new" ? route.courseId : null);
     formRef.current = cleared; setForm(cleared); versionRef.current = 0; setVersion(0); setSavedVersion(0);
     loadedRoute.current = routeKey;
     const controller = new AbortController();
@@ -177,13 +246,17 @@ function WriteInstance({ route }: { route: Route }) {
     setScreen("loading"); setMessage(""); setExisting(null);
     void (async () => {
       try {
-        const [categoryValue, tagValue] = await Promise.all([
+        const [categoryValue, tagValue, projectValue, courseValue] = await Promise.all([
           auth.adminRead("/api/v1/admin/categories", controller.signal),
           auth.adminRead("/api/v1/admin/tags", controller.signal),
+          auth.adminRead("/api/v1/admin/projects?page=0&size=20", controller.signal),
+          auth.adminRead("/api/v1/admin/courses?page=0&size=100", controller.signal),
         ]);
         if (controller.signal.aborted) return;
         const nextCategories = parseAdminCategories(categoryValue);
         const nextTags = parseAdminTags(tagValue);
+        const projectList = parseAdminProjectPage(projectValue, 0);
+        const courseList = parseCoursePage(courseValue);
         let nextForm: Form;
         if (route.kind === "draft") {
           const detail = parseDraftDetail(await auth.adminRead(`/api/v1/admin/editor-drafts/${route.id}`, controller.signal));
@@ -206,11 +279,24 @@ function WriteInstance({ route }: { route: Route }) {
         } else {
           draftId.current = null; revision.current = null;
           original.current = { postId: null, baseUpdatedAt: null };
-          nextForm = blankForm(route.kind === "new" ? route.title ?? "" : ""); setSavedAt("");
+          nextForm = blankForm(route.kind === "new" ? route.title ?? "" : "",
+            route.kind === "new" ? route.section : "TECH", route.kind === "new" ? route.projectId : null,
+            route.kind === "new" ? route.courseId : null);
+          setSavedAt("");
+        }
+        let parent = nextForm.projectId === null ? null : projectList.items.find((item) => item.id === nextForm.projectId) ?? null;
+        if (nextForm.projectId !== null && !parent) {
+          const detail = await auth.adminRead(`/api/v1/admin/projects/${nextForm.projectId}`, controller.signal);
+          if (!detail || typeof detail !== "object" || Array.isArray(detail) || !("project" in detail))
+            throw new ApiFailure("response");
+          parent = parseAdminProject(detail.project);
         }
         if (controller.signal.aborted) return;
         formRef.current = nextForm; setForm(nextForm); versionRef.current = 0; setVersion(0); setSavedVersion(0);
-        setCategories(nextCategories); setKnownTags(nextTags); setScreen("ready");
+        setCategories(nextCategories); setKnownTags(nextTags); setProjects(projectList.items);
+        setCourses(courseList.items);
+        setProjectPage(0); setProjectPages(projectList.totalPages);
+        setProjectName(parent?.name ?? ""); setProjectSlug(parent?.slug ?? ""); setScreen("ready");
       } catch (error) {
         if (!controller.signal.aborted) { setMessage(apiFailureMessage(error)); setScreen("error"); }
       } finally { controllers.current.delete(controller); }
@@ -289,7 +375,10 @@ function WriteInstance({ route }: { route: Route }) {
     const wikiTargets = collectWikiTargets(body);
     const values = draftValues({ title: snapshot.title, slug: snapshot.slug,
       body, attachmentIds, wikiTargets, categoryId: snapshot.categoryId,
-      tags: snapshot.tags, visibility: snapshot.visibility });
+      tags: snapshot.tags, visibility: snapshot.visibility, section: snapshot.section,
+      projectId: snapshot.projectId, courseId: snapshot.courseId, relatedProjectId: snapshot.relatedProjectId,
+      documentOrder: snapshot.documentOrder, chapterOrder: snapshot.chapterOrder,
+      summary: snapshot.summary, projectMetadata: snapshot.projectMetadata });
     const currentId = draftId.current;
     const response = currentId === null ? await auth.adminWrite("POST", "/api/v1/admin/editor-drafts",
       { postId: original.current.postId, baseUpdatedAt: original.current.baseUpdatedAt, ...values }, signal) :
@@ -350,7 +439,11 @@ function WriteInstance({ route }: { route: Route }) {
       assertCurrentWrite(controller.signal, generation);
       if (!response || typeof response !== "object" || typeof (response as { slug?: unknown }).slug !== "string") throw new ApiFailure("response");
       setShowPublish(false);
-      router.replace(`/post/?slug=${encodeURIComponent((response as { slug: string }).slug)}`);
+      const published = response as { slug: string; projectSlug?: string | null; courseSlug?: string | null };
+      router.replace(snapshot.section === "PROJECT_HOME" ? `/project/?slug=${encodeURIComponent(published.projectSlug ?? published.slug)}` :
+        snapshot.section === "PROJECT_DOC" ? `/project/?slug=${encodeURIComponent(published.projectSlug ?? projectSlug)}&doc=${encodeURIComponent(published.slug)}` :
+          snapshot.section === "NOTE_CHAPTER" ? `/course/?slug=${encodeURIComponent(published.courseSlug ?? courses.find((item) => item.id === snapshot.courseId)?.slug ?? "")}&chapter=${encodeURIComponent(published.slug)}` :
+            `/post/?slug=${encodeURIComponent(published.slug)}`);
     } catch (error) { if (!controller.signal.aborted && generation === writeGeneration.current) setMessage(writeError(error)); }
     finally { controllers.current.delete(controller); if (generation === writeGeneration.current) { busyLock.current = false; setBusy(null); } }
   }
@@ -385,8 +478,8 @@ function WriteInstance({ route }: { route: Route }) {
   const options = categoryOptions(categories);
   return <main id="main-content" className="write-page">
     <div className="write-top"><Link href="/admin/drafts/" className="back-link">← 나가기</Link>
-      <span className="write-kind">TECH · {original.current.postId === null ? "새 글" : "기존 글 편집"}</span></div>
-    <h1 className="sr-only">Tech 글쓰기</h1>
+      <span className="write-kind">{{ TECH: "Tech", PROJECT_HOME: "프로젝트 대문", PROJECT_DOC: "프로젝트 문서", NOTE_CHAPTER: "Notes 회차" }[form.section]} · {original.current.postId === null ? "새 글" : "기존 글 편집"}</span></div>
+    <h1 className="sr-only">글쓰기</h1>
     <label className="sr-only" htmlFor="write-title">글 제목</label>
     <input id="write-title" className="write-title" value={form.title} placeholder="제목 없음"
       onChange={(event) => changeForm((current) => ({ ...current, title: event.target.value }))} disabled={busy === "publish"}
@@ -396,7 +489,7 @@ function WriteInstance({ route }: { route: Route }) {
       <label htmlFor="write-slug">글 주소</label>
       <input id="write-slug" value={form.slug} maxLength={160} placeholder="example-post" autoComplete="off"
         onChange={(event) => changeForm((current) => ({ ...current, slug: event.target.value }))} disabled={busy === "publish"} />
-      <label htmlFor="write-category">분류</label>
+      {form.section === "TECH" && <><label htmlFor="write-category">분류</label>
       <select id="write-category" value={form.categoryId ?? ""} disabled={busy === "publish"}
         onChange={(event) => changeForm((current) => ({ ...current, categoryId: event.target.value ? Number(event.target.value) : null }))}>
         <option value="">분류 없음</option>
@@ -404,13 +497,48 @@ function WriteInstance({ route }: { route: Route }) {
           <option value={form.categoryId}>삭제된 분류 · 해제하거나 다른 분류를 선택해 주세요</option>}
         {options.map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}
       </select>
+      <label htmlFor="write-related-project">관련 프로젝트</label>
+      <select id="write-related-project" value={form.relatedProjectId ?? ""} disabled={busy === "publish"}
+        onChange={(event) => changeForm((current) => ({ ...current, relatedProjectId: event.target.value ? Number(event.target.value) : null }))}>
+        <option value="">없음</option>{projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
+      </select></>}
+      {form.section === "PROJECT_DOC" && <><label htmlFor="write-project">프로젝트</label>
+        <select id="write-project" value={form.projectId ?? ""} disabled={busy === "publish"}
+          onChange={(event) => changeForm((current) => ({ ...current, projectId: Number(event.target.value) }))}>
+          {projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>)}
+        </select></>}
+      {form.section === "NOTE_CHAPTER" && <><label htmlFor="write-course">과목</label>
+        <select id="write-course" value={form.courseId ?? ""} disabled={busy === "publish"}
+          onChange={(event) => changeForm((current) => ({ ...current, courseId: Number(event.target.value) }))}>
+          {courses.map((course) => <option key={course.id} value={course.id}>{course.field} › {course.name}</option>)}
+        </select></>}
       <label htmlFor="write-visibility">열람 범위</label>
       <select id="write-visibility" value={form.visibility} disabled={busy === "publish"}
-        onChange={(event) => changeForm((current) => ({ ...current, visibility: event.target.value as "PUBLIC" | "PRIVATE" }))}>
+        onChange={(event) => changeForm((current) => ({ ...current, visibility: event.target.value as "PUBLIC" | "PRIVATE",
+          projectMetadata: current.projectMetadata && { ...current.projectMetadata, visibility: event.target.value as "PUBLIC" | "PRIVATE" } }))}>
         <option value="PUBLIC">전체 공개</option><option value="PRIVATE">로그인 회원 공개</option>
       </select>
     </div>
-    <div className="write-tags"><span className="write-label">태그</span><div className="write-tag-chips">{form.tags.map((tag) =>
+    {form.section === "PROJECT_HOME" && form.projectMetadata && <div className="write-project-fields card">
+      <label htmlFor="write-project-status">상태</label><select id="write-project-status" value={form.projectMetadata.status}
+        onChange={(event) => changeForm((current) => ({ ...current, projectMetadata: current.projectMetadata &&
+          { ...current.projectMetadata, status: event.target.value as ProjectMetadata["status"] } }))}>
+        <option value="PLAN">기획 중</option><option value="DEV">개발 중</option><option value="MAINT">유지보수 중</option><option value="DONE">완료</option>
+      </select>
+      <label htmlFor="write-start-period">기간</label><div className="write-period"><input id="write-start-period" placeholder="YYYY.MM" value={form.projectMetadata.startPeriod}
+        onChange={(event) => changeForm((current) => ({ ...current, projectMetadata: current.projectMetadata &&
+          { ...current.projectMetadata, startPeriod: event.target.value } }))} />
+        <span>–</span><input aria-label="종료 기간" placeholder="현재" value={form.projectMetadata.endPeriod ?? ""}
+          onChange={(event) => changeForm((current) => ({ ...current, projectMetadata: current.projectMetadata &&
+            { ...current.projectMetadata, endPeriod: event.target.value || null } }))} /></div>
+      <label htmlFor="write-overview">개요</label><textarea id="write-overview" maxLength={500} rows={2} value={form.projectMetadata.overview}
+        onChange={(event) => changeForm((current) => ({ ...current, projectMetadata: current.projectMetadata &&
+          { ...current.projectMetadata, overview: event.target.value } }))} />
+      <label htmlFor="write-stack">기술 스택</label><StackBadgePicker value={form.projectMetadata.stackBadgeNames}
+        onChange={(names) => changeForm((current) => ({ ...current, projectMetadata: current.projectMetadata &&
+          { ...current.projectMetadata, stackBadgeNames: names } }))} disabled={busy !== null} />
+    </div>}
+    {form.section === "TECH" && <div className="write-tags"><span className="write-label">태그</span><div className="write-tag-chips">{form.tags.map((tag) =>
       <button key={tag} type="button" disabled={busy === "publish"} aria-label={`${tag} 태그 제거`}
         onClick={() => changeForm((current) => ({ ...current, tags: current.tags.filter((item) => item !== tag) }))}>#{tag} ×</button>)}</div>
       <label className="sr-only" htmlFor="write-tag">태그 추가</label>
@@ -420,21 +548,28 @@ function WriteInstance({ route }: { route: Route }) {
       <datalist id="editor-known-tags">{knownTags.filter((tag) => !form.tags.includes(tag.name)).map((tag) =>
         <option key={tag.name} value={tag.name} />)}</datalist>
       <button type="button" className="small-button" onClick={addTag} disabled={busy === "publish"}>추가</button>
-    </div>
+    </div>}
     <AnnotationReader mode="editor" identity={annotationIdentity} items={currentAnnotationModel?.items ?? []}>
       <BlockEditor ref={editorRef} value={form.document} disabled={busy === "publish" || uploading}
         annotationPreview={currentAnnotationModel} annotationSessionKey={`${auth.epoch}:${routeKey}:${screen}`}
         focusFirstSignal={focusFirstSignal} onImageFile={uploadImage} onImageReject={setMessage}
         onChange={(next) => changeForm((current) => ({ ...current, document: next }))} />
     </AnnotationReader>
-    <p className="write-hint">기본 블록·명확한 표·한 단계 접기·첨부 이미지·독립 수식·Mermaid 도식을 편집할 수 있습니다. 주석 [*] 버튼은 선택한 인라인 글자를 `[* ]`로 바꾸고 닫는 괄호 앞에 커서를 둡니다. 문단 전체에 $$ 또는 ```mermaid를 입력하고 끝에서 Enter를 누르면 전용 블록으로 바뀝니다. JPEG/PNG 파일 선택·드롭·붙여넣기로 이미지를 추가합니다. 이미지 제거는 문서 연결만 해제하며 저장 후 해당 글의 읽기 권한이 철회됩니다. 중첩 접기와 지원하지 않는 구문은 원문 그대로 보존합니다.</p>
     {message && <p className="write-message" role="status">{message}</p>}
     <div className="write-spacer" />
+    {showHelp && <div id="write-help" className="write-help-popover card" role="region" aria-label="글쓰기 도움말"
+      onKeyDown={(event) => { if (event.key === "Escape") setShowHelp(false); }}><div className="write-help-heading">
+        <strong>글쓰기 도움말</strong><button type="button" aria-label="도움말 닫기" onClick={() => setShowHelp(false)}>×</button></div>
+      <p>문단·표·한 단계 접기·이미지·수식·Mermaid 도식을 편집할 수 있습니다. 문단에 $$ 또는 ```mermaid를 입력하고 끝에서 Enter를 누르면 전용 블록으로 바뀝니다.</p>
+      <p>JPEG/PNG 파일을 선택·드롭·붙여넣어 이미지를 넣을 수 있습니다. 이미지를 제거하면 문서 연결이 해제되고, 저장 뒤 해당 글의 읽기 권한이 철회됩니다.</p>
+      <p>주석 [*]은 선택한 글자에 주석 표시를 넣습니다. 중첩 접기와 지원하지 않는 구문은 원문으로 보존합니다.</p></div>}
     <div className="write-toolbar"><span className="write-save-state" aria-live="polite">{uploading ? "이미지 업로드 중…" : busy === "save" ? "저장 중…" :
       busy === "publish" ? "출간 중…" : dirty ? "저장하지 않은 변경" : savedAt ? `임시저장됨 · ${savedTime(savedAt)} KST` : "아직 저장하지 않음"}</span>
       {uploading && <button type="button" className="small-button" onClick={() => {
         uploadController.current?.abort(); setMessage("이미지 업로드를 취소했습니다. 원고는 유지됩니다.");
       }}>업로드 취소</button>}
+      <button type="button" className="small-button" aria-controls="write-help" aria-expanded={showHelp}
+        onClick={() => setShowHelp((current) => !current)}>도움말</button>
       <button type="button" className="small-button write-annotation-button" aria-label="주석 삽입" disabled={busy !== null || uploading}
         onPointerDown={() => editorRef.current?.captureAnnotationSelection()}
         onClick={() => { if (!editorRef.current?.insertAnnotation())
@@ -449,9 +584,13 @@ function WriteInstance({ route }: { route: Route }) {
       if (editorRef.current?.insertWikiLink(title)) { setShowWikiPicker(false); setMessage("글 링크를 본문에 넣었습니다."); }
       else setMessage("글자 조합을 마친 뒤 글 링크를 삽입해 주세요.");
     }} />}
-    {showPublish && <PublishSheet title={form.title} slug={form.slug} visibility={form.visibility} busy={busy !== null || uploading} error={message}
+    {showPublish && <PublishSheet title={form.title} slug={form.slug} section={form.section} summary={form.summary}
+      summaryPreview={summaryFromBody(serializeEditorMarkdown(form.document))}
+      visibility={form.visibility} busy={busy !== null || uploading} error={message}
       onSlug={(slug) => changeForm((current) => ({ ...current, slug }))}
-      onVisibility={(visibility) => changeForm((current) => ({ ...current, visibility }))}
+      onSummary={(summary) => changeForm((current) => ({ ...current, summary }))}
+      onVisibility={(visibility) => changeForm((current) => ({ ...current, visibility,
+        projectMetadata: current.projectMetadata && { ...current.projectMetadata, visibility } }))}
       onClose={() => setShowPublish(false)} onPublish={() => void publish()} />}
   </main>;
 }

@@ -45,6 +45,18 @@ class UserEntity protected constructor() {
     lateinit var createdAt: LocalDateTime
         protected set
 
+    @Column(name = "display_name", length = 100)
+    var displayName: String? = null
+        protected set
+
+    @Column(length = 254, unique = true)
+    var email: String? = null
+        protected set
+
+    @Column(nullable = false)
+    var enabled: Boolean = true
+        protected set
+
     /**
      * 이미 검증된 계정 속성으로 새 저장 객체를 생성.
      *
@@ -60,5 +72,22 @@ class UserEntity protected constructor() {
         this.passwordHash = passwordHash
         this.role = role
         this.createdAt = createdAt
+    }
+
+    /** 메일 초대가 완료되기 전 로그인할 수 없는 회원 행을 생성. */
+    constructor(username: String, name: String, email: String, role: UserRole, createdAt: LocalDateTime) : this() {
+        this.username = username
+        passwordHash = "{noop}!"
+        this.role = role
+        this.createdAt = createdAt
+        displayName = name
+        this.email = email
+        enabled = false
+    }
+
+    /** 일회용 초대 검증 후 암호화된 비밀번호를 설정하고 로그인을 활성화. */
+    fun activate(encodedPassword: String) {
+        passwordHash = encodedPassword
+        enabled = true
     }
 }

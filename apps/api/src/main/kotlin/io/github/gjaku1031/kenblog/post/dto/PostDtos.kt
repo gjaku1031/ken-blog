@@ -6,6 +6,8 @@ import io.github.gjaku1031.kenblog.post.domain.InvalidPostRequestException
 import io.github.gjaku1031.kenblog.post.domain.PostEntity
 import io.github.gjaku1031.kenblog.post.domain.PostStatus
 import io.github.gjaku1031.kenblog.post.domain.PostVisibility
+import io.github.gjaku1031.kenblog.post.domain.PostSection
+import io.github.gjaku1031.kenblog.project.domain.ProjectMetadata
 import io.swagger.v3.oas.annotations.media.Schema
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -103,6 +105,19 @@ data class PostDetailResponse(
     val tags: List<String>,
     val attachmentIds: List<Long>,
     val wikiTargets: List<String>,
+    val section: PostSection = PostSection.TECH,
+    val projectId: Long? = null,
+    val projectSlug: String? = null,
+    val relatedProjectId: Long? = null,
+    val documentOrder: Int? = null,
+    val projectMetadata: ProjectMetadata? = null,
+    val courseId: Long? = null,
+    val courseSlug: String? = null,
+    val chapterOrder: Int? = null,
+    val summary: String = "",
+    val pinOrder: Int? = null,
+    val viewCount: Long = 0,
+    val bodySha256: String = "",
 )
 
 /**
@@ -130,6 +145,13 @@ data class PostSummaryResponse(
     val publishedAt: LocalDateTime?,
     val category: CategoryRefResponse?,
     val tags: List<String>,
+    val section: PostSection = PostSection.TECH,
+    val projectId: Long? = null,
+    val relatedProjectId: Long? = null,
+    val courseId: Long? = null,
+    val summary: String = "",
+    val pinOrder: Int? = null,
+    val viewCount: Long = 0,
 )
 
 /** 관리자 페이지 SQL에서 본문·태그를 제외하고 가져온 게시글 기본 행. */
@@ -143,6 +165,12 @@ data class AdminPostRow(
     val visibility: PostVisibility,
     val publishedAt: LocalDateTime?,
     val categoryId: Long?,
+    val section: PostSection,
+    val projectId: Long?,
+    val courseId: Long?,
+    val summary: String,
+    val pinOrder: Int?,
+    val viewCount: Long,
 )
 
 /**
@@ -181,7 +209,15 @@ data class PublishedPostRow(val id: Long, val title: String, val slug: String, v
  * @property slug 주소
  * @property publishedAt 최초 UTC 출간 시각
  */
-data class PrivatePostLockRow(val id: Long, val title: String, val slug: String, val publishedAt: LocalDateTime)
+data class PrivatePostLockRow(
+    val id: Long,
+    val title: String,
+    val slug: String,
+    val publishedAt: LocalDateTime,
+    val section: PostSection,
+    val projectSlug: String?,
+    val courseSlug: String?,
+)
 
 /**
  * 캐시 활성 시 익명 PUBLIC 조회의 권한·현재 본문 버전을 DB에서 먼저 확인하는 본문 없는 행.
@@ -200,6 +236,10 @@ data class PublicPostCacheRow(
     val publishedAt: LocalDateTime,
     val bodySha256: String,
     val categoryId: Long?,
+    val relatedProjectId: Long?,
+    val summary: String,
+    val pinOrder: Int?,
+    val viewCount: Long,
 )
 
 /**
@@ -244,7 +284,28 @@ data class PublicPostDetailResponse(
     val body: String?,
     val category: CategoryRefResponse?,
     val tags: List<String>,
+    val section: PostSection = PostSection.TECH,
+    val projectSlug: String? = null,
+    val relatedProject: RelatedProjectResponse? = null,
+    val courseSlug: String? = null,
+    val bodySha256: String? = null,
+    val series: PostSeriesResponse? = null,
+    val summary: String = "",
+    val pinOrder: Int? = null,
+    val viewCount: Long = 0,
 )
+
+/** 소분류 Tech 또는 과목 회차의 권한별 시리즈 이동 행. */
+data class PostSeriesItem(val id: Long, val slug: String, val title: String, val order: Int)
+
+/** 시리즈가 2편 이상일 때만 제공하는 전체 이동 목록과 1기반 현재 위치. */
+data class PostSeriesResponse(val items: List<PostSeriesItem>, val position: Int)
+
+/** Tech 소분류 시리즈의 본문 없는 SQL 행. */
+data class PostSeriesRow(val id: Long, val slug: String, val title: String)
+
+/** TECH 글에서 현재 열람 가능한 관련 프로젝트의 최소 이동 정보. */
+data class RelatedProjectResponse(val id: Long, val slug: String, val name: String)
 
 /**
  * 권한별 SQL 조회와 건수를 함께 담는 공개 목록 응답.

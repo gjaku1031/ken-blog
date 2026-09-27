@@ -8,6 +8,8 @@ import io.github.gjaku1031.kenblog.post.domain.DuplicatePostSlugException
 import io.github.gjaku1031.kenblog.post.domain.InvalidPostDraftException
 import io.github.gjaku1031.kenblog.post.domain.InvalidPostRequestException
 import io.github.gjaku1031.kenblog.post.domain.PostEntity
+import io.github.gjaku1031.kenblog.post.domain.PostSummaryText
+import io.github.gjaku1031.kenblog.post.domain.PostSection
 import io.github.gjaku1031.kenblog.post.domain.PostNotFoundException
 import io.github.gjaku1031.kenblog.post.domain.PostVisibility
 import io.github.gjaku1031.kenblog.post.domain.PostTagEntity
@@ -19,6 +21,10 @@ import io.github.gjaku1031.kenblog.post.dto.PostSummaryResponse
 import io.github.gjaku1031.kenblog.post.dto.TagCountResponse
 import io.github.gjaku1031.kenblog.post.repository.PostRepository
 import io.github.gjaku1031.kenblog.post.repository.PostTagRepository
+import io.github.gjaku1031.kenblog.project.domain.ProjectConflictException
+import io.github.gjaku1031.kenblog.project.repository.ProjectRepository
+import io.github.gjaku1031.kenblog.note.repository.CourseRepository
+import io.github.gjaku1031.kenblog.stack.service.StackBadgeService
 import java.sql.SQLIntegrityConstraintViolationException
 import java.time.Clock
 import java.time.LocalDateTime
@@ -53,6 +59,9 @@ class PostService(
     private val taxonomy: PostTaxonomyMetadata,
     private val attachmentLinks: AttachmentLinkService,
     private val wikiLinks: WikiLinkMetadata,
+    private val projects: ProjectRepository,
+    private val courses: CourseRepository,
+    private val stackBadges: StackBadgeService,
 ) {
     /**
      * 제목과 slug를 정규화한 후 초안을 원자적으로 저장.
@@ -74,7 +83,9 @@ class PostService(
     @Transactional
     fun createDraft(title: String, slug: String, body: String): PostEntity {
         val values = validateDraft(title, slug, body)
-        return saveDraft(PostEntity(values.title, values.slug, values.body, now()), values.slug)
+        val post = PostEntity(values.title, values.slug, values.body, now())
+        post.replaceSummary(PostSummaryText.fromBody(values.body))
+        return saveDraft(post, values.slug)
     }
 
     /**
@@ -95,7 +106,8 @@ class PostService(
         val items = result.content.map { row ->
             val view = metadata.getValue(row.id)
             PostSummaryResponse(row.id, row.title, row.slug, row.createdAt, row.updatedAt,
-                row.status, row.visibility, row.publishedAt, view.category, view.tags)
+                row.status, row.visibility, row.publishedAt, view.category, view.tags,
+                row.section, row.projectId, null, row.courseId, row.summary, row.pinOrder, row.viewCount)
         }
         return PostPageResponse(items, page, size, result.totalElements, result.totalPages)
     }
@@ -121,9 +133,11 @@ class PostService(
     fun updateDraft(id: Long, title: String, slug: String, body: String): PostEntity {
         if (id <= 0) throw InvalidPostRequestException()
         val post = repository.findLockedById(id) ?: throw PostNotFoundException()
+        requireTech(post)
         val previousHash = post.bodySha256
         val values = validateDraft(title, slug, body)
         post.replaceDraft(values.title, values.slug, values.body, now())
+        post.replaceSummary(PostSummaryText.fromBody(values.body))
         return saveDraft(post, values.slug).also { cache.evictAfterCommit(id, previousHash) }
     }
 
@@ -141,6 +155,7 @@ class PostService(
     fun deleteDraft(id: Long) {
         if (id <= 0) throw InvalidPostRequestException()
         val post = repository.findLockedById(id) ?: throw PostNotFoundException()
+        requireTech(post)
         val previousHash = post.bodySha256
         repository.delete(post)
         repository.flush()
@@ -160,6 +175,7 @@ class PostService(
     @Transactional
     fun publish(id: Long, visibility: PostVisibility): PostEntity {
         val post = lockedPost(id)
+        requireTech(post)
         val previousHash = post.bodySha256
         post.publish(visibility, now())
         return repository.saveAndFlush(post).also { cache.evictAfterCommit(id, previousHash) }
@@ -177,6 +193,7 @@ class PostService(
     @Transactional
     fun unpublish(id: Long): PostEntity {
         val post = lockedPost(id)
+        requireTech(post)
         val previousHash = post.bodySha256
         post.unpublish(now())
         return repository.saveAndFlush(post).also { cache.evictAfterCommit(id, previousHash) }
@@ -195,6 +212,7 @@ class PostService(
     @Transactional
     fun changeVisibility(id: Long, visibility: PostVisibility): PostEntity {
         val post = lockedPost(id)
+        requireTech(post)
         val previousHash = post.bodySha256
         post.changeVisibility(visibility, now())
         return repository.saveAndFlush(post).also { cache.evictAfterCommit(id, previousHash) }
@@ -254,7 +272,9 @@ class PostService(
     fun updateDraftDetail(id: Long, title: String, slug: String, body: String, attachmentIds: List<Long>? = null,
         wikiTargets: List<String>? = null): PostDetailResponse {
         if (id <= 0) throw InvalidPostRequestException()
-        val previousBody = (repository.findLockedById(id) ?: throw PostNotFoundException()).body
+        val locked = repository.findLockedById(id) ?: throw PostNotFoundException()
+        requireTech(locked)
+        val previousBody = locked.body
         val post = updateDraft(id, title, slug, body)
         if (attachmentIds != null) attachmentLinks.replacePost(id, attachmentIds)
         if (wikiTargets != null || previousBody != body) wikiLinks.replacePost(id, wikiTargets ?: emptyList())
@@ -268,6 +288,7 @@ class PostService(
     @Transactional
     fun replaceWikiLinks(id: Long, expectedBodySha256: String, wikiTargets: List<String>): PostDetailResponse {
         val post = lockedPost(id)
+        requireTech(post)
         if (post.bodySha256 != expectedBodySha256) throw WikiLinkConflictException()
         wikiLinks.replacePost(id, wikiTargets)
         return post.adminDetail()
@@ -312,6 +333,7 @@ class PostService(
                 categories.findSharedById(categoryId) ?: throw CategoryNotFoundException()
             }
             val post = lockedPost(id)
+            requireTech(post)
             if (post.categoryId == categoryId && tags.findNamesByPostId(id) == normalized) return post.adminDetail()
             post.changeCategory(categoryId, now())
             repository.saveAndFlush(post)
@@ -358,8 +380,102 @@ class PostService(
     private fun PostEntity.adminDetail(): PostDetailResponse {
         val postId = id ?: error("Persisted post has no ID")
         val view = taxonomy.one(postId, categoryId)
+        val project = projectId?.let(projects::findByIdOrNull)
+        val course = courseId?.let(courses::findByIdOrNull)
         return PostDetailResponse(postId, title, slug, body, createdAt, updatedAt,
-            status, visibility, publishedAt, view.category, view.tags, attachmentLinks.postIds(postId), wikiLinks.postTitles(postId))
+            status, visibility, publishedAt, view.category, view.tags, attachmentLinks.postIds(postId), wikiLinks.postTitles(postId),
+            section, projectId, project?.slug, relatedProjectId, documentOrder,
+            if (section == PostSection.PROJECT_HOME && project != null)
+                io.github.gjaku1031.kenblog.project.domain.ProjectMetadata(project.status, project.startPeriod,
+                    project.endPeriod, project.overview, project.visibility, project.updatedAt,
+                    stackBadges.listForProject(project.id!!).map { it.name })
+            else null, courseId, course?.slug, chapterOrder, summary, pinOrder, viewCount, bodySha256)
+    }
+
+    /** 일반 관리자 글 쓰기가 대문·문서의 부모 원자성 규칙을 우회하지 못하게 차단. */
+    private fun requireTech(post: PostEntity) { if (post.section != PostSection.TECH) throw ProjectConflictException() }
+
+    /** 이미 잠근 프로젝트 아래 새 HOME 또는 DOC 글을 저장. */
+    @Transactional
+    fun createProjectPost(title: String, slug: String, body: String, section: PostSection,
+        projectId: Long, order: Int?): PostEntity {
+        if (section !in setOf(PostSection.PROJECT_HOME, PostSection.PROJECT_DOC) || projectId <= 0 ||
+            (section == PostSection.PROJECT_DOC && (order ?: 0) <= 0)) throw ProjectConflictException()
+        val values = validateDraft(title, slug, body)
+        val entity = PostEntity(values.title, values.slug, values.body, now())
+        entity.assignProject(section, projectId, order)
+        return saveDraft(entity, values.slug)
+    }
+
+    /** 부모 잠금과 소속 확인 뒤 공개 원문의 HOME·DOC 내용만 교체. */
+    @Transactional
+    fun updateProjectPost(id: Long, title: String, slug: String, body: String,
+        section: PostSection, projectId: Long): PostEntity {
+        val post = lockedPost(id)
+        if (section !in setOf(PostSection.PROJECT_HOME, PostSection.PROJECT_DOC) ||
+            post.section != section || post.projectId != projectId) throw ProjectConflictException()
+        val previousHash = post.bodySha256
+        val values = validateDraft(title, slug, body)
+        post.replaceDraft(values.title, values.slug, values.body, now())
+        return saveDraft(post, values.slug).also { cache.evictAfterCommit(id, previousHash) }
+    }
+
+    /** 프로젝트 원문만 별도 부모 트랜잭션에서 출간. */
+    @Transactional
+    fun publishProjectPost(id: Long, visibility: PostVisibility): PostEntity {
+        val post = lockedPost(id)
+        if (post.section !in setOf(PostSection.PROJECT_HOME, PostSection.PROJECT_DOC)) throw ProjectConflictException()
+        post.publish(visibility, now())
+        return repository.saveAndFlush(post)
+    }
+
+    /** TECH 글의 선택적 관련 프로젝트를 출간 트랜잭션에서 지정·해제. */
+    @Transactional
+    fun relateTechPost(id: Long, projectId: Long?) {
+        val post = lockedPost(id)
+        requireTech(post)
+        post.relateProject(projectId, now())
+        repository.saveAndFlush(post)
+    }
+
+    /** 편집본의 명시 요약 또는 본문 자동 추출을 같은 원문 트랜잭션에서 저장. */
+    @Transactional
+    fun replaceSummary(id: Long, requested: String) {
+        val post = lockedPost(id)
+        if (requested.codePointCount(0, requested.length) > 120) throw InvalidPostRequestException()
+        post.replaceSummary(if (requested.isBlank()) PostSummaryText.fromBody(post.body) else requested.trim())
+        repository.saveAndFlush(post)
+    }
+
+    /** 과목 잠금 뒤 검증한 회차 원문을 새 게시글로 저장. */
+    @Transactional
+    fun createChapterPost(title: String, slug: String, body: String, courseId: Long, order: Int): PostEntity {
+        if (courseId <= 0 || order <= 0) throw io.github.gjaku1031.kenblog.note.domain.CourseConflictException()
+        val values = validateDraft(title, slug, body)
+        val post = PostEntity(values.title, values.slug, values.body, now())
+        post.assignCourse(courseId, order)
+        return saveDraft(post, values.slug)
+    }
+
+    /** 과목과 소속을 다시 확인한 뒤 회차 원문만 갱신. */
+    @Transactional
+    fun updateChapterPost(id: Long, title: String, slug: String, body: String, courseId: Long): PostEntity {
+        val post = lockedPost(id)
+        if (post.section != PostSection.NOTE_CHAPTER || post.courseId != courseId)
+            throw io.github.gjaku1031.kenblog.note.domain.CourseConflictException()
+        val previousHash = post.bodySha256
+        val values = validateDraft(title, slug, body)
+        post.replaceDraft(values.title, values.slug, values.body, now())
+        return saveDraft(post, values.slug).also { cache.evictAfterCommit(id, previousHash) }
+    }
+
+    /** 기존 출간 경로와 동일하게 회차의 첫 출간 시각을 보존. */
+    @Transactional
+    fun publishChapterPost(id: Long, visibility: PostVisibility): PostEntity {
+        val post = lockedPost(id)
+        if (post.section != PostSection.NOTE_CHAPTER) throw io.github.gjaku1031.kenblog.note.domain.CourseConflictException()
+        post.publish(visibility, now())
+        return repository.saveAndFlush(post)
     }
 
     /**

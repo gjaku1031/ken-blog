@@ -40,7 +40,7 @@ class AuthService(
      * @throws BadCredentialsException 입력 형식 또는 자격 증명이 맞지 않을 때
      */
     fun login(body: LoginRequest, request: HttpServletRequest, response: HttpServletResponse): CurrentUserResponse {
-        if (body.username.isBlank() || body.username.length > 64 || body.password.isEmpty() ||
+        if (body.username.isBlank() || body.username.length > 254 || body.password.isEmpty() ||
             body.password.toByteArray(Charsets.UTF_8).size > 72) {
             throw BadCredentialsException("Invalid credentials")
         }

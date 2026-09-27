@@ -1,6 +1,7 @@
 package io.github.gjaku1031.kenblog.post.repository
 
 import io.github.gjaku1031.kenblog.post.domain.PostEntity
+import io.github.gjaku1031.kenblog.post.domain.PostSection
 import io.github.gjaku1031.kenblog.post.domain.PostStatus
 import io.github.gjaku1031.kenblog.post.domain.PostVisibility
 import io.github.gjaku1031.kenblog.post.dto.PrivatePostLockRow
@@ -9,6 +10,9 @@ import io.github.gjaku1031.kenblog.post.dto.PublicPostCacheRow
 import io.github.gjaku1031.kenblog.post.dto.PublishedPostRow
 import io.github.gjaku1031.kenblog.post.dto.WikiLinkTargetRow
 import io.github.gjaku1031.kenblog.post.dto.WikiNavigationRow
+import io.github.gjaku1031.kenblog.post.dto.RelatedProjectResponse
+import io.github.gjaku1031.kenblog.post.dto.PostViewAccessRow
+import io.github.gjaku1031.kenblog.post.dto.PostSeriesRow
 import io.github.gjaku1031.kenblog.post.service.PostService
 import io.github.gjaku1031.kenblog.category.dto.CategoryPostCountRow
 import jakarta.persistence.LockModeType
@@ -20,6 +24,19 @@ import org.springframework.data.jpa.repository.Modifying
 import org.springframework.data.jpa.repository.Query
 import org.springframework.data.repository.query.Param
 
+/** 위키 조회에서 프로젝트 글의 연결된 대문이 현재 출간 중인지 본문 없이 확인하는 조건. */
+private const val PUBLISHED_PROJECT_PARENT =
+    "(p.section in ('TECH', 'NOTE_CHAPTER') or (project.id is not null and home.id is not null " +
+        "and home.section = 'PROJECT_HOME' and home.project_id = project.id " +
+        "and home.status = 'PUBLISHED' and (p.section <> 'PROJECT_HOME' or p.id = home.id)))"
+
+/** 대표 제목 선출에서 더 앞선 후보에도 동일한 부모 출간 조건을 적용. */
+private const val PUBLISHED_OLDER_PROJECT_PARENT =
+    "(older.section in ('TECH', 'NOTE_CHAPTER') or (older_project.id is not null and older_home.id is not null " +
+        "and older_home.section = 'PROJECT_HOME' and older_home.project_id = older_project.id " +
+        "and older_home.status = 'PUBLISHED' " +
+        "and (older.section <> 'PROJECT_HOME' or older.id = older_home.id)))"
+
 /**
  * [PostEntity]의 기본 저장·ID 조회를 [JpaRepository]에 맡기는 게시글 저장소.
  *
@@ -28,6 +45,33 @@ import org.springframework.data.repository.query.Param
  * ID 조회는 [JpaRepository.findById]를 사용함.
  */
 interface PostRepository : JpaRepository<PostEntity, Long> {
+    /** @return 한 3단계 소분류의 현재 권한별 출간 글을 최초 출간 순서로 조회. */
+    @Query("select new io.github.gjaku1031.kenblog.post.dto.PostSeriesRow(p.id, p.slug, p.title) " +
+        "from PostEntity p where p.section = :tech and p.categoryId = :categoryId " +
+        "and p.status = :published and (:includePrivate = true or p.visibility = :publicVisibility) " +
+        "order by p.publishedAt asc, p.id asc")
+    fun findTechSeries(@Param("categoryId") categoryId: Long, @Param("tech") tech: PostSection,
+        @Param("published") published: PostStatus, @Param("includePrivate") includePrivate: Boolean,
+        @Param("publicVisibility") publicVisibility: PostVisibility): List<PostSeriesRow>
+    /** @return 조회 집계에서 본문 없이 글·부모 출간과 공개 범위를 확인할 행. */
+    @Query("select new io.github.gjaku1031.kenblog.post.dto.PostViewAccessRow(" +
+        "p.id, p.status, p.visibility, p.section, project.id, project.visibility, " +
+        "home.visibility, home.status, home.section, home.id, home.projectId) " +
+        "from PostEntity p left join ProjectEntity project on project.id = p.projectId " +
+        "left join PostEntity home on home.id = project.homePostId where p.id = :id")
+    fun findViewAccess(@Param("id") id: Long): PostViewAccessRow?
+
+    /** @return 현재 글의 저장된 조회 수. */
+    @Query("select p.viewCount from PostEntity p where p.id = :id")
+    fun findViewCount(@Param("id") id: Long): Long?
+
+    /** @return 원자적으로 조회 수를 하나 올린 행 수. */
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
+    @Query("update PostEntity p set p.viewCount = p.viewCount + 1 where p.id = :id")
+    fun incrementViewCount(@Param("id") id: Long): Int
+    /** @return 현재 핀의 ID를 순서대로 가져오되 본문 열을 읽지 않음. */
+    @Query("select p.id from PostEntity p where p.pinOrder is not null order by p.pinOrder asc, p.id asc")
+    fun findPinnedIds(): List<Long>
     /**
      * 저장된 slug와 정확히 일치하는 게시글을 파생 쿼리로 조회.
      *
@@ -53,7 +97,7 @@ interface PostRepository : JpaRepository<PostEntity, Long> {
      * @return 생성 시각·ID 내림차순의 [AdminPostRow] 페이지
      */
     @Query(
-        value = "select new io.github.gjaku1031.kenblog.post.dto.AdminPostRow(p.id, p.title, p.slug, p.createdAt, p.updatedAt, p.status, p.visibility, p.publishedAt, p.categoryId) " +
+        value = "select new io.github.gjaku1031.kenblog.post.dto.AdminPostRow(p.id, p.title, p.slug, p.createdAt, p.updatedAt, p.status, p.visibility, p.publishedAt, p.categoryId, p.section, p.projectId, p.courseId, p.summary, p.pinOrder, p.viewCount) " +
             "from PostEntity p order by p.createdAt desc, p.id desc",
         countQuery = "select count(p) from PostEntity p",
     )
@@ -73,12 +117,14 @@ interface PostRepository : JpaRepository<PostEntity, Long> {
      */
     @Query(
         value = "select new io.github.gjaku1031.kenblog.post.dto.PublishedPostRow(p.id, p.title, p.slug, p.publishedAt, p.categoryId) " +
-            "from PostEntity p where p.status = :published and (:includePrivate = true or p.visibility = :publicVisibility) " +
+            "from PostEntity p where p.section = io.github.gjaku1031.kenblog.post.domain.PostSection.TECH " +
+            "and p.status = :published and (:includePrivate = true or p.visibility = :publicVisibility) " +
             "and (:categoryPath is null or exists (select c.id from CategoryEntity c where c.id = p.categoryId " +
             "and (c.path = :categoryPath or c.path like :descendantPath))) " +
             "and (:tag is null or exists (select t.id from PostTagEntity t where t.postId = p.id and t.name = :tag)) " +
             "order by p.publishedAt desc, p.id desc",
-        countQuery = "select count(p) from PostEntity p where p.status = :published " +
+        countQuery = "select count(p) from PostEntity p " +
+            "where p.section = io.github.gjaku1031.kenblog.post.domain.PostSection.TECH and p.status = :published " +
             "and (:includePrivate = true or p.visibility = :publicVisibility) " +
             "and (:categoryPath is null or exists (select c.id from CategoryEntity c where c.id = p.categoryId " +
             "and (c.path = :categoryPath or c.path like :descendantPath))) " +
@@ -101,7 +147,14 @@ interface PostRepository : JpaRepository<PostEntity, Long> {
      * @param status 출간 상태
      * @return 본문 포함 [PostEntity], 없으면 `null`
      */
-    fun findBySlugAndStatus(slug: String, status: PostStatus): PostEntity?
+    @Query("select p from PostEntity p where p.slug = :slug and p.status = :status " +
+        "and (p.section in (:tech, :note) or exists (select project.id from ProjectEntity project, PostEntity home " +
+        "where project.id = p.projectId and home.id = project.homePostId and home.projectId = project.id " +
+        "and home.section = :homeSection and home.status = :status " +
+        "and (p.section <> :homeSection or p.id = home.id)))")
+    fun findBySlugAndStatus(@Param("slug") slug: String, @Param("status") status: PostStatus,
+        @Param("tech") tech: PostSection, @Param("note") note: PostSection,
+        @Param("homeSection") homeSection: PostSection): PostEntity?
 
     /**
      * 익명 열람자가 본문을 읽어도 되는 출간 글만 조회.
@@ -111,7 +164,15 @@ interface PostRepository : JpaRepository<PostEntity, Long> {
      * @param visibility 공개 범위
      * @return 본문 포함 [PostEntity], 없으면 `null`
      */
-    fun findBySlugAndStatusAndVisibility(slug: String, status: PostStatus, visibility: PostVisibility): PostEntity?
+    @Query("select p from PostEntity p where p.slug = :slug and p.status = :status and p.visibility = :visibility " +
+        "and (p.section in (:tech, :note) or exists (select project.id from ProjectEntity project, PostEntity home " +
+        "where project.id = p.projectId and project.visibility = :visibility and home.id = project.homePostId " +
+        "and home.projectId = project.id and home.section = :homeSection and home.status = :status " +
+        "and home.visibility = :visibility and (p.section <> :homeSection or p.id = home.id)))")
+    fun findBySlugAndStatusAndVisibility(@Param("slug") slug: String, @Param("status") status: PostStatus,
+        @Param("visibility") visibility: PostVisibility, @Param("tech") tech: PostSection,
+        @Param("note") note: PostSection,
+        @Param("homeSection") homeSection: PostSection): PostEntity?
 
     /**
      * 익명 PUBLIC 상세에서 캐시보다 먼저 현재 공개 범위·해시를 본문 열 없이 조회.
@@ -121,12 +182,13 @@ interface PostRepository : JpaRepository<PostEntity, Long> {
      * @param visibility 공개 범위
      * @return 현재 공개 글의 [PublicPostCacheRow], 없으면 `null`
      */
-    @Query("select new io.github.gjaku1031.kenblog.post.dto.PublicPostCacheRow(p.id, p.title, p.slug, p.publishedAt, p.bodySha256, p.categoryId) " +
-        "from PostEntity p where p.slug = :slug and p.status = :status and p.visibility = :visibility")
+    @Query("select new io.github.gjaku1031.kenblog.post.dto.PublicPostCacheRow(p.id, p.title, p.slug, p.publishedAt, p.bodySha256, p.categoryId, p.relatedProjectId, p.summary, p.pinOrder, p.viewCount) " +
+        "from PostEntity p where p.slug = :slug and p.section = :tech and p.status = :status and p.visibility = :visibility")
     fun findPublicCacheMetadataBySlug(
         @Param("slug") slug: String,
         @Param("status") status: PostStatus,
         @Param("visibility") visibility: PostVisibility,
+        @Param("tech") tech: PostSection,
     ): PublicPostCacheRow?
 
     /**
@@ -137,13 +199,34 @@ interface PostRepository : JpaRepository<PostEntity, Long> {
      * @param visibility 비공개 범위
      * @return 잠금 화면용 [PrivatePostLockRow], 없으면 `null`
      */
-    @Query("select new io.github.gjaku1031.kenblog.post.dto.PrivatePostLockRow(p.id, p.title, p.slug, p.publishedAt) " +
-        "from PostEntity p where p.slug = :slug and p.status = :status and p.visibility = :visibility")
+    @Query("select new io.github.gjaku1031.kenblog.post.dto.PrivatePostLockRow(" +
+        "p.id, p.title, p.slug, p.publishedAt, p.section, project.slug, course.slug) " +
+        "from PostEntity p left join ProjectEntity project on project.id = p.projectId " +
+        "left join CourseEntity course on course.id = p.courseId " +
+        "where p.slug = :slug and p.status = :status and p.visibility = :visibility " +
+        "and (p.section in (:tech, :note) or exists (select home.id from PostEntity home " +
+        "where home.id = project.homePostId and home.projectId = project.id " +
+        "and home.section = :homeSection and home.status = :status and home.visibility = :publicVisibility " +
+        "and project.visibility = :publicVisibility and (p.section <> :homeSection or p.id = home.id)))")
     fun findPrivateLockBySlug(
         @Param("slug") slug: String,
         @Param("status") status: PostStatus,
         @Param("visibility") visibility: PostVisibility,
+        @Param("publicVisibility") publicVisibility: PostVisibility,
+        @Param("tech") tech: PostSection,
+        @Param("note") note: PostSection,
+        @Param("homeSection") homeSection: PostSection,
     ): PrivatePostLockRow?
+
+    /** @return 출간된 대문과 현재 권한에서 읽을 수 있는 프로젝트의 최소 이동 정보. */
+    @Query("select new io.github.gjaku1031.kenblog.post.dto.RelatedProjectResponse(" +
+        "project.id, project.slug, project.name) from ProjectEntity project, PostEntity home " +
+        "where project.id = :projectId and home.id = project.homePostId and home.projectId = project.id " +
+        "and home.section = :homeSection and home.status = :published " +
+        "and (:includePrivate = true or (project.visibility = :publicVisibility and home.visibility = :publicVisibility))")
+    fun findReadableProject(@Param("projectId") projectId: Long, @Param("homeSection") homeSection: PostSection,
+        @Param("published") published: PostStatus, @Param("publicVisibility") publicVisibility: PostVisibility,
+        @Param("includePrivate") includePrivate: Boolean): RelatedProjectResponse?
 
     /**
      * SQL LOWER 뒤 이진 비교로 악센트를 구별하며 출간 글의 최초 후보 한 건만 조회.
@@ -154,28 +237,52 @@ interface PostRepository : JpaRepository<PostEntity, Long> {
      * @return 이동·권한 판별에 필요한 [WikiLinkTargetRow], 없으면 `null`
      */
     @Query(
-        value = "select p.id as id, p.title as title, p.slug as slug, p.visibility as visibility " +
-            "from posts p where p.status = 'PUBLISHED' " +
+        value = "select p.id as id, p.title as title, p.slug as slug, p.visibility as visibility, " +
+            "p.section as section, project.slug as projectSlug, course.slug as courseSlug, project.visibility as projectVisibility, " +
+            "home.visibility as homeVisibility " +
+            "from posts p left join projects project on project.id = p.project_id " +
+            "left join courses course on course.id = p.course_id " +
+            "left join posts home on home.id = project.home_post_id where p.status = 'PUBLISHED' " +
+            "and " + PUBLISHED_PROJECT_PARENT + " " +
             "and cast(lower(p.title) as binary) = cast(lower(:title) as binary) " +
-            "order by p.published_at asc, p.id asc limit 1",
+            "order by case when p.section = 'PROJECT_HOME' then 1 else 0 end asc, " +
+            "p.published_at asc, p.id asc limit 1",
         nativeQuery = true,
     )
     fun findWikiLinkTarget(@Param("title") title: String): WikiLinkTargetRow?
 
     /** @return slug로 찾은 출간 대상의 본문 없는 현재 최소 메타데이터. */
-    @Query(value = "select p.id as id, p.title as title, p.slug as slug, p.visibility as visibility " +
-        "from posts p where p.slug = :slug and p.status = 'PUBLISHED'", nativeQuery = true)
+    @Query(value = "select p.id as id, p.title as title, p.slug as slug, p.visibility as visibility, " +
+        "p.section as section, project.slug as projectSlug, course.slug as courseSlug, project.visibility as projectVisibility, " +
+        "home.visibility as homeVisibility " +
+        "from posts p left join projects project on project.id = p.project_id " +
+        "left join courses course on course.id = p.course_id " +
+        "left join posts home on home.id = project.home_post_id " +
+        "where p.slug = :slug and p.status = 'PUBLISHED' and " + PUBLISHED_PROJECT_PARENT, nativeQuery = true)
     fun findPublishedWikiTargetBySlug(@Param("slug") slug: String): WikiLinkTargetRow?
 
     /**
      * 검색어를 SQL 와일드카드로 해석하지 않고 본문 없는 대표 제목만 최대 7개 반환.
      * 동일 제목의 대표는 위키 resolve와 같은 최초 출간 시각·ID 순서임.
      */
-    @Query(value = "select p.id as id, p.title as title, p.slug as slug from posts p " +
-        "where p.status = 'PUBLISHED' and locate(cast(lower(:query) as binary), cast(lower(p.title) as binary)) > 0 " +
-        "and not exists (select 1 from posts older where older.status = 'PUBLISHED' " +
+    @Query(value = "select p.id as id, p.title as title, p.slug as slug, p.section as section, " +
+        "project.slug as projectSlug, course.slug as courseSlug from posts p " +
+        "left join projects project on project.id = p.project_id " +
+        "left join courses course on course.id = p.course_id " +
+        "left join posts home on home.id = project.home_post_id " +
+        "where p.status = 'PUBLISHED' and " + PUBLISHED_PROJECT_PARENT + " " +
+        "and locate(cast(lower(:query) as binary), cast(lower(p.title) as binary)) > 0 " +
+        "and not exists (select 1 from posts older " +
+        "left join projects older_project on older_project.id = older.project_id " +
+        "left join posts older_home on older_home.id = older_project.home_post_id " +
+        "where older.status = 'PUBLISHED' and " + PUBLISHED_OLDER_PROJECT_PARENT + " " +
         "and cast(lower(older.title) as binary) = cast(lower(p.title) as binary) " +
-        "and (older.published_at < p.published_at or (older.published_at = p.published_at and older.id < p.id))) " +
+        "and (case when older.section = 'PROJECT_HOME' then 1 else 0 end " +
+        "< case when p.section = 'PROJECT_HOME' then 1 else 0 end " +
+        "or (case when older.section = 'PROJECT_HOME' then 1 else 0 end " +
+        "= case when p.section = 'PROJECT_HOME' then 1 else 0 end " +
+        "and (older.published_at < p.published_at " +
+        "or (older.published_at = p.published_at and older.id < p.id))))) " +
         "order by p.published_at desc, p.id desc limit 7", nativeQuery = true)
     fun searchCanonicalTitles(@Param("query") query: String): List<WikiNavigationRow>
 
@@ -183,8 +290,15 @@ interface PostRepository : JpaRepository<PostEntity, Long> {
      * SQL 출간·가시성 필터 뒤 명시적 참조만 조회; 본문·초안 열을 읽지 않음.
      * 페이지마다 11개를 읽어 마지막 하나로 다음 페이지 여부만 판단함.
      */
-    @Query(value = "select p.id as id, p.title as title, p.slug as slug from posts p " +
+    @Query(value = "select p.id as id, p.title as title, p.slug as slug, p.section as section, " +
+        "project.slug as projectSlug, course.slug as courseSlug from posts p " +
+        "left join projects project on project.id = p.project_id " +
+        "left join courses course on course.id = p.course_id " +
+        "left join posts home on home.id = project.home_post_id " +
         "where p.status = 'PUBLISHED' and p.id <> :targetId and (:includePrivate = true or p.visibility = 'PUBLIC') " +
+        "and " + PUBLISHED_PROJECT_PARENT + " " +
+        "and (:includePrivate = true or p.section in ('TECH', 'NOTE_CHAPTER') " +
+        "or (project.visibility = 'PUBLIC' and home.visibility = 'PUBLIC')) " +
         "and exists (select 1 from post_wiki_links w where w.post_id = p.id " +
         "and cast(lower(w.target_title) as binary) = cast(lower(:targetTitle) as binary)) " +
         "order by p.published_at desc, p.id desc limit 11 offset :offset", nativeQuery = true)
@@ -197,7 +311,8 @@ interface PostRepository : JpaRepository<PostEntity, Long> {
 
     /** @return 관리자 또는 공개 역할 조건에서 분류별 직접 글 수를 계산한 [CategoryPostCountRow] 목록. */
     @Query("select new io.github.gjaku1031.kenblog.category.dto.CategoryPostCountRow(p.categoryId, count(p)) " +
-        "from PostEntity p where p.categoryId is not null and (:admin = true or " +
+        "from PostEntity p where p.section = io.github.gjaku1031.kenblog.post.domain.PostSection.TECH " +
+        "and p.categoryId is not null and (:admin = true or " +
         "(p.status = :published and (:includePrivate = true or p.visibility = :publicVisibility))) group by p.categoryId")
     fun countByCategoryForRole(
         @Param("admin") admin: Boolean,

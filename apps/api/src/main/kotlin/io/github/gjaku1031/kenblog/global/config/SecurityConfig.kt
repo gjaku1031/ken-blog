@@ -1,6 +1,7 @@
 package io.github.gjaku1031.kenblog.global.config
 
 import io.github.gjaku1031.kenblog.auth.controller.AuthController
+import io.github.gjaku1031.kenblog.global.security.AccountSessionValidationFilter
 import io.github.gjaku1031.kenblog.global.security.SecurityProblemWriter
 import io.swagger.v3.oas.annotations.enums.SecuritySchemeIn
 import io.swagger.v3.oas.annotations.enums.SecuritySchemeType
@@ -20,6 +21,7 @@ import org.springframework.security.core.userdetails.UserDetailsService
 import org.springframework.security.crypto.factory.PasswordEncoderFactories
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.security.web.SecurityFilterChain
+import org.springframework.security.web.access.intercept.AuthorizationFilter
 import org.springframework.security.web.authentication.session.ChangeSessionIdAuthenticationStrategy
 import org.springframework.security.web.authentication.session.CompositeSessionAuthenticationStrategy
 import org.springframework.security.web.authentication.session.SessionAuthenticationStrategy
@@ -92,13 +94,12 @@ class SecurityConfig {
         )
 
     /**
-     * 공개 상태·게시글·분류·태그·위키 대상 조회는 지정 origin에 GET만 허용하고 인증 origin에만 자격 증명을 허용.
-     * 관리자 게시글·분류·태그 읽기는 인증 origin의 credential GET에 한정하고,
-     * 편집본 관리자 경로는 기존 credential GET·POST·PUT·DELETE를 유지.
+     * 공개 읽기는 지정 origin의 GET, 관리자 변경과 조회 집계는 인증 origin의 credential 요청으로 분리.
+     * 관리자 경로의 GET·POST·PUT·PATCH·DELETE와 공개 조회 집계 POST의 CSRF 헤더를 허용.
      *
      * @param publicOriginsCsv 공개 상태 조회 허용 origin
      * @param authOriginsCsv 인증 요청을 허용할 명시적 origin; 기본은 빈 목록
-     * @return 공개/인증 origin을 게시글·위키 경로에서 구분하는 CORS 설정
+     * @return 공개 읽기·관리자 변경·조회 집계 경로를 구분하는 [CorsConfigurationSource]
      * @throws IllegalStateException origin에 와일드카드 또는 형식 오류가 있을 때
      */
     @Bean
@@ -129,6 +130,20 @@ class SecurityConfig {
             allowCredentials = true
             maxAge = 600
         }
+        val adminCors = CorsConfiguration().apply {
+            allowedOrigins = authOrigins
+            allowedMethods = listOf("GET", "POST", "PUT", "PATCH", "DELETE")
+            allowedHeaders = listOf("Accept", "Content-Type", "X-CSRF-TOKEN")
+            allowCredentials = true
+            maxAge = 600
+        }
+        val viewCors = CorsConfiguration().apply {
+            allowedOrigins = authOrigins
+            allowedMethods = listOf("POST")
+            allowedHeaders = listOf("Accept", "Content-Type", "X-CSRF-TOKEN")
+            allowCredentials = true
+            maxAge = 600
+        }
         if (authOrigins.isNotEmpty()) {
             source.registerCorsConfiguration("/api/v1/auth/**", CorsConfiguration().apply {
                 allowedOrigins = authOrigins
@@ -137,48 +152,18 @@ class SecurityConfig {
                 allowCredentials = true
                 maxAge = 600
             })
-            val editorDraftCors = CorsConfiguration().apply {
-                allowedOrigins = authOrigins
-                allowedMethods = listOf("GET", "POST", "PUT", "DELETE")
-                allowedHeaders = listOf("Accept", "Content-Type", "X-CSRF-TOKEN")
-                allowCredentials = true
-                maxAge = 600
-            }
-            source.registerCorsConfiguration("/api/v1/admin/editor-drafts", editorDraftCors)
-            source.registerCorsConfiguration("/api/v1/admin/editor-drafts/**", editorDraftCors)
-            val adminReadCors = CorsConfiguration().apply {
-                allowedOrigins = authOrigins
-                allowedMethods = listOf("GET")
-                allowedHeaders = listOf("Accept")
-                allowCredentials = true
-                maxAge = 600
-            }
-            source.registerCorsConfiguration("/api/v1/admin/posts/*/wiki-links", CorsConfiguration().apply {
-                allowedOrigins = authOrigins
-                allowedMethods = listOf("PUT")
-                allowedHeaders = listOf("Accept", "Content-Type", "X-CSRF-TOKEN")
-                allowCredentials = true
-                maxAge = 600
-            })
-            source.registerCorsConfiguration("/api/v1/admin/posts", adminReadCors)
-            source.registerCorsConfiguration("/api/v1/admin/posts/**", adminReadCors)
-            source.registerCorsConfiguration("/api/v1/admin/categories", adminReadCors)
-            source.registerCorsConfiguration("/api/v1/admin/categories/**", adminReadCors)
-            source.registerCorsConfiguration("/api/v1/admin/tags", adminReadCors)
-            val adminAttachmentsCors = CorsConfiguration().apply {
-                allowedOrigins = authOrigins
-                allowedMethods = listOf("GET", "POST", "DELETE")
-                allowedHeaders = listOf("Accept", "Content-Type", "X-CSRF-TOKEN")
-                allowCredentials = true
-                maxAge = 600
-            }
-            source.registerCorsConfiguration("/api/v1/admin/attachments", adminAttachmentsCors)
-            source.registerCorsConfiguration("/api/v1/admin/attachments/**", adminAttachmentsCors)
         }
         return CorsConfigurationSource { request ->
             val path = request.servletPath
-            if (path == "/api/v1/posts" || path.startsWith("/api/v1/posts/") ||
-                path == "/api/v1/categories" || path == "/api/v1/tags" || path == "/api/v1/wiki-links/resolve") {
+            if (path.startsWith("/api/v1/admin/") || path == "/api/v1/admin") adminCors
+            else if (Regex("/api/v1/posts/[0-9]+/view").matches(path)) viewCors
+            else if (path == "/api/v1/posts" || path.startsWith("/api/v1/posts/") ||
+                path == "/api/v1/categories" || path == "/api/v1/tags" || path == "/api/v1/wiki-links/resolve" ||
+                path == "/api/v1/projects" || path.startsWith("/api/v1/projects/") ||
+                path == "/api/v1/notes" || path.startsWith("/api/v1/notes/") ||
+                (path == "/api/v1/profile" || path == "/api/v1/profile/photo") || path == "/api/v1/stack-badges" ||
+                path.startsWith("/api/v1/stack-badges/") || path == "/api/v1/feed" ||
+                path == "/api/v1/search" || path == "/api/v1/activity") {
                 if (request.getHeader("Origin") in authOrigins) authenticatedPosts else publicPosts
             } else source.getCorsConfiguration(request)
         }
@@ -189,6 +174,7 @@ class SecurityConfig {
      *
      * @param http Spring Security 설정 빌더
      * @param writer 인증·권한 오류 응답기
+     * @param accountSessionValidationFilter DB 계정 상태와 현재 세션 역할을 재검사하는 필터
      * @param contextRepository 세션 인증 컨텍스트 저장소
      * @param csrfRepository 세션 CSRF 토큰 저장소
      * @param corsSource 경로별 CORS 설정
@@ -198,6 +184,7 @@ class SecurityConfig {
     fun securityFilterChain(
         http: HttpSecurity,
         writer: SecurityProblemWriter,
+        accountSessionValidationFilter: AccountSessionValidationFilter,
         contextRepository: SecurityContextRepository,
         csrfRepository: CsrfTokenRepository,
         @Qualifier("corsConfigurationSource") corsSource: CorsConfigurationSource,
@@ -214,15 +201,21 @@ class SecurityConfig {
             it.authenticationEntryPoint { _, response, _ -> writer.write(response, HttpStatus.UNAUTHORIZED) }
             it.accessDeniedHandler { _, response, _ -> writer.write(response, HttpStatus.FORBIDDEN) }
         }
+        .addFilterBefore(accountSessionValidationFilter, AuthorizationFilter::class.java)
         .authorizeHttpRequests {
             it.requestMatchers(HttpMethod.GET, "/api/v1/status", "/actuator/health", "/v3/api-docs", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
             it.requestMatchers(HttpMethod.GET, "/api/v1/posts", "/api/v1/posts/*").permitAll()
             it.requestMatchers(HttpMethod.GET, "/api/v1/posts/*/backlinks").permitAll()
             it.requestMatchers(HttpMethod.GET, "/api/v1/posts/*/attachments/*/content").permitAll()
+            it.requestMatchers(HttpMethod.POST, "/api/v1/posts/*/view").permitAll()
             it.requestMatchers(HttpMethod.GET, "/api/v1/categories", "/api/v1/tags").permitAll()
+            it.requestMatchers(HttpMethod.GET, "/api/v1/projects", "/api/v1/projects/**", "/api/v1/notes", "/api/v1/notes/**").permitAll()
+            it.requestMatchers(HttpMethod.GET, "/api/v1/profile", "/api/v1/profile/photo", "/api/v1/stack-badges", "/api/v1/stack-badges/**").permitAll()
+            it.requestMatchers(HttpMethod.GET, "/api/v1/feed", "/api/v1/search", "/api/v1/activity").permitAll()
             it.requestMatchers(HttpMethod.GET, "/api/v1/wiki-links/resolve").permitAll()
             it.requestMatchers(HttpMethod.GET, "/api/v1/auth/csrf").permitAll()
             it.requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
+            it.requestMatchers(HttpMethod.POST, "/api/v1/auth/invitations/inspect", "/api/v1/auth/invitations/complete").permitAll()
             it.requestMatchers(HttpMethod.GET, "/api/v1/auth/me").authenticated()
             it.requestMatchers(HttpMethod.POST, "/api/v1/auth/logout").authenticated()
             it.requestMatchers("/api/v1/admin/**").hasRole("ADMIN")

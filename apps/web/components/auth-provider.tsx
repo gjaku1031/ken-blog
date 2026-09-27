@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
-import { ApiFailure, apiJson, apiRequest, fetchCsrf, parseCurrentUser, type CurrentUser } from "@/lib/api";
+import { ApiFailure, apiJson, apiRequest, apiUrl, fetchCsrf, parseCurrentUser, type CurrentUser } from "@/lib/api";
 import { uploadAttachment, type UploadedAttachment } from "@/lib/attachments";
 
 type Session = { status: "checking" | "guest" | "authenticated" | "error"; user: CurrentUser | null; epoch: number };
@@ -12,8 +12,9 @@ type AuthContextValue = Session & {
   expire: () => void;
   readCredentials: (signal?: AbortSignal) => Promise<RequestCredentials>;
   adminRead: (path: string, signal?: AbortSignal) => Promise<unknown>;
-  adminWrite: (method: "POST" | "PUT" | "DELETE", path: string, body?: unknown, signal?: AbortSignal) => Promise<unknown>;
+  adminWrite: (method: "POST" | "PUT" | "PATCH" | "DELETE", path: string, body?: unknown, signal?: AbortSignal) => Promise<unknown>;
   adminUpload: (file: File, signal?: AbortSignal) => Promise<UploadedAttachment>;
+  adminForm: (method: "POST" | "PUT", path: string, fields: FormData, signal?: AbortSignal) => Promise<unknown>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -117,7 +118,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const ticket = sequence.current;
     try {
       if (await readCredentials(signal) !== "include" || ticket !== sequence.current) throw new DOMException("Session changed", "AbortError");
-      const value = await apiJson<unknown>(path, "include", signal);
+      const value = await apiJson<unknown>(path, "include", signal,
+        path.startsWith("/api/v1/admin/analytics?") ? 30_000 : undefined);
       if (ticket !== sequence.current) throw new DOMException("Session changed", "AbortError");
       return value;
     } catch (error) {
@@ -129,7 +131,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [readCredentials, expire, refresh]);
 
   /** CSRF 원문을 화면에 노출하지 않고 ADMIN 쓰기를 실행하며 세대 변경 응답을 폐기한다. */
-  const adminWrite = useCallback(async (method: "POST" | "PUT" | "DELETE", path: string, body?: unknown,
+  const adminWrite = useCallback(async (method: "POST" | "PUT" | "PATCH" | "DELETE", path: string, body?: unknown,
     signal?: AbortSignal): Promise<unknown> => {
     if (current.current.status !== "authenticated" || current.current.user?.role !== "ADMIN") throw new ApiFailure("http", 403);
     const ticket = sequence.current;
@@ -172,7 +174,37 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [readCredentials, expire, refresh]);
 
-  return <AuthContext.Provider value={{ ...session, login, logout, refresh, expire, readCredentials, adminRead, adminWrite, adminUpload }}>{children}</AuthContext.Provider>;
+  /** {@link readCredentials}로 ADMIN 세션을 확인한 뒤 CSRF를 포함한 이미지 폼을 전송한다. */
+  const adminForm = useCallback(async (method: "POST" | "PUT", path: string, fields: FormData,
+    signal?: AbortSignal): Promise<unknown> => {
+    if (current.current.status !== "authenticated" || current.current.user?.role !== "ADMIN") throw new ApiFailure("http", 403);
+    const ticket = sequence.current;
+    if (await readCredentials(signal) !== "include" || ticket !== sequence.current) throw new DOMException("Session changed", "AbortError");
+    const token = csrf.current ?? await fetchCsrf(signal);
+    csrf.current = token;
+    const controller = new AbortController();
+    const abort = () => controller.abort();
+    signal?.addEventListener("abort", abort, { once: true });
+    if (signal?.aborted) controller.abort();
+    const timer = setTimeout(abort, 30_000);
+    try {
+      const response = await fetch(apiUrl(path), { method, body: fields, credentials: "include", mode: "cors",
+        cache: "no-store", redirect: "error", headers: { Accept: "application/json", [token.headerName]: token.token },
+        signal: controller.signal });
+      if (ticket !== sequence.current) throw new DOMException("Session changed", "AbortError");
+      if (!response.ok) throw new ApiFailure("http", response.status);
+      return response.status === 204 ? null : await response.json() as unknown;
+    } catch (error) {
+      if (signal?.aborted || ticket !== sequence.current) throw new DOMException("Session changed", "AbortError");
+      if (error instanceof ApiFailure && error.status === 401) expire();
+      else if (error instanceof ApiFailure && error.status === 403) { csrf.current = null; await refresh(); }
+      if (error instanceof ApiFailure) throw error;
+      if (controller.signal.aborted) throw new ApiFailure("timeout");
+      throw new ApiFailure("network");
+    } finally { clearTimeout(timer); signal?.removeEventListener("abort", abort); }
+  }, [readCredentials, expire, refresh]);
+
+  return <AuthContext.Provider value={{ ...session, login, logout, refresh, expire, readCredentials, adminRead, adminWrite, adminUpload, adminForm }}>{children}</AuthContext.Provider>;
 }
 
 /** 페이지와 공통 셸에서 동일한 현재 서버 세션 상태를 읽는다. */

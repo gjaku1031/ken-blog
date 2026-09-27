@@ -31,7 +31,11 @@ interface PostAttachmentRepository : JpaRepository<PostAttachmentEntity, PostAtt
     @Query("select new io.github.gjaku1031.kenblog.attachment.dto.AttachmentDeliveryRow(a.objectKey, a.contentType, a.byteSize) " +
         "from PostAttachmentEntity l, PostEntity p, AttachmentEntity a where l.key.postId = :postId " +
         "and l.key.attachmentId = :attachmentId and p.id = l.key.postId and a.id = l.key.attachmentId " +
-        "and p.status = :published and (:includePrivate = true or p.visibility = :publicVisibility) and a.status = :ready")
+        "and p.status = :published and (:includePrivate = true or p.visibility = :publicVisibility) and a.status = :ready " +
+        "and (p.section in ('TECH', 'NOTE_CHAPTER') or exists (select project.id from ProjectEntity project, PostEntity home " +
+        "where project.id = p.projectId and home.id = project.homePostId and home.projectId = project.id " +
+        "and home.section = 'PROJECT_HOME' and home.status = :published " +
+        "and (:includePrivate = true or (project.visibility = :publicVisibility and home.visibility = :publicVisibility))))")
     @Transactional(readOnly = true)
     fun findReadable(
         @Param("postId") postId: Long,

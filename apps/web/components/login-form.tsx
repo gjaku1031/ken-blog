@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useRef, useState, type FormEvent } from "react";
 import { ApiFailure, apiFailureMessage } from "@/lib/api";
 import { positiveId } from "@/lib/editor-drafts";
+import { validProjectSlug } from "@/lib/projects";
 import { useAuth } from "./auth-provider";
 
 /** URL의 다음 경로를 사이트 내부 정적 경로로만 제한한다. */
@@ -12,9 +13,16 @@ function returnPath(value: string | null): string {
   if (!value || !value.startsWith("/") || value.startsWith("//") || /[%\\\u0000-\u001f\u007f]/.test(value)) return "/tech/";
   try {
     const url = new URL(value, "https://ken-blog.invalid");
-    const known = new Set(["/", "/tech/", "/post/", "/projects/", "/notes/", "/write/", "/admin/drafts/"]);
+    const known = new Set(["/", "/tech/", "/post/", "/projects/", "/project/", "/notes/", "/write/", "/admin/drafts/"]);
     if (url.origin !== "https://ken-blog.invalid" || !known.has(url.pathname) || url.hash) return "/tech/";
-    if (url.pathname === "/post/" && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(url.searchParams.get("slug") ?? "")) return "/tech/";
+    if (url.pathname === "/post/") {
+      const entries = [...url.searchParams.entries()];
+      if (entries.length !== 1 || entries[0][0] !== "slug" || !validProjectSlug(entries[0][1])) return "/tech/";
+    } else if (url.pathname === "/project/") {
+      const entries = [...url.searchParams.entries()];
+      if (entries.length < 1 || entries.length > 2 || entries[0][0] !== "slug" || !validProjectSlug(entries[0][1]) ||
+        (entries.length === 2 && (entries[1][0] !== "doc" || !validProjectSlug(entries[1][1])))) return "/tech/";
+    }
     if (url.pathname === "/write/") {
       const entries = [...url.searchParams.entries()];
       if (entries.length > 1 || (entries.length === 1 &&
@@ -23,7 +31,7 @@ function returnPath(value: string | null): string {
       const entries = [...url.searchParams.entries()];
       if (entries.length > 1 || (entries.length === 1 && (entries[0][0] !== "page" ||
         !/^(0|[1-9]\d*)$/.test(entries[0][1]) || !Number.isSafeInteger(Number(entries[0][1]))))) return "/tech/";
-    } else if (url.pathname !== "/post/" && url.pathname !== "/tech/" && url.search) return "/tech/";
+    } else if (url.pathname !== "/post/" && url.pathname !== "/project/" && url.pathname !== "/tech/" && url.search) return "/tech/";
     return `${url.pathname}${url.search}`;
   } catch { return "/tech/"; }
 }
@@ -52,7 +60,7 @@ export function LoginForm() {
       router.replace(destination);
     } catch (failure) {
       setPassword("");
-      if (failure instanceof ApiFailure && failure.status === 401) setError("계정명 또는 비밀번호를 확인해 주세요.");
+      if (failure instanceof ApiFailure && failure.status === 401) setError("이메일·계정명 또는 비밀번호를 확인해 주세요.");
       else setError(apiFailureMessage(failure));
     } finally { pending.current = false; setBusy(false); }
   }
@@ -63,8 +71,8 @@ export function LoginForm() {
       {auth.status === "authenticated" ? <div className="login-done"><p>{auth.user?.username} 계정으로 로그인되어 있습니다.</p>
         <Link href={destination} className="primary-button">글 보러 가기</Link></div> :
         <form onSubmit={(event) => void submit(event)}>
-          <label htmlFor="username">계정명</label>
-          <input id="username" name="username" type="text" autoComplete="username" required maxLength={120}
+          <label htmlFor="username">이메일 또는 계정명</label>
+          <input id="username" name="username" type="text" autoComplete="username" required maxLength={254}
             value={username} onChange={(event) => setUsername(event.target.value)} disabled={busy} />
           <label htmlFor="password">비밀번호</label>
           <input id="password" name="password" type="password" autoComplete="current-password" required

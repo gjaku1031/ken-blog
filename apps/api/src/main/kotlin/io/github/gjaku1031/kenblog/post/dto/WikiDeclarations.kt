@@ -56,6 +56,9 @@ data class WikiNavigationItem(
     @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["integer"], format = "int64") val id: Long,
     @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["string"]) val title: String,
     @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["string"]) val slug: String,
+    val section: String = "TECH",
+    val projectSlug: String? = null,
+    val courseSlug: String? = null,
 )
 
 /** 관리자 부분 제목 검색과 동일 입력의 정확한 위키 해석. */
@@ -101,7 +104,10 @@ interface WikiNavigationRow {
     val id: Long
     val title: String
     val slug: String
+    val section: String
+    val projectSlug: String?
+    val courseSlug: String?
 }
 
 /** @return SQL 이동 행을 공개용 최소 DTO로 복사. */
-fun WikiNavigationRow.navigationItem(): WikiNavigationItem = WikiNavigationItem(id, title, slug)
+fun WikiNavigationRow.navigationItem(): WikiNavigationItem = WikiNavigationItem(id, title, slug, section, projectSlug, courseSlug)

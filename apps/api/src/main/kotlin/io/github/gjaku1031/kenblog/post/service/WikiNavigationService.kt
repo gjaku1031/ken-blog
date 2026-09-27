@@ -32,7 +32,9 @@ class WikiNavigationService(private val posts: PostRepository) {
                 codePoint in 0xD800..0xDFFF) throw InvalidWikiLinkRequestException()
             offset += Character.charCount(codePoint)
         }
-        val exact = posts.findWikiLinkTarget(query)?.let { WikiLinkReadable(query, it.id, it.title, it.slug) }
+        val exact = posts.findWikiLinkTarget(query)?.let {
+            WikiLinkReadable(query, it.id, it.title, it.slug, it.section, it.projectSlug, it.courseSlug)
+        }
             ?: WikiLinkMissing(query)
         return WikiTitleSearchResponse(posts.searchCanonicalTitles(query).map { it.navigationItem() }, exact)
     }
@@ -52,7 +54,8 @@ class WikiNavigationService(private val posts: PostRepository) {
         val includePrivate = authentication?.authorities?.any {
             it.authority == "ROLE_USER" || it.authority == "ROLE_ADMIN"
         } == true
-        if (target.visibility != "PUBLIC" && !includePrivate) throw PostNotFoundException()
+        if (!includePrivate && (target.visibility != "PUBLIC" || target.section !in listOf("TECH", "NOTE_CHAPTER") &&
+                (target.projectVisibility != "PUBLIC" || target.homeVisibility != "PUBLIC"))) throw PostNotFoundException()
         val canonical = posts.findWikiLinkTarget(target.title)
         if (canonical?.id != target.id) return WikiBacklinkPageResponse(emptyList(), page, false)
         val rows = posts.findBacklinkRows(target.id, target.title, includePrivate, page * PAGE_SIZE)

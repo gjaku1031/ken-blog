@@ -16,9 +16,15 @@ import io.github.gjaku1031.kenblog.draft.dto.response
 import io.github.gjaku1031.kenblog.draft.repository.EditorDraftRepository
 import io.github.gjaku1031.kenblog.post.dto.PostDetailResponse
 import io.github.gjaku1031.kenblog.post.domain.PostNotFoundException
+import io.github.gjaku1031.kenblog.post.domain.PostSection
+import io.github.gjaku1031.kenblog.post.domain.PostStatus
 import io.github.gjaku1031.kenblog.post.repository.PostRepository
 import io.github.gjaku1031.kenblog.post.service.PostService
 import io.github.gjaku1031.kenblog.post.service.WikiLinkMetadata
+import io.github.gjaku1031.kenblog.project.domain.ProjectConflictException
+import io.github.gjaku1031.kenblog.project.service.ProjectService
+import io.github.gjaku1031.kenblog.note.domain.CourseConflictException
+import io.github.gjaku1031.kenblog.note.service.CourseService
 import java.time.Clock
 import java.time.LocalDateTime
 import java.time.ZoneOffset
@@ -44,6 +50,8 @@ class EditorDraftService(
     private val postService: PostService,
     private val attachmentLinks: AttachmentLinkService,
     private val wikiLinks: WikiLinkMetadata,
+    private val projects: ProjectService,
+    private val courses: CourseService,
 ) {
     /**
      * 빈 제목·미완성 slug를 허용한 독립 편집본을 생성.
@@ -55,18 +63,29 @@ class EditorDraftService(
      */
     @Transactional
     fun create(request: EditorDraftCreateRequest): EditorDraftDetailResponse = conflicts {
-        lockCategory(request.categoryId)
+        val section = request.section ?: request.postId?.let { posts.findByIdOrNull(it)?.section } ?: PostSection.TECH
+        validateSection(section, request.categoryId, request.tags, request.projectId,
+            request.relatedProjectId, request.projectMetadata, request.courseId, request.postId)
+        if (section == PostSection.TECH) lockCategory(request.categoryId)
+        val parent = request.projectId?.let(projects::sharedParent)
+        request.courseId?.let(courses::sharedParent)
+        if (section == PostSection.PROJECT_DOC && parent != null) projects.requirePublishedParent(parent.id!!)
+        if (section == PostSection.TECH && request.relatedProjectId != null) projects.requirePublishedParent(request.relatedProjectId)
         var inheritedIds: List<Long> = emptyList()
         var inheritedWiki: List<String> = emptyList()
         if (request.postId != null) {
             val original = posts.findLockedById(request.postId) ?: throw PostNotFoundException()
+            if (original.section != section || original.projectId != request.projectId ||
+                original.courseId != request.courseId) {
+                throw EditorDraftConflictException()
+            }
             if (original.updatedAt != request.baseUpdatedAt || drafts.findLockedByPostId(request.postId) != null) {
                 throw EditorDraftConflictException()
             }
             if (request.attachmentIds == null) inheritedIds = attachmentLinks.postIds(request.postId)
             if (request.wikiTargets == null && request.body == original.body) inheritedWiki = wikiLinks.postTitles(request.postId)
         }
-        val draft = drafts.saveAndFlush(EditorDraftEntity(request.postId, request.baseUpdatedAt, request.values(), now()))
+        val draft = drafts.saveAndFlush(EditorDraftEntity(request.postId, request.baseUpdatedAt, request.values(section), now()))
         val draftId = draft.id ?: error("Persisted editor draft has no ID")
         attachmentLinks.replaceDraft(draftId, request.attachmentIds ?: inheritedIds)
         wikiLinks.replaceDraft(draftId, request.wikiTargets ?: inheritedWiki)
@@ -109,11 +128,20 @@ class EditorDraftService(
     @Transactional
     fun update(id: Long, request: EditorDraftUpdateRequest): EditorDraftDetailResponse = conflicts {
         validId(id)
-        lockCategory(request.categoryId)
+        val snapshot = preview(id)
+        if (request.section != null && request.section != drafts.findByIdOrNull(id)?.section) throw EditorDraftConflictException()
+        val section = drafts.findByIdOrNull(id)?.section ?: throw EditorDraftNotFoundException()
+        validateSection(section, request.categoryId, request.tags, request.projectId,
+            request.relatedProjectId, request.projectMetadata, request.courseId, snapshot.postId)
+        if (section == PostSection.TECH) lockCategory(request.categoryId)
+        if (snapshot.projectId != null) projects.sharedParent(snapshot.projectId)
+        if (snapshot.courseId != null) courses.sharedParent(snapshot.courseId)
         val draft = lockDraftAfterPost(id)
+        if (draft.projectId != request.projectId || draft.courseId != request.courseId ||
+            draft.section != section) throw EditorDraftConflictException()
         if (draft.revision != request.revision) throw EditorDraftConflictException()
         val previousBody = draft.body
-        draft.replace(request.values(), now())
+        draft.replace(request.values(section), now())
         drafts.saveAndFlush(draft)
         if (request.attachmentIds != null) attachmentLinks.replaceDraft(id, request.attachmentIds)
         if (request.wikiTargets != null || previousBody != request.body) wikiLinks.replaceDraft(id, request.wikiTargets ?: emptyList())
@@ -147,21 +175,70 @@ class EditorDraftService(
     fun publish(id: Long, revision: Long): PostDetailResponse = conflicts {
         validRevision(revision)
         val snapshot = preview(id)
-        lockCategory(snapshot.categoryId)
+        val section = drafts.findByIdOrNull(id)?.section ?: throw EditorDraftNotFoundException()
+        if (section == PostSection.TECH) lockCategory(snapshot.categoryId)
+        val parent = snapshot.projectId?.let(projects::lockedParent)
+        val course = snapshot.courseId?.let(courses::lockedParent)
         val original = snapshot.postId?.let { posts.findLockedById(it) ?: throw EditorDraftNotFoundException() }
         val draft = drafts.findLockedById(id) ?: throw EditorDraftNotFoundException()
         if (draft.revision != revision || draft.postId != snapshot.postId || draft.categoryId != snapshot.categoryId) {
             throw EditorDraftConflictException()
         }
         if (original != null && original.updatedAt != draft.baseUpdatedAt) throw EditorDraftConflictException()
+        if (draft.section != section || draft.projectId != snapshot.projectId || draft.courseId != snapshot.courseId ||
+            original != null && (original.section != section || original.projectId != draft.projectId ||
+                original.courseId != draft.courseId)) throw EditorDraftConflictException()
 
-        val post = if (original == null) postService.createDraft(draft.title, draft.slug, draft.body)
-            else postService.updateDraft(original.id ?: error("Persisted post has no ID"), draft.title, draft.slug, draft.body)
+        val post = when (section) {
+            PostSection.TECH -> {
+                if (draft.relatedProjectId != null) projects.requirePublishedParent(draft.relatedProjectId!!)
+                if (original == null) postService.createDraft(draft.title, draft.slug, draft.body)
+                else postService.updateDraft(original.id!!, draft.title, draft.slug, draft.body)
+            }
+            PostSection.PROJECT_HOME -> {
+                val metadata = draft.projectMetadata() ?: throw ProjectConflictException()
+                if (original == null) {
+                    if (parent != null || metadata.baseProjectUpdatedAt != null) throw ProjectConflictException()
+                    val created = projects.createProject(draft.title, draft.slug, metadata)
+                    val home = postService.createProjectPost(draft.title, draft.slug, draft.body,
+                        section, created.id!!, null)
+                    projects.attachHome(created, home.id!!)
+                    home
+                } else {
+                    if (parent == null || parent.homePostId != original.id) throw ProjectConflictException()
+                    val home = postService.updateProjectPost(original.id!!, draft.title, draft.slug,
+                        draft.body, section, parent.id!!)
+                    projects.updateHome(parent, home, metadata)
+                    home
+                }
+            }
+            PostSection.PROJECT_DOC -> {
+                if (parent == null) throw ProjectConflictException()
+                projects.requirePublishedParent(parent.id!!)
+                if (original == null) postService.createProjectPost(draft.title, draft.slug, draft.body,
+                    section, parent.id!!, projects.nextDocumentOrder(parent))
+                else postService.updateProjectPost(original.id!!, draft.title, draft.slug,
+                    draft.body, section, parent.id!!)
+            }
+            PostSection.NOTE_CHAPTER -> {
+                if (course == null) throw CourseConflictException()
+                if (original == null) postService.createChapterPost(draft.title, draft.slug, draft.body,
+                    course.id!!, courses.nextChapterOrder(course.id!!))
+                else postService.updateChapterPost(original.id!!, draft.title, draft.slug,
+                    draft.body, course.id!!)
+            }
+        }
         val postId = post.id ?: error("Persisted post has no ID")
-        postService.replaceTaxonomy(postId, draft.categoryId, draft.tags())
+        if (section != PostSection.PROJECT_HOME) postService.replaceSummary(postId, draft.summary)
+        if (section == PostSection.TECH) {
+            postService.replaceTaxonomy(postId, draft.categoryId, draft.tags())
+            postService.relateTechPost(postId, draft.relatedProjectId)
+        }
         attachmentLinks.publishDraft(postId, id)
         wikiLinks.publishDraft(postId, id)
-        postService.publish(postId, draft.visibility)
+        if (section == PostSection.TECH) postService.publish(postId, draft.visibility)
+        else if (section == PostSection.NOTE_CHAPTER) postService.publishChapterPost(postId, draft.visibility)
+        else postService.publishProjectPost(postId, draft.visibility)
         drafts.delete(draft)
         drafts.flush()
         postService.adminDetail(postId)
@@ -172,6 +249,23 @@ class EditorDraftService(
         if (categoryId == null) return
         if (categoryId <= 0) throw InvalidEditorDraftRequestException()
         categories.findSharedById(categoryId) ?: throw CategoryNotFoundException()
+    }
+
+    /** [EditorDraftEntity.section]별 소속과 taxonomy를 검증해 우회 출간을 차단. */
+    private fun validateSection(section: PostSection, categoryId: Long?, tags: List<String>, projectId: Long?,
+        relatedProjectId: Long?, metadata: io.github.gjaku1031.kenblog.project.domain.ProjectMetadata?,
+        courseId: Long?, postId: Long?) {
+        when (section) {
+            PostSection.TECH -> if (projectId != null || courseId != null || metadata != null)
+                throw InvalidEditorDraftRequestException()
+            PostSection.PROJECT_HOME -> if (categoryId != null || tags.isNotEmpty() || relatedProjectId != null ||
+                courseId != null || (postId == null) != (projectId == null) || metadata == null)
+                throw InvalidEditorDraftRequestException()
+            PostSection.PROJECT_DOC -> if (categoryId != null || tags.isNotEmpty() || relatedProjectId != null ||
+                projectId == null || courseId != null || metadata != null) throw InvalidEditorDraftRequestException()
+            PostSection.NOTE_CHAPTER -> if (categoryId != null || tags.isNotEmpty() || projectId != null ||
+                relatedProjectId != null || metadata != null || courseId == null) throw InvalidEditorDraftRequestException()
+        }
     }
 
     /** @return 잠금 순서 결정을 위한 원본·분류 ID의 현재 편집본 미잠금 사본. */

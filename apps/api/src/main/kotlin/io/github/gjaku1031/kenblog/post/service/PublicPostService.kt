@@ -5,6 +5,7 @@ import io.github.gjaku1031.kenblog.post.domain.InvalidPostRequestException
 import io.github.gjaku1031.kenblog.post.domain.PostEntity
 import io.github.gjaku1031.kenblog.post.domain.PostNotFoundException
 import io.github.gjaku1031.kenblog.post.domain.PostStatus
+import io.github.gjaku1031.kenblog.post.domain.PostSection
 import io.github.gjaku1031.kenblog.post.domain.PostVisibility
 import io.github.gjaku1031.kenblog.post.domain.TagNames
 import io.github.gjaku1031.kenblog.post.dto.PrivatePostLockRow
@@ -13,6 +14,11 @@ import io.github.gjaku1031.kenblog.post.dto.PublicPostDetailResponse
 import io.github.gjaku1031.kenblog.post.dto.PublicPostPageResponse
 import io.github.gjaku1031.kenblog.post.dto.PublicPostSummaryResponse
 import io.github.gjaku1031.kenblog.post.dto.PublishedPostRow
+import io.github.gjaku1031.kenblog.post.dto.PostSeriesItem
+import io.github.gjaku1031.kenblog.post.dto.PostSeriesResponse
+import io.github.gjaku1031.kenblog.project.repository.ProjectRepository
+import io.github.gjaku1031.kenblog.note.repository.CourseRepository
+import io.github.gjaku1031.kenblog.note.repository.CoursePostRepository
 import io.github.gjaku1031.kenblog.post.dto.TagCountResponse
 import io.github.gjaku1031.kenblog.post.repository.PostRepository
 import io.github.gjaku1031.kenblog.post.repository.PostTagRepository
@@ -40,6 +46,9 @@ class PublicPostService(
     private val categories: CategoryRepository,
     private val taxonomy: PostTaxonomyMetadata,
     private val tags: PostTagRepository,
+    private val projects: ProjectRepository,
+    private val courses: CourseRepository,
+    private val coursePosts: CoursePostRepository,
 ) {
     /**
      * SELECT와 COUNT 양쪽에서 출간·가시성 조건을 적용한 본문 없는 목록을 조회.
@@ -84,27 +93,36 @@ class PublicPostService(
         val normalized = slug.trim().lowercase(Locale.ROOT)
         if (normalized.length > MAX_SLUG_LENGTH || !SLUG_PATTERN.matches(normalized)) throw PostNotFoundException()
         if (authentication.canReadPrivate()) {
-            val post = repository.findBySlugAndStatus(normalized, PostStatus.PUBLISHED) ?: throw PostNotFoundException()
-            return post.publicDetail()
+            val post = repository.findBySlugAndStatus(normalized, PostStatus.PUBLISHED,
+                PostSection.TECH, PostSection.NOTE_CHAPTER, PostSection.PROJECT_HOME) ?: throw PostNotFoundException()
+            return post.publicDetail(true)
         }
         if (cache.enabled) {
-            val metadata = repository.findPublicCacheMetadataBySlug(normalized, PostStatus.PUBLISHED, PostVisibility.PUBLIC)
+            val metadata = repository.findPublicCacheMetadataBySlug(normalized, PostStatus.PUBLISHED,
+                PostVisibility.PUBLIC, PostSection.TECH)
             if (metadata != null) {
                 cache.read(metadata.id, metadata.bodySha256)?.let { return metadata.publicDetail(it, taxonomy.one(metadata.id, metadata.categoryId)) }
-                val post = repository.findBySlugAndStatusAndVisibility(normalized, PostStatus.PUBLISHED, PostVisibility.PUBLIC)
+                val post = repository.findBySlugAndStatusAndVisibility(normalized, PostStatus.PUBLISHED,
+                    PostVisibility.PUBLIC, PostSection.TECH, PostSection.NOTE_CHAPTER, PostSection.PROJECT_HOME)
                     ?: throw PostNotFoundException()
                 if (post.id == metadata.id && post.bodySha256 == metadata.bodySha256) {
                     cache.write(metadata.id, metadata.bodySha256, post.body)
                     return metadata.publicDetail(post.body, taxonomy.one(metadata.id, metadata.categoryId))
                 }
-                return post.publicDetail()
+                return post.publicDetail(false)
             }
-            return repository.findPrivateLockBySlug(normalized, PostStatus.PUBLISHED, PostVisibility.PRIVATE)
+            repository.findBySlugAndStatusAndVisibility(normalized, PostStatus.PUBLISHED,
+                PostVisibility.PUBLIC, PostSection.TECH, PostSection.NOTE_CHAPTER, PostSection.PROJECT_HOME)
+                ?.let { return it.publicDetail(false) }
+            return repository.findPrivateLockBySlug(normalized, PostStatus.PUBLISHED, PostVisibility.PRIVATE,
+                PostVisibility.PUBLIC, PostSection.TECH, PostSection.NOTE_CHAPTER, PostSection.PROJECT_HOME)
                 ?.lockedDetail() ?: throw PostNotFoundException()
         }
-        repository.findBySlugAndStatusAndVisibility(normalized, PostStatus.PUBLISHED, PostVisibility.PUBLIC)
-            ?.let { return it.publicDetail() }
-        return repository.findPrivateLockBySlug(normalized, PostStatus.PUBLISHED, PostVisibility.PRIVATE)
+        repository.findBySlugAndStatusAndVisibility(normalized, PostStatus.PUBLISHED, PostVisibility.PUBLIC,
+            PostSection.TECH, PostSection.NOTE_CHAPTER, PostSection.PROJECT_HOME)
+            ?.let { return it.publicDetail(false) }
+        return repository.findPrivateLockBySlug(normalized, PostStatus.PUBLISHED, PostVisibility.PRIVATE,
+            PostVisibility.PUBLIC, PostSection.TECH, PostSection.NOTE_CHAPTER, PostSection.PROJECT_HOME)
             ?.lockedDetail() ?: throw PostNotFoundException()
     }
 
@@ -124,26 +142,64 @@ class PublicPostService(
     } == true
 
     /** @return 원문을 포함한 공개 상세; 최초 출간일은 KST 날짜로 변환. */
-    private fun PostEntity.publicDetail(): PublicPostDetailResponse {
+    private fun PostEntity.publicDetail(includePrivate: Boolean): PublicPostDetailResponse {
         val postId = id ?: error("Published post has no ID")
         val view = taxonomy.one(postId, categoryId)
+        val project = projectId?.let { projects.findByIdOrNull(it) }
+        val course = courseId?.let { courses.findByIdOrNull(it) }
+        val related = relatedProjectId?.let { repository.findReadableProject(it, PostSection.PROJECT_HOME,
+            PostStatus.PUBLISHED, PostVisibility.PUBLIC, includePrivate) }
         return PublicPostDetailResponse(postId, title, slug, publishedAt.kstDate(), locked = false, body = body,
-            category = view.category, tags = view.tags)
+            category = view.category, tags = view.tags, section = section, projectSlug = project?.slug,
+            relatedProject = related, courseSlug = course?.slug, bodySha256 = bodySha256,
+            series = series(postId, section, categoryId, courseId, includePrivate),
+            summary = summary, pinOrder = pinOrder, viewCount = viewCount)
     }
 
     /** @return 현재 DB 제목·출간일과 유효한 캐시 또는 DB 본문을 결합한 PUBLIC 상세. */
     private fun PublicPostCacheRow.publicDetail(body: String, view: PostTaxonomyView): PublicPostDetailResponse =
         PublicPostDetailResponse(id, title, slug, publishedAt.kstDate(), locked = false, body = body,
-            category = view.category, tags = view.tags)
+            category = view.category, tags = view.tags, bodySha256 = bodySha256,
+            relatedProject = relatedProjectId?.let { repository.findReadableProject(it, PostSection.PROJECT_HOME,
+                PostStatus.PUBLISHED, PostVisibility.PUBLIC, false) },
+            series = series(id, PostSection.TECH, categoryId, null, false),
+            summary = summary, pinOrder = pinOrder, viewCount = viewCount)
 
     /** @return 본문을 읽지 않은 익명 PRIVATE 잠금 상세. */
     private fun PrivatePostLockRow.lockedDetail(): PublicPostDetailResponse =
         PublicPostDetailResponse(id, title, slug, publishedAt.kstDate(), locked = true, body = null,
-            category = null, tags = emptyList())
+            category = null, tags = emptyList(), section = section, projectSlug = projectSlug,
+            courseSlug = courseSlug)
 
     /** @return 본문 없는 출간 목록 항목. */
     private fun PublishedPostRow.summary(view: PostTaxonomyView): PublicPostSummaryResponse =
         PublicPostSummaryResponse(id, title, slug, publishedAt.kstDate(), view.category, view.tags)
+
+    /** @return 소분류 또는 과목의 현재 권한 목록이 두 편 이상일 때만 시리즈. */
+    private fun series(postId: Long, section: PostSection, categoryId: Long?, courseId: Long?,
+        includePrivate: Boolean): PostSeriesResponse? {
+        val items = when (section) {
+            PostSection.TECH -> {
+                val category = categoryId?.let(categories::findByIdOrNull)
+                if (category?.depth != 3) return null
+                repository.findTechSeries(categoryId, PostSection.TECH, PostStatus.PUBLISHED,
+                    includePrivate, PostVisibility.PUBLIC).mapIndexed { index, row ->
+                    PostSeriesItem(row.id, row.slug, row.title, index + 1)
+                }
+            }
+            PostSection.NOTE_CHAPTER -> {
+                if (courseId == null) return null
+                coursePosts.findVisibleChapters(courseId, PostSection.NOTE_CHAPTER, PostStatus.PUBLISHED,
+                    includePrivate, PostVisibility.PUBLIC).mapIndexed { index, row ->
+                    PostSeriesItem(row.id, row.slug, row.title, index + 1)
+                }
+            }
+            else -> return null
+        }
+        if (items.size < 2) return null
+        val position = items.indexOfFirst { it.id == postId } + 1
+        return if (position > 0) PostSeriesResponse(items, position) else null
+    }
 
     /** @return DB의 최초 UTC 시각을 Asia/Seoul 화면용 날짜로 변환. */
     private fun LocalDateTime?.kstDate(): LocalDate =

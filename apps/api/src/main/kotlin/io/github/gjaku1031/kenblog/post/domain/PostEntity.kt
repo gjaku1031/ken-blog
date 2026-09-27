@@ -17,6 +17,9 @@ enum class PostStatus { DRAFT, PUBLISHED }
 /** 출간된 글을 익명 방문자에게도 보일지 결정하는 범위. */
 enum class PostVisibility { PUBLIC, PRIVATE }
 
+/** Tech 글·프로젝트 대문·문서의 공개 탐색 구획. */
+enum class PostSection { TECH, PROJECT_HOME, PROJECT_DOC, NOTE_CHAPTER }
+
 /**
  * Flyway의 `posts` 행에 대응하는 초안·출간 게시글 저장 모델.
  *
@@ -48,8 +51,45 @@ class PostEntity protected constructor() {
     lateinit var bodySha256: String
         protected set
 
+    @Column(nullable = false, length = 120)
+    var summary: String = ""
+        protected set
+
+    @Column(name = "pin_order")
+    var pinOrder: Int? = null
+        protected set
+
+    @Column(name = "view_count", nullable = false)
+    var viewCount: Long = 0
+        protected set
+
     @Column(name = "category_id")
     var categoryId: Long? = null
+        protected set
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 16)
+    var section: PostSection = PostSection.TECH
+        protected set
+
+    @Column(name = "project_id")
+    var projectId: Long? = null
+        protected set
+
+    @Column(name = "related_project_id")
+    var relatedProjectId: Long? = null
+        protected set
+
+    @Column(name = "document_order")
+    var documentOrder: Int? = null
+        protected set
+
+    @Column(name = "course_id")
+    var courseId: Long? = null
+        protected set
+
+    @Column(name = "chapter_order")
+    var chapterOrder: Int? = null
         protected set
 
     @Column(name = "created_at", nullable = false, columnDefinition = "datetime(6)")
@@ -157,5 +197,40 @@ class PostEntity protected constructor() {
     internal fun changeCategory(categoryId: Long?, now: LocalDateTime) {
         this.categoryId = categoryId
         this.updatedAt = now
+    }
+
+    /** 새 PROJECT_HOME 또는 PROJECT_DOC 글의 소속과 문서 순서를 지정. */
+    internal fun assignProject(section: PostSection, projectId: Long, documentOrder: Int?) {
+        this.section = section
+        this.projectId = projectId
+        this.relatedProjectId = null
+        this.documentOrder = documentOrder
+    }
+
+    /** 새 회차에 과목 식별자와 삭제 후에도 유지되는 저장 순서를 지정. */
+    internal fun assignCourse(courseId: Long, chapterOrder: Int) {
+        section = PostSection.NOTE_CHAPTER
+        this.courseId = courseId
+        this.chapterOrder = chapterOrder
+    }
+
+    /** 과목 잠금 아래 순서만 변경해 공개 본문의 수정 기준 시각을 보존. */
+    internal fun reorderChapter(order: Int) { chapterOrder = order }
+
+    /** 편집본 출간의 명시 요약 또는 자동 추출 문장을 저장. */
+    internal fun replaceSummary(value: String) { summary = value }
+
+    /** 핀 전체 순열 교체에서 본문 수정 시각을 유지한 채 위치만 저장. */
+    internal fun movePin(order: Int?) { pinOrder = order }
+
+    /** TECH 글의 관련 프로젝트를 저장하거나 해제. */
+    internal fun relateProject(projectId: Long?, now: LocalDateTime) {
+        relatedProjectId = projectId
+        updatedAt = now
+    }
+
+    /** 부모 프로젝트 잠금 아래 문서 순서만 변경해 본문 편집본 기준 시각을 보존. */
+    internal fun reorder(order: Int) {
+        documentOrder = order
     }
 }

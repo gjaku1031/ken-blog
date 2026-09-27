@@ -54,13 +54,19 @@ class WikiLinkService(private val posts: PostRepository) {
             val target = if (found.containsKey(title)) found[title] else posts.findWikiLinkTarget(title).also { found[title] = it }
             when {
                 target == null -> WikiLinkMissing(title)
-                target.visibility == "PUBLIC" || (target.visibility == "PRIVATE" && includePrivate) ->
-                    WikiLinkReadable(title, target.id, target.title, target.slug)
+                target.readable(includePrivate) ->
+                    WikiLinkReadable(title, target.id, target.title, target.slug, target.section,
+                        target.projectSlug, target.courseSlug)
                 else -> WikiLinkLocked(title)
             }
         }
         return WikiLinkResolveResponse(items)
     }
+
+    /** @return 게시글과 출간 부모의 공개 범위를 모두 통과하는지 여부. */
+    private fun WikiLinkTargetRow.readable(includePrivate: Boolean): Boolean =
+        includePrivate || (visibility == "PUBLIC" && (section == "TECH" || section == "NOTE_CHAPTER" ||
+            (projectVisibility == "PUBLIC" && homeVisibility == "PUBLIC")))
 
     /** 제어 문자·줄 구분자·짝 없는 UTF-16 surrogate를 SQL 조회 전에 거부. */
     private fun validateCharacters(value: String) {

@@ -27,10 +27,12 @@ class SecurityUserDetailsService(private val repository: AccountRepository) : Us
      */
     @Transactional(readOnly = true)
     override fun loadUserByUsername(username: String): UserDetails {
-        val account = repository.findByUsername(username) ?: throw UsernameNotFoundException("User not found")
+        val account = (if ('@' in username) repository.findByEmail(username) else repository.findByUsername(username))
+            ?: throw UsernameNotFoundException("User not found")
         return User.withUsername(account.username)
             .password(account.passwordHash)
             .roles(account.role.name)
+            .disabled(!account.enabled)
             .build()
     }
 }

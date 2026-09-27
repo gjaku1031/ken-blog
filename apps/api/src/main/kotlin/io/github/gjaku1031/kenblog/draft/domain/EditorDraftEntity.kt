@@ -1,6 +1,9 @@
 package io.github.gjaku1031.kenblog.draft.domain
 
 import io.github.gjaku1031.kenblog.post.domain.PostVisibility
+import io.github.gjaku1031.kenblog.post.domain.PostSection
+import io.github.gjaku1031.kenblog.project.domain.ProjectMetadata
+import io.github.gjaku1031.kenblog.project.domain.ProjectStatus
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
@@ -48,8 +51,62 @@ class EditorDraftEntity protected constructor() {
     lateinit var body: String
         protected set
 
+    @Column(nullable = false, length = 120)
+    var summary: String = ""
+        protected set
+
     @Column(name = "category_id")
     var categoryId: Long? = null
+        protected set
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 16)
+    var section: PostSection = PostSection.TECH
+        protected set
+
+    @Column(name = "project_id")
+    var projectId: Long? = null
+        protected set
+
+    @Column(name = "related_project_id")
+    var relatedProjectId: Long? = null
+        protected set
+
+    @Column(name = "document_order")
+    var documentOrder: Int? = null
+        protected set
+
+    @Column(name = "course_id")
+    var courseId: Long? = null
+        protected set
+
+    @Column(name = "chapter_order")
+    var chapterOrder: Int? = null
+        protected set
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "project_status", length = 16)
+    var projectStatus: ProjectStatus? = null
+        protected set
+
+    @Column(name = "project_start_period", length = 7)
+    var projectStartPeriod: String? = null
+        protected set
+
+    @Column(name = "project_end_period", length = 7)
+    var projectEndPeriod: String? = null
+        protected set
+
+    @Column(name = "project_overview", length = 500)
+    var projectOverview: String? = null
+        protected set
+
+    @Column(name = "base_project_updated_at", columnDefinition = "datetime(6)")
+    var baseProjectUpdatedAt: LocalDateTime? = null
+        protected set
+
+    @Column(name = "project_stack_names", columnDefinition = "text")
+    var projectStackNames: String? = null
         protected set
 
     @Column(name = "tags_snapshot", nullable = false, length = 1024)
@@ -76,7 +133,9 @@ class EditorDraftEntity protected constructor() {
         this.title = values.title
         this.slug = values.slug
         this.body = values.body
+        this.summary = values.summary
         this.categoryId = values.categoryId
+        assignProjectValues(values)
         this.tagsSnapshot = values.tags.joinToString(TAG_SEPARATOR)
         this.visibility = values.visibility
         this.createdAt = now
@@ -89,7 +148,9 @@ class EditorDraftEntity protected constructor() {
         title = values.title
         slug = values.slug
         body = values.body
+        summary = values.summary
         categoryId = values.categoryId
+        assignProjectValues(values)
         tagsSnapshot = values.tags.joinToString(TAG_SEPARATOR)
         visibility = values.visibility
         revision += 1
@@ -98,6 +159,29 @@ class EditorDraftEntity protected constructor() {
 
     /** @return 저장 순서의 정규화 태그 목록. */
     fun tags(): List<String> = if (tagsSnapshot.isEmpty()) emptyList() else tagsSnapshot.split(TAG_SEPARATOR)
+
+    /** @return HOME일 때만 존재하는 편집 메타데이터 스냅샷. */
+    fun projectMetadata(): ProjectMetadata? = projectStatus?.let { status ->
+        ProjectMetadata(status, projectStartPeriod ?: error("Missing project start period"),
+            projectEndPeriod, projectOverview ?: error("Missing project overview"), visibility, baseProjectUpdatedAt,
+            projectStackNames?.takeIf(String::isNotEmpty)?.split(TAG_SEPARATOR) ?: emptyList())
+    }
+
+    /** 섹션·소속·프로젝트 속성을 하나의 편집 값으로 교체. */
+    private fun assignProjectValues(values: EditorDraftValues) {
+        section = values.section
+        projectId = values.projectId
+        relatedProjectId = values.relatedProjectId
+        documentOrder = values.documentOrder
+        courseId = values.courseId
+        chapterOrder = values.chapterOrder
+        projectStatus = values.projectMetadata?.status
+        projectStartPeriod = values.projectMetadata?.startPeriod
+        projectEndPeriod = values.projectMetadata?.endPeriod
+        projectOverview = values.projectMetadata?.overview
+        baseProjectUpdatedAt = values.projectMetadata?.baseProjectUpdatedAt
+        projectStackNames = values.projectMetadata?.stackBadgeNames?.joinToString(TAG_SEPARATOR)
+    }
 
     private companion object { const val TAG_SEPARATOR = "\u001f" }
 }
@@ -110,4 +194,12 @@ data class EditorDraftValues(
     val categoryId: Long?,
     val tags: List<String>,
     val visibility: PostVisibility,
+    val section: PostSection = PostSection.TECH,
+    val projectId: Long? = null,
+    val relatedProjectId: Long? = null,
+    val documentOrder: Int? = null,
+    val projectMetadata: ProjectMetadata? = null,
+    val courseId: Long? = null,
+    val chapterOrder: Int? = null,
+    val summary: String = "",
 )
