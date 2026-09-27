@@ -1,6 +1,21 @@
 spring:
   autoconfigure:
     exclude: org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration
+  ai:
+    mcp:
+      server:
+        enabled: ${APP_MCP_ENABLED:false}
+        protocol: STREAMABLE
+        name: ken-blog
+        version: 1.0.0
+        type: SYNC
+        instructions: >-
+          글을 작성하기 전에 kenblog://authoring/skill 리소스 또는 get_authoring_guide 도구를 읽으세요.
+          TECH, PROJECT_HOME, PROJECT_DOC, NOTE_CHAPTER 중 섹션을 선택하고 본문에 쓰인
+          attachmentIds와 wikiTargets 전체 배열을 명시하세요. 수정 전 최신 글·편집본 상세와
+          revision을 확인하고, 사용자가 요청한 범위에서만 발행하세요.
+        streamable-http:
+          mcp-endpoint: /mcp
   servlet:
     multipart:
       max-file-size: 10MB
@@ -38,6 +53,10 @@ management:
         include: health
 
 app:
+  mcp:
+    enabled: ${APP_MCP_ENABLED:false}
+    allowed-peers: ${APP_MCP_ALLOWED_PEERS:127.0.0.1,::1}
+    allowed-hosts: ${APP_MCP_ALLOWED_HOSTS:127.0.0.1:18081}
   cache:
     redis:
       enabled: ${CACHE_REDIS_ENABLED:false}

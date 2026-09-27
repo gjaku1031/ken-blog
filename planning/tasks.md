@@ -1,5 +1,7 @@
 # 현재 작업
 
+- VM 전용 MCP·블로그 작성 Skill 구현·운영 배포 및 실제 검증 완료: [계획과 수용 기준](issues/MCP-AUTHORING-2026-09-27.md). 도구 25개·자료 4개, Tech·Projects·Notes 작성/수정/출간·기술 로고·OCI 이미지·확장 Markdown 확인. 공개/Tailscale MCP 차단과 기존 콘텐츠 보존 확인. 동일 SHA CI·Pages 최종 확인 및 맥 연결 프롬프트 전달 대상.
+
 - 테마를 적용한 한국어 404 페이지 구현·로컬 검증 완료: [계획과 검증](issues/NOT-FOUND-2026-09-27.md). 정적 404 상태·탐색 링크·모바일/테마 확인, 동일 SHA CI·Pages 최종 확인 대상.
 
 - 저장 창 실제 로고·기술 스택/프로젝트 순서 드래그 구현 및 통합 검증 완료: [계획과 검증](issues/STACK-PREVIEW-ORDER-2026-09-27.md). Neo4j·Oracle Cloud·Proxmox 추가로 69개, GCP는 Google Cloud 검색 별칭. 사용자 원고·기존 기술과 연결 보존, API 운영 반영 완료. 동일 SHA CI·Pages 최종 확인 대상.
