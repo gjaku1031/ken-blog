@@ -25,8 +25,8 @@ class AccountService(private val repository: AccountRepository) {
     /**
      * 두 설정값이 모두 있을 때 빈 DB에 관리자 한 명을 준비.
      *
-     * 같은 관리자만 존재하면 재시작 시 저장된 해시를 유지함. 다른 계정이나 동명
-     * [UserRole.USER]가 있으면 자동 생성·승격하지 않고 시작을 중단함.
+     * 같은 관리자가 있으면 과거 회원 행이 함께 있어도 저장된 해시를 유지함. 동명
+     * [UserRole.USER]는 자동 승격하지 않고 시작을 중단함.
      * 새 [UserEntity]는 null ID로 저장하며 flush는 SQL을 동기화하지만 커밋하지 않음.
      *
      * @param username 외부에서 공급한 관리자 이름; 비어 있으면 해시도 비어 있어야 함
@@ -43,7 +43,7 @@ class AccountService(private val repository: AccountRepository) {
         val count = repository.count()
         if (count > 0) {
             val existing = repository.findByUsername(username)
-            check(count == 1L && existing?.role == UserRole.ADMIN) { "Initial admin conflicts with existing accounts" }
+            check(existing?.role == UserRole.ADMIN) { "Initial admin conflicts with existing accounts" }
             return
         }
 

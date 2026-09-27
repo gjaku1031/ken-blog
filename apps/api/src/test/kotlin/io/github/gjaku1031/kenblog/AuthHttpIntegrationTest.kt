@@ -29,6 +29,7 @@ import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.time.Duration
 import java.util.Base64
+import java.security.MessageDigest
 
 /**
  * 실제 서버·MySQL에서 브라우저 쿠키, CSRF, 로그인과 역할 경계를 검증.
@@ -97,7 +98,7 @@ class AuthHttpIntegrationTest {
         val (client, cookies) = newClient()
         val token = csrfToken(client)
         val before = sessionCookie(cookies)
-        val body = loginBody("testadmin", TEST_PASSWORD)
+        val body = loginBody("testadmin", TEST_PASSWORD, FIRST_RECOVERY_CODE)
 
         assertProblem(send(client, "POST", "/api/v1/auth/login", body = body), 403)
         assertProblem(send(client, "POST", "/api/v1/auth/login", body = body, csrf = "wrong-token"), 403)
@@ -140,7 +141,7 @@ class AuthHttpIntegrationTest {
         assertEquals(mapper.readTree(wrong.body()).path("detail").asText(), mapper.readTree(tooLong.body()).path("detail").asText())
     }
 
-    /** 저장된 USER는 로그인해도 관리자 경로에서 HTTP 403을 받는지 검증. */
+    /** 저장된 USER는 비밀번호가 맞아도 세션을 받지 못하는지 검증. */
     @Test
     @Order(4)
     fun userRoleCannotEnterAdminBoundary() {
@@ -148,9 +149,9 @@ class AuthHttpIntegrationTest {
         try {
             val (client, _) = newClient()
             val token = csrfToken(client)
-            assertEquals(200, send(client, "POST", "/api/v1/auth/login", csrf = token, body = loginBody("testuser", TEST_PASSWORD)).statusCode())
-            assertEquals("USER", mapper.readTree(send(client, "GET", "/api/v1/auth/me").body()).path("role").asText())
-            assertProblem(send(client, "GET", "/api/v1/admin/__test"), 403)
+            assertProblem(send(client, "POST", "/api/v1/auth/login", csrf = token, body = loginBody("testuser", TEST_PASSWORD)), 401)
+            assertProblem(send(client, "GET", "/api/v1/auth/me"), 401)
+            assertProblem(send(client, "GET", "/api/v1/admin/__test"), 401)
         } finally {
             jdbc.update("DELETE FROM users WHERE username = ?", "testuser")
         }
@@ -162,7 +163,7 @@ class AuthHttpIntegrationTest {
     fun expiredSessionCannotBeReused() {
         val (client, cookies) = newClient()
         val token = csrfToken(client)
-        assertEquals(200, send(client, "POST", "/api/v1/auth/login", csrf = token, body = loginBody("testadmin", TEST_PASSWORD)).statusCode())
+        assertEquals(200, send(client, "POST", "/api/v1/auth/login", csrf = token, body = loginBody("testadmin", TEST_PASSWORD, SECOND_RECOVERY_CODE)).statusCode())
         val sessionId = decodeSessionId(sessionCookie(cookies))
         assertEquals(1, sessionCount(sessionId))
         jdbc.update("UPDATE SPRING_SESSION SET LAST_ACCESS_TIME = 0, EXPIRY_TIME = 0 WHERE SESSION_ID = ?", sessionId)
@@ -196,7 +197,8 @@ class AuthHttpIntegrationTest {
     }
 
     /** 테스트 전용 로그인 JSON을 직렬화함. */
-    private fun loginBody(username: String, password: String): String = mapper.writeValueAsString(mapOf("username" to username, "password" to password))
+    private fun loginBody(username: String, password: String, verificationCode: String = "000000"): String =
+        mapper.writeValueAsString(mapOf("username" to username, "password" to password, "verificationCode" to verificationCode))
 
     /** 실제 로컬 TCP 서버에 요청을 보내고 JSON 또는 빈 응답을 읽음. */
     private fun send(
@@ -227,6 +229,8 @@ class AuthHttpIntegrationTest {
 
     private companion object {
         const val TEST_PASSWORD = "sample-secret"
+        const val FIRST_RECOVERY_CODE = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+        const val SECOND_RECOVERY_CODE = "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
         val TEST_HASH = "{bcrypt}" + BCryptPasswordEncoder(10).encode(TEST_PASSWORD)
 
         /** 테스트 전용 관리자만 외부 설정으로 준비함. */
@@ -235,6 +239,13 @@ class AuthHttpIntegrationTest {
         fun adminProperties(registry: DynamicPropertyRegistry) {
             registry.add("app.bootstrap.admin.username") { "testadmin" }
             registry.add("app.bootstrap.admin.password-hash") { TEST_HASH }
+            registry.add("app.auth.admin.username") { "testadmin" }
+            registry.add("app.auth.admin.totp-secret") { "JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP" }
+            registry.add("app.auth.admin.recovery-code-hashes") {
+                listOf(FIRST_RECOVERY_CODE, SECOND_RECOVERY_CODE).joinToString(",") { code ->
+                    MessageDigest.getInstance("SHA-256").digest(code.toByteArray()).joinToString("") { "%02x".format(it.toInt() and 0xff) }
+                }
+            }
         }
     }
 }

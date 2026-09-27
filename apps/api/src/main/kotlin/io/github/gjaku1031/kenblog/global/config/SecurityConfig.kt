@@ -12,12 +12,8 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
-import org.springframework.security.authentication.AuthenticationManager
-import org.springframework.security.authentication.ProviderManager
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
 import org.springframework.security.config.http.SessionCreationPolicy
-import org.springframework.security.core.userdetails.UserDetailsService
 import org.springframework.security.crypto.factory.PasswordEncoderFactories
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.security.web.SecurityFilterChain
@@ -46,24 +42,10 @@ class SecurityConfig {
     /**
      * `{bcrypt}` 저장 형식에 맞는 비밀번호 검증기를 제공.
      *
-     * @return [DaoAuthenticationProvider]가 사용할 [PasswordEncoder]
+     * @return [io.github.gjaku1031.kenblog.auth.service.AdminLoginAttemptService]가 사용할 [PasswordEncoder]
      */
     @Bean
     fun passwordEncoder(): PasswordEncoder = PasswordEncoderFactories.createDelegatingPasswordEncoder()
-
-    /**
-     * DB 계정 조회와 비밀번호 검증을 결합하고 인증 후 자격 증명을 제거.
-     *
-     * @param users DB 계정을 로드하는 [UserDetailsService]
-     * @param encoder 저장 해시 검증기
-     * @return Controller 로그인에서 사용할 [AuthenticationManager]
-     */
-    @Bean
-    fun authenticationManager(users: UserDetailsService, encoder: PasswordEncoder): AuthenticationManager {
-        val provider = DaoAuthenticationProvider(users)
-        provider.setPasswordEncoder(encoder)
-        return ProviderManager(provider).also { it.isEraseCredentialsAfterAuthentication = true }
-    }
 
     /**
      * 로그인 전후 기대 CSRF 토큰을 MySQL의 HTTP 세션에 저장.
@@ -215,7 +197,6 @@ class SecurityConfig {
             it.requestMatchers(HttpMethod.GET, "/api/v1/wiki-links/resolve").permitAll()
             it.requestMatchers(HttpMethod.GET, "/api/v1/auth/csrf").permitAll()
             it.requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
-            it.requestMatchers(HttpMethod.POST, "/api/v1/auth/invitations/inspect", "/api/v1/auth/invitations/complete").permitAll()
             it.requestMatchers(HttpMethod.GET, "/api/v1/auth/me").authenticated()
             it.requestMatchers(HttpMethod.POST, "/api/v1/auth/logout").authenticated()
             it.requestMatchers("/api/v1/admin/**").hasRole("ADMIN")

@@ -275,7 +275,7 @@ data class PublicPostSummaryResponse(
 /**
  * 공개/로그인 열람자 또는 익명 비공개 잠금 화면에 제공하는 상세.
  *
- * 익명 PRIVATE일 때 [locked]는 `true`, [body]는 반드시 `null`임.
+ * 비관리자의 PRIVATE 요청일 때 [locked]는 `true`, [body]는 반드시 `null`임.
  *
  * @property id 게시글 ID
  * @property title 제목 또는 잠금 화면 허용 제목

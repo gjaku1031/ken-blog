@@ -244,6 +244,9 @@ class ApiErrorHandler : ResponseEntityExceptionHandler() {
      * @param statusCode 오류의 HTTP 상태
      * @return 4xx 또는 5xx에 사용할 공개 설명
      */
-    private fun publicDetail(statusCode: HttpStatusCode): String =
-        if (statusCode.is4xxClientError) "요청을 처리할 수 없습니다." else "서버에서 요청을 처리하지 못했습니다."
+    private fun publicDetail(statusCode: HttpStatusCode): String = when {
+        statusCode.value() == HttpStatus.TOO_MANY_REQUESTS.value() -> "로그인 시도가 잠시 제한되었습니다."
+        statusCode.is4xxClientError -> "요청을 처리할 수 없습니다."
+        else -> "서버에서 요청을 처리하지 못했습니다."
+    }
 }

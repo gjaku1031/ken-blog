@@ -100,7 +100,7 @@ export function FeedCard({ post, mode, categoryId, tag, sort, categories = [], p
     {post.section === "NOTE_CHAPTER" && post.courseName && <span>· {post.courseField ? `${post.courseField} › ` : ""}{post.courseName}</span>}
     {post.section === "NOTE_CHAPTER" && post.chapterPosition && <span>· {post.chapterPosition}강 {post.chapterPosition}/{post.chapterTotal}</span>}
     {post.section !== "TECH" && post.projectName && <span>· {post.projectName}</span>}
-    {post.visibility === "PRIVATE" && <span className="private-label">· 비공개</span>}
+    {post.visibility === "PRIVATE" && <span className="private-label">· 나만 보기</span>}
     {post.pinOrder !== null && <span>· 고정</span>}</div>
     {post.section === "TECH" && post.projectName && <div className="card-related-project">
       <span>[연관 프로젝트]</span> {post.projectName}</div>}

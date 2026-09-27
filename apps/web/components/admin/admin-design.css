@@ -156,7 +156,7 @@
 .admin-page .stack-upload img { width: 64px; height: 64px; object-fit: contain; }
 .admin-page .stack-upload input, .admin-page .profile-upload-button input { position: absolute; width: 1px; height: 1px; overflow: hidden; opacity: 0; }
 .admin-page .stack-create .stack-name-field { flex: 1 1 220px; display: grid; gap: 6px; color: var(--text2); font-size: 13px; font-weight: 700; }
-.admin-page .stack-create input:not([type="file"]), .admin-page .member-create input, .admin-page .member-create select, .admin-page .admin-form input:not([type="file"]), .admin-page .admin-form textarea { height: 44px; min-height: 44px; padding: 0 14px; border: 1px solid var(--line2); border-radius: 8px; background: var(--card); color: var(--text); font-size: 14.5px; }
+.admin-page .stack-create input:not([type="file"]), .admin-page .admin-form input:not([type="file"]), .admin-page .admin-form textarea { height: 44px; min-height: 44px; padding: 0 14px; border: 1px solid var(--line2); border-radius: 8px; background: var(--card); color: var(--text); font-size: 14.5px; }
 .admin-page .admin-form textarea { height: auto; padding: 10px 14px; line-height: 1.6; resize: vertical; }
 .admin-page .stack-create .primary-button { height: 44px; margin-bottom: 22px; }
 .admin-page .stack-usage-col { width: 150px; }
@@ -167,21 +167,7 @@
 .admin-page .stack-table .admin-row-actions { padding-right: 0; }
 .admin-page .stack-table .admin-row-actions .danger-text { border-color: var(--danger); color: var(--danger) !important; }
 
-/* 회원 발급 폼과 홈 프로필 편집·미리보기. */
-.admin-page .member-create { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr) auto auto; align-items: end; gap: 12px; margin: 0; padding: 20px 22px; }
-.admin-page .member-create label { display: grid; gap: 6px; color: var(--text2); font-size: 13px; font-weight: 700; }
-.admin-page .member-create .member-role { display: grid; gap: 6px; color: var(--text2); font-size: 13px; font-weight: 700; }
-.admin-page .member-role > div { display: flex; align-items: center; height: 44px; }
-.admin-page .member-role button { height: 34px; padding: 0 10px; border: 0; border-radius: 6px; background: transparent; color: var(--muted); font-size: 14px; font-weight: 500; }
-.admin-page .member-role button[aria-pressed="true"] { color: var(--text); font-weight: 700; }
-.admin-page .member-create .member-create-actions { display: flex; align-items: center; justify-content: flex-end; gap: 6px; }
-.admin-page .member-create-actions .small-button, .admin-page .member-create-actions .primary-button { height: 44px; }
-.admin-page .member-create-actions .small-button { border-color: transparent; background: transparent; color: var(--muted); }
-.admin-page .member-table td:first-child { font-weight: 500; }
-.admin-page .member-table { min-width: 820px; }
-.admin-page .member-table td.mono { color: var(--text2); font-size: 13px; }
-.admin-page .member-role-cell, .admin-page .member-issued-date { color: var(--muted); font-size: 12.5px; }
-.admin-page .issued-invites { margin: 0; padding: 18px 20px; }
+/* 홈 프로필 편집·미리보기. */
 .admin-page .profile-manager { gap: 18px; align-items: start; }
 .admin-page .admin-form { padding: 22px; }
 .admin-page .admin-form fieldset { gap: 14px; }
@@ -205,8 +191,6 @@
 @media (max-width: 860px) {
   .admin-page .profile-manager, .admin-page .analytics-bottom { grid-template-columns: minmax(0, 1fr); }
   .admin-page .metrics-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .admin-page .member-create { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .admin-page .member-create .member-role, .admin-page .member-create .member-create-actions { grid-column: 1 / -1; }
 }
 @media (max-width: 620px) {
   .page-container.admin-page { max-width: calc(100% - 64px); padding-top: 24px; }
@@ -219,7 +203,5 @@
   .admin-page .stack-create .stack-upload-group { align-self: flex-start; flex-basis: auto; }
   .admin-page .stack-create .stack-name-field { width: 100%; flex-basis: auto; }
   .admin-page .stack-create .primary-button { align-self: flex-start; }
-  .admin-page .member-create { grid-template-columns: minmax(0, 1fr); }
-  .admin-page .member-create .member-role, .admin-page .member-create .member-create-actions { grid-column: 1; }
 }
 @media (max-width: 620px) and (hover: none) { .admin-page .category-delete { opacity: .7; } }

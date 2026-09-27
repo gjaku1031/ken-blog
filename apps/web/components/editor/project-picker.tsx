@@ -89,7 +89,7 @@ export function ProjectPicker({ projects, selected, disabled, hasMore, loadingMo
           aria-selected={selected === id} tabIndex={-1} onMouseDown={(event) => event.preventDefault()}
           onMouseEnter={() => setActive(index)} onClick={() => choose(id)}>
           <span className="editor-project-option-name">{project?.name ?? "없음"}</span>
-          {project?.visibility === "PRIVATE" && <small>비공개</small>}
+          {project?.visibility === "PRIVATE" && <small>나만 보기</small>}
           <span className="editor-project-check" aria-hidden="true">{selected === id ? "✓" : ""}</span>
         </button>;
       })}</div>

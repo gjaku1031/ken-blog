@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping
 interface PublicTagApi {
     /** @return 권한별 SQL 집계의 no-store 목록. */
     @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE])
-    @Operation(summary = "공개 태그 사용량", description = "익명 PRIVATE 전용·초안 전용 태그 제외")
+    @Operation(summary = "공개 태그 사용량", description = "비관리자에게는 PRIVATE·초안 전용 태그 제외")
     @ApiResponses(value = [
         ApiResponse(responseCode = "200", content = [Content(schema = Schema(implementation = TagCountResponse::class))]),
         ApiResponse(responseCode = "503", description = "DB 연결 장애"),

@@ -44,8 +44,8 @@ export type PostDetail = PostSummary & PostDestination & { locked: boolean; body
 /** 현재 역할에서 보이는 태그의 글 수. */
 export type TagCount = { name: string; count: number };
 
-/** 인증된 계정의 서버 세션 정보. */
-export type CurrentUser = { username: string; role: "USER" | "ADMIN" };
+/** 단일 관리자로 인증된 서버 세션 정보. */
+export type CurrentUser = { username: string; role: "ADMIN" };
 
 /** 제목 조회 API의 권한별 최소 결과. 잠금과 없음에는 대상 정보가 없다. */
 export type WikiLinkResult = { requestedTitle: string; status: "LOCKED" | "MISSING" } |
@@ -238,11 +238,11 @@ export function parseWikiBacklinkPage(value: unknown, requestedPage: number): Wi
   return { items: value.items.map(parseWikiTitleItem), page: requestedPage, hasMore: value.hasMore };
 }
 
-/** 현재 사용자 DTO의 이름과 역할만 확인한다. */
+/** {@link CurrentUser} 계약에 맞는 관리자 세션만 화면에 전달한다. */
 export function parseCurrentUser(value: unknown): CurrentUser {
   if (!isRecord(value) || typeof value.username !== "string" ||
-    (value.role !== "USER" && value.role !== "ADMIN")) throw new ApiFailure("response");
-  return { username: value.username, role: value.role };
+    value.role !== "ADMIN") throw new ApiFailure("response");
+  return { username: value.username, role: "ADMIN" };
 }
 
 /** 공개 목록 응답의 필수 필드를 검사해 불완전한 API 응답을 빈 목록으로 오해하지 않게 한다. */

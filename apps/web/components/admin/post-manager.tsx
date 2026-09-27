@@ -141,7 +141,7 @@ export function PostManager() {
     <nav className="admin-filter" aria-label="공개 범위 필터">{(["ALL", "PUBLIC", "PRIVATE"] as const).map((value) =>
       <button key={value} type="button" aria-pressed={filter === value} onClick={() => router.replace(value === "ALL" ?
         "/admin/posts/" : `/admin/posts/?filter=${value.toLowerCase()}`)}>
-        {{ ALL: "전체", PUBLIC: "공개", PRIVATE: "비공개" }[value]}
+        {{ ALL: "전체", PUBLIC: "공개", PRIVATE: "나만 보기" }[value]}
         <span className="filter-count">{value === "ALL" ? rows.length : rows.filter((item) => item.visibility === value).length}</span></button>)}
       <Link href="/admin/drafts/">임시저장</Link></nav><Link className="primary-button" href="/write/">새 글 작성</Link></div>
     {loading && <p role="status">글을 불러오고 있습니다…</p>}
@@ -155,7 +155,7 @@ export function PostManager() {
         <td className="post-section">{item.section === "TECH" ? "Tech" : item.section === "NOTE_CHAPTER" ? "Notes" : "Projects"}</td>
         <td>{item.status === "PUBLISHED" ? <span className="post-visibility"><button type="button" role="switch" aria-checked={item.visibility === "PUBLIC"}
           className="visibility-toggle" disabled={busy !== null} aria-label={`${item.title} 전체 공개`}
-          onClick={() => void visibility(item)} /><span>{item.visibility === "PUBLIC" ? "공개" : "비공개"}</span></span> : "미출간"}</td>
+          onClick={() => void visibility(item)} /><span>{item.visibility === "PUBLIC" ? "공개" : "나만 보기"}</span></span> : "미출간"}</td>
         <td className="post-date">{(item.publishedAt ?? item.updatedAt).slice(0, 10).replaceAll("-", ".")}</td>
         <td className="post-views">{item.viewCount?.toLocaleString("ko-KR") ?? "—"}</td>
         <td className="admin-row-actions">{deleting === item.id ? <>삭제할까요? <button type="button" onClick={() => setDeleting(null)}>취소</button>

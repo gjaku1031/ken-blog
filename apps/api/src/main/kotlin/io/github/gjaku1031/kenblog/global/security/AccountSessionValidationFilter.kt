@@ -1,6 +1,9 @@
 package io.github.gjaku1031.kenblog.global.security
 
 import io.github.gjaku1031.kenblog.account.repository.AccountRepository
+import io.github.gjaku1031.kenblog.account.domain.UserRole
+import io.github.gjaku1031.kenblog.auth.service.AdminLoginAttemptService
+import io.github.gjaku1031.kenblog.auth.service.AuthService
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
@@ -9,11 +12,14 @@ import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Component
 import org.springframework.web.filter.OncePerRequestFilter
 
-/** JDBC 세션 복원 뒤 계정 삭제·비활성화·권한 변경을 매 요청에서 재검사. */
+/** JDBC 세션 복원 뒤 단일 관리자와 MFA 증명·설정 버전을 매 요청에서 재검사. */
 @Component
-class AccountSessionValidationFilter(private val accounts: AccountRepository) : OncePerRequestFilter() {
+class AccountSessionValidationFilter(
+    private val accounts: AccountRepository,
+    private val attempts: AdminLoginAttemptService,
+) : OncePerRequestFilter() {
     /**
-     * 기존 세션 주체가 DB에 없거나 현재 역할과 다르면 즉시 세션을 폐기.
+     * 기존 세션 주체가 단일 관리자·활성·MFA 설정에 맞지 않으면 즉시 세션을 폐기.
      *
      * @param request 세션을 가진 요청
      * @param response 후속 보안 필터가 401/403을 기록할 응답
@@ -23,7 +29,15 @@ class AccountSessionValidationFilter(private val accounts: AccountRepository) : 
         val authentication = SecurityContextHolder.getContext().authentication
         if (authentication != null && authentication.isAuthenticated && authentication !is AnonymousAuthenticationToken) {
             val account = accounts.findByUsername(authentication.name)
-            if (account == null || !account.enabled || authentication.authorities.none { it.authority == "ROLE_${account.role.name}" }) {
+            val session = request.getSession(false)
+            if (account == null || !account.enabled || account.role != UserRole.ADMIN ||
+                authentication.authorities.none { it.authority == "ROLE_ADMIN" } ||
+                !attempts.isValidSession(
+                    authentication.name,
+                    account.passwordHash,
+                    session?.getAttribute(AuthService.MFA_PROOF_ATTRIBUTE),
+                    session?.getAttribute(AuthService.MFA_VERSION_ATTRIBUTE),
+                )) {
                 request.getSession(false)?.invalidate()
                 SecurityContextHolder.clearContext()
             }

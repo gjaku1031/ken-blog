@@ -133,7 +133,7 @@ function ReaderInstance({ slug }: { slug: string }) {
         <span>·</span><Link href={`/?categoryId=${state.post.category.id}`}>{categoryLabel ?? state.post.category.name}</Link></>}
         {state.post.relatedProject && <><span>·</span><Link href={`/project/?slug=${encodeURIComponent(state.post.relatedProject.slug)}`}>
           {state.post.relatedProject.name}</Link></>}
-        {state.privatePost && <span className="private-label">· 비공개</span>}</div>
+        {state.privatePost && <span className="private-label">· 나만 보기</span>}</div>
       <h1>{state.post.title}</h1>
       <div className="detail-meta"><time className="mono" dateTime={state.post.publishedDate}>{state.post.publishedDate.replaceAll("-", ".")}</time>
         {!state.post.locked && <span>· {readingMinutes(state.post.body ?? "")}분</span>}
@@ -153,9 +153,8 @@ function ReaderInstance({ slug }: { slug: string }) {
       {deleteError && <p role="alert" className="inline-error">{deleteError}</p>}
       {!state.post.locked && <div className="tag-list detail-tags">{state.post.tags.map((name) => <Link key={name}
         href={`/tech/?tag=${encodeURIComponent(name)}`}>#{name}</Link>)}</div>}
-      {state.post.locked ? <div className="locked-post card"><h2>로그인이 필요한 글입니다</h2>
-        <p>제목과 날짜만 볼 수 있습니다. 본문과 분류·태그는 로그인 후 표시됩니다.</p>
-        <Link className="primary-button" href={`/login/?returnTo=${encodeURIComponent(`/post/?slug=${slug}`)}`}>로그인</Link></div> :
+      {state.post.locked ? <div className="locked-post card"><h2>관리자 전용 글입니다</h2>
+        <p>이 글의 본문은 관리자만 볼 수 있습니다.</p></div> :
         <div className={reading?.toc.length || series ? "post-reading-layout has-toc" : "post-reading-layout"}>
           <div className="post-main-content">
             <SafeMarkdown body={state.post.body ?? ""} source={{ kind: "post", postId: state.post.id }} reading={reading ?? undefined} />

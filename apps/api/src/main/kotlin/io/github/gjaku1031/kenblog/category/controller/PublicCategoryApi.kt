@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RequestMapping
 interface PublicCategoryApi {
     /** @return 공개 권한 SQL 집계로 만든 no-store 전체 트리. */
     @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE])
-    @Operation(summary = "공개 분류 트리", description = "익명은 PUBLIC 글 수만, USER·ADMIN은 PRIVATE 출간 글 수까지 포함")
+    @Operation(summary = "공개 분류 트리", description = "비관리자는 PUBLIC 글 수만, ADMIN은 PRIVATE 출간 글 수까지 포함")
     @ApiResponses(value = [
         ApiResponse(responseCode = "200", content = [Content(schema = Schema(implementation = CategoryTreeResponse::class))]),
         ApiResponse(responseCode = "503", description = "DB 연결 장애"),

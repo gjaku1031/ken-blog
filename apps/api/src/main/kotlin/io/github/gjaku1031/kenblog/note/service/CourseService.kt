@@ -198,8 +198,8 @@ class CourseService(private val courses: CourseRepository, private val chapters:
     private inline fun <T> conflicts(action: () -> T): T = try { action() }
         catch (ex: DataIntegrityViolationException) { throw CourseConflictException() }
 
-    /** @return 명시적 역할만 비공개 회차를 읽을 수 있는지 여부. */
+    /** @return 명시적 관리자 역할만 비공개 회차를 읽을 수 있는지 여부. */
     private fun Authentication?.canReadPrivate(): Boolean = this?.authorities?.any {
-        it.authority == "ROLE_USER" || it.authority == "ROLE_ADMIN"
+        it.authority == "ROLE_ADMIN"
     } == true
 }

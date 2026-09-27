@@ -157,24 +157,22 @@ function CourseShell({ slug, chapterSlug }: { slug: string; chapterSlug: string 
     <Link href={`/course/?slug=${encodeURIComponent(slug)}`} className="back-link">← {detail.course.name}</Link>
     <div className="post-overline"><Link href="/notes/">Notes</Link><span>·</span>
       <Link href={`/course/?slug=${encodeURIComponent(slug)}`}>{detail.course.field} › {detail.course.name}</Link>
-      <span className="private-label">· 비공개</span></div>
+      <span className="private-label">· 관리자만</span></div>
     <h1>{chapter.title}</h1><div className="detail-meta"><time dateTime={chapter.publishedDate}>
       {chapter.publishedDate.replaceAll("-", ".")}</time></div>
-    <div className="locked-post card"><span className="private-label">비공개</span>
-      <p>이 글은 로그인하면 볼 수 있습니다.</p>
-      <Link className="primary-button" href={`/login/?returnTo=${encodeURIComponent(`/course/?slug=${slug}&chapter=${chapterSlug}`)}`}>
-        로그인</Link></div>
+    <div className="locked-post card"><span className="private-label">관리자만</span>
+      <p>이 회차는 관리자만 볼 수 있습니다.</p></div>
   </main>;
 
   return <main id="main-content" className="page-container course-page project-layout">
-    {(!chapterSlug || chapter && !chapter.locked) && <PublicAnalytics virtualPath={chapterSlug ?
+    {(!chapterSlug || chapter && !chapter.locked && chapters[index]?.visibility === "PUBLIC") && <PublicAnalytics virtualPath={chapterSlug ?
       `/course/${slug}/chapters/${chapterSlug}` : `/course/${slug}`} />}
     <aside className="project-sidebar course-sidebar" aria-label="과목 탐색"><Link href="/notes/" className="back-link">← Notes</Link>
       <h2>{detail.course.field} › {detail.course.name}</h2>
       <nav aria-label="과목 회차"><Link href={`/course/?slug=${encodeURIComponent(slug)}`} aria-current={!chapterSlug ? "page" : undefined}>과목 소개</Link>
         <ol>{chapters.map((item, position) => <li key={item.id}><Link href={href(item)}
           aria-current={chapterSlug === item.slug ? "page" : undefined}>{position + 1}강 · {item.title}
-          {item.visibility === "PRIVATE" && <span> · 비공개</span>}</Link></li>)}</ol></nav>
+          {item.visibility === "PRIVATE" && <span> · 나만 보기</span>}</Link></li>)}</ol></nav>
       {auth.user?.role === "ADMIN" && <Link className="project-add-document"
         href={`/write/?section=notes&courseId=${detail.course.id}`}>+ 다음 회차 쓰기</Link>}
       {reading && reading.toc.length > 0 && <TableOfContents items={reading.toc} />}
@@ -225,8 +223,7 @@ function CourseShell({ slug, chapterSlug }: { slug: string; chapterSlug: string 
           {deleting ? <div className="inline-confirm" role="alertdialog" aria-label="회차 삭제 확인"><p>“{chapter.title}” 회차를 삭제합니다.</p>
             <button type="button" className="small-button" onClick={() => setDeleting(false)}>취소</button>
             <button type="button" className="small-button danger-button" disabled={saving} onClick={() => void deleteChapter()}>삭제</button></div> :
-            chapter.locked ? <div className="locked-post"><p>로그인 후 읽을 수 있는 회차입니다.</p>
-              <Link href={`/login/?returnTo=${encodeURIComponent(`/course/?slug=${slug}&chapter=${chapterSlug}`)}`}>로그인</Link></div> : <>
+            chapter.locked ? <div className="locked-post"><p>이 회차는 관리자만 볼 수 있습니다.</p></div> : <>
               <SafeMarkdown body={chapter.body ?? ""} source={{ kind: "post", postId: chapter.id }} reading={reading ?? undefined} />
               <PostBacklinks key={chapterSlug} slug={chapterSlug} />
             </>}

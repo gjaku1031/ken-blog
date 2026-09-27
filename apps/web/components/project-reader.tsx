@@ -173,19 +173,17 @@ function ProjectShell({ slug, documentSlug }: { slug: string; documentSlug: stri
   if (detail.locked) return <main id="main-content" className="page-container project-page project-layout">
     <aside className="project-sidebar" aria-label="프로젝트 탐색"><Link href="/projects/" className="back-link">← Projects</Link>
       <h2>{detail.project.name}</h2><nav aria-label="프로젝트 대문"><span className="locked-home-label">대문</span></nav></aside>
-    <div className="locked-post card project-locked"><span className="private-label">비공개</span>
-      <h1>{detail.project.name}</h1><p>이 프로젝트는 로그인하면 볼 수 있습니다.</p>
-      <Link className="primary-button" href={`/login/?returnTo=${encodeURIComponent(`/project/?slug=${slug}${documentSlug ? `&doc=${documentSlug}` : ""}`)}`}>
-        로그인</Link></div></main>;
+    <div className="locked-post card project-locked"><span className="private-label">관리자만</span>
+      <h1>{detail.project.name}</h1><p>이 프로젝트는 관리자만 볼 수 있습니다.</p></div></main>;
 
-  const selected = documentSlug ? detail.documents.find((item) => item.slug === documentSlug) : null;
   const visibleDocument = documentSlug && document.slug === documentSlug && document.status === "ready" ? document.post : null;
   const documents = [...detail.documents].sort((left, right) => left.order - right.order || left.id - right.id);
   const selectedIndex = documentSlug ? documents.findIndex((item) => item.slug === documentSlug) : -1;
   const toDocument = (item: ProjectDocument) => `/project/?slug=${encodeURIComponent(slug)}&doc=${encodeURIComponent(item.slug)}`;
 
   return <main id="main-content" className="page-container project-page project-layout">
-    {detail.project.visibility === "PUBLIC" && (!documentSlug || visibleDocument && !visibleDocument.locked) &&
+    {detail.project.visibility === "PUBLIC" && (!documentSlug || visibleDocument && !visibleDocument.locked &&
+      documents[selectedIndex]?.visibility === "PUBLIC") &&
       <PublicAnalytics virtualPath={documentSlug ? `/project/${slug}/docs/${documentSlug}` : `/project/${slug}`} />}
     <aside className="project-sidebar" aria-label="프로젝트 탐색">
       <Link href="/projects/" className="back-link">← Projects</Link>
@@ -194,7 +192,7 @@ function ProjectShell({ slug, documentSlug }: { slug: string; documentSlug: stri
         aria-current={!documentSlug ? "page" : undefined}>대문</Link>
         <ol>{documents.map((item, index) => <li key={item.id}><Link href={toDocument(item)}
           aria-current={documentSlug === item.slug ? "page" : undefined}>{index + 1}. {item.title}
-          {item.visibility === "PRIVATE" && <span> · 비공개</span>}</Link></li>)}</ol></nav>
+          {item.visibility === "PRIVATE" && <span> · 나만 보기</span>}</Link></li>)}</ol></nav>
       {auth.status === "authenticated" && auth.user?.role === "ADMIN" && <Link className="project-add-document"
         href={`/write/?section=project-doc&projectId=${detail.project.id}`}>+ 문서 추가</Link>}
       {adminError && <p role="alert" className="inline-error">{adminError}</p>}
@@ -214,7 +212,7 @@ function ProjectShell({ slug, documentSlug }: { slug: string; documentSlug: stri
     </aside>
     <article className="project-main card">
       {!documentSlug ? <>
-        <div className="project-overline">Projects {detail.project.visibility === "PRIVATE" ? "· 비공개" : ""}
+        <div className="project-overline">Projects {detail.project.visibility === "PRIVATE" ? "· 나만 보기" : ""}
           {auth.user?.role === "ADMIN" && <span className="inline-actions"><Link
             href={`/write/?postId=${detail.home.id}`}>대문 수정</Link>
             <button type="button" className="danger-text" onClick={() => setConfirmDelete("project")}>프로젝트 삭제</button></span>}</div>
@@ -252,10 +250,7 @@ function ProjectShell({ slug, documentSlug }: { slug: string; documentSlug: stri
           {!visibleDocument.locked && visibleDocument.tags.length > 0 && <div className="tag-list detail-tags">
             {visibleDocument.tags.map((name) => <Link key={name} href={`/?tag=${encodeURIComponent(name)}`}>#{name}</Link>)}
           </div>}
-          {visibleDocument.locked ? <div className="locked-post"><p>이 문서는 로그인 후 읽을 수 있습니다.</p>
-            <Link href={`/login/?returnTo=${encodeURIComponent(toDocument(selected ?? {
-              id: visibleDocument.id, title: visibleDocument.title, slug: documentSlug, order: 1,
-              publishedDate: "", visibility: "PRIVATE", locked: true }))}`}>로그인</Link></div> :
+          {visibleDocument.locked ? <div className="locked-post"><p>이 문서는 관리자만 볼 수 있습니다.</p></div> :
             <>{reading && <ProjectBody body={visibleDocument.body ?? ""} postId={visibleDocument.id} reading={reading} />}
               <PostBacklinks key={documentSlug} slug={documentSlug} /></>}
           {confirmDelete === "document" && <div className="inline-confirm" role="alertdialog" aria-label="문서 삭제 확인">

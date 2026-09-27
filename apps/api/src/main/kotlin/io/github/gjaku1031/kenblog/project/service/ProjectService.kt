@@ -67,7 +67,7 @@ class ProjectService(
     }
 
     /**
-     * 프로젝트 공개 상세를 조회. PRIVATE 부모의 익명 응답에는 이름·주소만 남기고
+     * 프로젝트 공개 상세를 조회. PRIVATE 부모의 비관리자 응답에는 이름·주소만 남기고
      * 문서·건수·HOME 본문·관련 Tech를 선택하지 않음.
      */
     @Transactional(readOnly = true)
@@ -268,9 +268,9 @@ class ProjectService(
         if (page < 0 || size !in 1..maximum || page.toLong() * size > Int.MAX_VALUE) throw InvalidProjectRequestException()
     }
 
-    /** @return 명시적 USER/ADMIN 역할만 사설 내용을 읽을 수 있음. */
+    /** @return 명시적 관리자 역할만 비공개 내용을 읽을 수 있음. */
     private fun Authentication?.canReadPrivate(): Boolean = this?.authorities?.any {
-        it.authority == "ROLE_USER" || it.authority == "ROLE_ADMIN"
+        it.authority == "ROLE_ADMIN"
     } == true
 
     /** @return MySQL 중복 이름/주소·FK 삭제 경합을 공개 가능한 409로 변환. */

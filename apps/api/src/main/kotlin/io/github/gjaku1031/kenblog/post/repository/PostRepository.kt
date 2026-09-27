@@ -112,7 +112,7 @@ interface PostRepository : JpaRepository<PostEntity, Long> {
      *
      * @param published 출간 상태
      * @param publicVisibility 익명에게 노출할 범위
-     * @param includePrivate USER 또는 ADMIN 권한이 있는지 여부
+     * @param includePrivate ADMIN 권한이 있는지 여부
      * @param categoryPath 분류 필터의 정규화된 전체 경로, 없으면 `null`
      * @param descendantPath 하위 경로까지 포함하는 LIKE 패턴, 필터가 없으면 `null`
      * @param tag 정확히 일치할 정규화 태그, 없으면 `null`
@@ -203,7 +203,7 @@ interface PostRepository : JpaRepository<PostEntity, Long> {
     ): PublicPostCacheRow?
 
     /**
-     * 익명 PRIVATE 직접 진입에 허용된 최소 열만 선택하고 본문 열을 읽지 않음.
+     * 비관리자의 PRIVATE 직접 진입에 허용된 최소 열만 선택하고 본문 열을 읽지 않음.
      *
      * @param slug 정규화된 주소
      * @param status 출간 상태

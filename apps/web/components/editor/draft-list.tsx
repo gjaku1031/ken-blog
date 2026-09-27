@@ -198,7 +198,7 @@ export function DraftList() {
       <h1>글 관리</h1><nav className="admin-filter" aria-label="글 관리 필터">
         <Link href="/admin/posts/">전체 {publishedCounts?.all ?? ""}</Link>
         <Link href="/admin/posts/?filter=public">공개 {publishedCounts?.public ?? ""}</Link>
-        <Link href="/admin/posts/?filter=private">비공개 {publishedCounts?.private ?? ""}</Link>
+        <Link href="/admin/posts/?filter=private">나만 보기 {publishedCounts?.private ?? ""}</Link>
         <span className="draft-list-active" aria-current="page">임시저장
           {data && <span className="filter-count">{data.totalElements}</span>}</span></nav>
       {admin && <Link className="primary-button" href="/write/">새 글 작성</Link>}

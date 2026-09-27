@@ -25,7 +25,7 @@ class WikiLinkService(private val posts: PostRepository) {
      *
      * @param originals Servlet이 쉼표를 분리하지 않고 제공한 반복 title 값
      * @param rawQuery URL 인코딩된 원래 쿼리 문자열
-     * @param authentication PRIVATE 열람 권한을 명시적 ROLE_USER·ROLE_ADMIN으로 판단할 인증
+     * @param authentication PRIVATE 열람 권한을 명시적 ROLE_ADMIN으로 판단할 인증
      * @return 대상별 READABLE·LOCKED·MISSING 결과
      * @throws InvalidWikiLinkRequestException 값 수·문자·길이·인코딩 길이가 잘못됐을 때
      */
@@ -47,7 +47,7 @@ class WikiLinkService(private val posts: PostRepository) {
             }
         }
         val includePrivate = authentication?.authorities?.any {
-            it.authority == "ROLE_USER" || it.authority == "ROLE_ADMIN"
+            it.authority == "ROLE_ADMIN"
         } == true
         val found = mutableMapOf<String, WikiLinkTargetRow?>()
         val items: List<WikiLinkResult> = titles.map { title ->

@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import tools.jackson.databind.JsonNode
 
-/** 공개·회원별 프로젝트 읽기를 [ProjectController]에 연결하는 HTTP 계약. */
+/** 공개·관리자별 프로젝트 읽기를 [ProjectController]에 연결하는 HTTP 계약. */
 @RequestMapping("/api/v1/projects")
 interface ProjectApi {
     /** @return 현재 역할로 읽을 수 있는 출간 대문 페이지. */

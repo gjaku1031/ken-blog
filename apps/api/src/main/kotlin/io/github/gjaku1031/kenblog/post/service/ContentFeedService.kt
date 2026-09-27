@@ -164,9 +164,9 @@ class ContentFeedService(private val feeds: ContentFeedRepository, private val p
             throw InvalidPostRequestException()
     }
 
-    /** @return 실제 USER/ADMIN 역할만 사설 글을 볼 수 있는지 여부. */
+    /** @return 실제 관리자 역할만 비공개 글을 볼 수 있는지 여부. */
     private fun Authentication?.canReadPrivate(): Boolean = this?.authorities?.any {
-        it.authority == "ROLE_USER" || it.authority == "ROLE_ADMIN"
+        it.authority == "ROLE_ADMIN"
     } == true
 
     private companion object { val SEOUL: ZoneId = ZoneId.of("Asia/Seoul") }

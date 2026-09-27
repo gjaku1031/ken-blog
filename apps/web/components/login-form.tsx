@@ -18,7 +18,7 @@ function returnPath(value: string | null): string {
     const rawPath = basePath && url.pathname.startsWith(`${basePath}/`) ? url.pathname.slice(basePath.length) : url.pathname;
     const pathname = rawPath === "/" ? "/" : rawPath.endsWith("/") ? rawPath : `${rawPath}/`;
     const known = new Set(["/", "/tech/", "/post/", "/projects/", "/project/", "/notes/", "/course/",
-      "/write/", "/admin/", "/admin/posts/", "/admin/drafts/", "/admin/members/", "/admin/categories/",
+      "/write/", "/admin/", "/admin/posts/", "/admin/drafts/", "/admin/categories/",
       "/admin/stacks/", "/admin/profile/"]);
     if (url.origin !== "https://ken-blog.invalid" || !known.has(pathname) || url.hash) return "/tech/";
     if (pathname === "/post/") {
@@ -44,47 +44,74 @@ function returnPath(value: string | null): string {
   } catch { return "/tech/"; }
 }
 
-/** {@link useAuth}로 계정명·비밀번호와 CSRF 세션 로그인 결과만 다루는 폼. */
+/** {@link useAuth}의 비밀번호·일회용 코드 검증이 모두 끝난 뒤에만 이동하는 폼. */
 export function LoginForm() {
   const router = useRouter();
   const auth = useAuth();
   const destination = returnPath(useSearchParams().get("returnTo"));
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [verificationCode, setVerificationCode] = useState("");
+  const [useRecoveryCode, setUseRecoveryCode] = useState(false);
+  const codeInput = useRef<HTMLInputElement | null>(null);
   const [busy, setBusy] = useState(false);
   const pending = useRef(false);
   const [error, setError] = useState("");
 
-  /** 비밀번호를 보관·기록하지 않고 현재 서버 세션이 성립할 때만 이동한다. */
+  /** 검증값을 브라우저 저장소에 남기지 않고 서버 세션이 성립할 때만 이동한다. */
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (pending.current) return;
+    const code = verificationCode.trim();
+    if (!username.trim() || !password || !code || !useRecoveryCode && !/^\d{6}$/.test(code)) {
+      setError(useRecoveryCode ? "아이디·비밀번호·복구 코드를 확인해 주세요." : "아이디·비밀번호·인증 앱의 6자리 코드를 확인해 주세요.");
+      return;
+    }
     pending.current = true;
     setError("");
     setBusy(true);
     try {
-      await auth.login(username, password);
-      setPassword("");
+      await auth.login(username, password, code);
       router.replace(destination);
     } catch (failure) {
-      setPassword("");
-      if (failure instanceof ApiFailure && failure.status === 401) setError("계정명 또는 비밀번호를 확인해 주세요.");
+      if (failure instanceof ApiFailure && failure.status === 401) setError("로그인 정보를 확인해 주세요.");
+      else if (failure instanceof ApiFailure && failure.status === 429) setError("로그인 시도가 잠시 제한되었습니다. 잠시 후 다시 시도해 주세요.");
       else setError(apiFailureMessage(failure));
-    } finally { pending.current = false; setBusy(false); }
+    } finally { setPassword(""); setVerificationCode(""); pending.current = false; setBusy(false); }
+  }
+
+  /** 코드 종류를 바꿀 때 이전 일회용 값을 폐기하고 새 입력으로 초점을 옮긴다. */
+  function switchCodeMode() {
+    if (pending.current) return;
+    setUseRecoveryCode((current) => !current);
+    setVerificationCode(""); setError("");
+    requestAnimationFrame(() => codeInput.current?.focus());
   }
 
   return <main id="main-content" className="login-page">
     <section className="login-card card" aria-labelledby="login-title">
-      <h1 id="login-title">로그인</h1>
+      <h1 id="login-title">관리자 로그인</h1>
       {auth.status === "authenticated" ? <div className="login-done"><p>{auth.user?.username} 계정으로 로그인되어 있습니다.</p>
         <Link href={destination} className="primary-button">글 보러 가기</Link></div> :
         <form onSubmit={(event) => void submit(event)}>
-          <label htmlFor="username">계정명</label>
-          <input id="username" name="username" type="text" autoComplete="username" required maxLength={64} placeholder="계정명"
+          <label htmlFor="username">아이디</label>
+          <input id="username" name="username" type="text" autoComplete="username" required maxLength={64} placeholder="아이디"
             value={username} onChange={(event) => setUsername(event.target.value)} disabled={busy} />
           <label htmlFor="password">비밀번호</label>
           <input id="password" name="password" type="password" autoComplete="current-password" required placeholder="비밀번호"
             value={password} onChange={(event) => setPassword(event.target.value)} disabled={busy} />
+          <label htmlFor="verification-code">{useRecoveryCode ? "복구 코드" : "인증 앱 코드"}</label>
+          <input key={useRecoveryCode ? "recovery" : "totp"} id="verification-code" ref={codeInput}
+            name="verificationCode" type="text" required autoComplete={useRecoveryCode ? "off" : "one-time-code"}
+            inputMode={useRecoveryCode ? "text" : "numeric"} pattern={useRecoveryCode ? undefined : "[0-9]{6}"}
+            maxLength={useRecoveryCode ? 64 : 6} spellCheck={false} autoCapitalize="off"
+            placeholder={useRecoveryCode ? "복구 코드" : "6자리 코드"} value={verificationCode}
+            onChange={(event) => setVerificationCode(useRecoveryCode ? event.target.value : event.target.value.replace(/\D/g, "").slice(0, 6))}
+            disabled={busy} aria-describedby="verification-help" />
+          <p id="verification-help" className="login-code-help">{useRecoveryCode ?
+            "보관한 일회용 복구 코드를 입력하세요." : "Google Authenticator의 ken.blog 코드 6자리를 입력하세요."}</p>
+          <button type="button" className="login-code-switch" onClick={switchCodeMode} disabled={busy}
+            aria-controls="verification-code">{useRecoveryCode ? "인증 앱 코드 사용" : "복구 코드 사용"}</button>
           {error && <p className="form-error" role="alert">{error}</p>}
           <button className="primary-button" type="submit" disabled={busy}>{busy ? "확인 중…" : "로그인"}</button>
         </form>}

@@ -41,7 +41,7 @@ class WikiNavigationService(private val posts: PostRepository) {
 
     /**
      * 현재 canonical 출간 글의 공개 가능 출처만 10개씩 조회하고 11번째 행으로 hasMore 판정.
-     * 익명 PRIVATE 대상은 404로 숨기며 출처 PRIVATE 본문·건수는 SQL에서 제외함.
+     * 비관리자의 PRIVATE 대상은 404로 숨기며 출처 PRIVATE 본문·건수는 SQL에서 제외함.
      * @throws PostNotFoundException 없는 글·초안·읽기 불가 대상일 때
      * @throws InvalidPostRequestException 페이지가 SQL 범위를 넘을 때
      */
@@ -52,7 +52,7 @@ class WikiNavigationService(private val posts: PostRepository) {
         if (normalizedSlug.length > 160 || !SLUG_PATTERN.matches(normalizedSlug)) throw PostNotFoundException()
         val target = posts.findPublishedWikiTargetBySlug(normalizedSlug) ?: throw PostNotFoundException()
         val includePrivate = authentication?.authorities?.any {
-            it.authority == "ROLE_USER" || it.authority == "ROLE_ADMIN"
+            it.authority == "ROLE_ADMIN"
         } == true
         if (!includePrivate && (target.visibility != "PUBLIC" || target.section !in listOf("TECH", "NOTE_CHAPTER") &&
                 (target.projectVisibility != "PUBLIC" || target.homeVisibility != "PUBLIC"))) throw PostNotFoundException()

@@ -21,3 +21,4 @@ target/
 .DS_Store
 /AGENTS.md
 /docs/study/
+/.local-security/

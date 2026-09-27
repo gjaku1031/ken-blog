@@ -106,17 +106,24 @@ jobs:
             http://127.0.0.1:18080/ken-blog/ > home.html
           python3 - <<'PY'
           import re
+          import urllib.error
           import urllib.request
 
           html = open('home.html', encoding='utf-8').read()
           assert '<title>ken.blog</title>' in html
           assert '아키텍처 도면' not in html
           for route in ('tech/', 'post/', 'login/', 'projects/', 'project/', 'notes/', 'course/',
-                        'search/', 'invite/', 'write/', 'admin/', 'admin/posts/', 'admin/drafts/',
-                        'admin/members/', 'admin/categories/', 'admin/stacks/', 'admin/profile/'):
+                        'search/', 'write/', 'admin/', 'admin/posts/', 'admin/drafts/',
+                        'admin/categories/', 'admin/stacks/', 'admin/profile/'):
               with urllib.request.urlopen('http://127.0.0.1:18080/ken-blog/' + route) as response:
                   assert response.status == 200
                   assert '<title>ken.blog</title>' in response.read().decode('utf-8')
+          for removed in ('invite/', 'admin/members/'):
+              try:
+                  urllib.request.urlopen('http://127.0.0.1:18080/ken-blog/' + removed)
+                  raise AssertionError('removed route is still served: ' + removed)
+              except urllib.error.HTTPError as error:
+                  assert error.code == 404
           asset = re.search(r'/ken-blog/_next/static/[^" ]+\.js', html)
           assert asset is not None
           with urllib.request.urlopen('http://127.0.0.1:18080' + asset.group()) as response:

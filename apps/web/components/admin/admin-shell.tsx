@@ -7,7 +7,7 @@ import { useAuth } from "../auth-provider";
 import "./admin-design.css";
 
 const tabs = [["/admin/", "대시보드"], ["/admin/posts/", "글 관리"],
-  ["/admin/members/", "회원 관리"], ["/admin/categories/", "분류 관리"], ["/admin/stacks/", "기술 스택"],
+  ["/admin/categories/", "분류 관리"], ["/admin/stacks/", "기술 스택"],
   ["/admin/profile/", "홈 소개"]] as const;
 
 /** {@link useAuth}의 ADMIN 권한이 확인된 때에만 원본 관리 탐색과 하위 페이지를 렌더한다. */

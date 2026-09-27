@@ -70,19 +70,4 @@ class UserEntity protected constructor() {
         this.createdAt = createdAt
     }
 
-    /** 일회성 링크를 수락하기 전 로그인할 수 없는 회원 행을 생성. */
-    constructor(username: String, role: UserRole, displayName: String, createdAt: LocalDateTime) : this() {
-        this.username = username
-        passwordHash = "{noop}!"
-        this.role = role
-        this.createdAt = createdAt
-        this.displayName = displayName
-        enabled = false
-    }
-
-    /** 일회용 초대 검증 후 암호화된 비밀번호를 설정하고 로그인을 활성화. */
-    fun activate(encodedPassword: String) {
-        passwordHash = encodedPassword
-        enabled = true
-    }
 }

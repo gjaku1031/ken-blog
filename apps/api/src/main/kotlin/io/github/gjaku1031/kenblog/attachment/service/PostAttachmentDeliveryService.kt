@@ -21,14 +21,14 @@ class PostAttachmentDeliveryService(
     private val storage: OciObjectStorage,
 ) {
     /**
-     * 현재 출간 글·연결·READY와 명시적 USER/ADMIN 역할을 확인해 이미지를 열음.
+     * 현재 출간 글·연결·READY와 비공개이면 명시적 관리자 역할을 확인해 이미지를 열음.
      * 권한이 없거나 어느 행이든 없으면 같은 404이며, 저장소 실패는 503임.
      * 이미 시작한 전송은 후속 공개 범위 변경으로 소급 취소되지 않음.
      */
     fun open(postId: Long, attachmentId: Long, authentication: Authentication?): PostAttachmentContent {
         if (postId <= 0 || attachmentId <= 0) throw notFound()
         val includePrivate = authentication?.isAuthenticated == true && authentication.authorities.any {
-            it.authority == "ROLE_USER" || it.authority == "ROLE_ADMIN"
+            it.authority == "ROLE_ADMIN"
         }
         val row = links.findReadable(postId, attachmentId, PostStatus.PUBLISHED, PostVisibility.PUBLIC,
             includePrivate, AttachmentStatus.READY) ?: throw notFound()

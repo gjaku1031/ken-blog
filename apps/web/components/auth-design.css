@@ -1,4 +1,4 @@
-/* 원본 로그인 카드의 400px 폭과 44px 입력 행을 아이디 인증 화면에 적용한다. */
+/* 원본 로그인 카드의 400px 폭과 44px 입력 행을 관리자 인증 화면에 적용한다. */
 .login-page .login-card { width: min(100%, 400px); padding: 35px 36px 36px; }
 .login-page .login-card h1 { margin: 0 0 14px; color: var(--text); font-size: 24px; font-weight: 700; }
 .login-page .login-card form { display: grid; }
@@ -7,8 +7,11 @@
 .login-page .login-card input::placeholder { color: var(--muted); }
 .login-page .login-card .primary-button { width: 100%; min-height: 44px; margin-top: 0; border-radius: 6px; font-size: 14px; font-weight: 500; }
 .login-page .login-card .form-error, .login-page .login-card .inline-error { margin: -4px 0 12px; }
-.login-page .login-card .invite-identity { margin: 0 0 18px; color: var(--text2); font-size: 14px; }
-.login-page .invite-card > p[role="status"], .login-page .invite-card > p[role="alert"] { color: var(--text2); font-size: 14px; }
+.login-page .login-card .login-code-help { margin: -9px 0 8px; color: var(--muted); font-size: 12px; line-height: 1.5; }
+.login-page .login-card .login-code-switch { justify-self: start; margin: 0 0 19px; padding: 2px 0; border: 0;
+  background: transparent; color: var(--accent-d); font: 13px var(--font-sans), sans-serif; cursor: pointer; }
+.login-page .login-card .login-code-switch:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.login-page .login-card .login-code-switch:disabled { color: var(--muted); cursor: default; }
 @media (max-width: 420px) {
   .login-page { padding-right: 0; padding-left: 0; }
   .login-page .login-card { width: 100%; padding: 36px; }

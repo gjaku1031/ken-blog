@@ -18,7 +18,7 @@ class PublicPostController(private val service: PublicPostService, private val n
         ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(navigation.backlinks(slug, page, authentication))
 
     /**
-     * 익명과 로그인 세션의 목록 필터를 서비스에 전달.
+     * 비관리자와 관리자 세션의 목록 필터를 서비스에 전달.
      *
      * @param page 0 기반 페이지 번호
      * @param size 페이지 크기
@@ -31,7 +31,7 @@ class PublicPostController(private val service: PublicPostService, private val n
         ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.list(page, size, authentication, categoryId, tag))
 
     /**
-     * 출간 slug를 조회해 허용 본문 또는 익명 잠금 상세를 반환.
+     * 출간 slug를 조회해 허용 본문 또는 비관리자 잠금 상세를 반환.
      *
      * @param slug 게시글 주소
      * @param authentication 현재 인증 또는 익명 토큰

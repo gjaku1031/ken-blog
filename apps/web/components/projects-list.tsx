@@ -54,7 +54,7 @@ function ProjectsInstance() {
           <span aria-hidden="true" />{projectStatusLabel(item.status)}</span>
           {formatProjectPeriod(item.startPeriod, item.endPeriod, item.status) && <span className="mono project-period">
             {formatProjectPeriod(item.startPeriod, item.endPeriod, item.status)}</span>}
-          {item.visibility === "PRIVATE" && <span className="project-private">비공개</span>}</div>
+          {item.visibility === "PRIVATE" && <span className="project-private">나만 보기</span>}</div>
         <h2><Link href={`/project/?slug=${encodeURIComponent(item.slug)}`}>{item.name}</Link></h2>
         <p>{item.overview}</p>
         {item.stackBadges.length > 0 && <div className="stack-badges">{item.stackBadges.map((badge) => <span key={badge.id}>

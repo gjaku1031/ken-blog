@@ -55,7 +55,7 @@ class PublicPostService(
      *
      * @param page 0 기반 페이지
      * @param size 1~100 페이지 크기
-     * @param authentication ROLE_USER·ROLE_ADMIN 여부를 검사할 현재 인증
+     * @param authentication ROLE_ADMIN 여부를 검사할 현재 인증
      * @param categoryId 선택한 분류와 자손을 모두 포함할 양수 ID
      * @param tag 정규화 후 정확히 일치시킬 선택 태그
      * @return 현재 권한의 목록·건수와 KST [LocalDate]의 [PublicPostPageResponse]
@@ -82,11 +82,11 @@ class PublicPostService(
     }
 
     /**
-     * 출간 slug를 조회하고 익명 PRIVATE이면 본문 열 없는 잠금 DTO만 반환.
+     * 출간 slug를 조회하고 비관리자의 PRIVATE 요청에는 본문 열 없는 잠금 DTO만 반환.
      * 캐시 활성 익명 PUBLIC은 먼저 본문 없는 DB 메타데이터로 현재 권한·해시를 확인함.
      *
      * @param slug 정규화할 게시글 주소
-     * @param authentication 명시적 USER·ADMIN 역할 검사 대상
+     * @param authentication 명시적 ADMIN 역할 검사 대상
      * @return 허용된 원문 또는 [PublicPostDetailResponse.locked]가 참인 잠금 상세
      * @throws PostNotFoundException 없는 slug·초안·잘못된 주소일 때
      */
@@ -131,16 +131,16 @@ class PublicPostService(
     /**
      * 읽기 권한이 있는 출간 글의 태그 사용 글 수만 SQL에서 집계.
      *
-     * @param authentication ROLE_USER·ROLE_ADMIN 여부를 검사할 현재 인증
+     * @param authentication ROLE_ADMIN 여부를 검사할 현재 인증
      * @return 사용량 내림차순·이름 오름차순의 [TagCountResponse] 목록
      */
     @Transactional(readOnly = true)
     fun tags(authentication: Authentication?): List<TagCountResponse> =
         tags.findPublicCounts(PostStatus.PUBLISHED, PostVisibility.PUBLIC, authentication.canReadPrivate())
 
-    /** @return 명시적인 읽기 권한 역할만 허용하며 익명 인증 토큰은 거부. */
+    /** @return 명시적인 관리자 역할만 비공개 읽기를 허용하며 익명 인증 토큰은 거부. */
     private fun Authentication?.canReadPrivate(): Boolean = this?.authorities?.any {
-        it.authority == "ROLE_USER" || it.authority == "ROLE_ADMIN"
+        it.authority == "ROLE_ADMIN"
     } == true
 
     /** @return 원문을 포함한 공개 상세; 최초 출간일은 KST 날짜로 변환. */
@@ -167,7 +167,7 @@ class PublicPostService(
             series = series(id, PostSection.TECH, categoryId, null, false),
             summary = summary, pinOrder = pinOrder, viewCount = viewCount, techSeriesOrder = techSeriesOrder)
 
-    /** @return 본문을 읽지 않은 익명 PRIVATE 잠금 상세. */
+    /** @return 본문을 읽지 않은 비관리자의 PRIVATE 잠금 상세. */
     private fun PrivatePostLockRow.lockedDetail(): PublicPostDetailResponse =
         PublicPostDetailResponse(id, title, slug, publishedAt.kstDate(), locked = true, body = null,
             category = null, tags = emptyList(), section = section, projectSlug = projectSlug,

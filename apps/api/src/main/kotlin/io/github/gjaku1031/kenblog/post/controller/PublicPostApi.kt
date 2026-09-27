@@ -21,7 +21,7 @@ import org.springframework.web.bind.annotation.RequestParam
 /**
  * 출간 글 목록과 직접 slug 조회의 공개 HTTP/OpenAPI 계약.
  *
- * 인증 세션이 있으면 ROLE_USER·ROLE_ADMIN으로 PRIVATE 열람을 허용함.
+ * 명시적 ROLE_ADMIN 세션에만 PRIVATE 열람을 허용함.
  */
 @RequestMapping("/api/v1/posts")
 interface PublicPostApi {
@@ -30,11 +30,11 @@ interface PublicPostApi {
      * @return no-store 역링크 한 페이지와 다음 페이지 여부
      */
     @GetMapping("/{slug}/backlinks", produces = [MediaType.APPLICATION_JSON_VALUE])
-    @Operation(summary = "출간 글 역링크", description = "현재 제목 대표 대상이 아니면 빈 목록; 익명은 PUBLIC 출처만 조회")
+    @Operation(summary = "출간 글 역링크", description = "현재 제목 대표 대상이 아니면 빈 목록; 비관리자는 PUBLIC 출처만 조회")
     @ApiResponses(value = [
         ApiResponse(responseCode = "200", content = [Content(schema = Schema(implementation = WikiBacklinkPageResponse::class))]),
         ApiResponse(responseCode = "400", description = "페이지 입력 오류", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
-        ApiResponse(responseCode = "404", description = "대상 없음·초안·익명 PRIVATE", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
+        ApiResponse(responseCode = "404", description = "대상 없음·초안·비관리자의 PRIVATE", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
         ApiResponse(responseCode = "503", description = "DB 장애", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
     ])
     fun backlinks(
@@ -54,7 +54,7 @@ interface PublicPostApi {
      * @return 캐시하지 않는 [PublicPostPageResponse]
      */
     @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE])
-    @Operation(summary = "출간 게시글 목록", description = "익명은 PUBLIC, USER·ADMIN은 PUBLIC과 PRIVATE를 조회")
+    @Operation(summary = "출간 게시글 목록", description = "비관리자는 PUBLIC만, ADMIN은 PUBLIC과 PRIVATE를 조회")
     @ApiResponses(value = [
         ApiResponse(responseCode = "200", content = [Content(schema = Schema(implementation = PublicPostPageResponse::class))]),
         ApiResponse(responseCode = "400", description = "페이지 입력 오류", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),
@@ -69,14 +69,14 @@ interface PublicPostApi {
     ): ResponseEntity<PublicPostPageResponse>
 
     /**
-     * 출간 글을 직접 조회하고 익명 PRIVATE이면 본문 없는 잠금 상세를 반환.
+     * 출간 글을 직접 조회하고 비관리자의 PRIVATE 요청에는 본문 없는 잠금 상세를 반환.
      *
      * @param slug 게시글 주소
      * @param authentication 현재 세션 인증 또는 익명 토큰
      * @return 캐시하지 않는 [PublicPostDetailResponse]
      */
     @GetMapping("/{slug}", produces = [MediaType.APPLICATION_JSON_VALUE])
-    @Operation(summary = "출간 게시글 직접 조회", description = "익명 PRIVATE에는 제목·출간일과 잠금 상태만 반환")
+    @Operation(summary = "출간 게시글 직접 조회", description = "비관리자의 PRIVATE 요청에는 제목·출간일과 잠금 상태만 반환")
     @ApiResponses(value = [
         ApiResponse(responseCode = "200", content = [Content(schema = Schema(implementation = PublicPostDetailResponse::class))]),
         ApiResponse(responseCode = "404", description = "없는 글 또는 초안", content = [Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE, schema = Schema(implementation = ProblemDetail::class))]),

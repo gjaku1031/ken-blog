@@ -27,11 +27,11 @@ interface WikiLinkApi {
      * `title=A%2CB&title=D`를 쉼표로 분할하지 않고 두 제목으로 조회.
      *
      * @param request 원래 인코딩 길이와 반복 title 값을 제공하는 Servlet 요청
-     * @param authentication PRIVATE 열람에 사용할 USER·ADMIN 세션 또는 익명 인증
+     * @param authentication ROLE_ADMIN일 때만 PRIVATE 열람에 사용할 현재 인증
      * @return 캐시하지 않는 입력 순서의 [WikiLinkResolveResponse]
      */
     @GetMapping("/resolve", produces = [MediaType.APPLICATION_JSON_VALUE])
-    @Operation(summary = "위키 링크 제목 대상 조회", description = "출간 글만 선택하며 익명 PRIVATE는 대상 메타데이터 없는 LOCKED로 반환")
+    @Operation(summary = "위키 링크 제목 대상 조회", description = "출간 글만 선택하며 비관리자의 PRIVATE는 대상 메타데이터 없는 LOCKED로 반환")
     @Parameters(value = [
         Parameter(name = "title", `in` = ParameterIn.QUERY, required = true,
             style = ParameterStyle.FORM, explode = Explode.TRUE,

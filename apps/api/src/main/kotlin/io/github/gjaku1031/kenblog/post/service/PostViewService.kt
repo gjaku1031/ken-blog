@@ -48,9 +48,9 @@ class PostViewService(private val posts: PostRepository) {
     /** @return 로그인한 관리자인지 여부. */
     private fun Authentication?.isAdmin(): Boolean = this?.authorities?.any { it.authority == "ROLE_ADMIN" } == true
 
-    /** @return 명시적 USER/ADMIN만 사설 글을 열람할 수 있는지 여부. */
+    /** @return 명시적 관리자만 비공개 글을 열람할 수 있는지 여부. */
     private fun Authentication?.canReadPrivate(): Boolean = this?.authorities?.any {
-        it.authority == "ROLE_USER" || it.authority == "ROLE_ADMIN"
+        it.authority == "ROLE_ADMIN"
     } == true
 
     private companion object {

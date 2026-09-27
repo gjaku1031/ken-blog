@@ -102,7 +102,7 @@ export function WikiLink({ title, label, raw, interactive = true }: {
   if (!result) return <span className="wiki-link wiki-unverified"
     title={context.pending ? "글 링크 확인 중" : "글 링크를 확인하지 못했습니다"}>{label}</span>;
   if (result.status === "LOCKED") return <span className="wiki-link wiki-locked"
-    title="비공개 글 · 로그인하면 볼 수 있습니다" aria-label={`${label}, 비공개 글, 로그인하면 볼 수 있습니다`}>{label}</span>;
+    title="관리자만 볼 수 있는 글" aria-label={`${label}, 관리자만 볼 수 있는 글`}>{label}</span>;
   if (result.status === "MISSING") return interactive && auth.status === "authenticated" && auth.user?.role === "ADMIN" ?
     <Link className="wiki-link wiki-missing" href={`/write/?title=${encodeURIComponent(title)}`}
       title="아직 없는 글 · 새 글로 작성" aria-label={`${label}, 아직 없는 글, 새 글로 작성`}>{label}</Link> :

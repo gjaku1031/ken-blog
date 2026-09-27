@@ -124,13 +124,13 @@ class CategoryService(private val categories: CategoryRepository, private val po
      * 모든 빈 분류를 보존하고 현재 역할로 읽을 수 있는 글만 직접/하위 건수에 반영.
      *
      * @param admin 관리자 집계이면 초안까지 포함
-     * @param authentication 공개 조회의 USER·ADMIN 권한 검사 대상
+     * @param authentication 공개 조회의 ADMIN 권한 검사 대상
      * @return 대분류부터 이어지는 [CategoryTreeResponse] 목록
      */
     @Transactional(readOnly = true)
     fun tree(admin: Boolean, authentication: Authentication?): List<CategoryTreeResponse> {
         val all = categories.findAllByOrderByDepthAscSortOrderAscIdAsc()
-        val includePrivate = authentication?.authorities?.any { it.authority == "ROLE_USER" || it.authority == "ROLE_ADMIN" } == true
+        val includePrivate = authentication?.authorities?.any { it.authority == "ROLE_ADMIN" } == true
         val direct = posts.countByCategoryForRole(admin, PostStatus.PUBLISHED, PostVisibility.PUBLIC, includePrivate)
             .associate { it.categoryId to it.count }
         val children = all.groupBy { it.parentId }

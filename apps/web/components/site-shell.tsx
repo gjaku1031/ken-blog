@@ -158,7 +158,7 @@ export function SiteShell({ children }: { children: ReactNode }) {
             <span className="account-avatar" title={auth.user.username} aria-label={`${auth.user.username} 계정`}>
               {auth.user.username.slice(0, 1).toUpperCase()}</span>
             <button type="button" className="header-text-button" onClick={() => void handleLogout()}>로그아웃</button>
-          </> : <Link href="/login/" className="header-text-button">로그인</Link>}
+          </> : <Link href="/login/" className="header-text-button" aria-label="관리자 로그인">관리자</Link>}
         </div>
       </div>
       {logoutError && <p className="header-alert" role="alert">{logoutError}</p>}
