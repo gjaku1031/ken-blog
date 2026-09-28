@@ -1,5 +1,8 @@
 import { Suspense } from "react";
 import { ProjectReader } from "@/components/project-reader";
+import { noIndexMetadata } from "@/lib/seo";
+
+export const metadata = noIndexMetadata;
 
 /** 정적 출력에서 프로젝트·문서 쿼리를 브라우저가 검증해 여는 경로. */
 export default function ProjectPage() {

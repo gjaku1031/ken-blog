@@ -8,6 +8,7 @@ import { parseCoursePage, parseCourseSummary, type CourseSummary } from "@/lib/n
 import { useAuth } from "./auth-provider";
 import { FieldChoice } from "./field-choice";
 import { InlineSummary } from "./inline-summary";
+import { publicCoursePath } from "@/lib/public-route";
 
 /** 같은 분야의 과목을 원본 응답 순서대로 묶어 화면에 표시한다. {@link groupCourses} */
 function groupCourses(items: CourseSummary[]): Array<{ field: string; courses: CourseSummary[] }> {
@@ -16,12 +17,12 @@ function groupCourses(items: CourseSummary[]): Array<{ field: string; courses: C
   return [...groups].map(([field, courses]) => ({ field, courses }));
 }
 
-/** 과목 목록과 관리자 새 과목 폼을 실제 Notes API에 연결한다. {@link NotesInstance} */
-function NotesInstance() {
+/** 공개 과목으로 시작해 권한별 Notes API와 관리자 새 과목 폼을 연결한다. */
+function NotesInstance({ initialItems }: { initialItems: CourseSummary[] }) {
   const auth = useAuth();
   const router = useRouter();
-  const [items, setItems] = useState<CourseSummary[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [items, setItems] = useState<CourseSummary[]>(initialItems);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [retry, setRetry] = useState(0);
   const [creating, setCreating] = useState(false);
@@ -59,7 +60,7 @@ function NotesInstance() {
       const created = parseCourseSummary(await auth.adminWrite("POST", "/api/v1/admin/courses", {
         ...form, field: form.field.trim(), name: form.name.trim(), status: "IN_PROGRESS",
       }));
-      router.push(`/course/?slug=${encodeURIComponent(created.slug)}`);
+      router.push(publicCoursePath(created.slug));
     } catch (failure) { setError(apiFailureMessage(failure)); }
     finally { setSaving(false); }
   }
@@ -84,7 +85,7 @@ function NotesInstance() {
     {!loading && !error && items.length === 0 && <div className="message-card card">아직 등록된 과목이 없습니다.</div>}
     {groups.map((group) => <section className="notes-group" key={group.field}><h2>{group.field}</h2>
       <div className="notes-grid">{group.courses.map((course) => <article className="course-card card hv" key={course.id}>
-        <h3><Link href={`/course/?slug=${encodeURIComponent(course.slug)}`}>{course.name}</Link></h3>
+        <h3><Link href={publicCoursePath(course.slug)}>{course.name}</Link></h3>
         {course.description && <p><InlineSummary text={course.description} /></p>}
         <div className="course-card-meta">{course.chapterCount}회차 · {course.status === "COMPLETED" ? "완결" : "진행 중"}
           {course.latestPublishedDate && <> · <time dateTime={course.latestPublishedDate}>{course.latestPublishedDate.replaceAll("-", ".")}</time></>}</div>
@@ -93,7 +94,7 @@ function NotesInstance() {
 }
 
 /** 인증 세대가 바뀌면 이전 비공개 과목을 즉시 폐기한다. {@link NotesList} */
-export function NotesList() {
+export function NotesList({ initialItems }: { initialItems: CourseSummary[] }) {
   const auth = useAuth();
-  return <NotesInstance key={auth.epoch} />;
+  return <NotesInstance key={auth.epoch} initialItems={initialItems} />;
 }

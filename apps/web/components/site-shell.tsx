@@ -116,7 +116,9 @@ export function SiteShell({ children }: { children: ReactNode }) {
   /** 클라이언트 이동과 Pages basePath를 모두 고려해 현재 메뉴를 표시한다. {@link isCurrent} */
   function isCurrent(path: string) {
     if (path === "/" && currentPath === "/search/") return true;
-    if (path === "/projects/" && currentPath === "/project/") return true;
+    if (path === "/tech/" && currentPath.startsWith("/post/")) return true;
+    if (path === "/projects/" && currentPath.startsWith("/project/")) return true;
+    if (path === "/notes/" && currentPath.startsWith("/course/")) return true;
     return currentPath === path || (path !== "/" && currentPath.startsWith(path));
   }
 

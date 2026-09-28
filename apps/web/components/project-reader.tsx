@@ -16,6 +16,7 @@ import type { ReadingDocument } from "@/lib/reading-document";
 import { PublicAnalytics } from "./public-analytics";
 import { publicImageUrl } from "@/lib/profile";
 import { readPinnedIds } from "@/lib/feed";
+import { publicPostPath, publicProjectPath } from "@/lib/public-route";
 
 type ProjectState = { status: "loading" | "ready" | "error"; detail: ProjectDetail | null; error: string };
 type DocumentState = { slug: string; status: "loading" | "ready" | "error"; post: PostDetail | null; error: string };
@@ -26,17 +27,25 @@ function ProjectBody({ body, postId, reading }: { body: string; postId: number; 
   </>;
 }
 
-/** slug 수명 동안 부모와 왼쪽 탐색을 유지하고 선택 문서만 별도 요청으로 교체한다. {@link ProjectShell} */
-function ProjectShell({ slug, documentSlug }: { slug: string; documentSlug: string | null }) {
+/** 생성된 프로젝트 본문을 유지하며 부모와 선택 문서를 현재 세션으로 다시 확인한다. {@link ProjectShell} */
+function ProjectShell({ slug, documentSlug, initialDetail, initialDocument }: {
+  slug: string; documentSlug: string | null; initialDetail?: ProjectDetail; initialDocument?: PostDetail;
+}) {
   const auth = useAuth();
   const router = useRouter();
-  const [state, setState] = useState<ProjectState>({ status: "loading", detail: null, error: "" });
+  const [state, setState] = useState<ProjectState>(() => initialDetail ?
+    { status: "ready", detail: initialDetail, error: "" } : { status: "loading", detail: null, error: "" });
   const [retry, setRetry] = useState(0);
-  const [document, setDocument] = useState<DocumentState>({ slug: "", status: "loading", post: null, error: "" });
+  const [verified, setVerified] = useState(false);
+  const [document, setDocument] = useState<DocumentState>(() => initialDocument && documentSlug ?
+    { slug: documentSlug, status: "ready", post: initialDocument, error: "" } :
+    { slug: "", status: "loading", post: null, error: "" });
   const [documentRetry, setDocumentRetry] = useState(0);
-  const [related, setRelated] = useState<RelatedTech[]>([]);
+  const [documentVerified, setDocumentVerified] = useState(false);
+  const [related, setRelated] = useState<RelatedTech[]>(initialDetail && !initialDetail.locked ? initialDetail.relatedTech : []);
   const [relatedPage, setRelatedPage] = useState(0);
-  const [relatedTotalPages, setRelatedTotalPages] = useState(1);
+  const [relatedTotalPages, setRelatedTotalPages] = useState(initialDetail && !initialDetail.locked ?
+    Math.ceil(initialDetail.relatedTechCount / 5) : 1);
   const [relatedLoading, setRelatedLoading] = useState(false);
   const [relatedError, setRelatedError] = useState("");
   const [confirmDelete, setConfirmDelete] = useState<"project" | "document" | null>(null);
@@ -51,6 +60,7 @@ function ProjectShell({ slug, documentSlug }: { slug: string; documentSlug: stri
   const reading = useMemo(() => {
     const detail = state.detail;
     if (state.status !== "ready" || !detail || detail.locked) return null;
+    if (documentSlug && (detail.documents.find((item) => item.slug === documentSlug)?.locked ?? true)) return null;
     const source = documentSlug ? document.slug === documentSlug && document.status === "ready" && !document.post?.locked ?
       document.post?.body : null : detail.home.body;
     return source ? buildReadingDocument(source) : null;
@@ -64,7 +74,7 @@ function ProjectShell({ slug, documentSlug }: { slug: string; documentSlug: stri
     setOrderBusy(true); setAdminError("");
     try { await auth.adminWrite("DELETE", documentId ? `/api/v1/admin/projects/${projectId}/documents/${documentId}` :
       `/api/v1/admin/projects/${projectId}`); setConfirmDelete(null);
-      if (documentId) { router.replace(`/project/?slug=${encodeURIComponent(slug)}`); setRetry((value) => value + 1); }
+      if (documentId) { router.replace(publicProjectPath(slug)); setRetry((value) => value + 1); }
       else router.replace("/projects/"); }
     catch (failure) { setAdminError(apiFailureMessage(failure)); }
     finally { setOrderBusy(false); }
@@ -87,16 +97,15 @@ function ProjectShell({ slug, documentSlug }: { slug: string; documentSlug: stri
   useEffect(() => {
     const id = documentSlug ? document.slug === documentSlug && document.status === "ready" && !document.post?.locked ?
       document.post?.id : null : state.status === "ready" && state.detail && !state.detail.locked ? state.detail.home.id : null;
-    if (!id || viewed.current.has(id)) return;
+    if (!(documentSlug ? documentVerified : verified) || !id || viewed.current.has(id)) return;
     viewed.current.add(id);
     void recordPostView(id).then((count) => setViewCounts((current) => ({ ...current, [id]: count }))).catch(() => undefined);
-  }, [documentSlug, document, state]);
+  }, [documentSlug, document, state, verified, documentVerified]);
 
   useEffect(() => {
     if (auth.status === "checking") return;
     const controller = new AbortController();
     let live = true;
-    setState({ status: "loading", detail: null, error: "" });
     void (async () => {
       try {
         const credentials = await auth.readCredentials(controller.signal);
@@ -104,13 +113,13 @@ function ProjectShell({ slug, documentSlug }: { slug: string; documentSlug: stri
           credentials, controller.signal));
         if (!live) return;
         if (detail.project.slug !== slug) throw new ApiFailure("response");
-        setState({ status: "ready", detail, error: "" });
+        setState({ status: "ready", detail, error: "" }); setVerified(true);
         if (!detail.locked) { setRelated(detail.relatedTech); setRelatedPage(0);
           setRelatedTotalPages(Math.ceil(detail.relatedTechCount / 5)); }
       } catch (failure) {
         if (!live || controller.signal.aborted) return;
         if (failure instanceof ApiFailure && failure.status === 401) void auth.refresh();
-        setState({ status: "error", detail: null, error: apiFailureMessage(failure) });
+        setState({ status: "error", detail: null, error: apiFailureMessage(failure) }); setVerified(false);
       }
     })();
     return () => { live = false; controller.abort(); };
@@ -120,7 +129,8 @@ function ProjectShell({ slug, documentSlug }: { slug: string; documentSlug: stri
     if (!documentSlug || state.status !== "ready" || !state.detail || state.detail.locked) return;
     const controller = new AbortController();
     let live = true;
-    setDocument({ slug: documentSlug, status: "loading", post: null, error: "" });
+    setDocument((current) => current.slug === documentSlug && current.status === "ready" ? current :
+      { slug: documentSlug, status: "loading", post: null, error: "" });
     void (async () => {
       try {
         const credentials = await auth.readCredentials(controller.signal);
@@ -129,11 +139,12 @@ function ProjectShell({ slug, documentSlug }: { slug: string; documentSlug: stri
         const post = parsePostDetail(value);
         if (post.section !== "PROJECT_DOC" || post.projectSlug !== slug || post.slug !== documentSlug)
           throw new ApiFailure("response");
-        if (live) setDocument({ slug: documentSlug, status: "ready", post, error: "" });
+        if (live) { setDocument({ slug: documentSlug, status: "ready", post, error: "" }); setDocumentVerified(true); }
       } catch (failure) {
         if (!live || controller.signal.aborted) return;
         if (failure instanceof ApiFailure && failure.status === 401) void auth.refresh();
         setDocument({ slug: documentSlug, status: "error", post: null, error: apiFailureMessage(failure) });
+        setDocumentVerified(false);
       }
     })();
     return () => { live = false; controller.abort(); };
@@ -176,10 +187,12 @@ function ProjectShell({ slug, documentSlug }: { slug: string; documentSlug: stri
     <div className="locked-post card project-locked"><span className="private-label">관리자만</span>
       <h1>{detail.project.name}</h1><p>이 프로젝트는 관리자만 볼 수 있습니다.</p></div></main>;
 
-  const visibleDocument = documentSlug && document.slug === documentSlug && document.status === "ready" ? document.post : null;
   const documents = [...detail.documents].sort((left, right) => left.order - right.order || left.id - right.id);
   const selectedIndex = documentSlug ? documents.findIndex((item) => item.slug === documentSlug) : -1;
-  const toDocument = (item: ProjectDocument) => `/project/?slug=${encodeURIComponent(slug)}&doc=${encodeURIComponent(item.slug)}`;
+  const visibleDocument = documentSlug && selectedIndex >= 0 &&
+    (!documents[selectedIndex].locked || document.post?.locked) &&
+    document.slug === documentSlug && document.status === "ready" ? document.post : null;
+  const toDocument = (item: ProjectDocument) => publicProjectPath(slug, item.slug);
 
   return <main id="main-content" className="page-container project-page project-layout">
     {detail.project.visibility === "PUBLIC" && (!documentSlug || visibleDocument && !visibleDocument.locked &&
@@ -188,7 +201,7 @@ function ProjectShell({ slug, documentSlug }: { slug: string; documentSlug: stri
     <aside className="project-sidebar" aria-label="프로젝트 탐색">
       <Link href="/projects/" className="back-link">← Projects</Link>
       <h2>{detail.project.name}</h2>
-      <nav aria-label="프로젝트 문서"><Link href={`/project/?slug=${encodeURIComponent(slug)}`}
+      <nav aria-label="프로젝트 문서"><Link href={publicProjectPath(slug)}
         aria-current={!documentSlug ? "page" : undefined}>대문</Link>
         <ol>{documents.map((item, index) => <li key={item.id}><Link href={toDocument(item)}
           aria-current={documentSlug === item.slug ? "page" : undefined}>{index + 1}. {item.title}
@@ -197,7 +210,7 @@ function ProjectShell({ slug, documentSlug }: { slug: string; documentSlug: stri
         href={`/write/?section=project-doc&projectId=${detail.project.id}`}>+ 문서 추가</Link>}
       {adminError && <p role="alert" className="inline-error">{adminError}</p>}
       {detail.relatedTechCount > 0 && <section className="project-related"><h3>관련 글 · Tech {detail.relatedTechCount}</h3>
-        <ul>{related.map((item) => <li key={item.id}><Link href={`/post/?slug=${encodeURIComponent(item.slug)}`}>
+        <ul>{related.map((item) => <li key={item.id}><Link href={publicPostPath(item.slug)}>
           {item.title}</Link><time>{item.publishedDate.slice(2).replaceAll("-", ".")}</time></li>)}</ul>
         {relatedPage + 1 < relatedTotalPages && <button type="button" className="small-button" disabled={relatedLoading}
           onClick={() => void moreRelated()}>{relatedLoading ? "불러오는 중…" : `${detail.relatedTechCount - related.length}개 더 보기`}</button>}
@@ -232,7 +245,7 @@ function ProjectShell({ slug, documentSlug }: { slug: string; documentSlug: stri
           <button type="button" className="small-button danger-button" disabled={orderBusy}
             onClick={() => void remove(detail.project.id)}>삭제</button></div>}
       </> : <>
-        <div className="project-overline">Projects · <Link href={`/project/?slug=${encodeURIComponent(slug)}`}>
+        <div className="project-overline">Projects · <Link href={publicProjectPath(slug)}>
           {detail.project.name}</Link>{visibleDocument?.publishedDate ? ` · ${visibleDocument.publishedDate.replaceAll("-", ".")}` : ""}
           {visibleDocument && !visibleDocument.locked ? ` · ${Math.max(1, Math.round((visibleDocument.body ?? "").length / 500))}분` : ""}
           {visibleDocument && viewCounts[visibleDocument.id] !== undefined ? ` · 조회 ${viewCounts[visibleDocument.id].toLocaleString("ko-KR")}` : ""}
@@ -270,17 +283,31 @@ function ProjectShell({ slug, documentSlug }: { slug: string; documentSlug: stri
   </main>;
 }
 
-/** 알 수 없는 쿼리·중복 값은 요청 전 거부하고 세션/부모별 화면을 분리한다. {@link ProjectReader} */
+/** 기존 쿼리의 중복·형식을 검사하고 생성된 공개 주소가 있으면 이동한다. {@link ProjectReader} */
 export function ProjectReader() {
   const params = useSearchParams();
   const auth = useAuth();
+  const router = useRouter();
   const slugValues = params.getAll("slug");
   const documentValues = params.getAll("doc");
   const valid = slugValues.length === 1 && validProjectSlug(slugValues[0]) && documentValues.length <= 1 &&
     (!documentValues.length || validProjectSlug(documentValues[0])) &&
     [...params.keys()].every((key) => key === "slug" || key === "doc");
+  useEffect(() => {
+    if (!valid) return;
+    const canonical = publicProjectPath(slugValues[0], documentValues[0]);
+    if (!canonical.startsWith("/project/?")) router.replace(`${canonical}${window.location.hash}`);
+  }, [router, valid, slugValues[0], documentValues[0]]);
   if (!valid) return <main id="main-content" className="page-container project-page"><h1>프로젝트 주소를 확인해 주세요</h1>
     <Link href="/projects/">Projects 목록으로 돌아가기</Link></main>;
   return <ProjectShell key={`${auth.epoch}:${slugValues[0]}`} slug={slugValues[0]}
     documentSlug={documentValues[0] ?? null} />;
+}
+
+/** 생성된 프로젝트 대문 또는 문서를 서버 HTML부터 표시하고 현재 권한으로 다시 조회한다. {@link StaticProjectReader} */
+export function StaticProjectReader({ detail, document }: { detail: ProjectDetail; document?: PostDetail }) {
+  const auth = useAuth();
+  const slug = detail.project.slug;
+  return <ProjectShell key={`${auth.epoch}:${slug}:${document?.slug ?? ""}`} slug={slug}
+    documentSlug={document?.slug ?? null} initialDetail={detail} initialDocument={document} />;
 }

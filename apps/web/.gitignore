@@ -2,3 +2,5 @@ node_modules/
 .next/
 next-env.d.ts
 *.tsbuildinfo
+.generated/
+public/content-version.json

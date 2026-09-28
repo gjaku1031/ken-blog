@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { ApiFailure, apiFailureMessage, apiJson, parseCategories, parseTags, postDestination,
   type CategoryNode, type TagCount } from "@/lib/api";
 import { parseFeedPage, readPinnedIds, type FeedItem, type FeedPage } from "@/lib/feed";
@@ -120,12 +120,15 @@ export function FeedCard({ post, mode, categoryId, tag, sort, categories = [], p
   </article>;
 }
 
-/** 이전 탐색 범위를 즉시 복원하고 진입할 때마다 갱신하며 다음 10개를 이어 붙인다. {@link FeedInstance} */
-function FeedInstance({ mode, categoryId, tag, sort }: { mode: FeedMode; categoryId: number | null; tag: string | null; sort: FeedSort }) {
+/** 공개 첫 화면이나 이전 탐색 범위를 즉시 표시하고 권한별 새 응답과 다음 페이지를 갱신한다. */
+function FeedInstance({ mode, categoryId, tag, sort, initialItems }: { mode: FeedMode; categoryId: number | null;
+  tag: string | null; sort: FeedSort; initialItems: FeedItem[] }) {
   const auth = useAuth();
   const cacheKey = `${auth.epoch}:${mode}:${categoryId}:${tag}:${sort}`;
-  const [state, setState] = useState<FeedState>(() => feedCache.get(cacheKey) ?? { status: "loading", items: [], page: 0,
-    total: 0, pages: 0, categories: [], tags: [], error: "" });
+  const [state, setState] = useState<FeedState>(() => feedCache.get(cacheKey) ?? {
+    status: initialItems.length || categoryId === null && !tag && sort === "new" ? "ready" : "loading",
+    items: initialItems, page: 0, total: initialItems.length, pages: 1, categories: [], tags: [], error: "",
+  });
   const [loadingMore, setLoadingMore] = useState(false);
   const [moreError, setMoreError] = useState("");
   const [retry, setRetry] = useState(0);
@@ -147,7 +150,7 @@ function FeedInstance({ mode, categoryId, tag, sort }: { mode: FeedMode; categor
     const controller = new AbortController();
     const cached = feedCache.get(cacheKey);
     const lastCachedPage = cached?.status === "ready" ? cached.page : 0;
-    if (retry > 0 || !cached) setState((current) => ({ ...current, status: "loading", items: [], error: "" }));
+    if (retry > 0 || !cached && initialItems.length === 0) setState((current) => ({ ...current, status: "loading", items: [], error: "" }));
     loadingLock.current = true;
     void (async () => {
       try {
@@ -173,7 +176,7 @@ function FeedInstance({ mode, categoryId, tag, sort }: { mode: FeedMode; categor
       } finally { if (!controller.signal.aborted) loadingLock.current = false; }
     })();
     return () => controller.abort();
-  }, [auth.status, auth.epoch, auth.readCredentials, auth.expire, query, retry, cacheKey]);
+  }, [auth.status, auth.epoch, auth.readCredentials, auth.expire, query, retry, cacheKey, initialItems]);
 
   useEffect(() => {
     if (state.status !== "ready") return;
@@ -274,20 +277,33 @@ function FeedInstance({ mode, categoryId, tag, sort }: { mode: FeedMode; categor
     mode={mode} sort={sort} /></div>;
 }
 
-/** URL 필터와 권한 세대가 달라지면 이전 PRIVATE 피드 응답을 버린다. {@link PostFeed} */
-export function PostFeed({ mode }: { mode: FeedMode }) {
+type FeedQuery = { categoryId: number | null; tag: string | null; sort: FeedSort; invalid: boolean };
+
+/** 필터 읽기만 Suspense 안에서 수행해 기본 공개 목록의 정적 HTML을 유지한다. */
+function FeedQueryWatcher({ onChange }: { onChange: (query: FeedQuery) => void }) {
   const params = useSearchParams();
+  const rawQuery = params.toString();
+  useEffect(() => {
+    const query = new URLSearchParams(rawQuery);
+    const rawCategory = query.get("categoryId");
+    const categoryId = rawCategory === null ? null : Number(rawCategory);
+    const rawSort = query.get("sort");
+    onChange({ categoryId, tag: query.get("tag"), sort: rawSort === "pin" ? "pin" : "new",
+      invalid: [...query.keys()].some((key) => !["categoryId", "tag", "sort"].includes(key)) ||
+        rawCategory !== null && (!Number.isSafeInteger(categoryId) || categoryId === null || categoryId <= 0) ||
+        rawSort !== null && rawSort !== "new" && rawSort !== "pin" });
+  }, [rawQuery, onChange]);
+  return null;
+}
+
+/** URL 필터와 권한 세대가 달라지면 이전 PRIVATE 피드 응답을 버린다. {@link PostFeed} */
+export function PostFeed({ mode, initialItems }: { mode: FeedMode; initialItems: FeedItem[] }) {
   const auth = useAuth();
-  const rawCategory = params.get("categoryId");
-  const categoryId = rawCategory === null ? null : Number(rawCategory);
-  const tag = params.get("tag");
-  const rawSort = params.get("sort");
-  const sort = rawSort === "pin" ? "pin" : "new";
-  if ([...params.keys()].some((key) => !["categoryId", "tag", "sort"].includes(key)) ||
-    rawCategory !== null && (!Number.isSafeInteger(categoryId) || categoryId === null || categoryId <= 0) ||
-    rawSort !== null && rawSort !== "new" && rawSort !== "pin") {
-    return <div className="message-card card" role="alert">피드 주소가 올바르지 않습니다.</div>;
-  }
-  return <FeedInstance key={`${auth.epoch}:${mode}:${categoryId}:${tag}:${sort}`} mode={mode}
-    categoryId={categoryId} tag={tag} sort={sort} />;
+  const [filter, setFilter] = useState<FeedQuery>({ categoryId: null, tag: null, sort: "new", invalid: false });
+  const { categoryId, tag, sort } = filter;
+  return <><Suspense fallback={null}><FeedQueryWatcher onChange={setFilter} /></Suspense>
+    {filter.invalid ? <div className="message-card card" role="alert">피드 주소가 올바르지 않습니다.</div> :
+      <FeedInstance key={`${auth.epoch}:${mode}:${categoryId}:${tag}:${sort}`} mode={mode}
+        categoryId={categoryId} tag={tag} sort={sort}
+        initialItems={categoryId === null && !tag && sort === "new" ? initialItems : []} />}</>;
 }

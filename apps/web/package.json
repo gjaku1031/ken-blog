@@ -7,9 +7,13 @@
     "node": ">=24.0.0 <25"
   },
   "scripts": {
+    "predev": "node scripts/public-content.mjs --init",
     "dev": "next dev",
+    "prebuild": "node scripts/public-content.mjs --capture",
     "build": "next build",
+    "postbuild": "node scripts/public-content.mjs --clean",
     "test": "node --test test/*.test.mjs",
+    "pretypecheck": "node scripts/public-content.mjs --init",
     "typecheck": "next typegen && tsc --noEmit"
   },
   "dependencies": {

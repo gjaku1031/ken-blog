@@ -12,6 +12,7 @@ import { TableOfContents } from "./table-of-contents";
 import { PostBacklinks } from "./post-backlinks";
 import { PublicAnalytics } from "./public-analytics";
 import { readPinnedIds } from "@/lib/feed";
+import { publicPostPath, publicProjectPath } from "@/lib/public-route";
 
 type DetailState = { status: "loading" | "ready" | "error"; post: PostDetail | null; privatePost: boolean; error: string };
 const seriesPageSize = 6;
@@ -21,12 +22,15 @@ function readingMinutes(body: string): number {
   return Math.max(1, Math.round(body.length / 500));
 }
 
-/** 같은 세션 세대의 실제 공개 상세와 익명 접근 범위를 함께 확인한다. {@link ReaderInstance} */
-function ReaderInstance({ slug }: { slug: string }) {
+/** 생성된 공개 글을 먼저 그린 뒤 같은 세션 세대의 실제 상세와 익명 접근 범위를 확인한다. {@link ReaderInstance} */
+function ReaderInstance({ slug, initialPost }: { slug: string; initialPost?: PostDetail }) {
   const { status, user, readCredentials, refresh, adminWrite } = useAuth();
   const router = useRouter();
-  const [state, setState] = useState<DetailState>({ status: "loading", post: null, privatePost: false, error: "" });
+  const [state, setState] = useState<DetailState>(() => initialPost ?
+    { status: "ready", post: initialPost, privatePost: false, error: "" } :
+    { status: "loading", post: null, privatePost: false, error: "" });
   const [retry, setRetry] = useState(0);
+  const [verified, setVerified] = useState(false);
   const viewed = useRef<number | null>(null);
   const [viewCount, setViewCount] = useState<number | null>(null);
   const [pinState, setPinState] = useState<boolean | null>(null);
@@ -60,13 +64,14 @@ function ReaderInstance({ slug }: { slug: string }) {
           const guest = parsePostDetail(await apiJson<unknown>(path, "omit", controller.signal));
           privatePost = guest.locked;
         }
-        if (live) setState({ status: "ready", post, privatePost, error: "" });
+        if (live) { setState({ status: "ready", post, privatePost, error: "" }); setVerified(true); }
         if (post.category && !post.locked) void apiJson<unknown>("/api/v1/categories", credentials, controller.signal)
           .then(parseCategories).then((nodes) => { if (live) setCategoryLabel(categoryLabelPath(nodes, post.category!.id)); })
           .catch(() => undefined);
       } catch (error) {
         if (error instanceof ApiFailure && error.status === 401) void refresh();
-        if (live) setState({ status: "error", post: null, privatePost: false, error: apiFailureMessage(error) });
+        if (live) { setState({ status: "error", post: null, privatePost: false, error: apiFailureMessage(error) });
+          setVerified(false); }
       }
     })();
     return () => { live = false; controller.abort(); };
@@ -74,10 +79,10 @@ function ReaderInstance({ slug }: { slug: string }) {
 
   useEffect(() => {
     const post = state.post;
-    if (state.status !== "ready" || !post || post.locked || viewed.current === post.id) return;
+    if (!verified || state.status !== "ready" || !post || post.locked || viewed.current === post.id) return;
     viewed.current = post.id;
     void recordPostView(post.id).then(setViewCount).catch(() => undefined);
-  }, [state]);
+  }, [state, verified]);
 
   /** 서버의 전체 핀 순서를 사용해 현재 글의 고정 여부를 변경한다. {@link togglePin} */
   async function togglePin(post: PostDetail) {
@@ -133,7 +138,7 @@ function ReaderInstance({ slug }: { slug: string }) {
         {state.privatePost && <span className="private-label">· 나만 보기</span>}</div>
       <h1>{state.post.title}</h1>
       {!state.post.locked && state.post.relatedProject && <p className="post-related-project">
-        <span>[연관 프로젝트]</span> <Link href={`/project/?slug=${encodeURIComponent(state.post.relatedProject.slug)}`}>
+        <span>[연관 프로젝트]</span> <Link href={publicProjectPath(state.post.relatedProject.slug)}>
           {state.post.relatedProject.name}</Link></p>}
       <div className="detail-meta"><time className="mono" dateTime={state.post.publishedDate}>{state.post.publishedDate.replaceAll("-", ".")}</time>
         {!state.post.locked && <span>· {readingMinutes(state.post.body ?? "")}분</span>}
@@ -160,9 +165,9 @@ function ReaderInstance({ slug }: { slug: string }) {
             <SafeMarkdown body={state.post.body ?? ""} source={{ kind: "post", postId: state.post.id }} reading={reading ?? undefined} />
             <PostBacklinks slug={slug} />
             {series && <nav className="series-previous-next" aria-label="시리즈 이전 글과 다음 글">
-              {previous ? <Link href={`/post/?slug=${encodeURIComponent(previous.slug)}`}><span>← 이전 글 · {series.position - 1}편</span>
+              {previous ? <Link href={publicPostPath(previous.slug)}><span>← 이전 글 · {series.position - 1}편</span>
                 <strong>{previous.title}</strong></Link> : <span />}
-              {next ? <Link href={`/post/?slug=${encodeURIComponent(next.slug)}`}><span>다음 글 · {series.position + 1}편 →</span>
+              {next ? <Link href={publicPostPath(next.slug)}><span>다음 글 · {series.position + 1}편 →</span>
                 <strong>{next.title}</strong></Link> : <span className="series-end">시리즈의 마지막 글입니다</span>}
             </nav>}
           </div>
@@ -170,7 +175,7 @@ function ReaderInstance({ slug }: { slug: string }) {
             {reading && <TableOfContents items={reading.toc} />}
             {series && <nav className="series-nav" aria-label="시리즈 글 목록"><h2>시리즈 · {state.post.category?.name ?? "Tech"}
               <span>{series.position}/{series.items.length}</span></h2>
-              <ol>{visibleSeries?.map((item) => <li key={item.id}><Link href={`/post/?slug=${encodeURIComponent(item.slug)}`}
+              <ol>{visibleSeries?.map((item) => <li key={item.id}><Link href={publicPostPath(item.slug)}
                 title={item.title}
                 aria-current={item.id === state.post?.id ? "page" : undefined}><span className="series-number">{item.order}</span>
                 <span>{item.title}</span></Link></li>)}</ol>
@@ -187,13 +192,26 @@ function ReaderInstance({ slug }: { slug: string }) {
   </main>;
 }
 
-/** 정적 `/post/` 경로의 slug 쿼리를 검증하고 세션 변경 시 상세 데이터를 폐기한다. {@link PostReader} */
+/** 기존 `/post/` 쿼리를 검증하고 생성된 공개 주소가 있으면 이동한다. {@link PostReader} */
 export function PostReader() {
   const slug = useSearchParams().get("slug") ?? "";
   const auth = useAuth();
+  const router = useRouter();
+  useEffect(() => {
+    if (!slug) return;
+    const canonical = publicPostPath(slug);
+    if (!canonical.startsWith("/post/?"))
+      router.replace(`${canonical}${window.location.hash}`);
+  }, [router, slug]);
   if (!slug || slug.length > 160 || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
     return <main id="main-content" className="post-page page-container"><h1>글 주소를 확인해 주세요</h1>
       <Link href="/tech/">Tech 글 목록으로 돌아가기</Link></main>;
   }
   return <ReaderInstance key={`${auth.epoch}:${slug}`} slug={slug} />;
+}
+
+/** 생성된 공개 글 본문을 HTML과 첫 hydration에 동일하게 제공하고 현재 세션으로 다시 조회한다. {@link StaticPostReader} */
+export function StaticPostReader({ post }: { post: PostDetail }) {
+  const auth = useAuth();
+  return <ReaderInstance key={`${auth.epoch}:${post.slug}`} slug={post.slug} initialPost={post} />;
 }

@@ -7,6 +7,7 @@ import { ApiFailure, apiFailureMessage, apiJson } from "@/lib/api";
 import { formatProjectPeriod, parseProjectOrder, parseProjectPage, projectStatusLabel, type ProjectSummary } from "@/lib/projects";
 import { useAuth } from "./auth-provider";
 import { publicImageUrl } from "@/lib/profile";
+import { publicProjectPath } from "@/lib/public-route";
 
 type NativeDrag = { kind: "native"; id: number };
 type HandleDrag = { kind: "handle"; id: number; pointerId: number; handle: HTMLButtonElement;
@@ -32,15 +33,15 @@ function fullOrder(baseIds: number[], before: ProjectSummary[], after: ProjectSu
   return baseIds.map((id) => visible.has(id) ? after[cursor++].id : id);
 }
 
-/** 역할별 출간 프로젝트를 모두 읽고 관리자 카드 그리드에서 놓는 즉시 전체 순서를 저장한다. */
-function ProjectsInstance() {
+/** 공개 카드로 시작해 역할별 프로젝트를 다시 읽고 관리자 순서 변경을 저장한다. */
+function ProjectsInstance({ initialItems }: { initialItems: ProjectSummary[] }) {
   const auth = useAuth();
   const admin = auth.status === "authenticated" && auth.user?.role === "ADMIN";
-  const [items, setItems] = useState<ProjectSummary[]>([]);
+  const [items, setItems] = useState<ProjectSummary[]>(initialItems);
   const [page, setPage] = useState(0);
   const [loaded, setLoaded] = useState(-1);
   const [totalPages, setTotalPages] = useState(0);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [retry, setRetry] = useState(0);
   const [baseIds, setBaseIds] = useState<number[] | null>(null);
@@ -341,7 +342,7 @@ function ProjectsInstance() {
               <circle cx="6" cy="14" r="1.3" /><circle cx="12" cy="14" r="1.3" />
             </svg>
           </button>}</div>
-        <h2><Link href={`/project/?slug=${encodeURIComponent(item.slug)}`}>{item.name}</Link></h2>
+        <h2><Link href={publicProjectPath(item.slug)}>{item.name}</Link></h2>
         <p>{item.overview}</p>
         {item.stackBadges.length > 0 && <div className="stack-badges">{item.stackBadges.map((badge) => <span key={badge.id}>
           {publicImageUrl(badge.imageUrl) && <Image src={publicImageUrl(badge.imageUrl)!} alt="" width={22} height={22} unoptimized />}
@@ -359,7 +360,7 @@ function ProjectsInstance() {
 }
 
 /** 세션이 바뀌면 이전 PRIVATE 카드와 대기 응답을 함께 폐기한다. {@link ProjectsInstance} */
-export function ProjectsList() {
+export function ProjectsList({ initialItems }: { initialItems: ProjectSummary[] }) {
   const auth = useAuth();
-  return <ProjectsInstance key={auth.epoch} />;
+  return <ProjectsInstance key={auth.epoch} initialItems={initialItems} />;
 }

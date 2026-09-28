@@ -9,11 +9,15 @@ import "@fontsource/ibm-plex-mono/latin-500.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "ken.blog",
+  metadataBase: new URL("https://gjaku1031.github.io"),
+  title: { default: "ken.blog", template: "%s | ken.blog" },
   description: "Tech 글과 프로젝트 기록을 읽는 ken.blog",
+  openGraph: { type: "website", title: "ken.blog", description: "Tech 글과 프로젝트 기록을 읽는 ken.blog",
+    url: "https://gjaku1031.github.io/ken-blog/", siteName: "ken.blog", locale: "ko_KR" },
+  twitter: { card: "summary", title: "ken.blog", description: "Tech 글과 프로젝트 기록을 읽는 ken.blog" },
 };
 
-/** 정적 경로에 글꼴·세션 상태·공통 셸을 적용하고 데이터 요청은 브라우저에 맡긴다. */
+/** 정적 경로에 글꼴·세션 상태·공통 셸을 적용하고 공개 원문은 각 페이지에서 렌더링. */
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <html lang="ko">

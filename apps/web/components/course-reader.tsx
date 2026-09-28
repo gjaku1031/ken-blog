@@ -14,15 +14,19 @@ import { PublicAnalytics } from "./public-analytics";
 import { readPinnedIds } from "@/lib/feed";
 import { FieldChoice } from "./field-choice";
 import { InlineSummary } from "./inline-summary";
+import { publicCoursePath } from "@/lib/public-route";
 
-/** 공개 과목을 유지하며 회차 선택 때 오른쪽 원문만 교체한다. {@link CourseShell} */
-function CourseShell({ slug, chapterSlug }: { slug: string; chapterSlug: string | null }) {
+/** 생성된 과목·회차를 먼저 그리고 현재 세션의 소개와 원문으로 갱신한다. {@link CourseShell} */
+function CourseShell({ slug, chapterSlug, initialDetail, initialChapter }: {
+  slug: string; chapterSlug: string | null; initialDetail?: CourseDetail; initialChapter?: PostDetail;
+}) {
   const auth = useAuth();
   const router = useRouter();
-  const [detail, setDetail] = useState<CourseDetail | null>(null);
-  const [chapter, setChapter] = useState<PostDetail | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [detail, setDetail] = useState<CourseDetail | null>(initialDetail ?? null);
+  const [chapterValue, setChapter] = useState<PostDetail | null>(initialChapter ?? null);
+  const [loading, setLoading] = useState(!initialDetail);
   const [chapterLoading, setChapterLoading] = useState(false);
+  const [chapterVerified, setChapterVerified] = useState(false);
   const [error, setError] = useState("");
   const [chapterError, setChapterError] = useState("");
   const [retry, setRetry] = useState(0);
@@ -36,19 +40,22 @@ function CourseShell({ slug, chapterSlug }: { slug: string; chapterSlug: string 
   const [viewCounts, setViewCounts] = useState<Record<number, number>>({});
   const [form, setForm] = useState({ field: "", name: "", description: "", status: "IN_PROGRESS" as "IN_PROGRESS" | "COMPLETED" });
   const [fieldOptions, setFieldOptions] = useState<string[]>([]);
+  const chapterRef = detail?.chapters.find((item) => item.slug === chapterSlug);
+  const chapter = chapterValue && chapterValue.slug === chapterSlug && chapterRef &&
+    (!chapterRef.locked || chapterValue.locked) ? chapterValue : null;
   const reading = useMemo(() => chapter && !chapter.locked ? buildReadingDocument(chapter.body ?? "") : null, [chapter]);
   const chapters = detail?.chapters ?? [];
   const index = chapterSlug ? chapters.findIndex((item) => item.slug === chapterSlug) : -1;
-  const href = (item: ChapterSummary) => `/course/?slug=${encodeURIComponent(slug)}&chapter=${encodeURIComponent(item.slug)}`;
+  const href = (item: ChapterSummary) => publicCoursePath(slug, item.slug);
 
   useEffect(() => { setDeleting(false); setEditing(false); setMessage(""); }, [chapterSlug]);
 
   useEffect(() => {
-    if (!chapter || chapter.locked || viewed.current.has(chapter.id)) return;
+    if (!chapterVerified || !chapter || chapter.locked || viewed.current.has(chapter.id)) return;
     viewed.current.add(chapter.id);
     void recordPostView(chapter.id).then((count) => setViewCounts((current) => ({ ...current, [chapter.id]: count })))
       .catch(() => undefined);
-  }, [chapter]);
+  }, [chapter, chapterVerified]);
 
   /** 마지막 저장본에서 편집 입력을 다시 만들고 임시 취소 상태를 지운다. {@link cancelEdit} */
   function cancelEdit() {
@@ -60,7 +67,7 @@ function CourseShell({ slug, chapterSlug }: { slug: string; chapterSlug: string 
   useEffect(() => {
     if (auth.status === "checking") return;
     const controller = new AbortController();
-    setLoading(true); setError(""); setDetail(null);
+    setError("");
     void (async () => {
       try {
         const credentials = await auth.readCredentials(controller.signal);
@@ -76,16 +83,18 @@ function CourseShell({ slug, chapterSlug }: { slug: string; chapterSlug: string 
           }).catch(() => undefined);
         }
       } catch (failure) {
-        if (!controller.signal.aborted) { setLoading(false); setError(apiFailureMessage(failure)); }
+        if (!controller.signal.aborted) { setDetail(null); setLoading(false); setError(apiFailureMessage(failure)); }
       }
     })();
     return () => controller.abort();
   }, [auth.status, auth.epoch, auth.readCredentials, slug, retry]);
 
   useEffect(() => {
-    if (!chapterSlug || !detail || auth.status === "checking") { setChapter(null); return; }
+    if (auth.status === "checking") return;
+    if (!chapterSlug || !detail) { setChapter(null); return; }
     const controller = new AbortController();
-    setChapter(null); setChapterLoading(true); setChapterError("");
+    if (chapter?.slug !== chapterSlug) { setChapter(null); setChapterLoading(true); }
+    setChapterError("");
     void (async () => {
       try {
         const credentials = await auth.readCredentials(controller.signal);
@@ -94,8 +103,10 @@ function CourseShell({ slug, chapterSlug }: { slug: string; chapterSlug: string 
         if (!response || typeof response !== "object" || !("chapter" in response)) throw new ApiFailure("response");
         const post = parsePostDetail(response.chapter);
         if (post.section !== "NOTE_CHAPTER" || post.courseSlug !== slug || post.slug !== chapterSlug) throw new ApiFailure("response");
-        if (!controller.signal.aborted) { setChapter(post); setChapterLoading(false); }
-      } catch (failure) { if (!controller.signal.aborted) { setChapterError(apiFailureMessage(failure)); setChapterLoading(false); } }
+        if (!controller.signal.aborted) { setChapter(post); setChapterLoading(false); setChapterVerified(true); }
+      } catch (failure) { if (!controller.signal.aborted) {
+        setChapter(null); setChapterError(apiFailureMessage(failure)); setChapterLoading(false);
+        setChapterVerified(false); } }
     })();
     return () => controller.abort();
   }, [auth.status, auth.epoch, auth.readCredentials, slug, chapterSlug, detail, retry]);
@@ -110,7 +121,7 @@ function CourseShell({ slug, chapterSlug }: { slug: string; chapterSlug: string 
     try {
       const result = parseCourseSummary(await auth.adminWrite("PUT", `/api/v1/admin/courses/${detail.course.id}`, form));
       setEditing(false);
-      if (result.slug !== slug) router.replace(`/course/?slug=${encodeURIComponent(result.slug)}`);
+      if (result.slug !== slug) router.replace(publicCoursePath(result.slug));
       else setRetry((value) => value + 1);
     } catch (failure) { setMessage(apiFailureMessage(failure)); }
     finally { setSaving(false); }
@@ -130,7 +141,7 @@ function CourseShell({ slug, chapterSlug }: { slug: string; chapterSlug: string 
     setSaving(true); setMessage("");
     try {
       await auth.adminWrite("DELETE", `/api/v1/admin/courses/${detail.course.id}/chapters/${chapter.id}`);
-      router.replace(`/course/?slug=${encodeURIComponent(slug)}`); setRetry((value) => value + 1);
+      router.replace(publicCoursePath(slug)); setRetry((value) => value + 1);
     } catch (failure) { setMessage(apiFailureMessage(failure)); }
     finally { setSaving(false); }
   }
@@ -151,12 +162,13 @@ function CourseShell({ slug, chapterSlug }: { slug: string; chapterSlug: string 
 
   if (loading) return <main id="main-content" className="page-container course-page" role="status">과목을 불러오고 있습니다…</main>;
   if (error || !detail) return <main id="main-content" className="page-container course-page"><Link href="/notes/">← Notes</Link>
-    <p role="alert">{error}</p><button type="button" className="small-button" onClick={() => setRetry((value) => value + 1)}>다시 시도</button></main>;
+    <p role="alert">{error}</p><button type="button" className="small-button" onClick={() => {
+      setLoading(true); setRetry((value) => value + 1); }}>다시 시도</button></main>;
 
   if (chapter?.locked) return <main id="main-content" className="page-container post-page locked-chapter-page">
-    <Link href={`/course/?slug=${encodeURIComponent(slug)}`} className="back-link">← {detail.course.name}</Link>
+    <Link href={publicCoursePath(slug)} className="back-link">← {detail.course.name}</Link>
     <div className="post-overline"><Link href="/notes/">Notes</Link><span>·</span>
-      <Link href={`/course/?slug=${encodeURIComponent(slug)}`}>{detail.course.field} › {detail.course.name}</Link>
+      <Link href={publicCoursePath(slug)}>{detail.course.field} › {detail.course.name}</Link>
       <span className="private-label">· 관리자만</span></div>
     <h1>{chapter.title}</h1><div className="detail-meta"><time dateTime={chapter.publishedDate}>
       {chapter.publishedDate.replaceAll("-", ".")}</time></div>
@@ -169,7 +181,7 @@ function CourseShell({ slug, chapterSlug }: { slug: string; chapterSlug: string 
       `/course/${slug}/chapters/${chapterSlug}` : `/course/${slug}`} />}
     <aside className="project-sidebar course-sidebar" aria-label="과목 탐색"><Link href="/notes/" className="back-link">← Notes</Link>
       <h2>{detail.course.field} › {detail.course.name}</h2>
-      <nav aria-label="과목 회차"><Link href={`/course/?slug=${encodeURIComponent(slug)}`} aria-current={!chapterSlug ? "page" : undefined}>과목 소개</Link>
+      <nav aria-label="과목 회차"><Link href={publicCoursePath(slug)} aria-current={!chapterSlug ? "page" : undefined}>과목 소개</Link>
         <ol>{chapters.map((item, position) => <li key={item.id}><Link href={href(item)}
           aria-current={chapterSlug === item.slug ? "page" : undefined}>{position + 1}강 · {item.title}
           {item.visibility === "PRIVATE" && <span> · 나만 보기</span>}</Link></li>)}</ol></nav>
@@ -208,9 +220,9 @@ function CourseShell({ slug, chapterSlug }: { slug: string; chapterSlug: string 
         </Link></li>)}</ol> : <p>아직 출간된 회차가 없습니다.</p>}</div>
       </>}
       {chapterSlug && <>
-        {chapterLoading && <p role="status">회차를 불러오고 있습니다…</p>}
+        {(chapterLoading || !chapter && !chapterError) && <p role="status">회차를 불러오고 있습니다…</p>}
         {chapterError && <p role="alert">{chapterError}</p>}
-        {chapter && <><div className="project-overline">Notes · <Link href={`/course/?slug=${encodeURIComponent(slug)}`}>
+        {chapter && <><div className="project-overline">Notes · <Link href={publicCoursePath(slug)}>
           {detail.course.name}</Link>{!chapter.locked && index >= 0 ? ` · ${index + 1}강 / ${chapters.length}` : ""} · {chapter.publishedDate.replaceAll("-", ".")}
           {!chapter.locked ? ` · ${Math.max(1, Math.round((chapter.body ?? "").length / 500))}분` : ""}
           {!chapter.locked && (viewCounts[chapter.id] ?? chapter.viewCount) != null ?
@@ -240,16 +252,30 @@ function CourseShell({ slug, chapterSlug }: { slug: string; chapterSlug: string 
   </main>;
 }
 
-/** 정적 과목 주소의 중복·형식을 검사하고 권한 변경마다 화면을 분리한다. {@link CourseReader} */
+/** 기존 과목 쿼리의 중복·형식을 검사하고 생성된 공개 주소가 있으면 이동한다. {@link CourseReader} */
 export function CourseReader() {
   const params = useSearchParams();
   const auth = useAuth();
+  const router = useRouter();
   const slugs = params.getAll("slug");
   const chapters = params.getAll("chapter");
   const valid = slugs.length === 1 && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slugs[0]) && chapters.length <= 1 &&
     (!chapters.length || /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(chapters[0])) &&
     [...params.keys()].every((key) => key === "slug" || key === "chapter");
+  useEffect(() => {
+    if (!valid) return;
+    const canonical = publicCoursePath(slugs[0], chapters[0]);
+    if (!canonical.startsWith("/course/?")) router.replace(`${canonical}${window.location.hash}`);
+  }, [router, valid, slugs[0], chapters[0]]);
   if (!valid) return <main id="main-content" className="page-container course-page"><h1>과목 주소를 확인해 주세요</h1>
     <Link href="/notes/">Notes 목록</Link></main>;
-  return <CourseShell key={`${auth.epoch}:${slugs[0]}`} slug={slugs[0]} chapterSlug={chapters[0] ?? null} />;
+  return <CourseShell key={`${auth.epoch}:${slugs[0]}`} slug={slugs[0]}
+    chapterSlug={chapters[0] ?? null} />;
+}
+
+/** 생성된 공개 과목·회차를 첫 HTML부터 표시하고 현재 세션의 최신 응답으로 갱신한다. {@link StaticCourseReader} */
+export function StaticCourseReader({ detail, chapter }: { detail: CourseDetail; chapter?: PostDetail }) {
+  const auth = useAuth();
+  return <CourseShell key={`${auth.epoch}:${detail.course.slug}:${chapter?.slug ?? ""}`} slug={detail.course.slug}
+    chapterSlug={chapter?.slug ?? null} initialDetail={detail} initialChapter={chapter} />;
 }

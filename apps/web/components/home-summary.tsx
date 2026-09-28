@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { apiFailureMessage, apiJson } from "@/lib/api";
 import { parseActivity, type Activity } from "@/lib/feed";
@@ -86,11 +86,18 @@ function ActivityCard({ activity }: { activity: Activity }) {
   </section>;
 }
 
-/** 홈의 저장된 소개와 권한별 글쓰기 기록을 독립적으로 읽는다. {@link SummaryInstance} */
-function SummaryInstance() {
-  const auth = useAuth();
+/** URL 필터가 생기면 소개를 숨기고 URL이 초기화되면 다시 표시한다. */
+function SummaryFilter({ onChange }: { onChange: (filtered: boolean) => void }) {
   const params = useSearchParams();
-  const [profile, setProfile] = useState<HomeProfile | null>(null);
+  useEffect(() => { onChange(params.has("categoryId") || params.has("tag")); }, [params, onChange]);
+  return null;
+}
+
+/** 홈의 저장된 소개와 권한별 글쓰기 기록을 독립적으로 읽는다. {@link SummaryInstance} */
+function SummaryInstance({ initialProfile }: { initialProfile: HomeProfile | null }) {
+  const auth = useAuth();
+  const [filtered, setFiltered] = useState(false);
+  const [profile, setProfile] = useState<HomeProfile | null>(initialProfile);
   const [activity, setActivity] = useState<Activity | null>(null);
   const [profileError, setProfileError] = useState("");
   const [activityError, setActivityError] = useState("");
@@ -116,17 +123,17 @@ function SummaryInstance() {
     return () => controller.abort();
   }, [auth.status, auth.epoch, auth.readCredentials, retry]);
 
-  if (params.has("categoryId") || params.has("tag")) return null;
-  return <div className="home-summary">{profile ? <ProfileCard profile={profile} /> : <div className="profile-card card message-card"
+  return <><Suspense fallback={null}><SummaryFilter onChange={setFiltered} /></Suspense>{!filtered &&
+    <div className="home-summary">{profile ? <ProfileCard profile={profile} /> : <div className="profile-card card message-card"
     role={profileError ? "alert" : "status"}>{profileError || "소개를 불러오고 있습니다…"}</div>}
     {activity ? <ActivityCard activity={activity} /> : <div className="activity-card card message-card"
       role={activityError ? "alert" : "status"}>{activityError || "글쓰기 기록을 불러오고 있습니다…"}</div>}
     {(profileError || activityError) && <button type="button" className="small-button" onClick={() => setRetry((value) => value + 1)}>다시 시도</button>}
-  </div>;
+  </div>}</>;
 }
 
 /** 인증 세대가 바뀌면 이전 권한의 {@link ActivityCard}를 즉시 폐기한다. */
-export function HomeSummary() {
+export function HomeSummary({ initialProfile }: { initialProfile: HomeProfile | null }) {
   const auth = useAuth();
-  return <SummaryInstance key={`${auth.epoch}:${auth.status}`} />;
+  return <SummaryInstance key={`${auth.epoch}:${auth.status}`} initialProfile={initialProfile} />;
 }

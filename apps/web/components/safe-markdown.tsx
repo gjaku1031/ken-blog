@@ -1,7 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { remarkSafeDetails } from "../lib/markdown-details";
@@ -110,9 +110,8 @@ function AnnotationDocument({ body, source, model, children }: { body: string; s
   model: ReadingDocument; children: ReactNode }) {
   const auth = useAuth();
   const pathname = usePathname();
-  const query = useSearchParams();
   const sourceId = source?.kind === "post" ? `post:${source.postId}` : source?.kind ?? "none";
-  const identity = `${pathname}?${query.toString()}\u0000${auth.epoch}\u0000${auth.status}\u0000${auth.user?.username ?? ""}\u0000${sourceId}\u0000${body}`;
+  const identity = `${pathname}\u0000${auth.epoch}\u0000${auth.status}\u0000${auth.user?.username ?? ""}\u0000${sourceId}\u0000${body}`;
   return <WikiLinkReader key={identity} titles={model.wiki.titles}>
     <AnnotationReader items={model.items} wikiLimits={model.wiki.annotationLimits}>{children}</AnnotationReader>
   </WikiLinkReader>;

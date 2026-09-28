@@ -110,14 +110,30 @@ jobs:
           import urllib.request
 
           html = open('home.html', encoding='utf-8').read()
-          assert '<title>ken.blog</title>' in html
+          assert '<title>ken.blog | Tech·Projects·Notes</title>' in html
+          assert '<link rel="canonical" href="https://gjaku1031.github.io/ken-blog/"' in html
+          assert '<meta property="og:url" content="https://gjaku1031.github.io/ken-blog/"' in html
+          assert '<meta property="og:title" content="ken.blog | Tech·Projects·Notes"' in html
           assert '아키텍처 도면' not in html
+          list_titles = {'tech/': 'Tech | ken.blog', 'projects/': 'Projects | ken.blog',
+                         'notes/': 'Notes | ken.blog'}
+          list_descriptions = {'tech/': 'ken.blog의 기술 글 목록',
+                               'projects/': 'ken.blog의 프로젝트 기록과 문서',
+                               'notes/': 'ken.blog의 과목과 회차별 학습 기록'}
           for route in ('tech/', 'post/', 'login/', 'projects/', 'project/', 'notes/', 'course/',
                         'search/', 'write/', 'admin/', 'admin/posts/', 'admin/drafts/',
                         'admin/categories/', 'admin/profile/'):
               with urllib.request.urlopen('http://127.0.0.1:18080/ken-blog/' + route) as response:
                   assert response.status == 200
-                  assert '<title>ken.blog</title>' in response.read().decode('utf-8')
+                  body = response.read().decode('utf-8')
+                  assert '<title>' in body
+                  if route in list_titles:
+                      assert f'<title>{list_titles[route]}</title>' in body
+                      assert f'<link rel="canonical" href="https://gjaku1031.github.io/ken-blog/{route}"' in body
+                      assert f'<meta property="og:url" content="https://gjaku1031.github.io/ken-blog/{route}"' in body
+                      assert f'<meta property="og:title" content="{list_titles[route]}"' in body
+                      assert f'<meta property="og:description" content="{list_descriptions[route]}"' in body
+                      assert f'<meta name="twitter:title" content="{list_titles[route]}"' in body
           for removed in ('invite/', 'admin/members/', 'admin/stacks/'):
               try:
                   urllib.request.urlopen('http://127.0.0.1:18080/ken-blog/' + removed)

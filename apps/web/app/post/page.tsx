@@ -1,5 +1,8 @@
 import { Suspense } from "react";
 import { PostReader } from "@/components/post-reader";
+import { noIndexMetadata } from "@/lib/seo";
+
+export const metadata = noIndexMetadata;
 
 /** 빌드 시 글을 요청하지 않고 브라우저 쿼리의 slug로 상세를 여는 정적 경로. */
 export default function PostPage() {

@@ -1,3 +1,5 @@
+import { publicCoursePath, publicPostPath, publicProjectPath } from "./public-route";
+
 /** Spring 공개 응답의 분류 참조. */
 export type CategoryRef = { id: number; path: string; name: string; depth: number };
 
@@ -183,14 +185,13 @@ function destination(value: Record<string, unknown>): PostDestination {
 
 /** Post의 실제 소속에 따라 정적 Pages 주소를 선택한다. */
 export function postDestination(value: PostDestination): string {
-  if (value.section === "TECH") return `/post/?slug=${encodeURIComponent(value.slug)}`;
+  if (value.section === "TECH") return publicPostPath(value.slug);
   if (value.section === "NOTE_CHAPTER") {
     if (!value.courseSlug) throw new ApiFailure("response");
-    return `/course/?slug=${encodeURIComponent(value.courseSlug)}&chapter=${encodeURIComponent(value.slug)}`;
+    return publicCoursePath(value.courseSlug, value.slug);
   }
   if (!value.projectSlug) throw new ApiFailure("response");
-  return `/project/?slug=${encodeURIComponent(value.projectSlug)}` +
-    (value.section === "PROJECT_DOC" ? `&doc=${encodeURIComponent(value.slug)}` : "");
+  return publicProjectPath(value.projectSlug, value.section === "PROJECT_DOC" ? value.slug : undefined);
 }
 
 /** 조회 요청의 순서와 PRIVATE 필드 부재를 포함해 위키 응답을 엄격히 확인한다. */
