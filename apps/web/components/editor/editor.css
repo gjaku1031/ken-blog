@@ -50,8 +50,12 @@
 .editor-block.editor-block-flash { animation: editor-block-arrived 750ms ease-out; }
 @keyframes editor-block-arrived { 0% { outline: 3px solid var(--accent); outline-offset: 2px; } 100% { outline: 3px solid transparent; outline-offset: 2px; } }
 
+.block-input-wrap textarea.editor-autosize-text { min-width: 0; resize: none; overflow: hidden; overflow-wrap: anywhere; }
+.editor-block:is(.editor-ul, .editor-ol, .editor-todo, .editor-quote) .block-input-wrap textarea.editor-autosize-text {
+  padding-inline-start: calc(10px + var(--editor-prefix-width)); text-indent: calc(0px - var(--editor-prefix-width));
+}
 .editor-block.editor-h1 .block-input-wrap textarea, .editor-block.editor-h2 .block-input-wrap textarea,
-.editor-block.editor-h3 .block-input-wrap textarea { field-sizing: content; min-height: 1.7em; font-weight: 700; line-height: 1.7; resize: none; overflow: hidden; }
+.editor-block.editor-h3 .block-input-wrap textarea { min-height: 1.7em; font-weight: 700; line-height: 1.7; resize: none; overflow: hidden; }
 .editor-block.editor-h1 .block-input-wrap textarea { font-size: var(--heading-1-size); }
 .editor-block.editor-h2 .block-input-wrap textarea { font-size: var(--heading-2-size); }
 .editor-block.editor-h3 .block-input-wrap textarea { font-size: var(--heading-3-size); }

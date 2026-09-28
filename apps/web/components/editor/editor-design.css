@@ -86,6 +86,7 @@ main.write-page.editor-design-page {
 .editor-design-page .block-controls button:not(.drag-handle) { display: none; }
 .editor-design-page .block-input-wrap { display: block; }
 .editor-design-page .block-input-wrap textarea { width: 100%; min-height: 34px; border: 0; border-radius: 0; padding: 2px 0; background: transparent; color: var(--text); font-size: 17px; line-height: 1.7; resize: none; overflow: hidden; outline: none; }
+.editor-design-page .editor-block:is(.editor-ul, .editor-ol, .editor-todo, .editor-quote) .block-input-wrap textarea.editor-autosize-text { padding-inline-start: var(--editor-prefix-width); }
 .editor-design-page .block-input-wrap textarea::placeholder, .editor-empty-placeholder { color: var(--muted2); }
 .editor-design-page .editor-preview { min-height: 34px; padding: 2px 0; }
 .editor-design-page .editor-preview .markdown-body { font-size: 17px; line-height: 1.7; }
@@ -111,7 +112,7 @@ main.write-page.editor-design-page {
 .editor-design-page .editor-table-block { border: 0; padding: 0; }
 .editor-design-page .editor-table-block button { border: 0; background: transparent; }
 .editor-design-page .editor-table-scroll th, .editor-design-page .editor-table-scroll td { min-width: 110px; }
-.editor-design-page .editor-table-scroll input { height: 39px; }
+.editor-design-page .editor-table-scroll textarea { min-height: 39px; padding: 7px 9px; }
 .editor-design-page .editor-table-scroll table { min-width: 100% !important; }
 .editor-design-page .editor-table-scroll .editor-table-tool-heading, .editor-design-page .editor-table-scroll .editor-table-row-tool { width: 30px; min-width: 30px; border: 0; background: transparent; font-size: 0; }
 .editor-design-page .editor-table-scroll .editor-table-row-tool button { min-width: 24px; padding: 0; color: var(--muted2); font-size: 16px; }

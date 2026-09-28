@@ -52,12 +52,13 @@ export function LoginForm() {
   const [password, setPassword] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
   const [useRecoveryCode, setUseRecoveryCode] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
   const codeInput = useRef<HTMLInputElement | null>(null);
   const [busy, setBusy] = useState(false);
   const pending = useRef(false);
   const [error, setError] = useState("");
 
-  /** 검증값을 브라우저 저장소에 남기지 않고 서버 세션이 성립할 때만 이동한다. */
+  /** 인증값을 브라우저 저장소에 남기지 않고 로그인 기억 선택을 서버에 보내며 세션 성립 때만 이동한다. */
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (pending.current) return;
@@ -70,7 +71,7 @@ export function LoginForm() {
     setError("");
     setBusy(true);
     try {
-      await auth.login(password, code);
+      await auth.login(password, code, rememberMe);
       router.replace(destination);
     } catch (failure) {
       if (failure instanceof ApiFailure && failure.status === 401) setError("로그인 정보를 확인해 주세요.");
@@ -107,6 +108,11 @@ export function LoginForm() {
           {useRecoveryCode && <p id="verification-help" className="login-code-help">보관한 일회용 복구 코드를 입력하세요.</p>}
           <button type="button" className="login-code-switch" onClick={switchCodeMode} disabled={busy}
             aria-controls="verification-code">{useRecoveryCode ? "인증 앱 코드 사용" : "복구 코드 사용"}</button>
+          <label className="login-remember">
+            <input type="checkbox" name="rememberMe" checked={rememberMe}
+              onChange={(event) => setRememberMe(event.target.checked)} disabled={busy} />
+            <span>로그인 기억하기</span><span className="login-remember-duration">(30일)</span>
+          </label>
           {error && <p className="form-error" role="alert">{error}</p>}
           <button className="primary-button" type="submit" disabled={busy}>{busy ? "확인 중…" : "로그인"}</button>
         </form>}

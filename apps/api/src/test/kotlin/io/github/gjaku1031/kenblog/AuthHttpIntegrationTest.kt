@@ -114,7 +114,7 @@ class AuthHttpIntegrationTest {
 
         val sessionId = decodeSessionId(after)
         assertEquals(1, sessionCount(sessionId))
-        assertEquals(Duration.ofMinutes(30), sessions.findById(sessionId)?.maxInactiveInterval)
+        assertEquals(Duration.ofHours(8), sessions.findById(sessionId)?.maxInactiveInterval)
         val serialized = jdbc.query(
             "SELECT a.ATTRIBUTE_BYTES FROM SPRING_SESSION_ATTRIBUTES a JOIN SPRING_SESSION s ON a.SESSION_PRIMARY_ID = s.PRIMARY_ID WHERE s.SESSION_ID = ?",
             { rs, _ -> rs.getBytes(1) }, sessionId,

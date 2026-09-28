@@ -12,6 +12,7 @@ import io.swagger.v3.oas.annotations.media.Schema
  *
  * @property password 공백을 포함한 원문 비밀번호
  * @property verificationCode 6자리 TOTP 또는 32자리 복구 코드; 누락은 인증 실패
+ * @property rememberMe 30일 비활동 만료와 30일 브라우저 쿠키 사용 여부; 생략하면 일반 로그인
  */
 @JsonIgnoreProperties(value = ["username"])
 class LoginRequest(
@@ -19,6 +20,7 @@ class LoginRequest(
     val password: String,
     @field:Schema(accessMode = Schema.AccessMode.WRITE_ONLY, description = "Google Authenticator 6자리 코드 또는 복구 코드")
     val verificationCode: String? = null,
+    val rememberMe: Boolean = false,
 ) {
     /**
      * 실수로 요청 객체를 로깅해도 비밀번호가 출력되지 않게 고정 문자열을 반환.

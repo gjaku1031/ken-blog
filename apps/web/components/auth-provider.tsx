@@ -6,7 +6,7 @@ import { uploadAttachment, type UploadedAttachment } from "@/lib/attachments";
 
 type Session = { status: "checking" | "guest" | "authenticated" | "error"; user: CurrentUser | null; epoch: number };
 type AuthContextValue = Session & {
-  login: (password: string, verificationCode: string) => Promise<void>;
+  login: (password: string, verificationCode: string, rememberMe: boolean) => Promise<void>;
   logout: () => Promise<void>;
   refresh: () => Promise<void>;
   expire: () => void;
@@ -66,15 +66,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => { window.removeEventListener("focus", onFocus); document.removeEventListener("visibilitychange", onVisible); };
   }, [refresh]);
 
-  /** 비밀번호와 일회용 코드를 함께 검증한 뒤 회전된 CSRF를 받아 서버 세션을 확정한다. */
-  const login = useCallback(async (password: string, verificationCode: string) => {
+  /** 비밀번호·일회용 코드·로그인 기억 선택을 보내고 회전된 CSRF로 서버 세션을 확정한다. */
+  const login = useCallback(async (password: string, verificationCode: string, rememberMe: boolean) => {
     const ticket = ++sequence.current;
     csrf.current = null;
     commit("guest", null);
     try {
       const before = await fetchCsrf();
       const response = await apiRequest("/api/v1/auth/login", "include", {
-        method: "POST", body: { password, verificationCode }, csrf: before,
+        method: "POST", body: { password, verificationCode, rememberMe }, csrf: before,
       });
       const user = parseCurrentUser(response);
       const after = await fetchCsrf();

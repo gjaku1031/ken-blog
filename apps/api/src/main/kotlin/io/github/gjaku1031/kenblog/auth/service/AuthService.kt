@@ -35,7 +35,7 @@ class AuthService(
      * 비밀번호는 공백을 제거하지 않음. BCrypt의 72 UTF-8 바이트 한도 초과나 빈
      * 입력은 동일한 인증 오류로 처리하며 저장된 해시를 응답에 노출하지 않음.
      *
-     * @param body 원문 비밀번호·일회용 검증 코드
+     * @param body 원문 비밀번호·일회용 검증 코드·로그인 기억 여부
      * @param request 기존 CSRF 세션을 가진 HTTP 요청
      * @param response 새 세션 ID 쿠키를 담을 HTTP 응답
      * @return 현재 사용자 이름과 [UserRole]
@@ -53,6 +53,14 @@ class AuthService(
         )
         sessionStrategy.onAuthentication(authentication, request, response)
         request.getSession(true).apply {
+            maxInactiveInterval = if (body.rememberMe) REMEMBERED_SESSION_TIMEOUT_SECONDS else AUTHENTICATED_SESSION_TIMEOUT_SECONDS
+            if (body.rememberMe) {
+                setAttribute(REMEMBER_LOGIN_ATTRIBUTE, true)
+                request.setAttribute(REMEMBER_COOKIE_REQUEST_ATTRIBUTE, true)
+            } else {
+                removeAttribute(REMEMBER_LOGIN_ATTRIBUTE)
+                request.removeAttribute(REMEMBER_COOKIE_REQUEST_ATTRIBUTE)
+            }
             setAttribute(MFA_PROOF_ATTRIBUTE, success.proof)
             setAttribute(MFA_VERSION_ATTRIBUTE, success.version)
         }
@@ -77,5 +85,9 @@ class AuthService(
     companion object {
         const val MFA_PROOF_ATTRIBUTE = "KENBLOG_ADMIN_MFA_PROOF"
         const val MFA_VERSION_ATTRIBUTE = "KENBLOG_ADMIN_AUTH_VERSION"
+        const val REMEMBER_LOGIN_ATTRIBUTE = "KENBLOG_REMEMBER_LOGIN"
+        const val REMEMBER_COOKIE_REQUEST_ATTRIBUTE = "KENBLOG_REMEMBER_COOKIE"
+        const val AUTHENTICATED_SESSION_TIMEOUT_SECONDS = 8 * 60 * 60
+        const val REMEMBERED_SESSION_TIMEOUT_SECONDS = 30 * 24 * 60 * 60
     }
 }

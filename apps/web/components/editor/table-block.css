@@ -1,12 +1,12 @@
 .editor-table-block { min-width: 0; max-width: 100%; border: 1px solid var(--line2); border-radius: 8px; padding: 10px; background: var(--card); }
 .editor-table-scroll { max-width: 100%; overflow-x: auto; }
 .editor-table-scroll table { width: 100%; border-collapse: collapse; table-layout: fixed; }
-.editor-table-scroll th, .editor-table-scroll td { border: 1px solid var(--line2); padding: 0; }
+.editor-table-scroll th, .editor-table-scroll td { border: 1px solid var(--line2); padding: 0; vertical-align: top; }
 .editor-table-scroll th { background: var(--soft); }
 .editor-table-scroll .editor-table-tool-heading, .editor-table-scroll .editor-table-row-tool { width: 60px; text-align: center; color: var(--text2); font-size: 11px; }
 .editor-table-scroll .editor-table-row-tool button { min-width: 36px; }
-.editor-table-scroll input { display: block; width: 100%; min-width: 0; height: 42px; padding: 7px 9px; border: 0; border-radius: 0; background: transparent; color: var(--text); font: inherit; }
-.editor-table-scroll input:focus-visible { position: relative; z-index: 1; outline-offset: -3px; }
+.editor-table-scroll textarea { display: block; width: 100%; min-width: 0; min-height: 42px; padding: 7px 9px; border: 0; border-radius: 0; background: transparent; color: var(--text); font: inherit; line-height: 1.5; white-space: pre-wrap; overflow-wrap: anywhere; resize: none; overflow: hidden; }
+.editor-table-scroll textarea:focus-visible { position: relative; z-index: 1; outline-offset: -3px; }
 .editor-table-actions { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
 .editor-table-column-tool { display: flex; justify-content: center; }
 .editor-table-block button { min-height: 35px; padding: 4px 9px; border: 1px solid var(--line2); border-radius: 6px; background: var(--card); color: var(--text2); font-size: 12px; }

@@ -1,7 +1,7 @@
 "use client";
 
 import { forwardRef, useEffect, useId, useImperativeHandle, useLayoutEffect, useRef, useState,
-  type ClipboardEvent, type DragEvent, type KeyboardEvent, type MouseEvent, type PointerEvent as ReactPointerEvent } from "react";
+  type ClipboardEvent, type CSSProperties, type DragEvent, type KeyboardEvent, type MouseEvent, type PointerEvent as ReactPointerEvent } from "react";
 import { SafeMarkdown } from "@/components/safe-markdown";
 import { blockMarkdown, emptyBlock, emptyImageBlock, emptyToggleBlock, ensureBlockBoundaries, type BlockType, type EditorBlock, type MarkdownDocument } from "@/lib/editor-markdown";
 import type { ImageData } from "@/lib/editor-image";
@@ -10,6 +10,7 @@ import { TableBlock } from "@/components/editor/table-block";
 import { ToggleBlock } from "@/components/editor/toggle-block";
 import { ImageBlock } from "@/components/editor/image-block";
 import { CodeLanguagePicker } from "@/components/editor/code-language-picker";
+import { fitTextareaHeight } from "./auto-size-textarea";
 import { insertAnnotationAt, insertInlineTextAt, type EditorAnnotationModel, type EditorAnnotationSelection } from "@/lib/editor-annotation";
 import { validWikiTitle } from "@/lib/wiki-link-syntax";
 import { captureBlockInsertion, moveEditorBlocks, resolveBlockInsertion, type BlockInsertion } from "@/lib/editor-block-move";
@@ -138,6 +139,33 @@ export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEd
   const latest = useRef(value);
   const root = useRef<HTMLDivElement | null>(null);
   const ownedAnnotation = useRef<AnnotationController>({ selection: null, composing: false, suppressNext: false });
+
+  /** 활성 문단의 화면 줄 수를 값 변경 직후 다시 측정해 다음 블록을 아래로 밀어낸다. */
+  useLayoutEffect(() => {
+    const input = refs.current.get(activeId ?? "");
+    if (input instanceof HTMLTextAreaElement && input.classList.contains("editor-autosize-text")) fitTextareaHeight(input);
+  }, [activeId, value.blocks]);
+
+  /** 화면 폭이나 접기 안쪽 폭이 달라졌을 때 자동 줄바꿈 높이를 갱신한다. */
+  useLayoutEffect(() => {
+    const input = refs.current.get(activeId ?? "");
+    if (!(input instanceof HTMLTextAreaElement) || !input.classList.contains("editor-autosize-text")) return;
+    const wrap = input.parentElement;
+    if (!wrap) return;
+    let width = wrap.clientWidth;
+    const observer = new ResizeObserver(() => {
+      const nextWidth = wrap.clientWidth;
+      if (nextWidth === width) return;
+      width = nextWidth;
+      fitTextareaHeight(input);
+    });
+    observer.observe(wrap);
+    let attached = true;
+    const afterFontLoad = () => fitTextareaHeight(input);
+    void document.fonts.ready.then(() => { if (attached) afterFontLoad(); });
+    document.fonts.addEventListener("loadingdone", afterFontLoad);
+    return () => { attached = false; observer.disconnect(); document.fonts.removeEventListener("loadingdone", afterFontLoad); };
+  }, [activeId]);
   const annotation = annotationController ?? ownedAnnotation.current;
   latest.current = value;
   useEffect(() => () => {
@@ -1176,9 +1204,12 @@ export const BlockEditor = forwardRef<BlockEditorHandle, Props>(function BlockEd
             {block.type === "math" && <label htmlFor={`${block.id}-text`}>수식 원문</label>}
             {block.type === "mermaid" && <label htmlFor={`${block.id}-text`}>Mermaid 도식 원문</label>}
             <textarea id={`${block.id}-text`} ref={(node) => { if (node) refs.current.set(block.id, node); }}
+              className={block.type === "code" || block.type === "math" || block.type === "mermaid" ? undefined : "editor-autosize-text"}
+              style={sourcePrefix(block) ? { "--editor-prefix-width": `${sourcePrefix(block).length}ch` } as CSSProperties : undefined}
               data-annotation-block-id={ANNOTATION_TEXT_TYPES.has(block.type) ? block.id : undefined}
               aria-label={`${index + 1}번 ${blockNames[block.type]} 블록`} rows={Math.max(1, block.text.split("\n").length)}
               value={visibleBlockText(block)} disabled={disabled} placeholder={block.type === "p" ? "내용을 입력하세요" : "블록 내용을 입력하세요"}
+              onInput={(event) => { if (event.currentTarget.classList.contains("editor-autosize-text")) fitTextareaHeight(event.currentTarget); }}
               onChange={(event) => {
                 const nextText = event.target.value;
                 const shortcut = block.type === "p" && !composing.current && nextText.endsWith(" ") ?

@@ -46,6 +46,7 @@ interface AuthApi {
 
     /**
      * 올바른 CSRF 헤더와 계정 정보로 로그인하고 세션 ID를 교체.
+     * [LoginRequest.rememberMe]에 따라 인증 세션과 쿠키의 수명을 선택.
      *
      * @param body 비밀번호·TOTP 또는 복구 코드
      * @param request 현재 요청 및 기존 세션

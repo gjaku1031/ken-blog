@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState, type KeyboardEvent } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import { TABLE_MAX_CELL_LENGTH, TABLE_MAX_COLUMNS, TABLE_MAX_ROWS, type TableAlignment, type TableData } from "@/lib/editor-table";
+import { fitTextareaHeight, fitTextareaHeights } from "./auto-size-textarea";
 import "./table-block.css";
 
 type Props = {
@@ -20,13 +21,43 @@ function changedCell(table: TableData, row: number, column: number, text: string
 export function TableBlock({ value, onChange, onDelete, disabled, focusFirst, rootRef, moveAbove, moveBelow }: Props) {
   const root = useRef<HTMLDivElement | null>(null);
   const composing = useRef(false);
+  const changedInput = useRef<HTMLTextAreaElement | null>(null);
   const [pendingFocus, setPendingFocus] = useState<string | null>(null);
   const width = value.rows[0].length;
 
   /** 행열 인덱스가 바뀐 뒤에도 현재 DOM에서 새 셀을 찾아 초점을 맞춘다. */
   function focusCell(key: string) {
-    root.current?.querySelector<HTMLInputElement>(`input[data-cell="${key}"]`)?.focus();
+    root.current?.querySelector<HTMLTextAreaElement>(`textarea[data-cell="${key}"]`)?.focus();
   }
+
+  /** 셀 수정은 해당 칸만, 행열 변경은 전체 칸을 다시 측정한다. */
+  useLayoutEffect(() => {
+    const table = root.current;
+    if (!table) return;
+    const input = changedInput.current;
+    changedInput.current = null;
+    if (input && table.contains(input)) { fitTextareaHeight(input); return; }
+    fitTextareaHeights(table.querySelectorAll<HTMLTextAreaElement>(".editor-table-scroll textarea"));
+  }, [value.rows]);
+
+  /** 가로 폭이 바뀌면 같은 원문도 다른 줄 수로 감기므로 셀 높이를 다시 맞춘다. */
+  useEffect(() => {
+    const scroll = root.current?.querySelector<HTMLElement>(".editor-table-scroll");
+    if (!scroll) return;
+    const fitCells = () => fitTextareaHeights(scroll.querySelectorAll<HTMLTextAreaElement>("textarea"));
+    let width = scroll.clientWidth;
+    const observer = new ResizeObserver(() => {
+      const nextWidth = scroll.clientWidth;
+      if (nextWidth === width) return;
+      width = nextWidth;
+      fitCells();
+    });
+    observer.observe(scroll);
+    let attached = true;
+    void document.fonts.ready.then(() => { if (attached) fitCells(); });
+    document.fonts.addEventListener("loadingdone", fitCells);
+    return () => { attached = false; observer.disconnect(); document.fonts.removeEventListener("loadingdone", fitCells); };
+  }, []);
 
   /** 새 셀 추가 후와 명령으로 생성한 표에서 원하는 입력 칸에 초점을 준다. */
   useEffect(() => {
@@ -37,7 +68,7 @@ export function TableBlock({ value, onChange, onDelete, disabled, focusFirst, ro
   useEffect(() => { if (focusFirst > 0) focusCell("0-0"); }, [focusFirst]);
 
   /** 같은 열의 다음 행으로 가고 마지막 본문 행이면 행을 하나 만든다. */
-  function enterCell(event: KeyboardEvent<HTMLInputElement>, row: number, column: number) {
+  function enterCell(event: KeyboardEvent<HTMLTextAreaElement>, row: number, column: number) {
     if (composing.current || event.nativeEvent.isComposing || event.keyCode === 229) return;
     if (event.key === "Escape") { event.preventDefault(); root.current?.focus(); return; }
     if (event.key !== "Enter") return;
@@ -88,18 +119,22 @@ export function TableBlock({ value, onChange, onDelete, disabled, focusFirst, ro
     }}>
     <div className="editor-table-scroll" tabIndex={0} role="group" aria-label="표 가로 스크롤 영역">
       <table style={{ minWidth: `${width * 150 + 60}px` }}><caption className="sr-only">글 본문 표 편집</caption><thead><tr>{value.rows[0].map((cell, column) => <th key={column} scope="col">
-        <input type="text" value={cell} disabled={disabled} maxLength={TABLE_MAX_CELL_LENGTH} data-cell={`0-${column}`}
+        <textarea rows={1} wrap="soft" value={cell} disabled={disabled} maxLength={TABLE_MAX_CELL_LENGTH} data-cell={`0-${column}`}
           aria-label={`머리글 ${column + 1}열`}
-          onChange={(event) => onChange(changedCell(value, 0, column, event.target.value.replace(/[\r\n]+/g, " ")))}
+          onInput={(event) => fitTextareaHeight(event.currentTarget)}
+          onChange={(event) => { changedInput.current = event.currentTarget;
+            onChange(changedCell(value, 0, column, event.target.value.replace(/[\r\n]+/g, " "))); }}
           onCompositionStart={() => { composing.current = true; }} onCompositionEnd={() => { composing.current = false; }}
           onKeyDown={(event) => enterCell(event, 0, column)} />
       </th>)}<th scope="col" className="editor-table-tool-heading">행 도구</th></tr></thead>
       <tbody>{value.rows.slice(1).map((row, offset) => {
         const rowIndex = offset + 1;
         return <tr key={rowIndex}>{row.map((cell, column) => <td key={column}>
-          <input type="text" value={cell} disabled={disabled} maxLength={TABLE_MAX_CELL_LENGTH} data-cell={`${rowIndex}-${column}`}
+          <textarea rows={1} wrap="soft" value={cell} disabled={disabled} maxLength={TABLE_MAX_CELL_LENGTH} data-cell={`${rowIndex}-${column}`}
             aria-label={`${rowIndex + 1}행 ${column + 1}열`}
-            onChange={(event) => onChange(changedCell(value, rowIndex, column, event.target.value.replace(/[\r\n]+/g, " ")))}
+            onInput={(event) => fitTextareaHeight(event.currentTarget)}
+            onChange={(event) => { changedInput.current = event.currentTarget;
+              onChange(changedCell(value, rowIndex, column, event.target.value.replace(/[\r\n]+/g, " "))); }}
             onCompositionStart={() => { composing.current = true; }} onCompositionEnd={() => { composing.current = false; }}
             onKeyDown={(event) => enterCell(event, rowIndex, column)} />
         </td>)}<td className="editor-table-row-tool"><button type="button" disabled={disabled || value.rows.length <= 2}
