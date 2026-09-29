@@ -1,9 +1,9 @@
-# KEN_BLOG_PRODUCTION_ENV_FILE=/secure/new-app.env 를 지정해 실행.
-# 이 전용 파일의 DB_URL은 새 앱용 빈 MySQL 스키마여야 함. 기존 운영 app.env 재사용 금지.
+# KEN_BLOG_PRODUCTION_ENV_FILE에 저장소 밖 0600 환경 파일을 지정.
+# 기존 운영 DB_URL과 Flyway 이력을 보존하고 새 migration만 순차 적용.
 services:
   api:
     build:
-      context: ./apps/api
+      context: .
       dockerfile: Dockerfile
     image: ken-blog-api:production
     restart: unless-stopped
@@ -21,8 +21,8 @@ services:
 
   web:
     build:
-      context: ./apps/web
-      dockerfile: Dockerfile.production
+      context: .
+      dockerfile: ops/nginx/Dockerfile
     image: ken-blog-web:production
     restart: unless-stopped
     depends_on:

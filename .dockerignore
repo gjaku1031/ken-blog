@@ -1,0 +1,10 @@
+.git
+node_modules
+target
+apps
+artifacts
+planning
+.local-security
+.env
+.env.*
+*.log

@@ -1,0 +1,43 @@
+{
+  "name": "ken-blog-frontend",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:frontend": "node scripts/build-frontend.mjs",
+    "build:site": "node scripts/site/build.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "npm run typecheck && npm run build:site -- --fixture=empty"
+  },
+  "dependencies": {
+    "@codemirror/commands": "6.10.2",
+    "@codemirror/lang-javascript": "6.2.4",
+    "@codemirror/lang-markdown": "6.3.4",
+    "@codemirror/language": "6.12.0",
+    "@codemirror/state": "6.5.2",
+    "@codemirror/view": "6.39.2",
+    "@fontsource-variable/noto-sans-kr": "5.3.0",
+    "@fontsource/ibm-plex-mono": "5.3.0",
+    "@lezer/highlight": "1.2.3",
+    "@shikijs/langs": "4.4.3",
+    "@shikijs/themes": "4.4.3",
+    "hast-util-to-html": "9.0.5",
+    "katex": "0.18.9",
+    "mdast-util-to-hast": "13.2.1",
+    "mermaid": "12.0.0",
+    "rehype-sanitize": "6.0.0",
+    "remark-gfm": "4.0.1",
+    "remark-parse": "11.0.0",
+    "shiki": "4.4.3",
+    "unified": "11.0.5"
+  },
+  "devDependencies": {
+    "@types/hast": "3.0.5",
+    "@types/mdast": "4.0.4",
+    "@types/node": "24.13.6",
+    "esbuild": "0.25.12",
+    "typescript": "5.9.3"
+  },
+  "overrides": {
+    "lodash-es": "4.18.1"
+  }
+}

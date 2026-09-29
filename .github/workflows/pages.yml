@@ -1,25 +1,32 @@
 name: Pages
+run-name: Pages ${{ inputs.deploymentId || github.sha }}
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
-  schedule:
-    - cron: '7,22,37,52 * * * *'
+    inputs:
+      deploymentId:
+        description: Existing deployment operation ID (server dispatch only)
+        required: false
+        type: string
 
 concurrency:
   group: github-pages
   cancel-in-progress: false
 
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
 jobs:
-  build:
+  pages:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
-    permissions:
-      contents: read
-      pages: read
-    outputs:
-      changed: ${{ steps.snapshot.outputs.changed }}
+    timeout-minutes: 30
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
     steps:
       - name: Check out source
         uses: actions/checkout@v7.0.1
@@ -28,131 +35,61 @@ jobs:
         with:
           node-version: '24.21.0'
           cache: npm
-          cache-dependency-path: apps/web/package-lock.json
-      - name: Capture public content or compare published version
-        id: snapshot
-        working-directory: apps/web
+          cache-dependency-path: package-lock.json
+      - name: Claim durable content gate
+        id: claim
         env:
-          NEXT_PUBLIC_API_BASE_URL: ${{ vars.NEXT_PUBLIC_API_BASE_URL }}
-        run: |
-          if [ -z "${NEXT_PUBLIC_API_BASE_URL:-}" ]; then
-            echo 'Pages 공개 API 주소가 설정되지 않았습니다.' >&2
-            exit 1
-          fi
-          if [[ "$NEXT_PUBLIC_API_BASE_URL" != https://* ]]; then
-            echo 'Pages 공개 API 주소는 HTTPS여야 합니다.' >&2
-            exit 1
-          fi
-          if [ "$GITHUB_EVENT_NAME" = schedule ]; then
-            node scripts/public-content.mjs --check > "$RUNNER_TEMP/public-content-result.json"
-          else
-            node scripts/public-content.mjs --capture > "$RUNNER_TEMP/public-content-result.json"
-          fi
-          python3 - <<'PY'
-          import json
-          import os
-          from pathlib import Path
-
-          result = json.loads((Path(os.environ['RUNNER_TEMP']) / 'public-content-result.json').read_text())
-          with open(os.environ['GITHUB_OUTPUT'], 'a', encoding='utf-8') as output:
-              output.write(f"changed={'true' if result['changed'] else 'false'}\n")
-          print(f"Public routes: {result['routeCount']}; deployment needed: {result['changed']}")
-          PY
-      - name: Install web dependencies
-        if: steps.snapshot.outputs.changed == 'true'
-        working-directory: apps/web
+          BLOG_API_BASE_URL: ${{ vars.BLOG_API_BASE_URL }}
+          BLOG_DEPLOY_TOKEN: ${{ secrets.BLOG_DEPLOY_TOKEN }}
+          DEPLOYMENT_ID: ${{ inputs.deploymentId }}
+        run: node scripts/deployment/client.mjs claim
+      - name: Install static build dependencies
+        if: steps.claim.outputs.claimed == 'true'
         run: npm ci
-      - name: Check web types and behavior
-        if: steps.snapshot.outputs.changed == 'true'
-        working-directory: apps/web
-        run: |
-          npm run typecheck
-          npm test
-      - name: Export static web
-        if: steps.snapshot.outputs.changed == 'true'
-        working-directory: apps/web
+      - name: Build Spring and public assets
+        if: steps.claim.outputs.claimed == 'true'
+        run: npm run build:frontend
+      - name: Capture public content and build Pages site
+        if: steps.claim.outputs.claimed == 'true'
         env:
-          NEXT_PUBLIC_BASE_PATH: /ken-blog
-          NEXT_PUBLIC_API_BASE_URL: ${{ vars.NEXT_PUBLIC_API_BASE_URL }}
-          NEXT_PUBLIC_GA_ENABLED: ${{ vars.NEXT_PUBLIC_GA_ENABLED }}
-          PUBLIC_CONTENT_REUSE_SNAPSHOT: '1'
-        run: npm run build
-      - name: Check public artifact contents
-        if: steps.snapshot.outputs.changed == 'true'
-        run: |
-          python3 - <<'PY'
-          import html
-          import json
-          from html.parser import HTMLParser
-          from pathlib import Path
-
-          root = Path('apps/web/out')
-          if not (root / 'index.html').is_file():
-              raise SystemExit('정적 홈 산출물 없음')
-          if not (root / 'content-version.json').is_file():
-              raise SystemExit('공개 버전 산출물 없음')
-          snapshot = json.loads(Path('apps/web/.generated/public-content.json').read_text())
-          class MainText(HTMLParser):
-              def __init__(self):
-                  super().__init__()
-                  self.depth = 0
-                  self.text = []
-              def handle_starttag(self, tag, attrs):
-                  if tag == 'main': self.depth += 1
-              def handle_endtag(self, tag):
-                  if tag == 'main': self.depth -= 1
-              def handle_data(self, data):
-                  if self.depth: self.text.append(data)
-          for route, rows, title_key in (
-              ('', snapshot['feed'], 'title'),
-              ('tech/', [item for item in snapshot['feed'] if item['section'] == 'TECH'], 'title'),
-              ('projects/', snapshot['projects'], 'name'),
-              ('notes/', snapshot['notes'], 'name'),
-          ):
-              source = (root / route / 'index.html').read_text()
-              expected_canonical = 'https://gjaku1031.github.io/ken-blog/' + route
-              if f'<link rel="canonical" href="{expected_canonical}"' not in source:
-                  raise SystemExit(f'정적 canonical 누락: {route}')
-              if rows:
-                  parser = MainText()
-                  parser.feed(source)
-                  if rows[0][title_key] not in html.unescape(''.join(parser.text)):
-                      raise SystemExit(f'정적 본문 목록 누락: {route}')
-          files = [path.relative_to(root) for path in root.rglob('*') if path.is_file()]
-          for path in files:
-              if any(part == 'study' or part == 'planning' or part.startswith('.env')
-                     or part in {'AGENTS.md', 'code-conventions.md'} for part in path.parts):
-                  raise SystemExit(f'공개 산출물에 내부 파일 포함: {path}')
-          print(f'검사한 공개 파일: {len(files)}개')
-          PY
-      - name: Verify public content did not change during build
-        if: steps.snapshot.outputs.changed == 'true'
-        working-directory: apps/web
+          PUBLIC_API_BASE_URL: ${{ vars.BLOG_API_BASE_URL }}
+          BLOG_API_BASE_URL: ${{ vars.BLOG_API_BASE_URL }}
+          BLOG_DEPLOY_TOKEN: ${{ secrets.BLOG_DEPLOY_TOKEN }}
+          SITE_BASE_PATH: /ken-blog
+          SITE_DEPLOYMENT_ID: ${{ steps.claim.outputs.deployment_id }}
+        run: npm run build:site
+      - name: Record exact deployment marker
+        if: steps.claim.outputs.claimed == 'true'
         env:
-          NEXT_PUBLIC_API_BASE_URL: ${{ vars.NEXT_PUBLIC_API_BASE_URL }}
-        run: node scripts/public-content.mjs --verify
+          BLOG_API_BASE_URL: ${{ vars.BLOG_API_BASE_URL }}
+          BLOG_DEPLOY_TOKEN: ${{ secrets.BLOG_DEPLOY_TOKEN }}
+          DEPLOYMENT_ID: ${{ steps.claim.outputs.deployment_id }}
+        run: node scripts/deployment/client.mjs marker
+      - name: Verify public site artifact
+        if: steps.claim.outputs.claimed == 'true'
+        run: |
+          test -s target/site/index.html
+          if find target/site -type f | grep -E '/(AGENTS\.md|\.env[^/]*|pom\.xml)$'; then
+            echo 'Unexpected internal file in Pages artifact.' >&2
+            exit 1
+          fi
       - name: Configure Pages
-        if: steps.snapshot.outputs.changed == 'true'
+        if: steps.claim.outputs.claimed == 'true'
         uses: actions/configure-pages@v6.0.0
-      - name: Upload static output only
-        if: steps.snapshot.outputs.changed == 'true'
+      - name: Upload static site
+        if: steps.claim.outputs.claimed == 'true'
         uses: actions/upload-pages-artifact@v5.0.0
         with:
-          path: apps/web/out
-
-  deploy:
-    needs: build
-    if: needs.build.outputs.changed == 'true'
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      actions: read
-      pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to Pages
-        id: deployment
+          path: target/site
+      - name: Deploy completed artifact
+        id: deploy
+        if: steps.claim.outputs.claimed == 'true'
         uses: actions/deploy-pages@v5.0.1
+      - name: Finalize gate after Pages deployment result
+        if: always() && steps.claim.outputs.claimed == 'true'
+        env:
+          BLOG_API_BASE_URL: ${{ vars.BLOG_API_BASE_URL }}
+          BLOG_DEPLOY_TOKEN: ${{ secrets.BLOG_DEPLOY_TOKEN }}
+          DEPLOYMENT_ID: ${{ steps.claim.outputs.deployment_id }}
+          DEPLOYMENT_STATUS: ${{ steps.deploy.outcome == 'success' && 'SUCCEEDED' || 'FAILED' }}
+        run: node scripts/deployment/client.mjs complete

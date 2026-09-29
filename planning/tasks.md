@@ -1,5 +1,8 @@
 # 현재 작업
 
+- 단일 Spring Boot·원문 편집기 전환 구현·격리 검증 완료, 운영 전환 미실행: [범위와 검증](issues/SINGLE-SPRING-2026-09-29.md), [수용표](issues/SINGLE-SPRING-ACCEPTANCE-2026-09-29.md). 루트 JAR·공통 렌더러·CodeMirror·PRIVATE→DRAFT·배포 게이트·MCP·ZIP 확인. 토큰/엔드포인트와 승인된 전환 절차 확보 전 push 보류. 실제 Safari/OS IME·운영 배포/롤백은 별도 확인 대상. 아래 항목은 이전 이력.
+
+
 - 아키텍처 이미지의 테마 자동 전환 구현·로컬/운영 API 검증 완료: [계획과 검증](issues/THEME-IMAGES-2026-09-29.md). 한 이미지 블록의 라이트/다크 첨부 연결과 읽기·편집·확대·명시 참조 보존 확인. 원고의 중복 접기 제거 및 동일 SHA Pages 최종 확인 대상.
 
 - ken.blog 아키텍처 인프라·시스템 도면 생성·원고 반영 완료: [계획과 검증](issues/ARCHITECTURE-DIAGRAMS-2026-09-29.md). CI·Pages 자동 배포와 운영자 API 배포 구분, 라이트/다크 SVG·PNG 8개와 원본 보존. 첨부 4개·최신 시퀀스·메타데이터 보존 및 운영 readback 확인, Pages 정적 반영 확인 대상.

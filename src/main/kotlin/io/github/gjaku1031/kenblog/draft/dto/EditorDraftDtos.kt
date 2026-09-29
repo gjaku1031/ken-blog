@@ -1,0 +1,344 @@
+package io.github.gjaku1031.kenblog.draft.dto
+
+import io.github.gjaku1031.kenblog.attachment.dto.AttachmentIds
+import io.github.gjaku1031.kenblog.draft.domain.EditorDraftEntity
+import io.github.gjaku1031.kenblog.draft.domain.EditorDraftValues
+import io.github.gjaku1031.kenblog.draft.domain.InvalidEditorDraftRequestException
+import io.github.gjaku1031.kenblog.post.domain.InvalidPostRequestException
+import io.github.gjaku1031.kenblog.post.domain.PostVisibility
+import io.github.gjaku1031.kenblog.post.domain.PostSection
+import io.github.gjaku1031.kenblog.post.domain.TagNames
+import io.github.gjaku1031.kenblog.post.dto.WikiDeclarations
+import io.github.gjaku1031.kenblog.project.domain.ProjectMetadata
+import io.github.gjaku1031.kenblog.project.dto.ProjectMetadataRequests
+import io.swagger.v3.oas.annotations.media.Schema
+import java.time.LocalDateTime
+import java.time.format.DateTimeParseException
+import tools.jackson.databind.JsonNode
+
+/**
+ * 새 글이면 두 원본 필드를 명시적으로 null로, 기존 글이면 양수 ID와 UTC 기준 시각으로 받는 생성 계약.
+ * 실제 JSON 파싱은 [EditorDraftRequests.create]가 타입 강제를 거부함.
+ */
+data class EditorDraftCreateRequest(
+    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["integer", "null"], format = "int64")
+    val postId: Long?,
+    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["string", "null"], format = "date-time")
+    val baseUpdatedAt: LocalDateTime?,
+    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["string"])
+    val title: String,
+    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["string"])
+    val body: String,
+    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["integer", "null"], format = "int64")
+    val categoryId: Long?,
+    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["array"])
+    val tags: List<String>,
+    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["string"], allowableValues = ["PUBLIC"])
+    val visibility: PostVisibility,
+    @field:Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, types = ["array", "null"], description = "선택적 READY 첨부 ID 최대 100개; 원본 편집 생성 시 생략하면 상속")
+    val attachmentIds: List<Long>?,
+    @field:Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, types = ["array", "null"], description = "선택적 위키 대상 제목 최대 128개")
+    val wikiTargets: List<String>?,
+    @field:Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, types = ["string", "null"], allowableValues = ["TECH", "PROJECT_HOME", "PROJECT_DOC"])
+    val section: PostSection? = null,
+    @field:Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, types = ["integer", "null"], format = "int64")
+    val projectId: Long? = null,
+    @field:Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, types = ["integer", "null"], format = "int64")
+    val relatedProjectId: Long? = null,
+    @field:Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, types = ["integer", "null"])
+    val documentOrder: Int? = null,
+    @field:Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, implementation = ProjectMetadata::class)
+    val projectMetadata: ProjectMetadata? = null,
+    val courseId: Long? = null,
+    val chapterOrder: Int? = null,
+    val summary: String = "",
+    @field:Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, types = ["integer", "null"], description = "TECH 소분류 시리즈 양수 순서")
+    val techSeriesOrder: Int? = null,
+) {
+    /** @return 정규화·상한 검사를 마친 내용과 프로젝트 스냅샷. */
+    fun values(fallbackSection: PostSection = PostSection.TECH): EditorDraftValues =
+        EditorDraftValues(title, "", body, categoryId, tags, visibility, section ?: fallbackSection,
+            projectId, relatedProjectId, documentOrder, projectMetadata, courseId, chapterOrder, summary, techSeriesOrder)
+}
+
+/** revision 조건과 전체 편집 내용을 받되 원본 ID·기준 시각은 바꾸지 않는 PUT 계약. */
+data class EditorDraftUpdateRequest(
+    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["integer"], format = "int64", minimum = "0")
+    val revision: Long,
+    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["string"])
+    val title: String,
+    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["string"])
+    val body: String,
+    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["integer", "null"], format = "int64")
+    val categoryId: Long?,
+    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["array"])
+    val tags: List<String>,
+    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["string"], allowableValues = ["PUBLIC"])
+    val visibility: PostVisibility,
+    @field:Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, types = ["array", "null"], description = "선택적 READY 첨부 ID 최대 100개; 생략하면 기존 연결 유지")
+    val attachmentIds: List<Long>?,
+    @field:Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, types = ["array", "null"], description = "선택적 위키 대상 제목 최대 128개")
+    val wikiTargets: List<String>?,
+    @field:Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, types = ["string", "null"], allowableValues = ["TECH", "PROJECT_HOME", "PROJECT_DOC"])
+    val section: PostSection? = null,
+    @field:Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, types = ["integer", "null"], format = "int64")
+    val projectId: Long? = null,
+    @field:Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, types = ["integer", "null"], format = "int64")
+    val relatedProjectId: Long? = null,
+    @field:Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, types = ["integer", "null"])
+    val documentOrder: Int? = null,
+    @field:Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, implementation = ProjectMetadata::class)
+    val projectMetadata: ProjectMetadata? = null,
+    val courseId: Long? = null,
+    val chapterOrder: Int? = null,
+    val summary: String = "",
+    @field:Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, types = ["integer", "null"], description = "TECH 소분류 시리즈 양수 순서")
+    val techSeriesOrder: Int? = null,
+) {
+    /** @return 검증한 전체 교체 내용과 불변 섹션·소속 후보. */
+    fun values(fallbackSection: PostSection = PostSection.TECH): EditorDraftValues =
+        EditorDraftValues(title, "", body, categoryId, tags, visibility, section ?: fallbackSection,
+            projectId, relatedProjectId, documentOrder, projectMetadata, courseId, chapterOrder, summary, techSeriesOrder)
+}
+
+/** 현재 편집본 revision만 받는 원자적 출간 계약. */
+data class EditorDraftPublishRequest(
+    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["integer"], format = "int64", minimum = "0")
+    val revision: Long,
+)
+
+/** 관리 엔티티를 미리 적재하지 않고 잠금 순서에 필요한 FK 스냅샷만 읽는 행. */
+data class EditorDraftLockHint(val postId: Long?, val categoryId: Long?, val projectId: Long?, val courseId: Long?,
+    val techSeriesOrder: Int?)
+
+/** 관리자 편집본의 모든 저장 필드와 revision을 보이는 상세 응답. */
+data class EditorDraftDetailResponse(
+    val id: Long,
+    val revision: Long,
+    val postId: Long?,
+    val baseUpdatedAt: LocalDateTime?,
+    val title: String,
+    val slug: String,
+    val body: String,
+    val categoryId: Long?,
+    val tags: List<String>,
+    val visibility: PostVisibility,
+    val createdAt: LocalDateTime,
+    val updatedAt: LocalDateTime,
+    val attachmentIds: List<Long>,
+    val wikiTargets: List<String>,
+    val section: PostSection = PostSection.TECH,
+    val projectId: Long? = null,
+    val relatedProjectId: Long? = null,
+    val documentOrder: Int? = null,
+    val projectMetadata: ProjectMetadata? = null,
+    val courseId: Long? = null,
+    val chapterOrder: Int? = null,
+    val summary: String = "",
+    val techSeriesOrder: Int? = null,
+)
+
+/** 본문 열을 읽지 않는 관리자 편집본 목록의 한 행. */
+data class EditorDraftSummaryRow(
+    val id: Long,
+    val revision: Long,
+    val postId: Long?,
+    val baseUpdatedAt: LocalDateTime?,
+    val title: String,
+    val slug: String,
+    val categoryId: Long?,
+    val tagsSnapshot: String,
+    val visibility: PostVisibility,
+    val createdAt: LocalDateTime,
+    val updatedAt: LocalDateTime,
+    val section: PostSection,
+    val projectId: Long?,
+    val relatedProjectId: Long?,
+    val documentOrder: Int?,
+    val courseId: Long?,
+    val chapterOrder: Int?,
+    val summary: String,
+    val techSeriesOrder: Int?,
+) {
+    /** @return 직렬화 문자열 대신 태그 배열을 포함한 공개 목록 행. */
+    fun response(): EditorDraftSummaryResponse = EditorDraftSummaryResponse(id, revision, postId, baseUpdatedAt,
+        title, slug, categoryId, if (tagsSnapshot.isEmpty()) emptyList() else tagsSnapshot.split('\u001f'),
+        visibility, createdAt, updatedAt, section, projectId, relatedProjectId, documentOrder, courseId,
+        chapterOrder, summary, techSeriesOrder)
+}
+
+/** 본문을 제외한 관리자 편집본 목록 행. */
+data class EditorDraftSummaryResponse(
+    val id: Long,
+    val revision: Long,
+    val postId: Long?,
+    val baseUpdatedAt: LocalDateTime?,
+    val title: String,
+    val slug: String,
+    val categoryId: Long?,
+    val tags: List<String>,
+    val visibility: PostVisibility,
+    val createdAt: LocalDateTime,
+    val updatedAt: LocalDateTime,
+    val section: PostSection,
+    val projectId: Long?,
+    val relatedProjectId: Long?,
+    val documentOrder: Int?,
+    val courseId: Long?,
+    val chapterOrder: Int?,
+    val summary: String,
+    val techSeriesOrder: Int?,
+)
+
+/** 본문 없는 한 페이지와 같은 조건의 전체 건수. */
+data class EditorDraftPageResponse(
+    val items: List<EditorDraftSummaryResponse>,
+    val page: Int,
+    val size: Int,
+    val totalElements: Long,
+    val totalPages: Int,
+)
+
+/** 엔티티 내부 직렬화 방식은 응답에 노출하지 않고 태그 배열로 변환. */
+fun EditorDraftEntity.response(attachmentIds: List<Long>, wikiTargets: List<String>): EditorDraftDetailResponse = EditorDraftDetailResponse(
+    id ?: error("Persisted editor draft has no ID"), revision, postId, baseUpdatedAt,
+    title, slug, body, categoryId, tags(), visibility, createdAt, updatedAt, attachmentIds, wikiTargets,
+    section, projectId, relatedProjectId, documentOrder, projectMetadata(), courseId, chapterOrder, summary, techSeriesOrder,
+)
+
+/** Jackson 문자열·숫자 강제 변환 전에 실제 JSON 노드 타입과 입력 상한을 확인. */
+object EditorDraftRequests {
+    /** @return 모든 필드를 명시한 새 글 또는 원본 편집 생성 요청. */
+    fun create(node: JsonNode): EditorDraftCreateRequest {
+        requireObject(node)
+        val postId = nullableId(node, "postId")
+        val base = nullableTime(node, "baseUpdatedAt")
+        if ((postId == null) != (base == null)) throw InvalidEditorDraftRequestException()
+        val values = values(node)
+        return EditorDraftCreateRequest(postId, base, values.title, values.body,
+            values.categoryId, values.tags, values.visibility, AttachmentIds.parse(node.get("attachmentIds")),
+            WikiDeclarations.parse(node.get("wikiTargets")), section(node), optionalId(node, "projectId"),
+            optionalId(node, "relatedProjectId"), optionalOrder(node), metadata(node, values.visibility),
+            optionalId(node, "courseId"), optionalPositiveInt(node, "chapterOrder"), optionalSummary(node),
+            optionalPositiveInt(node, "techSeriesOrder"))
+    }
+
+    /** @return revision과 전체 내용이 있는 갱신 요청. */
+    fun update(node: JsonNode): EditorDraftUpdateRequest {
+        requireObject(node)
+        val revision = revision(node)
+        val values = values(node)
+        return EditorDraftUpdateRequest(revision, values.title, values.body,
+            values.categoryId, values.tags, values.visibility, AttachmentIds.parse(node.get("attachmentIds")),
+            WikiDeclarations.parse(node.get("wikiTargets")), section(node), optionalId(node, "projectId"),
+            optionalId(node, "relatedProjectId"), optionalOrder(node), metadata(node, values.visibility),
+            optionalId(node, "courseId"), optionalPositiveInt(node, "chapterOrder"), optionalSummary(node),
+            optionalPositiveInt(node, "techSeriesOrder"))
+    }
+
+    /** @return 현재 화면의 0 이상 revision을 가진 출간 요청. */
+    fun publish(node: JsonNode): EditorDraftPublishRequest {
+        requireObject(node)
+        return EditorDraftPublishRequest(revision(node))
+    }
+
+    /** @return 스칼라·태그 타입과 저장 상한을 검증하고 태그만 정규화한 내용. */
+    private fun values(node: JsonNode): EditorDraftValues {
+        val title = string(node, "title")
+        val body = string(node, "body")
+        if (title.codePointCount(0, title.length) > 200 ||
+            body.toByteArray(Charsets.UTF_8).size > 1024 * 1024) throw InvalidEditorDraftRequestException()
+        val categoryId = nullableId(node, "categoryId")
+        val tagsNode = field(node, "tags")
+        if (!tagsNode.isArray) throw InvalidEditorDraftRequestException()
+        val rawTags = ArrayList<String>(tagsNode.size())
+        for (index in 0 until tagsNode.size()) {
+            val tag = tagsNode.get(index)
+            if (!tag.isTextual) throw InvalidEditorDraftRequestException()
+            rawTags.add(tag.textValue())
+        }
+        val tags = try { TagNames.displayAll(rawTags) }
+            catch (ex: InvalidPostRequestException) { throw InvalidEditorDraftRequestException() }
+        val visibility = when (node.get("visibility")?.let { if (it.isTextual) it.textValue() else "" } ?: "PUBLIC") {
+            "PUBLIC" -> PostVisibility.PUBLIC
+            else -> throw InvalidEditorDraftRequestException()
+        }
+        return EditorDraftValues(title, "", body, categoryId, tags, visibility)
+    }
+
+    /** @return 객체가 아닌 본문을 400으로 거부. */
+    private fun requireObject(node: JsonNode) { if (!node.isObject) throw InvalidEditorDraftRequestException() }
+
+    /** @return 누락·null과 실제 JSON 값을 구분한 필수 필드. */
+    private fun field(node: JsonNode, name: String): JsonNode =
+        if (node.has(name)) node.get(name) else throw InvalidEditorDraftRequestException()
+
+    /** @return 비문자열 입력을 거부한 필수 문자열. */
+    private fun string(node: JsonNode, name: String): String = field(node, name).let {
+        if (!it.isTextual) throw InvalidEditorDraftRequestException()
+        it.textValue()
+    }
+
+    /** @return 명시적 null 또는 양수 정수 ID. */
+    private fun nullableId(node: JsonNode, name: String): Long? {
+        val value = field(node, name)
+        if (value.isNull) return null
+        if (!value.isIntegralNumber || !value.canConvertToLong() || value.longValue() <= 0) throw InvalidEditorDraftRequestException()
+        return value.longValue()
+    }
+
+    /** @return 이전 Tech 요청과 호환되는 선택 섹션; 비문자열·알 수 없는 값은 400. */
+    private fun section(node: JsonNode): PostSection? = node.get("section")?.let {
+        if (it.isNull) return@let null
+        if (!it.isTextual) throw InvalidEditorDraftRequestException()
+        when (it.textValue()) {
+            "TECH" -> PostSection.TECH
+            "PROJECT_HOME" -> PostSection.PROJECT_HOME
+            "PROJECT_DOC" -> PostSection.PROJECT_DOC
+            "NOTE_CHAPTER" -> PostSection.NOTE_CHAPTER
+            else -> throw InvalidEditorDraftRequestException()
+        }
+    }
+
+    /** @return 누락·명시적 null 또는 양수 ID. */
+    private fun optionalId(node: JsonNode, name: String): Long? =
+        if (node.has(name)) nullableId(node, name) else null
+
+    /** @return 누락·null 또는 양수 32비트 문서 순서. */
+    private fun optionalOrder(node: JsonNode): Int? = node.get("documentOrder")?.let {
+        if (it.isNull) null else if (it.isIntegralNumber && it.canConvertToInt() && it.intValue() > 0) it.intValue()
+        else throw InvalidEditorDraftRequestException()
+    }
+
+    /** @return 누락·null 또는 양수 32비트 회차 순서. */
+    private fun optionalPositiveInt(node: JsonNode, name: String): Int? = node.get(name)?.let {
+        if (it.isNull) null else if (it.isIntegralNumber && it.canConvertToInt() && it.intValue() > 0) it.intValue()
+        else throw InvalidEditorDraftRequestException()
+    }
+
+    /** @return 비우면 출간 때 자동 추출할 최대 120자 요약. */
+    private fun optionalSummary(node: JsonNode): String = node.get("summary")?.let {
+        if (it.isNull) "" else if (it.isTextual && it.textValue().codePointCount(0, it.textValue().length) <= 120)
+            it.textValue().trim() else throw InvalidEditorDraftRequestException()
+    } ?: ""
+
+    /** @return HOME일 때만 사용할 별도 프로젝트 속성. */
+    private fun metadata(node: JsonNode, visibility: PostVisibility): ProjectMetadata? =
+        node.get("projectMetadata")?.let { if (it.isNull) null else ProjectMetadataRequests.parse(it, visibility) }
+
+    /** @return 명시적 null 또는 ISO UTC LocalDateTime 기준 시각. */
+    private fun nullableTime(node: JsonNode, name: String): LocalDateTime? {
+        val value = field(node, name)
+        if (value.isNull) return null
+        if (!value.isTextual) throw InvalidEditorDraftRequestException()
+        return try { LocalDateTime.parse(value.textValue()) }
+            catch (ex: DateTimeParseException) { throw InvalidEditorDraftRequestException() }
+    }
+
+    /** @return 누락·소수·문자열을 거부한 0 이상 64비트 revision. */
+    private fun revision(node: JsonNode): Long {
+        val value = field(node, "revision")
+        if (!value.isIntegralNumber || !value.canConvertToLong() || value.longValue() < 0) throw InvalidEditorDraftRequestException()
+        return value.longValue()
+    }
+}

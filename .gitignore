@@ -1,24 +1,18 @@
-# Local configuration and credentials
+# Credentials and local configuration
 .env
 .env.*
 !.env.example
 *.pem
 *.key
 *.log
-
-# Web build output
+.local-security/
+# Generated assets and build output
 node_modules/
-.next/
-out/
-*.tsbuildinfo
-
-# API build output
 target/
-
-# Local tools and study material
+*.tsbuildinfo
+# Local-only files
 .idea/
 .vscode/
 .DS_Store
 /AGENTS.md
 /docs/study/
-/.local-security/

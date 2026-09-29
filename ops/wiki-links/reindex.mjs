@@ -9,7 +9,7 @@ const HARD_MAX_POSTS = 5000;
 const DEFAULT_TIMEOUT_MS = 35000;
 const MAX_RESPONSE_BYTES = 8 * 1024 * 1024;
 const SESSION_COOKIE = "KENBLOGSESSION";
-const webLibUrl = new URL("../../apps/web/lib/", import.meta.url).href;
+const sharedUrl = new URL("../../src/main/frontend/shared/", import.meta.url).href;
 
 /** 비밀값·본문·요청 URL을 출력하지 않는 오류. */
 class ToolError extends Error {
@@ -24,7 +24,7 @@ function options(args) {
   const result = { apply: false, maxPosts: DEFAULT_MAX_POSTS, timeoutMs: DEFAULT_TIMEOUT_MS };
   for (const arg of args) {
     if (arg === "--help") {
-      process.stdout.write("사용법: node ops/wiki-links/reindex.mjs [--apply] [--max-posts=N] [--timeout-ms=N]\n기본은 게시글 연결 비변경 dry-run. 설정: WIKI_REINDEX_API_BASE_URL, WIKI_REINDEX_USERNAME, WIKI_REINDEX_PASSWORD\n");
+      process.stdout.write("사용법: node ops/wiki-links/reindex.mjs [--apply] [--max-posts=N] [--timeout-ms=N]\n기본은 게시글 연결 비변경 dry-run. 설정: WIKI_REINDEX_API_BASE_URL, WIKI_REINDEX_PASSWORD, WIKI_REINDEX_VERIFICATION_CODE\n");
       return null;
     }
     if (arg === "--apply") { result.apply = true; continue; }
@@ -57,20 +57,20 @@ function apiBase() {
 async function sharedParser() {
   registerHooks({
     resolve(specifier, context, nextResolve) {
-      if (context.parentURL?.startsWith(webLibUrl) && /^\.\.?\//.test(specifier) &&
+      if (context.parentURL?.startsWith(sharedUrl) && /^\.\.?\//.test(specifier) &&
           !/\.[cm]?[jt]s$/.test(specifier)) return nextResolve(`${specifier}.ts`, context);
       return nextResolve(specifier, context);
     },
   });
   try {
     const [details, wiki] = await Promise.all([
-      import(new URL("../../apps/web/lib/markdown-details.ts", import.meta.url).href),
-      import(new URL("../../apps/web/lib/wiki-link-syntax.ts", import.meta.url).href),
+      import(new URL("../../src/main/frontend/shared/markdown-details.ts", import.meta.url).href),
+      import(new URL("../../src/main/frontend/shared/wiki-link-syntax.ts", import.meta.url).href),
     ]);
     return { parseAnnotationDocument: details.parseAnnotationDocument,
       collectWikiTitles: wiki.collectWikiTitles };
   } catch {
-    throw new ToolError("웹 공유 파서를 불러오지 못함. apps/web에서 npm ci 필요");
+    throw new ToolError("공유 파서를 불러오지 못함. 루트 npm ci 필요");
   }
 }
 
@@ -130,14 +130,14 @@ class ApiClient {
   }
 
   /** 로그인 전/후 CSRF를 각각 받아 세션 ID 교체를 반영한다. */
-  async login(username, password) {
+  async login(password, verificationCode) {
     const first = await this.request("/api/v1/auth/csrf");
     if (first?.headerName !== "X-CSRF-TOKEN" || typeof first.token !== "string") {
       throw new ToolError("CSRF 응답 계약 오류");
     }
     this.csrf = first.token;
     const user = await this.request("/api/v1/auth/login", {
-      method: "POST", body: { username, password }, csrf: true,
+      method: "POST", body: { password, verificationCode }, csrf: true,
     });
     if (user?.role !== "ADMIN") throw new ToolError("ADMIN 계정 필요");
     const second = await this.request("/api/v1/auth/csrf");
@@ -235,14 +235,14 @@ async function main() {
   const config = options(process.argv.slice(2));
   if (!config) return;
   const base = apiBase();
-  const username = process.env.WIKI_REINDEX_USERNAME;
   const password = process.env.WIKI_REINDEX_PASSWORD;
-  if (!username || !password) throw new ToolError("관리자 계정 환경변수 필요");
+  const verificationCode = process.env.WIKI_REINDEX_VERIFICATION_CODE;
+  if (!password || !verificationCode) throw new ToolError("관리자 비밀번호·MFA 코드 환경변수 필요");
   const parser = await sharedParser();
   const client = new ApiClient(base, config.timeoutMs);
   process.stdout.write(`${config.apply ? "적용" : "연결 비변경 dry-run"} 시작 · 최대 ${config.maxPosts}건\n`);
   try {
-    await client.login(username, password);
+    await client.login(password, verificationCode);
     const ids = await postIds(client, config.maxPosts);
     await reindex(client, ids, parser, config.apply);
   } finally {

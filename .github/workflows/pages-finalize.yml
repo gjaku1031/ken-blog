@@ -1,0 +1,28 @@
+name: Pages Finalize
+
+on:
+  workflow_run:
+    workflows: [Pages]
+    types: [completed]
+
+permissions:
+  contents: read
+
+jobs:
+  recover:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7.0.1
+      - name: Set up Node.js
+        uses: actions/setup-node@v7.0.0
+        with:
+          node-version: '24.21.0'
+      - name: Confirm completed Pages run and release its gate
+        env:
+          BLOG_API_BASE_URL: ${{ vars.BLOG_API_BASE_URL }}
+          BLOG_DEPLOY_TOKEN: ${{ secrets.BLOG_DEPLOY_TOKEN }}
+          TARGET_RUN_ID: ${{ github.event.workflow_run.id }}
+          TARGET_RUN_ATTEMPT: ${{ github.event.workflow_run.run_attempt }}
+        run: node scripts/deployment/client.mjs recover

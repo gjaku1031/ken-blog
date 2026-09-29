@@ -10,9 +10,9 @@ Kotlin 사용. Java 소스 추가 없음. 생성자 주입과 `val` 우선. Serv
 
 오류 응답은 `ProblemDetail` 기반으로 구성. `ApiErrorHandler`의 Spring 기본 예외 처리 흐름과 HTTP 상태·헤더 보존. 예상하지 못한 예외의 내부 메시지를 응답에 포함하지 않음. 도메인 입력 검증에 일반 `IllegalArgumentException` 사용 금지. 아직 없는 계층이나 기능을 완료된 것으로 설명하지 않음.
 
-## 프론트
+## 웹 자산과 정적 배포
 
-Next.js App Router·TypeScript의 정적 출력 사용. 브라우저 API 호출 등 상호작용 부분만 클라이언트 컴포넌트로 구성. GitHub Pages에서 프론트 배포, VM에서는 Spring 실행. 인증·권한·데이터 접근은 Spring API에서 처리. `NEXT_PUBLIC_` 값은 공개되는 빌드 설정이며 API 비밀값 포함 금지.
+루트 Maven Spring Boot 프로젝트 안의 `src/main/frontend`에 TypeScript 자산 관리. CodeMirror 원문 입력과 동일 Markdown 렌더러의 자동 미리보기. npm은 컴파일·정적사이트 생성 전용이며 Next/React/Node 운영 서버 없음. 관리자 화면은 Spring의 `/manage/`, 공개 사이트는 GitHub Pages에 배포. MySQL·Object Storage가 유일한 원본. 공개 콘텐츠 변경 시 원고와 QUEUED 상태를 같은 트랜잭션에 확정하고 커밋 뒤 배포 요청. 배포 중 공통 서비스의 콘텐츠 쓰기 차단, 세션·배포상태 DB 쓰기는 허용. 콘텐츠 경계는 단일 Spring JVM 전제이며 다중 API 인스턴스 운영 금지. 실패·취소는 정확한 run/attempt와 Pages 단계·marker 확인 후 복구, TTL 해제 없음.
 
 ## 주석
 
@@ -31,7 +31,7 @@ Next.js App Router·TypeScript의 정적 출력 사용. 브라우저 API 호출 
 
 ## 인증 경계
 
-인증은 Spring Security의 서버 세션과 Spring Session JDBC 사용. 계정·게시글·세션은 MySQL에 저장하며 세션 테이블은 Flyway로 관리. 로그인·로그아웃·CSRF·세션 ID 교체·권한 검사를 유지. 비밀번호·세션 식별자·CSRF 토큰 원문은 로그나 객체 문자열에 노출하지 않음. Redis Cloud는 후속 공개 데이터 캐시용이며 인증에 사용하지 않음.
+인증은 Spring Security의 서버 세션과 Spring Session JDBC 사용. 계정·게시글·세션은 MySQL에 저장하며 세션 테이블은 Flyway로 관리. 로그인·로그아웃·CSRF·세션 ID 교체·권한 검사를 유지. 비밀번호·세션 식별자·CSRF 토큰 원문은 로그나 객체 문자열에 노출하지 않음. Redis 캐시와 통계·비공개 출간 기능 제거. 기존 PRIVATE 자료는 미발행으로 보존.
 
 ## 검증 범위
 
