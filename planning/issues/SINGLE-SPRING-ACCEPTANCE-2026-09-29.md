@@ -1,5 +1,7 @@
 # 단일 Spring Boot 전환 수용 검증
 
+> 2026-09-29 정리: 아래는 실행 당시 검증 기록. 사용자의 임시파일 삭제 요청에 따라 외부 `/tmp/ken-blog-*` 로그·하네스·사본은 정리. 과거 경로는 현재 파일 존재를 의미하지 않으며, 운영 복구자료는 별도 보존.
+
 실행한 검증만 PASS. 외부 운영 전환과 미실행 조건은 NOT RUN으로 구분. 기준 HEAD `135169f`. 최종 루트 clean verify 28개 성공(2026-09-29 10:17 UTC), Docker 최종 이미지와 실제 관리자·정적 capture 확인.
 
 PASS 범위: 격리 MySQL·loopback GitHub/HTTPS S3 fixture·Chromium. 후속 운영 이행 승인에 따라 실제 OCI API·기존 MySQL V27·GitHub Pages 연결과 백업 복원 검증까지 수행. 실제 OS/Safari IME만 NOT RUN. 최종 88개 중 PASS87·FAIL0·NOT RUN1. 상세 로그와 격리 harness는 저장소 밖 `/tmp/ken-blog-single-spring-audit` 보관, 새 저장소 테스트 파일 없음.

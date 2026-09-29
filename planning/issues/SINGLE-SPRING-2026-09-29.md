@@ -1,5 +1,7 @@
 # 단일 Spring Boot·원문 편집기 전환
 
+> 2026-09-29 정리: 아래는 실행 당시 검증 기록. 사용자의 임시파일 삭제 요청에 따라 외부 `/tmp/ken-blog-*` 로그·하네스·사본은 정리. 과거 경로는 현재 파일 존재를 의미하지 않으며, 운영 복구자료는 별도 보존.
+
 ## 확정 범위
 - root pom.xml/src/.mvn/Dockerfile로 통합, apps/와 Next/React 제거.
 - MySQL/OCI Object Storage/MFA/JDBC/MCP 유지. PRIVATE 원고는 DRAFT 보존.

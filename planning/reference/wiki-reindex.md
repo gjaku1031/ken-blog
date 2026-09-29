@@ -23,6 +23,6 @@ unset WIKI_REINDEX_PASSWORD WIKI_REINDEX_VERIFICATION_CODE
 
 도구는 본문·제목·비밀번호·세션·CSRF를 출력하지 않음. 관리자 목록은 본문 없이 조회하고 상세에서 원문을 읽어 공유 [`parseAnnotationDocument`](../../src/main/frontend/shared/markdown-details.ts)와 [`collectWikiTitles`](../../src/main/frontend/shared/wiki-link-syntax.ts)를 직접 사용. UTF-8 본문 SHA-256을 `expectedBodySha256`으로 전송하며, 서버가 현재 본문과 다르다고 판단해 `409`를 반환하면 해당 글을 건너뛰고 ID만 기록. 본문을 다시 읽어 dry-run 후 재실행. 적용은 본문·`updatedAt`을 변경하지 않고 연결만 전체 교체하는 API 계약. 읽는 동안 게시글 목록이 바뀌거나 응답 계약이 맞지 않으면 중단.
 
-오래된 클라이언트가 본문을 변경하면서 `wikiTargets`를 생략하면 기존 연결이 지워질 수 있음. 같은 본문에서 생략하면 기존 연결은 유지. 새 글의 생략/null은 빈 연결로 간주. 정적 관리자 편집기는 매 저장에 현재 원문에서 추출한 전체 목록을 명시적으로 전송. 세부 변경 이력은 [P2-06C](../issues/P2-06C.md) 참고.
+오래된 클라이언트가 본문을 변경하면서 `wikiTargets`를 생략하면 기존 연결이 지워질 수 있음. 같은 본문에서 생략하면 기존 연결은 유지. 새 글의 생략/null은 빈 연결로 간주. 정적 관리자 편집기는 매 저장에 현재 원문에서 추출한 전체 목록을 명시적으로 전송.
 
 2026-09-26 격리 MySQL·API에서 기존 글 22건의 dry-run 결과 동일 8건·변경 예정 14건을 확인하고 `--apply`로 14건을 보정. 재실행은 동일 22건·변경 예정 0건으로 끝났으며 원문·수정 시각은 그대로. 별도 SHA 충돌 `409`와 잘못된 선언 `400`은 연결과 원문을 바꾸지 않았음. 실제 운영 DB에는 이 도구를 실행하지 않았고, 공개 API HTTPS 연결도 없음.
