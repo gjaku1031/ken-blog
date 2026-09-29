@@ -325,6 +325,8 @@ button:disabled { cursor: not-allowed; opacity: .6; }
 .annotation-reference a { scroll-margin-top: 90px; }
 .annotation-highlight { background: var(--tint); outline: 2px solid var(--accent); outline-offset: 2px; }
 .annotation-tooltip { position: fixed; z-index: 30; box-sizing: border-box; width: max-content; max-width: min(340px, calc(100vw - 32px)); max-height: calc(100dvh - 32px); overflow: auto; padding: 10px 13px; border: 1px solid var(--line2); border-radius: 7px; background: var(--card); color: var(--text); box-shadow: var(--shadow); font-size: 14px; line-height: 1.55; overflow-wrap: anywhere; word-break: keep-all; }
+.annotation-tooltip a { color: var(--accent-d); text-decoration: underline; text-underline-offset: 2px; }
+.annotation-tooltip a.wiki-missing { color: var(--danger); text-decoration-style: dotted; }
 .annotation-tooltip .math-inline { max-width: 100%; }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
 .math-inline { display: inline-block; max-width: min(100%, calc(100vw - 48px)); overflow-x: auto; vertical-align: middle; color: var(--text); white-space: nowrap; }
@@ -625,10 +627,10 @@ button:disabled { cursor: not-allowed; opacity: .6; }
 .stack-badges span { display: inline-flex; align-items: center; gap: 5px; border: 1px solid var(--line2); height: 28px; padding: 3px 6px; border-radius: 6px; color: var(--text2); font-size: 12.5px; font-weight: 700; }
 .stack-badges img { width: 20px; height: 20px; }
 .stack-badges img, .stack-picker img { padding: 1px; border-radius: 3px; background: #fff; object-fit: contain; }
-.projects-grid .project-card .stack-badges { min-width: 0; gap: 4px; }
-.projects-grid .project-card .stack-badges span { min-width: 0; max-width: 100%; min-height: 24px; height: auto;
-  gap: 3px; padding: 2px 4px; font-size: 12px; line-height: 1.35; overflow-wrap: anywhere; }
-.projects-grid .project-card .stack-badges img { flex: 0 0 16px; width: 16px; height: 16px; }
+.projects-grid .project-card .stack-badges { min-width: 0; gap: 3px; }
+.projects-grid .project-card .stack-badges span { min-width: 0; max-width: 100%; min-height: 22px; height: auto;
+  gap: 3px; padding: 1px 4px; font-size: 11.5px; line-height: 1.3; overflow-wrap: anywhere; }
+.projects-grid .project-card .stack-badges img { flex: 0 0 14px; width: 14px; height: 14px; }
 .write-project-fields { display: grid; grid-template-columns: 80px minmax(0, 1fr); gap: 12px; align-items: start; margin: 20px 0; padding: 18px; }
 .write-project-fields > label { padding-top: 8px; color: var(--muted); font-size: 13px; }
 .write-project-fields input, .write-project-fields textarea, .write-project-fields select,
@@ -825,6 +827,10 @@ button:disabled { cursor: not-allowed; opacity: .6; }
 .project-overline .inline-actions { display: inline-flex; align-items: center; gap: 12px; }
 .project-overline .inline-actions .danger-text { color: var(--pv-fg); }
 .project-main .stack-badges { margin-bottom: 20px; }
+.project-main > .stack-badges { gap: 4px; }
+.project-main > .stack-badges span { min-height: 24px; height: auto; max-width: 100%; gap: 4px; padding: 2px 5px;
+  font-size: 11.5px; line-height: 1.3; overflow-wrap: anywhere; }
+.project-main > .stack-badges img { flex: 0 0 16px; width: 16px; height: 16px; }
 .project-main .markdown-body { margin-top: 25px; }
 .project-document-neighbors a:hover { border-color: var(--line3); box-shadow: var(--shadow2); }
 .project-document-neighbors a:last-child { grid-column: 2; text-align: right; }

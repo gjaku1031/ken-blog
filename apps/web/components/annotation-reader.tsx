@@ -12,13 +12,14 @@ import { WikiLink } from "./wiki-link-reader";
 
 type Active = { item: AnnotationItem; occurrence: number; anchor: HTMLAnchorElement | HTMLButtonElement; identity: string };
 type Highlight = { kind: "item" | "reference"; index: number; occurrence?: number };
+type VisitedReferences = { identity: string; occurrences: Record<number, number> };
 type AnnotationContextValue = {
   prefix: string; items: AnnotationItem[]; active: Active | null; highlight: Highlight | null; mode: "reader" | "editor";
   show: (item: AnnotationItem, occurrence: number, anchor: HTMLAnchorElement | HTMLButtonElement) => void;
   close: () => void; scheduleClose: () => void; keepOpen: () => void;
   itemId: (index: number) => string; referenceId: (index: number, occurrence: number) => string;
-  goToItem: (event: MouseEvent<HTMLAnchorElement>, index: number) => void;
-  goToReference: (event: MouseEvent<HTMLAnchorElement>, item: AnnotationItem) => void;
+  goToItem: (event: MouseEvent<HTMLAnchorElement>, index: number, occurrence: number) => void;
+  goToReference: (event: MouseEvent<HTMLAnchorElement>, item: AnnotationItem, occurrence: number) => void;
 };
 
 const AnnotationContext = createContext<AnnotationContextValue | null>(null);
@@ -56,8 +57,9 @@ function AnnotationContent({ content, interactive, wikiLimit }: { content: strin
 }
 
 /** 초점·hover 참조 옆에 놓되 viewport와 설명 높이에 따라 위치를 다시 계산한다. */
-function AnnotationTooltip({ active, id, close, scheduleClose, keepOpen, wikiLimit }: {
-  active: Active; id: string; close: () => void; scheduleClose: () => void; keepOpen: () => void; wikiLimit?: number;
+function AnnotationTooltip({ active, id, mode, close, scheduleClose, keepOpen, wikiLimit }: {
+  active: Active; id: string; mode: "reader" | "editor"; close: () => void; scheduleClose: () => void;
+  keepOpen: () => void; wikiLimit?: number;
 }) {
   const target = useRef<HTMLDivElement | null>(null);
   const [position, setPosition] = useState<{ left: number; top: number; ready: boolean }>({ left: 16, top: 16, ready: false });
@@ -82,7 +84,7 @@ function AnnotationTooltip({ active, id, close, scheduleClose, keepOpen, wikiLim
     const resize = new ResizeObserver(place);
     resize.observe(element);
     return () => resize.disconnect();
-  }, [active, close]);
+  }, [active]);
 
   useEffect(() => {
     /** 스크롤 대상이 말풍선 자체이면 긴 설명을 계속 읽을 수 있다. */
@@ -92,7 +94,12 @@ function AnnotationTooltip({ active, id, close, scheduleClose, keepOpen, wikiLim
       close();
     };
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === "Escape") { event.preventDefault(); close(); }
+      if (event.key !== "Escape") return;
+      if (target.current?.contains(document.activeElement)) {
+        event.preventDefault();
+        active.anchor.focus({ preventScroll: true });
+      } else if (document.activeElement === active.anchor) event.preventDefault();
+      close();
     };
     window.addEventListener("resize", close);
     document.addEventListener("scroll", onScroll, true);
@@ -102,12 +109,31 @@ function AnnotationTooltip({ active, id, close, scheduleClose, keepOpen, wikiLim
       document.removeEventListener("scroll", onScroll, true);
       document.removeEventListener("keydown", onKey);
     };
-  }, [close]);
+  }, [active]);
 
-  return createPortal(<div id={id} ref={target} className="annotation-tooltip" role="tooltip"
+  return createPortal(<div id={id} ref={target} className="annotation-tooltip"
+    role={mode === "reader" ? "dialog" : "tooltip"}
+    aria-label={mode === "reader" ? `${active.item.label} 주석 설명` : undefined}
     style={{ left: position.left, top: position.top, visibility: position.ready ? "visible" : "hidden" }}
-    onPointerEnter={keepOpen} onPointerLeave={scheduleClose}>
-    <AnnotationContent content={active.item.content} interactive={false} wikiLimit={wikiLimit} />
+    onPointerEnter={keepOpen}
+    onPointerLeave={() => target.current?.contains(document.activeElement) || document.activeElement === active.anchor ?
+      keepOpen() : scheduleClose()}
+    onFocus={keepOpen} onBlur={scheduleClose}
+    onKeyDown={(event) => {
+      if (mode !== "reader" || event.key !== "Tab") return;
+      const links = [...(target.current?.querySelectorAll<HTMLAnchorElement>("a[href]") ?? [])];
+      if (event.shiftKey && document.activeElement === links[0]) {
+        event.preventDefault(); active.anchor.focus({ preventScroll: true });
+      } else if (!event.shiftKey && document.activeElement === links[links.length - 1]) {
+        /** 포털의 마지막 링크 뒤에는 원래 참조 다음 요소로 초점을 이어준다. */
+        const focusable = [...document.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        )].filter((candidate) => candidate.tabIndex >= 0 && candidate.getClientRects().length > 0 && !target.current?.contains(candidate));
+        const next = focusable[focusable.indexOf(active.anchor) + 1];
+        if (next) { event.preventDefault(); close(); next.focus(); }
+      }
+    }}>
+    <AnnotationContent content={active.item.content} interactive={mode === "reader"} wikiLimit={wikiLimit} />
   </div>, document.body);
 }
 
@@ -120,6 +146,7 @@ export function AnnotationReader({ items, children, mode = "reader", identity = 
   const prefix = `ken-annotation-${id}`;
   const [active, setActive] = useState<Active | null>(null);
   const [highlight, setHighlight] = useState<Highlight | null>(null);
+  const [visited, setVisited] = useState<VisitedReferences>({ identity, occurrences: {} });
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const highlightTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const frame = useRef<number | null>(null);
@@ -128,7 +155,7 @@ export function AnnotationReader({ items, children, mode = "reader", identity = 
   /** 닫기 대기와 강조 시간을 모두 문서 인스턴스 안에서만 관리한다. */
   const keepOpen = () => { if (closeTimer.current !== null) { clearTimeout(closeTimer.current); closeTimer.current = null; } };
   const close = () => { keepOpen(); setActive(null); };
-  const scheduleClose = () => { keepOpen(); closeTimer.current = setTimeout(close, 160); };
+  const scheduleClose = () => { keepOpen(); closeTimer.current = setTimeout(close, 280); };
   const show = (item: AnnotationItem, occurrence: number, anchor: HTMLAnchorElement | HTMLButtonElement) => {
     keepOpen(); setActive({ item, occurrence, anchor, identity });
   };
@@ -149,15 +176,22 @@ export function AnnotationReader({ items, children, mode = "reader", identity = 
       frame.current = null;
     });
   };
-  const goToItem = (event: MouseEvent<HTMLAnchorElement>, index: number) => {
+  const goToItem = (event: MouseEvent<HTMLAnchorElement>, index: number, occurrence: number) => {
     event.preventDefault(); close();
     const item = document.getElementById(itemId(index));
-    if (item) { mark({ kind: "item", index }); moveTo(item); }
+    if (item) {
+      setVisited((previous) => ({ identity, occurrences: {
+        ...(previous.identity === identity ? previous.occurrences : {}), [index]: occurrence,
+      } }));
+      mark({ kind: "item", index }); moveTo(item);
+    }
   };
-  const goToReference = (event: MouseEvent<HTMLAnchorElement>, item: AnnotationItem) => {
+  const goToReference = (event: MouseEvent<HTMLAnchorElement>, item: AnnotationItem, occurrence: number) => {
     event.preventDefault(); close();
-    const reference = document.getElementById(referenceId(item.index, item.firstRef));
-    if (reference) { mark({ kind: "reference", index: item.index, occurrence: item.firstRef }); moveTo(reference); }
+    const preferred = document.getElementById(referenceId(item.index, occurrence));
+    const destination = preferred ? occurrence : item.firstRef;
+    const reference = preferred ?? document.getElementById(referenceId(item.index, destination));
+    if (reference) { mark({ kind: "reference", index: item.index, occurrence: destination }); moveTo(reference); }
   };
 
   useEffect(() => () => {
@@ -168,6 +202,7 @@ export function AnnotationReader({ items, children, mode = "reader", identity = 
 
   useEffect(() => {
     close(); setHighlight(null);
+    setVisited({ identity, occurrences: {} });
     if (highlightTimer.current !== null) { clearTimeout(highlightTimer.current); highlightTimer.current = null; }
     if (frame.current !== null) { cancelAnimationFrame(frame.current); frame.current = null; }
   }, [identity]);
@@ -180,16 +215,25 @@ export function AnnotationReader({ items, children, mode = "reader", identity = 
     {children}
     {items.length > 0 && <section className="annotation-section" aria-labelledby={`${prefix}-heading`}>
       <h2 id={`${prefix}-heading`}>{mode === "editor" ? "주석 미리보기" : "주석"}</h2>
-      <ol>{items.map((item) => <li key={item.index} id={itemId(item.index)} tabIndex={-1}
+      <ol>{items.map((item) => {
+        const lastRef = visited.identity === identity ? visited.occurrences[item.index] : undefined;
+        const hasVisited = lastRef !== undefined && item.refs.includes(lastRef);
+        const destination = lastRef !== undefined && hasVisited ? lastRef : item.firstRef;
+        const returnLabel = hasVisited ? "읽던 위치" : "첫 참조";
+        return <li key={item.index} id={itemId(item.index)} tabIndex={-1}
         className={highlight?.kind === "item" && highlight.index === item.index ? "annotation-highlight" : undefined}>
-        <span className="annotation-item-label">[{item.label}]</span>{" "}
+        {mode === "reader" ? <a className="annotation-item-label" href={`#${referenceId(item.index, destination)}`}
+          aria-label={`${item.label} 주석의 ${returnLabel}로 돌아가기`}
+          onClick={(event) => goToReference(event, item, destination)}>[{item.label}]</a> :
+          <span className="annotation-item-label">[{item.label}]</span>}{" "}
         <span className="annotation-item-content"><AnnotationContent content={item.content} interactive={mode === "reader"}
           wikiLimit={mode === "reader" ? wikiLimits?.[item.index] : undefined} /></span>{" "}
-        {mode === "reader" && <a className="annotation-backlink" href={`#${referenceId(item.index, item.firstRef)}`}
-          aria-label={`${item.label} 주석의 첫 참조로 돌아가기`} onClick={(event) => goToReference(event, item)}>↩ 첫 참조</a>}
-      </li>)}</ol>
+        {mode === "reader" && <a className="annotation-backlink" href={`#${referenceId(item.index, destination)}`}
+          aria-label={`${item.label} 주석의 ${returnLabel}로 돌아가기`}
+          onClick={(event) => goToReference(event, item, destination)}>↩ {returnLabel}</a>}
+      </li>})}</ol>
     </section>}
-    {visibleActive && <AnnotationTooltip key={tooltipId} active={visibleActive} id={tooltipId} close={close}
+    {visibleActive && <AnnotationTooltip key={tooltipId} active={visibleActive} id={tooltipId} mode={mode} close={close}
       scheduleClose={scheduleClose} keepOpen={keepOpen}
       wikiLimit={mode === "reader" ? wikiLimits?.[visibleActive.item.index] : undefined} />}
   </AnnotationContext.Provider>;
@@ -203,20 +247,34 @@ export function AnnotationReference({ index, occurrence }: { index: number; occu
   const active = context.active?.item.index === index && context.active.occurrence === occurrence;
   const shared = {
     id: context.referenceId(index, occurrence),
-    "aria-describedby": active ? `${context.prefix}-tooltip-${index}-${occurrence}` : undefined,
+    "aria-describedby": active && context.mode === "editor" ? `${context.prefix}-tooltip-${index}-${occurrence}` : undefined,
+    "aria-controls": active && context.mode === "reader" ? `${context.prefix}-tooltip-${index}-${occurrence}` : undefined,
+    "aria-haspopup": context.mode === "reader" ? "dialog" as const : undefined,
+    "aria-expanded": context.mode === "reader" ? active : undefined,
     className: context.highlight?.kind === "reference" && context.highlight.index === index &&
       context.highlight.occurrence === occurrence ? "annotation-highlight" : undefined,
     onPointerEnter: (event: React.PointerEvent<HTMLAnchorElement | HTMLButtonElement>) => {
       if (event.pointerType !== "touch" && window.matchMedia("(hover: hover)").matches)
         context.show(item, occurrence, event.currentTarget);
     },
-    onPointerLeave: context.scheduleClose,
+    onPointerLeave: (event: React.PointerEvent<HTMLAnchorElement | HTMLButtonElement>) => {
+      const popup = context.active && document.getElementById(
+        `${context.prefix}-tooltip-${context.active.item.index}-${context.active.occurrence}`,
+      );
+      if (document.activeElement === event.currentTarget || popup?.contains(document.activeElement)) context.keepOpen();
+      else context.scheduleClose();
+    },
     onFocus: (event: React.FocusEvent<HTMLAnchorElement | HTMLButtonElement>) => context.show(item, occurrence, event.currentTarget),
     onBlur: context.scheduleClose,
+    onKeyDown: (event: React.KeyboardEvent<HTMLAnchorElement | HTMLButtonElement>) => {
+      if (context.mode !== "reader" || event.key !== "Tab" || event.shiftKey || !active) return;
+      const link = document.getElementById(`${context.prefix}-tooltip-${index}-${occurrence}`)?.querySelector<HTMLAnchorElement>("a[href]");
+      if (link) { event.preventDefault(); context.keepOpen(); link.focus(); }
+    },
   };
   if (context.mode === "editor") return <sup className="annotation-reference"><button type="button" {...shared}
     aria-label={`${item.label} 주석 설명 보기`} onClick={(event) => context.show(item, occurrence, event.currentTarget)}>[{item.label}]</button></sup>;
   return <sup className="annotation-reference"><a {...shared}
     href={`#${context.itemId(index)}`} aria-label={`${item.label} 주석, 목록으로 이동`}
-    onClick={(event) => context.goToItem(event, index)}>[{item.label}]</a></sup>;
+    onClick={(event) => context.goToItem(event, index, occurrence)}>[{item.label}]</a></sup>;
 }
