@@ -1,13 +1,13 @@
 import type { Root } from "mdast";
 import { parseAnnotationDocument } from "./markdown-details";
 
-/** 내부 첨부 이미지의 대체 설명·상대 너비·정렬을 담는 편집 값. */
+/** 내부 첨부 이미지의 대체 설명·상대 너비·정렬과 선택적 다크 테마 첨부를 담는 편집 값. */
 export type ImageData = {
-  attachmentId: number; caption: string; width: number; align: "left" | "center" | "right";
+  attachmentId: number; darkAttachmentId?: number; caption: string; width: number; align: "left" | "center" | "right";
 };
 
 /** 이미지 설명에서 읽어 들인 메타데이터; 설명은 대체 텍스트와 캡션에 함께 사용한다. */
-export type ImageAlt = Pick<ImageData, "caption" | "width" | "align">;
+export type ImageAlt = Pick<ImageData, "caption" | "width" | "align" | "darkAttachmentId">;
 
 type ImageNode = {
   type: string; url?: string; alt?: string; identifier?: string; children?: ImageNode[];
@@ -15,6 +15,7 @@ type ImageNode = {
 
 const attachmentUrl = /^attachment:([1-9]\d*)$/;
 const metadata = /^([\s\S]*)\|w=(20|[2-9]\d|100)\|a=(left|center|right)$/;
+const pairedMetadata = /^([\s\S]*)\|dark=([1-9]\d*)\|w=(20|[2-9]\d|100)\|a=(left|center|right)$/;
 const markdownPunctuation = /[!"#$%'()*+,\-./:;=?@\[\]^_`{|}~]/;
 
 /** 정확한 내부 주소의 양수 안전 정수 ID만 허용하며 외부 URL·인코딩 변형은 거부한다. */
@@ -27,10 +28,18 @@ export function parseAttachmentId(url: string): number | null {
 
 /**
  * remark가 해석한 alt의 오른쪽에 있는 정확한 메타 suffix만 읽는다.
+ * 선택적 dark ID는 양수 안전 정수만 허용하며 중복·잘못된 dark 메타는 거부한다.
  * 구분자 없는 기존 설명은 기본 100%/가운데, 모호한 pipe·잘못된 메타는 `null`로 둔다.
  */
 export function parseImageAlt(alt: string): ImageAlt | null {
   if (!alt.includes("|")) return { caption: alt, width: 100, align: "center" };
+  if (alt.includes("|dark=")) {
+    const paired = pairedMetadata.exec(alt);
+    if (!paired || paired[1].includes("|dark=")) return null;
+    const darkAttachmentId = Number(paired[2]);
+    if (!Number.isSafeInteger(darkAttachmentId) || darkAttachmentId <= 0) return null;
+    return { caption: paired[1], darkAttachmentId, width: Number(paired[3]), align: paired[4] as ImageData["align"] };
+  }
   const match = metadata.exec(alt);
   if (!match) return null;
   return { caption: match[1], width: Number(match[2]), align: match[3] as ImageData["align"] };
@@ -48,7 +57,8 @@ export function serializeImageBlock(image: ImageData): string {
     if (character === "\\" || markdownPunctuation.test(character)) return `\\${character}`;
     return character;
   }).join("");
-  return `![${caption}|w=${image.width}|a=${image.align}](attachment:${image.attachmentId})`;
+  const dark = image.darkAttachmentId === undefined ? "" : `|dark=${image.darkAttachmentId}`;
+  return `![${caption}${dark}|w=${image.width}|a=${image.align}](attachment:${image.attachmentId})`;
 }
 
 /** CommonMark 참조 정의의 대소문자와 연속 공백을 같은 키로 맞춘다. */
@@ -84,7 +94,11 @@ export function collectAttachmentIds(body: string): number[] {
     if (node.type !== "image" && node.type !== "imageReference") return;
     const url = node.type === "imageReference" ? definitions.get(referenceKey(node.identifier ?? "")) : node.url;
     const id = url ? parseAttachmentId(url) : null;
-    if (id !== null && parseImageAlt(node.alt ?? "") !== null) ids.add(id);
+    const alt = parseImageAlt(node.alt ?? "");
+    if (id !== null && alt !== null) {
+      ids.add(id);
+      if (alt.darkAttachmentId !== undefined) ids.add(alt.darkAttachmentId);
+    }
   });
   return [...ids].sort((left, right) => left - right);
 }

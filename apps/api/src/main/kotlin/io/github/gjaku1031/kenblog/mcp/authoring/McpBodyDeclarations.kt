@@ -23,7 +23,8 @@ data class McpBodyInspection(
 @Component
 class McpBodyDeclarations {
     /**
-     * 줄 단위의 보수적 후보 탐색. fenced code와 블록 수식 안의 가짜 참조는 제외.
+     * 줄 단위의 보수적 후보 탐색. 독립 이미지의 기본·다크 첨부를 함께 세고,
+     * fenced code와 블록 수식 안의 가짜 참조는 제외.
      *
      * @return 확실한 후보와 완전성; 복잡 문법의 후보는 권위 있는 전체 목록이 아님
      */
@@ -64,9 +65,15 @@ class McpBodyDeclarations {
             val image = IMAGE.matchEntire(trimmed)
             if (image != null) {
                 val alt = image.groupValues[1]
-                val id = image.groupValues[2].toLongOrNull()
-                if (id != null && id > 0 && (alt.contains('|') && IMAGE_ALT.matches(alt) || !alt.contains('|'))) images.add(id)
-                else diagnostics.add("이미지 설명·너비·정렬 또는 첨부 ID를 확인할 수 없습니다.")
+                val id = safeAttachmentId(image.groupValues[2])
+                val metadata = if ('|' in alt) IMAGE_ALT.matchEntire(alt) else null
+                val darkText = metadata?.groupValues?.get(2).orEmpty()
+                val darkId = darkText.takeIf { it.isNotEmpty() }?.let(::safeAttachmentId)
+                if (id != null && ('|' !in alt || metadata != null) &&
+                    (darkText.isEmpty() || darkId != null)) {
+                    images.add(id)
+                    if (darkId != null) images.add(darkId)
+                } else diagnostics.add("이미지 설명·다크 첨부·너비·정렬 또는 첨부 ID를 확인할 수 없습니다.")
                 continue
             }
             if (source.contains("![") || source.contains("](") ||
@@ -112,8 +119,8 @@ class McpBodyDeclarations {
 
     /** 입력 원문을 노출하지 않고 명시 배열의 크기·중복·형식을 설명. */
     fun declarationDiagnostics(attachmentIds: List<Long>, wikiTargets: List<String>): List<String> = buildList {
-        if (attachmentIds.size > 100 || attachmentIds.any { it <= 0 } ||
-            attachmentIds.distinct().size != attachmentIds.size) add("attachmentIds는 중복 없는 양수 ID 최대 100개여야 합니다.")
+        if (attachmentIds.size > 100 || attachmentIds.any { it !in 1..MAX_SAFE_ATTACHMENT_ID } ||
+            attachmentIds.distinct().size != attachmentIds.size) add("attachmentIds는 중복 없는 양수 안전 정수 ID 최대 100개여야 합니다.")
         if (wikiTargets.size > 128 || wikiTargets.distinct().size != wikiTargets.size ||
             wikiTargets.any { runCatching { WikiDeclarations.title(it) }.getOrNull() != it })
             add("wikiTargets는 정규화된 고유 제목 최대 128개여야 합니다.")
@@ -123,11 +130,16 @@ class McpBodyDeclarations {
     private fun invalid(): Nothing = throw OperationFailure(HttpStatus.BAD_REQUEST,
         "본문과 첨부·위키 선언을 확인하세요.")
 
+    /** 웹의 `Number.isSafeInteger`와 같은 양수 첨부 ID 범위만 수용. */
+    private fun safeAttachmentId(value: String): Long? =
+        value.toLongOrNull()?.takeIf { it in 1..MAX_SAFE_ATTACHMENT_ID }
+
     private companion object {
+        const val MAX_SAFE_ATTACHMENT_ID = 9_007_199_254_740_991L
         val FENCE = Regex("^ {0,3}(`{3,}|~{3,})(.*)$")
         val MATH_DELIMITER = Regex("^ {0,3}\\$\\$[ \\t]*$")
         val IMAGE = Regex("^!\\[([^\\]\\r\\n]*)\\](?:\\(attachment:([1-9][0-9]*)\\))$")
-        val IMAGE_ALT = Regex("^([^|]*)\\|w=(20|[2-9][0-9]|100)\\|a=(left|center|right)$")
+        val IMAGE_ALT = Regex("^([^|]*)\\|(?:dark=([1-9][0-9]*)\\|)?w=(20|[2-9][0-9]|100)\\|a=(left|center|right)$")
         val WIKI = Regex("\\[\\[([^\\[\\]\\|\\r\\n]+)(?:\\|([^\\[\\]\\|\\r\\n]+))?\\]\\]")
         val REFERENCE_DEFINITION = Regex("^ {0,3}\\[[^]]+]:.*$")
     }
