@@ -1,6 +1,6 @@
 # 현재 작업
 
-- ken.blog 아키텍처 문서의 인프라·시스템 도면 생성·반영 진행: [계획과 검증](issues/ARCHITECTURE-DIAGRAMS-2026-09-29.md). Vowser 표현 참고, CI·Pages 자동 배포와 운영자 API 배포 구분, 라이트/다크 SVG·PNG 및 원본 보존.
+- ken.blog 아키텍처 인프라·시스템 도면 생성·원고 반영 완료: [계획과 검증](issues/ARCHITECTURE-DIAGRAMS-2026-09-29.md). CI·Pages 자동 배포와 운영자 API 배포 구분, 라이트/다크 SVG·PNG 8개와 원본 보존. 첨부 4개·최신 시퀀스·메타데이터 보존 및 운영 readback 확인, Pages 정적 반영 확인 대상.
 
 - 일반 본문 입력 높이 반복 축소 제거 및 로컬 검증 완료: [계획과 검증](issues/EDITOR-JITTER-2026-09-29.md). 한 글자 높이 변경 6회→0회, 긴 문단·한글 조합·삭제·붙여넣기·화면 폭·목록·표·격리 저장 확인. Safari 실기 미검증 및 가시적 진동 재현 범위 기록, 동일 SHA CI·Pages·실제 배포 확인 대상.
 

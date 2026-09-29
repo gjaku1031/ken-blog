@@ -1,0 +1,110 @@
+{
+  "purpose": "ken.blog 인프라·시스템 도면에 사용한 아이콘의 출처·버전·이용조건 기록",
+  "sourceRecords": [
+    "infra/ken-blog/stack-logo-assets-20260927/sources.json",
+    "infra/ken-blog/stack-catalog-20260927/assets/manifest.json",
+    "infra/infra-diagrams/assets/icons/user.png"
+  ],
+  "icons": [
+    {
+      "file": "icons/user.png",
+      "name": "Diagrams user",
+      "sha256": "4aef201405ce7dc9bccdb47916c9c825c3ea64c89ad504eeadbbb993478ec5e7",
+      "sourceUrl": "https://github.com/mingrammer/diagrams/blob/v0.25.1/resources/onprem/client/user.png",
+      "sourceVersion": "Diagrams 0.25.1",
+      "licenseNotice": "icons/DIAGRAMS-LICENSE",
+      "useCondition": "Diagrams MIT resource; preserve included copyright/license notice."
+    },
+    {
+      "file": "icons/github.svg",
+      "name": "GitHub",
+      "sha256": "45262793de6292206a895ed63593cdb1eaed82074173f7f4b5bdb3e427ca805a",
+      "sourceUrl": "https://raw.githubusercontent.com/devicons/devicon/7330accdbc47e2dc0c19789a48533c4a3c50fe58/icons/github/github-original.svg",
+      "sourceVersion": "Devicon commit 7330accdbc47e2dc0c19789a48533c4a3c50fe58",
+      "licenseNotice": "icons/DEVICON-LICENSE",
+      "useCondition": "Devicon MIT asset; preserve included copyright/license notice. GitHub mark remains a product trademark."
+    },
+    {
+      "file": "icons/actions.svg",
+      "name": "GitHub Actions",
+      "sha256": "3a2524052ccf301d1a239f20cfef98d655e060c51cc29c5e94c867913899a47e",
+      "sourceUrl": "https://raw.githubusercontent.com/devicons/devicon/7330accdbc47e2dc0c19789a48533c4a3c50fe58/icons/githubactions/githubactions-original.svg",
+      "sourceVersion": "Devicon commit 7330accdbc47e2dc0c19789a48533c4a3c50fe58",
+      "licenseNotice": "icons/DEVICON-LICENSE",
+      "useCondition": "Devicon MIT asset; preserve included copyright/license notice. GitHub Actions mark remains a product trademark."
+    },
+    {
+      "file": "icons/nextjs.svg",
+      "name": "Next.js",
+      "sha256": "d9435c4ede7133b376c0173a80226bb3856729366707cd96e9a66e39448d0288",
+      "sourceUrl": "https://raw.githubusercontent.com/devicons/devicon/7330accdbc47e2dc0c19789a48533c4a3c50fe58/icons/nextjs/nextjs-original.svg",
+      "sourceVersion": "Devicon commit 7330accdbc47e2dc0c19789a48533c4a3c50fe58",
+      "licenseNotice": "icons/DEVICON-LICENSE",
+      "useCondition": "Devicon MIT asset; preserve included copyright/license notice. Next.js mark remains a product trademark."
+    },
+    {
+      "file": "icons/nginx.svg",
+      "name": "Nginx",
+      "sha256": "a28c7002fda6748bb018fa5f89ba3d38c622db720d65aa88668208a3cc839900",
+      "sourceUrl": "https://raw.githubusercontent.com/devicons/devicon/7330accdbc47e2dc0c19789a48533c4a3c50fe58/icons/nginx/nginx-original.svg",
+      "sourceVersion": "Devicon commit 7330accdbc47e2dc0c19789a48533c4a3c50fe58",
+      "licenseNotice": "icons/DEVICON-LICENSE",
+      "useCondition": "Devicon MIT asset; preserve included copyright/license notice. Nginx mark remains a product trademark."
+    },
+    {
+      "file": "icons/spring.svg",
+      "name": "Spring Boot",
+      "sha256": "8f9ccd66abde74dd74fde03541f4295bf5e55242b502167b38deeb6bee69c145",
+      "sourceUrl": "https://spring.io/img/projects/spring-boot.svg",
+      "sourceVersion": "Spring official project asset",
+      "licenseNotice": null,
+      "useCondition": "Official Spring project logo used to identify Spring Boot. Trademark rights remain with their owner; no separate logo license is asserted."
+    },
+    {
+      "file": "icons/mysql.svg",
+      "name": "MySQL",
+      "sha256": "f73fa5d6b9da33fbf540ff96f5360c24b6d29d883ecfe6fcaecf89a8d3456067",
+      "sourceUrl": "https://raw.githubusercontent.com/devicons/devicon/7330accdbc47e2dc0c19789a48533c4a3c50fe58/icons/mysql/mysql-original.svg",
+      "sourceVersion": "Devicon commit 7330accdbc47e2dc0c19789a48533c4a3c50fe58",
+      "licenseNotice": "icons/DEVICON-LICENSE",
+      "useCondition": "Devicon MIT asset; preserve included copyright/license notice. MySQL mark remains a product trademark."
+    },
+    {
+      "file": "icons/redis.svg",
+      "name": "Redis",
+      "sha256": "4707378b190878f36f7e6e1c01fa3ee7e7884c76101809d191dddd943a2e6bdb",
+      "sourceUrl": "https://raw.githubusercontent.com/devicons/devicon/7330accdbc47e2dc0c19789a48533c4a3c50fe58/icons/redis/redis-original.svg",
+      "sourceVersion": "Devicon commit 7330accdbc47e2dc0c19789a48533c4a3c50fe58",
+      "licenseNotice": "icons/DEVICON-LICENSE",
+      "useCondition": "Devicon MIT asset; preserve included copyright/license notice. Redis mark remains a product trademark."
+    },
+    {
+      "file": "icons/kotlin.svg",
+      "name": "Kotlin",
+      "sha256": "5053c2e1288582d1ac2cfc1e807eabb7f6059b1aa2f7d04e5cf00063682a2cbe",
+      "sourceUrl": "https://raw.githubusercontent.com/devicons/devicon/7330accdbc47e2dc0c19789a48533c4a3c50fe58/icons/kotlin/kotlin-original.svg",
+      "sourceVersion": "Devicon commit 7330accdbc47e2dc0c19789a48533c4a3c50fe58",
+      "licenseNotice": "icons/DEVICON-LICENSE",
+      "useCondition": "Devicon MIT asset; preserve included copyright/license notice. Kotlin mark remains a product trademark."
+    }
+  ],
+  "textOnlyNodes": [
+    "Google Analytics 4",
+    "Object Storage",
+    "JPA Repository 및 기능 역할 카드"
+  ],
+  "rendering": {
+    "source": "architecture.py",
+    "command": "node /home/ubuntu/Develop/infra/infra-diagrams/scripts/render.mjs --source /home/ubuntu/Develop/project/ken-blog/artifacts/architecture/architecture.py --icons /home/ubuntu/Develop/project/ken-blog/artifacts/architecture/icons --output /home/ubuntu/Develop/project/ken-blog/artifacts/architecture",
+    "outputs": [
+      "infrastructure.png",
+      "infrastructure.dark.png",
+      "infrastructure.svg",
+      "infrastructure.dark.svg",
+      "system.png",
+      "system.dark.png",
+      "system.svg",
+      "system.dark.svg"
+    ]
+  }
+}
