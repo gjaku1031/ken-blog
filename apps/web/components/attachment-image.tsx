@@ -6,6 +6,7 @@ import { ApiFailure, apiFailureMessage } from "@/lib/api";
 import { fetchAttachmentContent } from "@/lib/attachments";
 import type { ImageData } from "@/lib/editor-image";
 import { useAuth } from "./auth-provider";
+import { MediaOpenButton, MediaViewer } from "./media-viewer";
 
 export type AttachmentSource = { kind: "admin" } | { kind: "post"; postId: number };
 type ImageState = { key: string; status: "loading" | "ready" | "error"; url: string; width: number; height: number; message: string };
@@ -25,9 +26,13 @@ function imageFailureMessage(error: unknown): string {
 export function AttachmentImage({ image, source }: { image: ImageData; source: AttachmentSource }) {
   const auth = useAuth();
   const [retry, setRetry] = useState(0);
+  const [openKey, setOpenKey] = useState<string | null>(null);
   const [state, setState] = useState<ImageState>({ key: "", status: "loading", url: "", width: 1, height: 1, message: "" });
   const sourceId = source.kind === "post" ? source.postId : 0;
   const requestKey = `${auth.epoch}:${source.kind}:${sourceId}:${image.attachmentId}:${retry}`;
+
+  /** 첨부 요청이 바뀌면 이전 매체의 확대 상태를 지운다. */
+  useEffect(() => setOpenKey(null), [requestKey]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -74,11 +79,17 @@ export function AttachmentImage({ image, source }: { image: ImageData; source: A
   const alt = image.caption || `첨부 이미지 ${image.attachmentId}`;
   const visible: ImageState = state.key === requestKey ? state : { key: requestKey, status: "loading", url: "", width: 1, height: 1, message: "" };
   return <span className={`attachment-image attachment-align-${image.align}`} style={{ width: `${image.width}%` }}>
-    {visible.status === "ready" && <Image src={visible.url} alt={alt} width={visible.width} height={visible.height}
-      sizes="(max-width: 760px) 100vw, 760px" unoptimized />}
+    {visible.status === "ready" && <span className="attachment-image-view">
+      <Image src={visible.url} alt={alt} width={visible.width} height={visible.height}
+        sizes="(max-width: 760px) 100vw, 760px" unoptimized />
+      {source.kind === "post" && <MediaOpenButton label={`${alt} 확대해서 보기`} onClick={() => setOpenKey(requestKey)} />}
+    </span>}
     {visible.status === "loading" && <span className="blocked-image" role="status">이미지를 불러오고 있습니다: {alt}</span>}
     {visible.status === "error" && <span className="blocked-image" role="status">{visible.message} ({alt}) <button type="button"
       onClick={() => setRetry((current) => current + 1)}>이미지 다시 시도</button></span>}
     {image.caption && <span className="attachment-caption">{image.caption}</span>}
+    {source.kind === "post" && visible.status === "ready" && openKey === requestKey &&
+      <MediaViewer title={alt} src={visible.url} alt={alt} width={visible.width} height={visible.height}
+        onClose={() => setOpenKey(null)} />}
   </span>;
 }
