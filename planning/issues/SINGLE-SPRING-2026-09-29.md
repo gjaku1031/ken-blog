@@ -52,7 +52,7 @@
 - Markdown/도식 의존성은 mdast-util-to-hast13.2.1 및 lodash-es4.18.1로 한정 보정. npm audit 취약점0, 변경된 렌더러/브라우저 검증 재실행.
 - 실제 운영 읽기 전용 전후 검증에서 Flyway V24·공개 글7·편집본4·첨부7·프로젝트6·배지71·계정1 및 각 보존 테이블·설정·컨테이너 해시 일치. 운영 원고/파일/MFA 복구 코드 변경 없음. 무관한 PORT/CLEANUP은 커밋 범위에서 제외.
 
-### 운영 전환 대기 조건
+### 이행 전 대기 조건 · 후속 승인과 아래 운영 이행 기록으로 해제
 
 - 이 작업은 신규 운영 쓰기/배포 승인으로 간주하지 않음. 원격 push가 Pages를 실행하므로 로컬 커밋까지만 진행.
 - 운영 `APP_DEPLOY_ENABLED`·GitHub token·callback token, GitHub `BLOG_API_BASE_URL`·`BLOG_DEPLOY_TOKEN` 미설정. 실제 토큰 생성·등록·권한 확인 미실행.
@@ -62,10 +62,33 @@
 - V1~V24 SQL 불변, V25~V27 이행은 격리 스키마만 적용. 운영 V24에는 새 deployment_state가 없으며 신규 gate 활성화 없음.
 
 
-### 최종 산출물·정리 확인
+### 격리 검증 시점의 산출물·정리 확인
 
 - 최종 clean verify 2026-09-29 10:17 UTC 종료, 기존 테스트28 PASS. 최종 Docker image `sha256:7d7885410552ddf0e8ed29348a4ee789f50cedeb015b4983c39a723982a6053a`, 비루트 JRE 기동·health·`/manage/`·기존 격리 세션 유지 확인. 운영 이미지로 교체하지 않음.
 - 최종 Docker API 기반 Pages capture: TECH23·Projects2·Notes1의 격리 원고, 파일350개/10,222,462바이트. 초안/내부 디렉터리/관리자 JS/소스맵/DB dump/자격증명 값 미포함 확인. 해당 fixture artifact를 운영 발행하지 않음.
 - 실제 운영 API image `sha256:3d49b82a7eef24df4827fe4b30928a1ea774a94820bdf647b5d975d3170989ef`, 기존 web proxy image `sha256:3ef45bd4c7440a65c3d40f0822e80dc7bb12c3776d1bee01c55257134db84238` 유지. 신규 marker의 운영 설치 없음.
 - 격리 최종 배포 상태 SUCCEEDED 확인 후 전용 audit container/schema·mock 객체·임시 자격증명·서버/브라우저 정리. 기존 검증용 MySQL schema와 운영 컨테이너에는 변경 없음. 검사 로그/해시·harness만 저장소 밖 보존.
 - 수용표85 PASS/0 FAIL/3 NOT RUN. NOT RUN은 실제 Safari/OS IME, 신규 운영 image/run/marker, 운영 app/data/site 롤백. 로컬 코드 완성과 운영 전환 완료를 구분.
+
+
+### 운영 이행 · 2026-09-29
+
+- 후속 운영 이행 승인에 따라 기존 쓰기·구 workflow 정지 후 동일 `ken_blog_live` 스키마에 V25~V27 순차 적용. Flyway repair·기존 migration 수정·전체 데이터 초기화 없음. 10:54 UTC V27 이행 및 새 단일 Spring 기동 확인.
+- 이행 전 전체 DB 백업 176개 행을 격리 MySQL에 복원해 INSERT 행 전체 일치 확인. 참조 OCI 객체78개·1,458,898바이트를 별도 백업하고 이행 후 원본 SHA256 일치 확인. 이전 API 이미지+복원 V24 DB의 health/프로젝트 조회, 이전 Pages artifact424개 파일의 복원 HTTP 경로·자산 확인. 정상 운영을 과거 자료로 덮어쓰는 롤백은 미실행.
+- 새 API image `sha256:7d7885410552ddf0e8ed29348a4ee789f50cedeb015b4983c39a723982a6053a`, proxy image `sha256:893ed0b6e9670858ae38368bc640d7e7e57beb491a7fed551733db1653bb3d44`. 원문7·편집본4·첨부7·프로젝트6·배지71·계정1 및 본문/메타/연결/로그인 보존 해시 일치. 세션의 마지막 접근 시각과 신규 Flyway/배포상태만 정상 변경.
+- source `4bfccba6e0b7a79d72742595e00fdf56c87fcc2f` 실제 push, CI `36557864717` 성공. 첫 Pages `36558610305` 및 후속 Finalize `36558701930` 성공. operation `4e218189-cae4-4b05-9078-a1672edde81c`, runAttempt1, 공개 `deployment.json`의 source/run/operation 일치·SUCCEEDED 확인. 서버 재시작 후 동일 종료 상태 유지.
+- 동일 HTTPS 출처 `/manage/`, 기존 MFA 인증 세션 복원, Secure·HttpOnly·SameSite=Lax 쿠키, 공인 MCP404·배포제어 인증 확인. 새로운 MCP 클라이언트의 실제30tools/4resources·CodeMirror 안내 확인. 평문 비밀번호나 복구 코드를 이용한 새 운영 로그인 시험은 미실행.
+- 공개하지 않는 검증 편집본만 생성→MCP조회→웹 원문 그대로 저장→revision/CRLF 확인→해당 편집본 삭제. 사용자 편집본4개 보존 및 임시저장 시 새 배포 없음 확인. 인증 ZIP에서 원문7개+편집본4개 총11개 원문 바이트와 DB 일치.
+- 첫 공개 배포에서 본문/이미지3개·Mermaid·주석·테마 이미지·기존 query 이동·390px·JavaScript 미사용 읽기·독자 API요청0·실행오류0 확인. 검색이 feed만 사용해 프로젝트 대문을 누락하는 회귀 발견, 전체 공개 문서의 정적 검색으로 후속 수정 대상.
+- 기존 공개 HTML 구조 대신 공용 목록/문서 구조를 새로 출력해 이전 CSS가 적용되지 않는 디자인 회귀 확인. 이전 source와 실제 Pages artifact의 HTML/CSS를 기준으로 기존 디자인 복원 진행. 구조 이행은 유지하며 Next/React 실행 코드를 다시 도입하지 않음.
+
+### 기존 디자인 복원 · 2026-09-29
+
+- 이전 source135169f와 실제 Pages36535060509 artifact의 HTML/CSS를 직접 기준으로 공개 셸·로고·3열 프로젝트 카드·상세 문서 사이드바·홈 프로필·Tech/Notes·검색·404 복원. 스크린샷을 보고 새 디자인을 만드는 방식 미사용. 삭제하기로 한 통계/조회수/핀/드래그 기능과 Next/React 런타임 재도입 없음.
+- 관리자 원본 헤더·메뉴·표·로그인·큰 제목·하단 도구막대 재사용. CodeMirror 원문+미리보기와 배포 상태·잠금 유지. Noto/IBM·KaTeX·공통 본문 상호작용 스타일 포함. 복구 코드 모드에서 빈 pattern 대신 제약 속성 제거, 실제 checkValidity 확인.
+- 프로젝트 대문 누락 검색 회귀를 전체 공개 대문/문서/Tech/회차와 렌더된 본문 검색으로 수정. Vowser 제목과 본문 고유 문구 검색 확인. 기존 status 문구·진행 기간·GitHub/메일 아이콘·OG/Twitter 메타 보존.
+- 실제 이전 artifact와 새 결과의 헤더·Projects 카드/그리드 폭·간격·패딩·폰트·색·모서리, 프로젝트 상세 좌우 배치, 홈 프로필 치수 일치. 빈 Notes/Tech와 별도 다중 과목/회차 fixture도 검증.
+- 루트 typecheck·전체 자산 빌드·기존 Maven verify28 PASS(11:26 UTC). 공개 fixture12페이지·첨부7개, Chromium 이미지3개/Mermaid1/주석/테마 이미지/기존 query/검색/390px/no-JS·API요청0·오류0·실패응답0 확인.
+- 새 관리자 자산과 운영 GET 응답을 연결한 읽기 전용 브라우저: 실제 글7개·단일 CodeMirror·Mermaid·배포상태·모바일 가로넘침0·운영 쓰기0·실행오류0 확인. 실제 Safari/OS 한글 IME만 미실행.
+- 새 운영 후보 image `sha256:e072cea36139ff307c0483d78ec9560f197fb7835c3da141310c9789ca2bc633` 빌드 완료. API 교체 후 같은 소스의 Pages·CI·marker를 최종 확인 대상. 실제 전환 식별자는 로컬 인계 기록에 유지.
+- 디자인 복원 직전 운영 V27·원고7/편집본4/첨부7/프로젝트6/배지71/계정1, 이행 전과 보존 대상18테이블 SHA256 일치 재확인. 수용표87 PASS·0 FAIL·1 NOT RUN.

@@ -1,6 +1,6 @@
 # 현재 작업
 
-- 단일 Spring Boot·원문 편집기 전환 구현·격리 검증 완료, 운영 전환 미실행: [범위와 검증](issues/SINGLE-SPRING-2026-09-29.md), [수용표](issues/SINGLE-SPRING-ACCEPTANCE-2026-09-29.md). 루트 JAR·공통 렌더러·CodeMirror·PRIVATE→DRAFT·배포 게이트·MCP·ZIP 확인. 토큰/엔드포인트와 승인된 전환 절차 확보 전 push 보류. 실제 Safari/OS IME·운영 배포/롤백은 별도 확인 대상. 아래 항목은 이전 이력.
+- 단일 Spring Boot·운영 DB V27 전환 및 첫 Pages 배포 완료, 기존 HTML/CSS 디자인 복원·통합 검증 완료: [범위와 검증](issues/SINGLE-SPRING-2026-09-29.md), [수용표](issues/SINGLE-SPRING-ACCEPTANCE-2026-09-29.md). 기존 원문·편집본·계정·첨부 해시 보존 및 실제 MCP·저장·ZIP 확인. 이전 HTML 구조와 CSS 재사용으로 공개·관리 화면 복원, 원본 화면 주요 치수 일치·기존28검사·공개/관리 브라우저 확인, 복원 소스의 최종 운영 배포 확인 대상. 아래 항목은 이전 이력.
 
 
 - 아키텍처 이미지의 테마 자동 전환 구현·로컬/운영 API 검증 완료: [계획과 검증](issues/THEME-IMAGES-2026-09-29.md). 한 이미지 블록의 라이트/다크 첨부 연결과 읽기·편집·확대·명시 참조 보존 확인. 원고의 중복 접기 제거 및 동일 SHA Pages 최종 확인 대상.

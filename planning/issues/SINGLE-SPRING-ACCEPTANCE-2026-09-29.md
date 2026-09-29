@@ -2,7 +2,7 @@
 
 실행한 검증만 PASS. 외부 운영 전환과 미실행 조건은 NOT RUN으로 구분. 기준 HEAD `135169f`. 최종 루트 clean verify 28개 성공(2026-09-29 10:17 UTC), Docker 최종 이미지와 실제 관리자·정적 capture 확인.
 
-PASS 범위: 격리 MySQL·loopback GitHub/HTTPS S3 fixture·Chromium. GitHub Actions 및 OCI 공급자에 대한 신규 운영 연결/배포는 미실행. 실제 OS/Safari IME와 운영 전환/롤백은 NOT RUN. 최종 88개 중 PASS85·FAIL0·NOT RUN3. 상세 로그와 격리 harness는 저장소 밖 `/tmp/ken-blog-single-spring-audit` 보관, 새 저장소 테스트 파일 없음.
+PASS 범위: 격리 MySQL·loopback GitHub/HTTPS S3 fixture·Chromium. 후속 운영 이행 승인에 따라 실제 OCI API·기존 MySQL V27·GitHub Pages 연결과 백업 복원 검증까지 수행. 실제 OS/Safari IME만 NOT RUN. 최종 88개 중 PASS87·FAIL0·NOT RUN1. 상세 로그와 격리 harness는 저장소 밖 `/tmp/ken-blog-single-spring-audit` 보관, 새 저장소 테스트 파일 없음.
 
 | ID | 수용 기준 | 결과 | 근거·제약 |
 | --- | --- | --- | --- |
@@ -25,7 +25,7 @@ PASS 범위: 격리 MySQL·loopback GitHub/HTTPS S3 fixture·Chromium. GitHub Ac
 | B07 | 폐기 기능 | PASS | analytics/view/todo-write/pin HTTP 경로 404/405. 읽기 UI·도구·설정 제거 |
 | B08 | 숫자 순서 | PASS | 프로젝트 -9·분류 -5·Notes 2→1 저장·조회; 정적 순서 fixture와 실제 capture |
 | B09 | 프로필·배지 | PASS | 보존 열 해시 일치, profile email·badge 로고·프로젝트 선택 배열 API/정적 확인 |
-| B10 | 인증 | PASS | 기존 격리 MFA 세션을 old→new JAR 재시작 후 재인증 없이 auth/me 200; 운영 복구 코드 미사용 |
+| B10 | 인증 | PASS | 격리·운영 기존 MFA 세션 old→new JAR와 재시작 후 auth/me200. 운영 복구 코드 미사용·평문 비밀번호 새 로그인 미실행 |
 | C01 | 무수정 저장 | PASS | 기존 CRLF/한글/이모지·fence 원문을 실제 웹 무수정 저장 및 MCP 왕복 후 바이트 비교 |
 | C02 | GFM 표 | PASS | mixed Node golden: escaped pipe·정렬·한글·코드 span 및 접기 내부 표 |
 | C03 | 주석 | PASS | 익명·이름·재참조 주석 번호/복귀 링크 mixed golden·브라우저 확인 |
@@ -89,8 +89,8 @@ PASS 범위: 격리 MySQL·loopback GitHub/HTTPS S3 fixture·Chromium. GitHub Ac
 | F09 | export | PASS | 실제 인증 HTTP ZIP: CRLF original·상대 이미지·dark sidecar·tags/부모/숫자순서 일치 |
 | F10 | export 잘못된 경로 | PASS | ZIP 경로/중복 검사·선택자 검증·없는 객체는200 이전 실패·임시 ZIP 정리 |
 | F11 | MCP 새 클라이언트 | PASS | 새 클라이언트 실제 JAR: 30tools/4resources·PUBLIC schema·guide·web/MCP 이어쓰기20건 |
-| F12 | 기존 콘텐츠 수량 | PASS | 운영 읽기 전용 전후 전 테이블 보존 hash 일치. 격리 PRIVATE 전환은 대응표 별도 확인 |
-| F13 | 운영 식별 | NOT RUN | 기존 운영 image/Pages run은 읽기 전용 기록. 새 source의 운영 image/run/marker 적용 미실행 |
+| F12 | 기존 콘텐츠 수량 | PASS | 운영 V24→V27 전후 원본7·편집본4·첨부7·프로젝트6·배지71·계정1 보존 hash 및 OCI78객체 SHA256 일치. 격리 PRIVATE 전환 대응표 확인 |
+| F13 | 운영 식별 | PASS | source4bfccba·API7d788541·proxy893ed0b6·Pages36558610305·operation4e218189 연결과 공개 marker 일치. 후속 디자인 복원 식별자는 이행 기록·로컬 인계에 추가 |
 | F14 | 제거 기능 네트워크 | PASS | API 차단 브라우저에서 analytics/view/todo/auth 요청 없이 독자 기능 동작 |
-| F15 | 공개 배포 롤백 | NOT RUN | 운영 app/data/Pages rollback 실행 미승인. 문서 절차와 격리 artifact 보존까지만 확인 |
+| F15 | 공개 배포 롤백 | PASS | 운영 백업 DB176행을 격리 복원해 전체 INSERT 일치·구 API V24 기동 조회·구 Pages424파일 복원 HTTP 확인. 정상 운영을 과거 데이터로 덮는 롤백은 미실행 |
 | F16 | 최종 상태 | PASS | 격리 gate SUCCEEDED 확인 후 전용 container/schema/객체/자격증명·mock 서버·브라우저 종료. 기존 fixture/운영 보존 |

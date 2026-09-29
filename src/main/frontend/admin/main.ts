@@ -63,13 +63,13 @@ const element = <K extends keyof HTMLElementTagNameMap>(tag: K, className = '', 
   if (text !== undefined) node.textContent = text;
   return node;
 };
-const button = (label: string, run: () => void, className = 'button'): HTMLButtonElement => {
+const button = (label: string, run: () => void, className = 'small-button'): HTMLButtonElement => {
   const node = element('button', className, label);
   node.type = 'button';
   node.addEventListener('click', run);
   return node;
 };
-const writeButton = (label: string, run: () => void, className = 'button'): HTMLButtonElement => {
+const writeButton = (label: string, run: () => void, className = 'small-button'): HTMLButtonElement => {
   const node = button(label, run, className);
   node.dataset.writeAction = 'true'; node.disabled = isBusy();
   return node;
@@ -119,7 +119,7 @@ function updateEditorActions(): void {
       publicationDeploymentId !== null && deployment?.id === publicationDeploymentId ?
         deployment.status === 'SUCCEEDED' ? 'DB 출간됨 · Pages 배포 완료' :
           deployment.status === 'FAILED' ? 'DB 출간됨 · Pages 배포 실패' : 'DB 출간됨 · Pages 배포 중' :
-        publicationPending ? 'DB 출간됨 · Pages 배포 요청 확인 중' : 'DB 출간됨 · 최근 배포 상태는 왼쪽에서 확인' :
+        publicationPending ? 'DB 출간됨 · Pages 배포 요청 확인 중' : 'DB 출간됨 · 최근 배포 상태는 관리 메뉴에서 확인' :
       isBusy() ? '배포 중 · 입력과 미리보기만 가능' :
         currentDraft ? `편집본 저장됨 · ${dateText(currentDraft.updatedAt)}` : currentPost ? '원본 저장됨' : '새 원고';
 }
@@ -159,23 +159,55 @@ function clearEditor(): void {
   conflictActions = null;
   publicationBaselineId = null; publicationDeploymentId = null; publicationPending = false;
 }
-function shell(): HTMLElement {
-  const wrap = element('div', 'shell');
-  const header = element('header', 'topbar');
-  const brand = element('a', 'brand'); brand.href = PUBLIC_SITE; brand.textContent = 'ken.blog'; brand.target = '_blank';
-  const subtitle = element('span', 'subbrand', '관리');
-  const right = element('div', 'top-actions');
-  const publicLink = element('a', 'text-link', '공개 사이트 ↗'); publicLink.href = PUBLIC_SITE; publicLink.target = '_blank';
-  const theme = button('테마', () => {
+/** 원본 사이트 헤더를 관리자와 로그인 화면에서 같은 구조로 표시한다. */
+function siteHeader(authenticated: boolean): HTMLElement {
+  const header = element('header', 'site-header');
+  const inner = element('div', 'header-inner');
+  const brand = element('a', 'brand'); brand.href = PUBLIC_SITE; brand.setAttribute('aria-label', 'ken.blog 홈');
+  brand.innerHTML = '<svg width="32" height="32" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><g transform="rotate(-45 24 24)"><path d="M8 12.5 L45 24 L8 35.5 Z"/><path d="M14 14.4 Q17.5 24 14 33.6 M22 16.9 Q24.8 24 22 31.1 M30 19.4 Q32 24 30 28.6 M37 21.6 Q38.2 24 37 26.4"/></g></svg><span>ken<span class="brand-dot">.</span>blog</span>';
+  const publicNav = element('nav', 'main-nav'); publicNav.setAttribute('aria-label', '공개 사이트');
+  for (const [path, label] of [['', 'Home'], ['tech/', 'Tech'], ['projects/', 'Projects'], ['notes/', 'Notes']]) {
+    const link = element('a', '', label); link.href = `${PUBLIC_SITE}${path}`; publicNav.append(link);
+  }
+  const right = element('div', 'header-actions');
+  const theme = button('', () => {
     const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
     document.documentElement.dataset.theme = next;
     localStorage.setItem('ken-admin-theme', next);
+    theme.setAttribute('aria-checked', String(next === 'dark'));
+    theme.querySelector('svg')!.innerHTML = next === 'dark' ?
+      '<path d="M20.6 14.1A8.6 8.6 0 0 1 9.9 3.4 8.6 8.6 0 1 0 20.6 14.1Z"/>' :
+      '<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/>';
     if (activeView === 'editor') editor?.refreshTheme();
-  }, 'quiet');
-  right.append(publicLink, theme, element('span', 'user', loginUser), button('로그아웃', () => { void logout(); }, 'quiet'));
-  header.append(brand, subtitle, right);
-  const layout = element('div', 'layout');
-  const nav = element('nav', 'nav'); nav.setAttribute('aria-label', '관리 메뉴');
+  }, 'theme-switch');
+  theme.setAttribute('role', 'switch'); theme.setAttribute('aria-label', '다크 모드');
+  theme.setAttribute('aria-checked', String(document.documentElement.dataset.theme === 'dark'));
+  theme.innerHTML = `<span class="theme-switch-track"><span class="theme-switch-thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${document.documentElement.dataset.theme === 'dark' ?
+    '<path d="M20.6 14.1A8.6 8.6 0 0 1 9.9 3.4 8.6 8.6 0 1 0 20.6 14.1Z"/>' :
+    '<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42m11.3-11.3 1.42-1.42"/>'}</svg></span></span>`;
+  right.append(theme);
+  if (authenticated) {
+    const manage = element('span', 'header-text-button', '관리');
+    const avatar = element('span', 'account-avatar', loginUser.slice(0, 1).toUpperCase()); avatar.title = loginUser;
+    right.append(manage, avatar, button('로그아웃', () => { void logout(); }, 'header-text-button'));
+  } else {
+    const login = element('span', 'header-text-button', '관리자'); right.append(login);
+  }
+  inner.append(brand, publicNav, right); header.append(inner);
+  return header;
+}
+function shell(): HTMLElement {
+  const wrap = element('div', 'site-root');
+  wrap.append(siteHeader(true));
+  const body = element('div', 'site-content');
+  if (activeView === 'editor') {
+    const content = element('main', 'write-page editor-design-page'); content.id = 'content';
+    body.append(content); wrap.append(body); return wrap;
+  }
+  const layout = element('main', 'page-container admin-page admin-layout');
+  const aside = element('aside', 'admin-nav'); aside.setAttribute('aria-label', '관리 메뉴');
+  aside.append(element('span', '', '관리'));
+  const nav = element('nav'); aside.append(nav);
   const entries: Array<[View, string]> = [['posts', '글'], ['drafts', '편집본'], ['editor', '새 글'],
     ['projects', '프로젝트'], ['courses', '과목'], ['categories', '분류'], ['profile', '프로필']];
   for (const [view, label] of entries) {
@@ -190,9 +222,9 @@ function shell(): HTMLElement {
   draftExport.href = '/api/v1/admin/export?all=true&includeDrafts=true'; draftExport.download = 'ken-blog-drafts-export.zip';
   nav.append(exportLink, draftExport);
   const deploy = element('section', 'deploy-card'); deploy.id = 'deployment';
-  nav.append(deploy);
-  const content = element('main', 'content'); content.id = 'content';
-  layout.append(nav, content); wrap.append(header, layout);
+  aside.append(deploy);
+  const content = element('section', 'admin-content'); content.id = 'content';
+  layout.append(aside, content); body.append(layout); wrap.append(body, siteFooter());
   return wrap;
 }
 function renderDeployment(): void {
@@ -247,26 +279,50 @@ async function showLogin(): Promise<void> {
   clearEditor();
   window.clearInterval(deploymentTimer);
   app.replaceChildren();
+  const frame = element('div', 'site-root'); frame.append(siteHeader(false));
+  const body = element('div', 'site-content');
   const wrap = element('main', 'login-page');
-  const form = element('form', 'login-card');
-  form.append(element('span', 'eyebrow', 'KEN BLOG · ADMIN'), element('h1', '', '관리자 로그인'),
-    element('p', 'muted', '비밀번호와 인증 앱의 일회용 코드를 입력하세요.'));
-  const password = inputField(form, '비밀번호', 'password', 'password'); password.required = true; password.autocomplete = 'current-password';
-  const code = inputField(form, '인증 코드 또는 복구 코드', 'text', 'verificationCode'); code.required = true; code.autocomplete = 'one-time-code';
-  const remember = element('label', 'checkbox');
+  const form = element('form', 'login-card card');
+  form.append(element('h1', '', '관리자 로그인'));
+  const passwordLabel = element('label', '', '비밀번호'); passwordLabel.htmlFor = 'password';
+  const password = element('input'); password.id = 'password'; password.name = 'password'; password.type = 'password';
+  password.placeholder = '비밀번호'; password.required = true; password.autocomplete = 'current-password';
+  const codeLabel = element('label', '', '인증 앱 코드'); codeLabel.htmlFor = 'verification-code';
+  const code = element('input'); code.id = 'verification-code'; code.name = 'verificationCode'; code.type = 'text';
+  code.required = true; code.autocomplete = 'one-time-code'; code.inputMode = 'numeric'; code.pattern = '[0-9]{6}';
+  code.maxLength = 6; code.placeholder = '6자리 코드'; code.spellcheck = false;
+  let recovery = false;
+  code.addEventListener('input', () => { if (!recovery) code.value = code.value.replace(/\D/g, '').slice(0, 6); });
+  const switchCode = button('복구 코드 사용', () => {
+    recovery = !recovery; code.value = ''; codeLabel.textContent = recovery ? '복구 코드' : '인증 앱 코드';
+    code.placeholder = recovery ? '복구 코드' : '6자리 코드'; code.inputMode = recovery ? 'text' : 'numeric';
+    code.autocomplete = recovery ? 'off' : 'one-time-code';
+    if (recovery) code.removeAttribute('pattern'); else code.pattern = '[0-9]{6}';
+    code.maxLength = recovery ? 64 : 6; switchCode.textContent = recovery ? '인증 앱 코드 사용' : '복구 코드 사용'; code.focus();
+  }, 'login-code-switch');
+  switchCode.setAttribute('aria-controls', 'verification-code');
+  form.append(passwordLabel, password, codeLabel, code, switchCode);
+  const remember = element('label', 'login-remember');
   const checkbox = element('input'); checkbox.type = 'checkbox';
-  remember.append(checkbox, document.createTextNode('로그인 유지'));
-  const submit = element('button', 'primary', '로그인'); submit.type = 'submit';
-  const note = element('p', 'notice'); note.setAttribute('role', 'status');
+  remember.append(checkbox, element('span', '', '로그인 기억하기'), element('span', 'login-remember-duration', '(30일)'));
+  const submit = element('button', 'primary-button', '로그인'); submit.type = 'submit';
+  const note = element('p', 'notice'); note.setAttribute('role', 'status'); note.hidden = true;
   form.append(remember, submit, note);
   form.addEventListener('submit', (event) => { event.preventDefault(); void (async () => {
-    submit.disabled = true; note.textContent = '';
+    submit.disabled = true; note.textContent = ''; note.hidden = true;
     try { await api.login(password.value, code.value, checkbox.checked); password.value = ''; code.value = '';
       const user = await api.me(); loginUser = user.username; await showRoute(); await pollDeployment(); startDeploymentPolling(); }
     catch (error) { note.textContent = error instanceof ApiError && (error.status === 401 || error.status === 403) ?
-      '비밀번호 또는 인증 코드를 확인해 주세요.' : errorMessage(error); submit.disabled = false; }
+      '비밀번호 또는 인증 코드를 확인해 주세요.' : errorMessage(error); note.hidden = false; submit.disabled = false; }
   })(); });
-  wrap.append(form); app.append(wrap);
+  wrap.append(form); body.append(wrap); frame.append(body, siteFooter()); app.append(frame);
+}
+/** 원본 공개 사이트의 바닥글을 관리 화면에 재사용한다. */
+function siteFooter(): HTMLElement {
+  const footer = element('footer', 'site-footer'); footer.append(element('span', '', `© ${new Date().getFullYear()} ken.blog`));
+  const links = element('div'); const github = element('a', '', 'GitHub'); github.href = 'https://github.com/gjaku1031/ken-blog';
+  const admin = element('a', '', '관리자'); admin.href = '/manage/'; links.append(github, admin); footer.append(links);
+  return footer;
 }
 
 function inputField(parent: HTMLElement, label: string, type = 'text', name = ''): HTMLInputElement {
@@ -285,7 +341,7 @@ function selectField(parent: HTMLElement, label: string, options: Array<[string,
   field.append(select); parent.append(field); return select;
 }
 function heading(title: string, action?: HTMLElement): HTMLElement {
-  const node = element('div', 'heading'); node.append(element('h1', '', title)); if (action) node.append(action); return node;
+  const node = element('div', 'admin-heading heading'); node.append(element('h1', '', title)); if (action) node.append(action); return node;
 }
 
 async function showRoute(): Promise<void> {
@@ -323,34 +379,41 @@ async function allPages<T>(path: string, size = 100): Promise<T[]> {
 async function showList(content: HTMLElement, kind: 'posts' | 'drafts', ticket: number): Promise<void> {
   const rows = kind === 'posts' ? await allPages<PostRow>('/admin/posts') : await allPages<DraftRow>('/admin/editor-drafts');
   if (ticket !== routeTicket) return;
-  const panel = element('section', 'panel');
-  panel.append(heading(kind === 'posts' ? '글' : '편집본', button('새 글', () => navigate('/manage/?view=editor'), 'primary')));
-  const search = inputField(panel, '제목 검색'); search.placeholder = '제목 검색';
-  const list = element('div', 'row-list'); panel.append(list); content.replaceChildren(panel);
+  const panel = element('section', 'list-page');
+  panel.append(heading(kind === 'posts' ? '글 관리' : '편집본', button('새 글 작성', () => navigate('/manage/?view=editor'), 'primary-button')));
+  const searchField = element('label', 'list-search'); searchField.append(element('span', 'sr-only', '제목 검색'));
+  const search = element('input'); search.type = 'search'; search.placeholder = '제목 검색'; searchField.append(search); panel.append(searchField);
+  const list = element('div', 'admin-table-wrap post-admin-list-wrap card'); panel.append(list); content.replaceChildren(panel);
   const draw = (): void => {
     list.replaceChildren();
     const filtered = rows.filter((row) => row.title.toLocaleLowerCase().includes(search.value.toLocaleLowerCase()));
     if (filtered.length === 0) { list.append(element('p', 'empty', '표시할 항목이 없습니다.')); return; }
+    const table = element('table', 'admin-table post-admin-table');
+    const head = element('thead'); const labels = element('tr');
+    for (const label of ['제목', '섹션', '상태', '날짜', '관리']) labels.append(element('th', '', label));
+    head.append(labels); const body = element('tbody'); table.append(head, body); list.append(table);
     for (const row of filtered) {
-      const item = element('article', 'row');
-      const info = element('div', 'row-info');
-      const title = element('strong', '', row.title || '(제목 없음)');
-      const detail = element('span', 'muted', `${sectionName[row.section]} · ${kind === 'posts' ? (row as PostRow).status === 'PUBLISHED' ? '출간됨' : '원본 초안' : '편집본'} · ${dateText(row.updatedAt)}`);
-      info.append(title, detail);
-      const actions = element('div', 'row-actions');
-      actions.append(button('편집', () => navigate(`/manage/?view=editor&${kind === 'posts' ? 'postId' : 'draftId'}=${row.id}`)));
+      const item = element('tr');
+      const title = element('td', 'post-title', row.title || '(제목 없음)'); title.dataset.label = '제목';
+      const section = element('td', 'post-section', sectionName[row.section]); section.dataset.label = '섹션';
+      const status = element('td', 'post-status', kind === 'posts' ? (row as PostRow).status === 'PUBLISHED' ? '출간됨' : '미출간' : '편집본');
+      status.dataset.label = '상태';
+      const date = element('td', 'post-date', dateText(row.updatedAt)); date.dataset.label = '날짜';
+      const actions = element('div', 'admin-row-actions');
+      actions.append(button('수정', () => navigate(`/manage/?view=editor&${kind === 'posts' ? 'postId' : 'draftId'}=${row.id}`), 'quiet'));
       if (kind === 'posts') {
         const post = row as PostRow;
         const selector = post.section === 'PROJECT_HOME' && post.projectId ? `projectId=${post.projectId}` :
           post.section === 'NOTE_CHAPTER' && post.courseId ? `courseId=${post.courseId}` : `postId=${post.id}`;
-        const exportLink = element('a', 'button', 'ZIP');
+        const exportLink = element('a', 'quiet', 'ZIP');
         exportLink.href = `/api/v1/admin/export?${selector}&includeDrafts=${post.status === 'DRAFT'}`;
         exportLink.download = `ken-blog-${post.id}.zip`;
         exportLink.setAttribute('aria-label', `${post.title || '제목 없는 글'} ZIP 내보내기`);
         actions.append(exportLink);
       }
-      actions.append(writeButton('삭제', () => { void deleteRow(row, kind); }, 'button danger'));
-      item.append(info, actions); list.append(item);
+      actions.append(writeButton('삭제', () => { void deleteRow(row, kind); }, 'quiet danger'));
+      const actionCell = element('td', 'post-actions-cell'); actionCell.dataset.label = '관리'; actionCell.append(actions);
+      item.append(title, section, status, date, actionCell); body.append(item);
     }
   };
   search.addEventListener('input', draw); draw();
@@ -416,7 +479,7 @@ async function showEditor(content: HTMLElement, route: ReturnType<typeof current
     if (linked.items.length) {
       if (ticket !== routeTicket) return;
       content.replaceChildren(element('p', 'notice', '이 원본에 연결된 편집본이 있습니다. 기존 편집본을 열어 변경을 이어가세요.'),
-        button('편집본 열기', () => navigate(`/manage/?view=editor&draftId=${linked.items[0].id}`), 'primary'));
+        button('편집본 열기', () => navigate(`/manage/?view=editor&draftId=${linked.items[0].id}`), 'primary-button'));
       return;
     }
     loadedPost = await api.get<Post>(`/admin/posts/${route.postId}`);
@@ -437,14 +500,15 @@ async function showEditor(content: HTMLElement, route: ReturnType<typeof current
     };
   }
   const form = currentForm;
-  const page = element('section', 'editor-page');
+  const page = element('section', 'editor-page write-surface');
   page.dataset.pane = 'source';
-  const top = heading(currentDraft ? '편집본 수정' : currentPost ? '글 수정' : '새 글');
-  const indicator = element('span', 'muted'); indicator.id = 'save-indicator'; top.append(indicator);
+  const top = element('div', 'write-top');
+  top.append(button('← 나가기', () => navigate('/manage/?view=posts'), 'back-link'));
   page.append(top);
-  const metadata = element('div', 'metadata panel');
+  const metadata = element('div', 'metadata');
   const first = element('div', 'field-grid'); metadata.append(first);
   const title = inputField(first, '제목'); title.value = form.title; title.maxLength = 200;
+  title.placeholder = '제목 없음'; title.className = 'write-title';
   title.addEventListener('input', () => { form.title = title.value; updateEditorActions(); });
   const section = selectField(first, '영역', Object.entries(sectionName)); section.value = form.section;
   section.dataset.fixedDisabled = String(Boolean(currentDraft || currentPost));
@@ -514,7 +578,9 @@ async function showEditor(content: HTMLElement, route: ReturnType<typeof current
   section.addEventListener('change', () => { tags.closest<HTMLElement>('.field')!.hidden =
     form.section === 'PROJECT_HOME' || form.section === 'NOTE_CHAPTER'; });
   page.append(metadata);
-  const toolbar = element('div', 'editor-toolbar');
+  const toolbar = element('div', 'editor-toolbar write-toolbar');
+  const deploy = element('section', 'deploy-card write-deploy'); deploy.id = 'deployment';
+  const indicator = element('span', 'muted'); indicator.id = 'save-indicator';
   const tabs = element('div', 'mobile-tabs');
   tabs.setAttribute('role', 'tablist'); tabs.setAttribute('aria-label', '편집 화면');
   const selectPane = (pane: 'source' | 'preview'): void => {
@@ -529,13 +595,15 @@ async function showEditor(content: HTMLElement, route: ReturnType<typeof current
   sourceTab.setAttribute('aria-selected', 'true'); previewTab.setAttribute('aria-selected', 'false');
   tabs.append(sourceTab, previewTab);
   const tools = element('div', 'editor-tools');
-  const fileLabel = element('label', 'button upload-label', '이미지 올리기');
+  const fileLabel = element('label', 'editor-tool-icon upload-label');
+  fileLabel.setAttribute('aria-label', '이미지 넣기'); fileLabel.title = '이미지 넣기';
+  fileLabel.innerHTML = '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5-9 9"/></svg>';
   uploadInput = element('input'); uploadInput.type = 'file'; uploadInput.accept = 'image/jpeg,image/png';
   uploadInput.addEventListener('change', () => { if (uploadInput?.files?.[0]) void uploadAttachment(uploadInput.files[0]); });
   fileLabel.append(uploadInput);
-  saveButton = button('편집본 저장', () => { void saveDraft(); }, 'button');
-  publishButton = button('출간', () => { void publish(); }, 'primary');
-  tools.append(fileLabel, saveButton, publishButton); toolbar.append(tabs, tools);
+  saveButton = button('편집본 저장', () => { void saveDraft(); }, 'editor-save-button');
+  publishButton = button('출간', () => { void publish(); }, 'primary-button');
+  tools.append(fileLabel, saveButton, publishButton); toolbar.append(tabs, deploy, indicator, tools);
   page.append(toolbar);
   const panes = element('div', 'editor-panes');
   const left = element('div', 'editor-pane source-pane');
@@ -543,7 +611,7 @@ async function showEditor(content: HTMLElement, route: ReturnType<typeof current
   const editorHost = element('div', 'editor-host'); left.append(editorHost);
   const right = element('div', 'editor-pane preview-pane');
   right.append(element('div', 'pane-title', '자동 미리보기'));
-  const preview = element('article', 'markdown preview-body'); right.append(preview);
+  const preview = element('article', 'markdown-body preview-body'); right.append(preview);
   panes.append(left, right); page.append(panes);
   statusNode = element('p', 'notice'); statusNode.setAttribute('role', 'status'); statusNode.setAttribute('aria-live', 'polite');
   conflictActions = element('div', 'conflict-actions'); conflictActions.hidden = true;
@@ -553,6 +621,7 @@ async function showEditor(content: HTMLElement, route: ReturnType<typeof current
     }));
   page.append(statusNode, conflictActions);
   content.replaceChildren(page);
+  renderDeployment();
   editor = new MarkdownEditor(editorHost, preview, form.body, updateEditorActions, () => { void saveDraft(); });
   savedFingerprint = formFingerprint(); updateEditorActions();
 }
@@ -673,7 +742,7 @@ async function showProjects(content: HTMLElement, ticket: number): Promise<void>
   const projects = await allPages<Project>('/admin/projects', 20);
   if (ticket !== routeTicket) return;
   const panel = element('section', 'panel');
-  panel.append(heading('프로젝트', button('새 프로젝트 대문', () => navigate('/manage/?view=editor&section=PROJECT_HOME'), 'primary')));
+  panel.append(heading('프로젝트', button('새 프로젝트 대문', () => navigate('/manage/?view=editor&section=PROJECT_HOME'), 'primary-button')));
   const list = element('div', 'row-list');
   for (const project of projects) {
     const row = element('article', 'row project-row');
@@ -687,7 +756,7 @@ async function showProjects(content: HTMLElement, ticket: number): Promise<void>
     orderInput.dataset.writeAction = 'true'; orderInput.disabled = isBusy();
     order.append(orderInput);
     const actions = element('div', 'row-actions');
-    const exportLink = element('a', 'button', 'ZIP');
+    const exportLink = element('a', 'small-button', 'ZIP');
     exportLink.href = `/api/v1/admin/export?projectId=${project.id}&includeDrafts=false`;
     exportLink.download = `ken-blog-project-${project.id}.zip`;
     exportLink.setAttribute('aria-label', `${project.name} ZIP 내보내기`);
@@ -707,7 +776,7 @@ async function showProjects(content: HTMLElement, ticket: number): Promise<void>
       if (isBusy()) { window.alert('배포가 끝난 뒤 삭제할 수 있습니다.'); return; }
       try { await api.write('DELETE', `/admin/projects/${project.id}`); await showRoute(); }
       catch (error) { window.alert(errorMessage(error)); await pollDeployment(); }
-    })(); }, 'button danger'));
+    })(); }, 'small-button danger'));
     row.append(info, order, actions); list.append(row);
   }
   if (projects.length === 0) list.append(element('p', 'empty', '프로젝트가 없습니다.'));
@@ -734,7 +803,7 @@ async function showCourses(content: HTMLElement, ticket: number): Promise<void> 
         if (isBusy()) { window.alert('배포가 끝난 뒤 삭제할 수 있습니다.'); return; }
         try { await api.write('DELETE', `/admin/courses/${course.id}`); await showRoute(); }
         catch (error) { window.alert(errorMessage(error)); }
-      })(); }, 'button danger'));
+      })(); }, 'small-button danger'));
     row.append(info, actions); list.append(row);
   }
   panel.append(list);
@@ -745,10 +814,10 @@ async function showCourses(content: HTMLElement, ticket: number): Promise<void> 
   const name = inputField(form, '과목 이름'); name.required = true;
   const description = textareaField(form, '소개', 2); description.required = true;
   const status = selectField(form, '상태', [['IN_PROGRESS', '진행 중'], ['COMPLETED', '완료']]);
-  const submit = element('button', 'primary', '과목 생성'); submit.type = 'submit'; submit.dataset.writeAction = 'true';
+  const submit = element('button', 'primary-button', '과목 생성'); submit.type = 'submit'; submit.dataset.writeAction = 'true';
   submit.disabled = isBusy(); form.append(submit);
   const cancel = button('수정 취소', () => { editingId = null; form.reset(); formTitle.textContent = '과목 만들기';
-    submit.textContent = '과목 생성'; cancel.hidden = true; }, 'button');
+    submit.textContent = '과목 생성'; cancel.hidden = true; }, 'small-button');
   cancel.hidden = true; form.append(cancel);
   const note = element('p', 'notice'); form.append(note);
   form.addEventListener('submit', (event) => { event.preventDefault(); void (async () => {
@@ -790,7 +859,7 @@ async function showCategories(content: HTMLElement, ticket: number): Promise<voi
         if (isBusy()) { window.alert('배포가 끝난 뒤 삭제할 수 있습니다.'); return; }
         try { await api.write('DELETE', `/admin/categories/${node.id}`); await showRoute(); }
         catch (error) { window.alert(errorMessage(error)); }
-      })(); }, 'button danger'));
+      })(); }, 'small-button danger'));
       row.append(order, actions);
       list.append(row); draw(node.children, depth + 1);
     }
@@ -798,7 +867,7 @@ async function showCategories(content: HTMLElement, ticket: number): Promise<voi
   draw(categories, 0); panel.append(list);
   const form = element('form', 'subform'); form.append(element('h2', '', '분류 만들기'));
   const path = inputField(form, '분류 경로'); path.placeholder = '상위/하위'; path.required = true;
-  const submit = element('button', 'primary', '생성'); submit.type = 'submit'; submit.dataset.writeAction = 'true';
+  const submit = element('button', 'primary-button', '생성'); submit.type = 'submit'; submit.dataset.writeAction = 'true';
   submit.disabled = isBusy(); form.append(submit);
   const note = element('p', 'notice'); form.append(note);
   form.addEventListener('submit', (event) => { event.preventDefault(); void (async () => {
@@ -822,7 +891,7 @@ async function showProfile(content: HTMLElement, ticket: number): Promise<void> 
   const photo = inputField(form, '프로필 사진', 'file'); photo.accept = 'image/png,image/jpeg,image/webp';
   const remove = element('label', 'checkbox'); const removePhoto = element('input'); removePhoto.type = 'checkbox';
   remove.append(removePhoto, document.createTextNode('현재 사진 제거')); form.append(remove);
-  const submit = element('button', 'primary', '프로필 저장'); submit.type = 'submit'; submit.dataset.writeAction = 'true';
+  const submit = element('button', 'primary-button', '프로필 저장'); submit.type = 'submit'; submit.dataset.writeAction = 'true';
   submit.disabled = isBusy(); form.append(submit);
   const note = element('p', 'notice'); form.append(note);
   form.addEventListener('submit', (event) => { event.preventDefault(); void (async () => {
