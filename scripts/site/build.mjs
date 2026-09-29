@@ -2,6 +2,7 @@ import { build as bundle } from "esbuild";
 import { capture, assertCaptureOwner } from "./capture.mjs";
 import { buildFrontend } from "../build-frontend.mjs";
 import { readFile, writeFile, mkdir, rm, cp, readdir, stat, rename } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { resolve, join, dirname } from "node:path";
 import { pathToFileURL } from "node:url";
 
@@ -9,8 +10,9 @@ const root = resolve(import.meta.dirname, "../..");
 const out = join(root, "target/site-staging");
 const publishedOut = join(root, "target/site");
 const basePath = "/ken-blog/";
-let footerGithub = "";
+const footerGithub = "https://github.com/gjaku1031/ken-blog";
 let adminHref = "";
+let publicAssets;
 const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const esc = (value) => String(value ?? "").replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]);
 const route = (path = "") => `${basePath}${path}`;
@@ -82,7 +84,8 @@ async function download(url, name, verifyOwner) {
   const png = type === "image/png" && [137, 80, 78, 71, 13, 10, 26, 10].every((part, index) => bytes[index] === part);
   const jpg = type === "image/jpeg" && bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255;
   if (!png && !jpg) throw new Error("공개 이미지 형식 오류");
-  const filename = `${name}.${png ? "png" : "jpg"}`;
+  const digest = createHash("sha256").update(bytes).digest("hex");
+  const filename = `${name}-${digest}.${png ? "png" : "jpg"}`;
   await writeFile(join(out, "assets", filename), bytes);
   if (verifyOwner) await assertCaptureOwner(url.origin);
   return route(`assets/${filename}`);
@@ -155,7 +158,7 @@ function page(title, body, section = "", description = "Ken Blog", canonical = l
   const summary = section === "Home" ? "기술 글과 프로젝트, 학습 기록을 모아 둔 ken.blog" : searching ? "Tech 글과 프로젝트 기록을 읽는 ken.blog" :
     section === "Projects" || section === "Project" && canonical === "projects/" ? "ken.blog의 프로젝트 기록과 문서" : description;
   const seo = `<meta property="og:title" content="${esc(socialTitle)}"><meta property="og:description" content="${esc(summary)}"><meta property="og:url" content="https://gjaku1031.github.io${route(canonical)}"><meta property="og:site_name" content="ken.blog"><meta property="og:locale" content="ko_KR"><meta property="og:type" content="${["Post", "Project", "Course"].includes(section) && canonical !== locationOf(section) ? "article" : "website"}"><meta name="twitter:card" content="summary"><meta name="twitter:title" content="${esc(socialTitle)}"><meta name="twitter:description" content="${esc(summary)}">`;
-  return `<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(documentTitle)}</title><meta name="description" content="${esc(summary)}">${seo}<link rel="canonical" href="https://gjaku1031.github.io${route(canonical)}"><link rel="stylesheet" href="${route("assets/public.css")}"></head><body data-route="${esc(section.toLowerCase())}"><div class="site-root"><a class="skip-link" href="#main-content">본문으로 건너뛰기</a><header class="site-header"><div class="header-inner"><a class="brand" href="${route()}" aria-label="ken.blog 홈">${drillLogo}<span>ken<span class="brand-dot">.</span>blog</span></a><nav class="main-nav" aria-label="주 메뉴">${nav}</nav><div class="header-actions"><div class="header-search-unit${searching ? " is-open" : ""}"><button id="header-search-toggle" type="button" class="header-search-toggle" aria-label="검색 ${searching ? "닫기" : "열기"}" aria-expanded="${searching}" aria-controls="site-search">${icon("search")}</button><form class="header-search" role="search" action="${route("search/")}" aria-hidden="${!searching}"${searching ? "" : " inert"}><label class="sr-only" for="site-search">글 검색</label><input id="site-search" name="q" type="search" placeholder="제목 · 본문 · 태그 검색"><button id="header-search-close" type="button" class="header-search-close" aria-label="검색 닫기">×</button></form></div><button id="theme-toggle" type="button" class="theme-switch" role="switch" aria-checked="false" aria-label="다크 모드" title="다크 모드 꺼짐"><span class="theme-switch-track"><span class="theme-switch-thumb"><span class="theme-icon-sun">${icon("sun")}</span><span class="theme-icon-moon">${icon("moon")}</span></span></span></button>${adminHref ? `<a class="header-text-button" href="${esc(adminHref)}">관리자</a>` : ""}</div></div></header><div class="site-content">${body}</div><footer class="site-footer"><span>© ${new Date().getUTCFullYear()} ken.blog</span><div>${footerGithub ? `<a href="${esc(footerGithub)}" rel="noopener noreferrer">GitHub</a>` : ""}${adminHref ? `<a href="${esc(adminHref)}">관리자</a>` : ""}</div></footer></div><script type="module" src="${route("assets/public.js")}"></script></body></html>`;
+  return `<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(documentTitle)}</title><meta name="description" content="${esc(summary)}">${seo}<link rel="canonical" href="https://gjaku1031.github.io${route(canonical)}"><link rel="stylesheet" href="${route(`assets/${publicAssets.css}`)}"></head><body data-route="${esc(section.toLowerCase())}"><div class="site-root"><a class="skip-link" href="#main-content">본문으로 건너뛰기</a><header class="site-header"><div class="header-inner"><a class="brand" href="${route()}" aria-label="ken.blog 홈">${drillLogo}<span>ken<span class="brand-dot">.</span>blog</span></a><nav class="main-nav" aria-label="주 메뉴">${nav}</nav><div class="header-actions"><div class="header-search-unit${searching ? " is-open" : ""}"><button id="header-search-toggle" type="button" class="header-search-toggle" aria-label="검색 ${searching ? "닫기" : "열기"}" aria-expanded="${searching}" aria-controls="site-search">${icon("search")}</button><form class="header-search" role="search" action="${route("search/")}" aria-hidden="${!searching}"${searching ? "" : " inert"}><label class="sr-only" for="site-search">글 검색</label><input id="site-search" name="q" type="search" placeholder="제목 · 본문 · 태그 검색"><button id="header-search-close" type="button" class="header-search-close" aria-label="검색 닫기">×</button></form></div><button id="theme-toggle" type="button" class="theme-switch" role="switch" aria-checked="false" aria-label="다크 모드" title="다크 모드 꺼짐"><span class="theme-switch-track"><span class="theme-switch-thumb"><span class="theme-icon-sun">${icon("sun")}</span><span class="theme-icon-moon">${icon("moon")}</span></span></span></button>${adminHref ? `<a class="header-text-button" href="${esc(adminHref)}">관리자</a>` : ""}</div></div></header><div class="site-content">${body}</div><footer class="site-footer"><span>© ${new Date().getUTCFullYear()} ken.blog</span><div>${footerGithub ? `<a href="${esc(footerGithub)}" rel="noopener noreferrer">GitHub</a>` : ""}${adminHref ? `<a href="${esc(adminHref)}">관리자</a>` : ""}</div></footer></div><script type="module" src="${route(`assets/${publicAssets.js}`)}"></script></body></html>`;
 }
 /** 기본 목록의 정적 canonical 경로를 반환한다. */
 function locationOf(section) { return section === "Tech" || section === "Post" ? "tech/" : section === "Projects" || section === "Project" ? "projects/" : section === "Notes" || section === "Course" ? "notes/" : section === "Search" ? "search/" : ""; }
@@ -236,8 +239,7 @@ async function main() {
   snapshot = validate(snapshot, fixture, !fixture && !!base && !!process.env.SITE_DEPLOYMENT_ID);
   await rm(out, { recursive: true, force: true });
   adminHref = base ? `${base.origin}/manage/` : "";
-  footerGithub = /^https:\/\/[^\s<>"'\\]+$/.test(snapshot.profile?.github ?? "") ? snapshot.profile.github : "";
-  await buildFrontend({ adminAssets: false });
+  ({ public: publicAssets } = await buildFrontend({ adminAssets: false }));
   await mkdir(join(out, "assets"), { recursive: true });
   await cp(join(root, "target/public-assets"), join(out, "assets"), { recursive: true });
   await cp(join(root, "src/main/frontend/public/licenses"), join(out, "licenses"), { recursive: true });
