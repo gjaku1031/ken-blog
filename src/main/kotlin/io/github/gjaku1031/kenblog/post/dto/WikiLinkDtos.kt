@@ -9,7 +9,7 @@ enum class WikiLinkStatus { READABLE, MISSING }
 /**
  * 요청한 제목별 결과의 공통 계약.
  *
- * [WikiLinkReadable]에만 이동용 메타데이터가 있으며 잠금·미존재 결과에는 대상 정보가 없음.
+ * [WikiLinkReadable]에만 이동용 메타데이터가 있으며 미존재 결과에는 대상 정보가 없음.
  */
 @Schema(
     oneOf = [WikiLinkReadable::class, WikiLinkMissing::class],
@@ -24,7 +24,7 @@ sealed interface WikiLinkResult {
     /** 앞뒤 공백을 제거한 요청 제목. 입력 순서와 중복은 응답에서 유지함. */
     val requestedTitle: String
 
-    /** 읽기 가능·잠금·미존재를 구별하는 상태. */
+    /** 읽기 가능·미존재를 구별하는 상태. */
     val status: WikiLinkStatus
 }
 

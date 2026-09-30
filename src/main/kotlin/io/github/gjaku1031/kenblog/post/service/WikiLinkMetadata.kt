@@ -1,5 +1,7 @@
 package io.github.gjaku1031.kenblog.post.service
 
+import io.github.gjaku1031.kenblog.deployment.ContentMutation
+
 import io.github.gjaku1031.kenblog.draft.repository.EditorDraftWikiLinkRepository
 import io.github.gjaku1031.kenblog.post.domain.EditorDraftWikiLinkEntity
 import io.github.gjaku1031.kenblog.post.domain.PostWikiLinkEntity
@@ -31,6 +33,7 @@ class WikiLinkMetadata(
 
     /** 부모 게시글 행을 잠근 트랜잭션에서 선언 전부를 교체. */
     @Transactional
+    @ContentMutation
     fun replacePost(postId: Long, titles: List<String>) {
         val normalized = WikiDeclarations.normalized(titles)
         posts.deleteByPostId(postId)
@@ -39,6 +42,7 @@ class WikiLinkMetadata(
 
     /** 부모 편집본 행을 잠근 트랜잭션에서 선언 전부를 교체. */
     @Transactional
+    @ContentMutation
     fun replaceDraft(draftId: Long, titles: List<String>) {
         val normalized = WikiDeclarations.normalized(titles)
         drafts.deleteByDraftId(draftId)
@@ -47,5 +51,6 @@ class WikiLinkMetadata(
 
     /** 잠근 편집본의 현재 선언을 같은 출간 트랜잭션의 게시글로 복사. */
     @Transactional
+    @ContentMutation
     fun publishDraft(postId: Long, draftId: Long) = replacePost(postId, currentDraftTitles(draftId))
 }

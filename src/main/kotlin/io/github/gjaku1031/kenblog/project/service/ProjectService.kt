@@ -1,5 +1,8 @@
 package io.github.gjaku1031.kenblog.project.service
 
+import io.github.gjaku1031.kenblog.deployment.ContentMutation
+import io.github.gjaku1031.kenblog.deployment.PublicationChange
+
 import io.github.gjaku1031.kenblog.post.domain.PostEntity
 import io.github.gjaku1031.kenblog.post.domain.ContentAddress
 import io.github.gjaku1031.kenblog.draft.domain.EditorDraftEntity
@@ -143,6 +146,7 @@ class ProjectService(
 
     /** @return 새 HOME 출간에서 부모 행을 먼저 만들고 글 생성 후 연결할 객체. */
     @Transactional
+    @ContentMutation(publication = PublicationChange.ALWAYS)
     fun createProject(draft: EditorDraftEntity, metadata: ProjectMetadata): ProjectEntity = conflicts {
         val normalized = ProjectMetadataRequests.validate(metadata)
         val normalizedName = draft.title.trim()
@@ -159,6 +163,7 @@ class ProjectService(
 
     /** 새 HOME 글 저장 후 동일 트랜잭션에서 순환 FK를 완성. */
     @Transactional
+    @ContentMutation(publication = PublicationChange.ALWAYS)
     fun attachHome(project: ProjectEntity, postId: Long) {
         if (project.homePostId != null || postId <= 0) throw ProjectConflictException()
         project.attachHome(postId)
@@ -167,6 +172,7 @@ class ProjectService(
 
     /** 기존 HOME 출간의 프로젝트 기준 시각을 확인하고 메타·이름을 교체하며 주소는 유지. */
     @Transactional
+    @ContentMutation(publication = PublicationChange.ALWAYS)
     fun updateHome(project: ProjectEntity, post: PostEntity, metadata: ProjectMetadata) = conflicts {
         val projectId = project.id ?: error("Persisted project has no ID")
         if (project.homePostId != post.id || post.projectId != projectId ||
@@ -190,6 +196,7 @@ class ProjectService(
 
     /** 프로젝트의 DOC 한 건을 부모→글 순서로 잠근 뒤 첨부·위키 DB 연결과 함께 삭제. */
     @Transactional
+    @ContentMutation(publication = PublicationChange.ALWAYS)
     fun deleteDocument(projectId: Long, postId: Long) = conflicts {
         lockedParent(projectId)
         if (postId <= 0) throw InvalidProjectRequestException()
@@ -201,6 +208,7 @@ class ProjectService(
 
     /** 카드 정렬값 하나만 직접 지정하며 기존 대문 원문과 수정 기준 시각은 유지. */
     @Transactional
+    @ContentMutation(publication = PublicationChange.ALWAYS)
     fun setOrder(id: Long, order: Long): io.github.gjaku1031.kenblog.project.dto.ProjectAdminInfo = conflicts {
         if (id <= 0 || order !in -9_007_199_254_740_991L..9_007_199_254_740_991L)
             throw InvalidProjectRequestException()
@@ -215,6 +223,7 @@ class ProjectService(
      * 연결된 첨부·위키·편집본 행은 FK CASCADE, OCI 객체는 그대로 추적 가능하게 둠.
      */
     @Transactional
+    @ContentMutation(publication = PublicationChange.ALWAYS)
     fun deleteProject(id: Long) = conflicts {
         lockCollection()
         val project = lockedParent(id)

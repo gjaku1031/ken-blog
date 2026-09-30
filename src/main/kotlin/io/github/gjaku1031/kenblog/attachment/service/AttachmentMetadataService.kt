@@ -1,5 +1,7 @@
 package io.github.gjaku1031.kenblog.attachment.service
 
+import io.github.gjaku1031.kenblog.deployment.ContentMutation
+
 import io.github.gjaku1031.kenblog.account.repository.AccountRepository
 import io.github.gjaku1031.kenblog.attachment.domain.AttachmentEntity
 import io.github.gjaku1031.kenblog.attachment.domain.AttachmentFailure
@@ -39,6 +41,7 @@ class AttachmentMetadataService(
      * @throws AttachmentFailure 세션 계정이 DB에 없을 때
      */
     @Transactional
+    @ContentMutation(atomic = false)
     fun createPending(username: String, key: String, image: ValidatedImage): AttachmentSnapshot {
         val account = accounts.findByUsername(username)
             ?: throw AttachmentFailure(HttpStatus.SERVICE_UNAVAILABLE, "업로드 계정을 확인할 수 없습니다.")
@@ -55,6 +58,7 @@ class AttachmentMetadataService(
      * @throws AttachmentFailure 삭제와 경쟁했거나 추적 행이 없어졌을 때
      */
     @Transactional
+    @ContentMutation(atomic = false)
     fun markReady(id: Long): AttachmentSnapshot {
         val entity = attachments.findLockedById(id) ?: throw conflict()
         if (entity.status != AttachmentStatus.PENDING) throw conflict()
@@ -85,6 +89,7 @@ class AttachmentMetadataService(
      * @throws AttachmentFailure 행이 없거나 업로드 중일 때
      */
     @Transactional
+    @ContentMutation(atomic = false)
     fun beginDelete(id: Long): AttachmentSnapshot {
         val entity = if (id > 0) attachments.findLockedById(id) else null
         entity ?: throw notFound()
@@ -108,6 +113,7 @@ class AttachmentMetadataService(
      * @return 삭제해도 되는 상태 또는 이미 사라진 행이면 `true`, READY면 `false`
      */
     @Transactional
+    @ContentMutation(atomic = false)
     fun claimFailedUpload(id: Long, uncertainWrite: Boolean): Boolean {
         val entity = attachments.findLockedById(id) ?: return true
         if (entity.status == AttachmentStatus.READY) return false
@@ -127,6 +133,7 @@ class AttachmentMetadataService(
      * @return 행이 제거되었거나 이미 없으면 `true`, 유예 중이면 `false`
      */
     @Transactional
+    @ContentMutation(atomic = false)
     fun finishDelete(id: Long): Boolean {
         val entity = attachments.findLockedById(id) ?: return true
         if (entity.status != AttachmentStatus.DELETING) throw conflict()

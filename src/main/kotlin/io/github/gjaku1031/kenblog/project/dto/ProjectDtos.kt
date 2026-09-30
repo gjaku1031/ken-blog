@@ -79,7 +79,7 @@ data class ProjectDocumentRow(
         id, title, slug, documentOrder ?: 0, publishedAt.kstDate(), visibility, locked = false)
 }
 
-/** 프로젝트 상세의 문서 탐색 행. 비관리자의 PRIVATE 문서는 SQL에서 제외됨. */
+/** 프로젝트 상세의 공개 문서 탐색 행. 미발행 문서는 SQL에서 제외됨. */
 data class ProjectDocumentResponse(
     val id: Long,
     val title: String,

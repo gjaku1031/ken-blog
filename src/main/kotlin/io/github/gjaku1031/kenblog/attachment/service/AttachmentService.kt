@@ -1,5 +1,7 @@
 package io.github.gjaku1031.kenblog.attachment.service
 
+import io.github.gjaku1031.kenblog.deployment.ContentMutation
+
 import io.github.gjaku1031.kenblog.attachment.domain.AttachmentFailure
 import io.github.gjaku1031.kenblog.attachment.domain.AttachmentStatus
 import io.github.gjaku1031.kenblog.attachment.dto.AttachmentResponse
@@ -32,6 +34,7 @@ class AttachmentService(
      * @return 실제 저장과 READY 전환을 모두 마친 [AttachmentResponse]
      * @throws AttachmentFailure 입력 오류나 OCI 실패일 때
      */
+    @ContentMutation(atomic = false)
     fun upload(file: MultipartFile, username: String): AttachmentResponse {
         storage.requireConfigured()
         val image = validator.validate(file)
@@ -86,6 +89,7 @@ class AttachmentService(
      * @param id 첨부 식별자
      * @throws AttachmentFailure 없는 첨부, 활성 업로드 또는 OCI 장애일 때
      */
+    @ContentMutation(atomic = false)
     fun delete(id: Long) {
         storage.requireConfigured()
         val deleting = metadata.beginDelete(id)

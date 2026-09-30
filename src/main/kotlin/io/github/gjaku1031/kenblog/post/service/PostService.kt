@@ -1,5 +1,8 @@
 package io.github.gjaku1031.kenblog.post.service
 
+import io.github.gjaku1031.kenblog.deployment.ContentMutation
+import io.github.gjaku1031.kenblog.deployment.PublicationChange
+
 import io.github.gjaku1031.kenblog.attachment.service.AttachmentLinkService
 import io.github.gjaku1031.kenblog.category.domain.CategoryConflictException
 import io.github.gjaku1031.kenblog.category.domain.CategoryNotFoundException
@@ -80,11 +83,13 @@ class PostService(
      * @throws DataIntegrityViolationException 다른 저장 제약 오류가 발생할 때
      */
     @Transactional
+    @ContentMutation
     fun createDraft(title: String, body: String): PostEntity =
         createTechDraft(title, body, ContentAddress.create(PostSection.TECH))
 
     /** @return [EditorDraftEntity]의 자동 주소를 유지하며 새 TECH 원본 생성. */
     @Transactional
+    @ContentMutation
     fun createDraftFromEditor(draft: EditorDraftEntity): PostEntity =
         createTechDraft(draft.title, draft.body, ContentAddress.publishDraft(draft.slug, PostSection.TECH))
 
@@ -138,6 +143,7 @@ class PostService(
      * @throws InvalidPostDraftException 입력 계약이 잘못되었을 때
      */
     @Transactional
+    @ContentMutation(publication = PublicationChange.IF_PUBLISHED)
     fun updateDraft(id: Long, title: String, body: String): PostEntity {
         if (id <= 0) throw InvalidPostRequestException()
         val post = repository.findLockedById(id) ?: throw PostNotFoundException()
@@ -159,6 +165,7 @@ class PostService(
      * @throws PostNotFoundException 해당 글이 없을 때
      */
     @Transactional
+    @ContentMutation(publication = PublicationChange.ALWAYS)
     fun deleteDraft(id: Long) {
         if (id <= 0) throw InvalidPostRequestException()
         val post = repository.findLockedById(id) ?: throw PostNotFoundException()
@@ -178,6 +185,7 @@ class PostService(
      * @throws PostNotFoundException 게시글이 없을 때
      */
     @Transactional
+    @ContentMutation(publication = PublicationChange.ALWAYS)
     fun publish(id: Long, visibility: PostVisibility): PostEntity {
         val post = lockedPost(id)
         requireTech(post)
@@ -195,6 +203,7 @@ class PostService(
      * @throws PostNotFoundException 게시글이 없을 때
      */
     @Transactional
+    @ContentMutation(publication = PublicationChange.ALWAYS)
     fun unpublish(id: Long): PostEntity {
         val post = lockedPost(id)
         requireTech(post)
@@ -235,6 +244,7 @@ class PostService(
      * @throws io.github.gjaku1031.kenblog.attachment.domain.AttachmentFailure ID가 없거나 READY가 아닐 때
      */
     @Transactional
+    @ContentMutation
     fun createDraftDetail(title: String, body: String, attachmentIds: List<Long>? = null,
         wikiTargets: List<String>? = null): PostDetailResponse {
         val post = createDraft(title, body)
@@ -253,6 +263,7 @@ class PostService(
      * @throws io.github.gjaku1031.kenblog.attachment.domain.AttachmentFailure ID가 없거나 READY가 아닐 때
      */
     @Transactional
+    @ContentMutation(publication = PublicationChange.IF_PUBLISHED)
     fun updateDraftDetail(id: Long, title: String, body: String, attachmentIds: List<Long>? = null,
         wikiTargets: List<String>? = null): PostDetailResponse {
         if (id <= 0) throw InvalidPostRequestException()
@@ -270,6 +281,7 @@ class PostService(
      * @throws WikiLinkConflictException 본문이 보정 도구의 조회 뒤 변경됐을 때
      */
     @Transactional
+    @ContentMutation(publication = PublicationChange.IF_PUBLISHED)
     fun replaceWikiLinks(id: Long, expectedBodySha256: String, wikiTargets: List<String>): PostDetailResponse {
         val post = lockedPost(id)
         requireTech(post)
@@ -280,10 +292,12 @@ class PostService(
 
     /** @return [publish]가 변경한 행을 같은 잠금 트랜잭션에서 조립한 상세. */
     @Transactional
+    @ContentMutation(publication = PublicationChange.ALWAYS)
     fun publishDetail(id: Long, visibility: PostVisibility): PostDetailResponse = publish(id, visibility).adminDetail()
 
     /** @return [unpublish]가 변경한 행을 같은 잠금 트랜잭션에서 조립한 상세. */
     @Transactional
+    @ContentMutation(publication = PublicationChange.ALWAYS)
     fun unpublishDetail(id: Long): PostDetailResponse = unpublish(id).adminDetail()
 
     /** @return 초안을 포함한 모든 게시글의 태그 사용 글 수·이름 정렬 목록. */
@@ -303,6 +317,7 @@ class PostService(
      * @throws CategoryConflictException FK 또는 잠금 경합일 때
      */
     @Transactional
+    @ContentMutation(publication = PublicationChange.IF_PUBLISHED)
     fun replaceTaxonomy(id: Long, categoryId: Long?, rawTags: List<String>): PostDetailResponse {
         if (id <= 0) throw InvalidPostRequestException()
         val normalized = TagNames.displayAll(rawTags)
@@ -378,6 +393,7 @@ class PostService(
 
     /** 이미 잠근 프로젝트 아래 새 HOME 또는 DOC 글을 저장. */
     @Transactional
+    @ContentMutation
     fun createProjectPost(draft: EditorDraftEntity, section: PostSection,
         projectId: Long, order: Int?): PostEntity {
         if (section !in setOf(PostSection.PROJECT_HOME, PostSection.PROJECT_DOC) || projectId <= 0 ||
@@ -393,6 +409,7 @@ class PostService(
 
     /** 부모 잠금과 소속 확인 뒤 공개 원문의 HOME·DOC 내용만 교체. */
     @Transactional
+    @ContentMutation(publication = PublicationChange.IF_PUBLISHED)
     fun updateProjectPost(id: Long, title: String, body: String,
         section: PostSection, projectId: Long, order: Int? = null): PostEntity {
         val post = lockedPost(id)
@@ -409,6 +426,7 @@ class PostService(
 
     /** 프로젝트 원문만 별도 부모 트랜잭션에서 출간. */
     @Transactional
+    @ContentMutation(publication = PublicationChange.ALWAYS)
     fun publishProjectPost(id: Long, visibility: PostVisibility): PostEntity {
         val post = lockedPost(id)
         if (post.section !in setOf(PostSection.PROJECT_HOME, PostSection.PROJECT_DOC)) throw ProjectConflictException()
@@ -418,6 +436,7 @@ class PostService(
 
     /** TECH 글의 선택적 관련 프로젝트를 출간 트랜잭션에서 지정·해제. */
     @Transactional
+    @ContentMutation(publication = PublicationChange.ALWAYS)
     fun relateTechPost(id: Long, projectId: Long?) {
         val post = lockedPost(id)
         requireTech(post)
@@ -427,6 +446,7 @@ class PostService(
 
     /** [EditorDraftService.publish]가 잠근 소분류에서 검증한 번호를 TECH 원문에 저장. */
     @Transactional
+    @ContentMutation(publication = PublicationChange.ALWAYS)
     fun setTechSeriesOrder(id: Long, order: Int?) {
         val post = lockedPost(id)
         requireTech(post)
@@ -438,6 +458,7 @@ class PostService(
 
     /** 편집본의 명시 요약 또는 본문 자동 추출을 같은 원문 트랜잭션에서 저장. */
     @Transactional
+    @ContentMutation(publication = PublicationChange.ALWAYS)
     fun replaceSummary(id: Long, requested: String) {
         val post = lockedPost(id)
         if (requested.codePointCount(0, requested.length) > 120) throw InvalidPostRequestException()
@@ -447,6 +468,7 @@ class PostService(
 
     /** 과목 잠금 뒤 검증한 회차 원문을 새 게시글로 저장. */
     @Transactional
+    @ContentMutation
     fun createChapterPost(draft: EditorDraftEntity, courseId: Long, order: Int): PostEntity {
         if (courseId <= 0 || order <= 0) throw io.github.gjaku1031.kenblog.note.domain.CourseConflictException()
         val values = validateDraft(draft.title, draft.body)
@@ -458,6 +480,7 @@ class PostService(
 
     /** 과목과 소속을 다시 확인한 뒤 회차 원문만 갱신. */
     @Transactional
+    @ContentMutation(publication = PublicationChange.IF_PUBLISHED)
     fun updateChapterPost(id: Long, title: String, body: String, courseId: Long, order: Int? = null): PostEntity {
         val post = lockedPost(id)
         if (post.section != PostSection.NOTE_CHAPTER || post.courseId != courseId)
@@ -473,6 +496,7 @@ class PostService(
 
     /** 기존 출간 경로와 동일하게 회차의 첫 출간 시각을 보존. */
     @Transactional
+    @ContentMutation(publication = PublicationChange.ALWAYS)
     fun publishChapterPost(id: Long, visibility: PostVisibility): PostEntity {
         val post = lockedPost(id)
         if (post.section != PostSection.NOTE_CHAPTER) throw io.github.gjaku1031.kenblog.note.domain.CourseConflictException()

@@ -1,5 +1,8 @@
 package io.github.gjaku1031.kenblog.stack.service
 
+import io.github.gjaku1031.kenblog.deployment.ContentMutation
+import io.github.gjaku1031.kenblog.deployment.PublicationChange
+
 import io.github.gjaku1031.kenblog.attachment.service.ManagedImageNormalizer
 import io.github.gjaku1031.kenblog.attachment.storage.OciObjectStorage
 import io.github.gjaku1031.kenblog.operations.domain.OperationFailure
@@ -55,6 +58,7 @@ class StackBadgeService(
      * @throws OperationFailure 없는 프로젝트나 등록되지 않은 이름·중복 입력일 때
      */
     @Transactional
+    @ContentMutation(publication = PublicationChange.ALWAYS)
     fun replaceProjectStack(projectId: Long, names: List<String>) {
         if (projectId <= 0 || !projects.existsById(projectId) || names.size > 30) badInput()
         val selected = names.map { name ->
@@ -74,6 +78,7 @@ class StackBadgeService(
      *
      * @return 생성된 공개 뱃지 DTO
      */
+    @ContentMutation(publication = PublicationChange.ALWAYS, externalIo = true)
     fun create(name: String, file: MultipartFile): StackBadgeResponse {
         val clean = displayName(name)
         val keyName = nameKey(clean)
@@ -95,6 +100,7 @@ class StackBadgeService(
 
     /** @return 수정 후 ID 연결을 유지한 뱃지. */
     @Transactional
+    @ContentMutation(publication = PublicationChange.ALWAYS)
     fun rename(id: Long, name: String): StackBadgeResponse {
         val badge = badge(id)
         val clean = displayName(name)
@@ -109,6 +115,7 @@ class StackBadgeService(
     }
 
     /** 새 64×64 PNG를 저장한 후 DB를 전환하고 커밋 뒤 이전 객체를 제거. */
+    @ContentMutation(publication = PublicationChange.ALWAYS, externalIo = true)
     fun replaceImage(id: Long, file: MultipartFile): StackBadgeResponse {
         badge(id)
         val png = images.normalize(file, 64)
@@ -127,6 +134,7 @@ class StackBadgeService(
 
     /** 프로젝트 FK 연결을 cascade로 제거하고 커밋 뒤 아이콘 객체를 제거. */
     @Transactional
+    @ContentMutation(publication = PublicationChange.ALWAYS)
     fun delete(id: Long) {
         val badge = badge(id)
         badges.delete(badge)

@@ -115,8 +115,8 @@ async function decorate(tree: HtmlRoot, options: RenderOptions, headings: TocIte
     if (tag === "span" && String(node.properties.className ?? "").includes("ken-wiki-link")) {
       const title = String(node.properties.dataWikiTitle ?? node.properties["data-wiki-title"] ?? "");
       const target = title ? options.wikiUrl?.(title) : null;
-      if (target && safeLink(target)) { node.tagName = "a"; node.properties = { href: target, className: ["ken-wiki-link"] }; wiki.add(title); }
-      else { node.properties = { className: ["ken-wiki-unresolved"] }; if (title) wiki.add(title); }
+      if (target && safeLink(target)) { node.tagName = "a"; node.properties = { href: target, className: ["ken-wiki-link"], dataWikiTitle: title }; wiki.add(title); }
+      else { node.properties = { className: ["ken-wiki-unresolved"], dataWikiTitle: title }; if (title) wiki.add(title); }
     }
     if (tag === "sup" && String(node.properties.className ?? "").includes("ken-annotation-ref")) {
       const index = Number(node.properties.dataAnnotationIndex ?? node.properties["data-annotation-index"]);
@@ -199,7 +199,7 @@ export async function renderMarkdown(source: string, options: RenderOptions = {}
   const attachmentIds = new Set<number>();
   await decorate(tree, options, headings, attachmentIds, wikiTargets, parsed.items);
   const schema = { ...defaultSchema, clobberPrefix: "", tagNames: [...(defaultSchema.tagNames ?? []), "figure", "figcaption", "button", "details", "summary"], attributes: { ...defaultSchema.attributes,
-    "*": ["className", "id", "title", "dataSourceLine", "dataWidth", "dataAlign", "dataDarkSrc", "dataLanguage", "dataMermaidSource", "dataAnnotationIndex", "dataKatexHtml", "role", "ariaLabel", "tabIndex"],
+    "*": ["className", "id", "title", "dataSourceLine", "dataWidth", "dataAlign", "dataDarkSrc", "dataLanguage", "dataMermaidSource", "dataAnnotationIndex", "dataWikiTitle", "dataKatexHtml", "role", "ariaLabel", "tabIndex"],
     a: ["href", "target", "rel", "className", "ariaLabel", "dataAnnotationReturn"], img: ["src", "alt", "loading", "decoding", "className", "dataDarkSrc"], span: ["className", "style", "id", "role", "tabIndex", "ariaLabel", "dataAnnotationIndex", "dataKatexHtml"],
     figure: ["className", "style", "dataWidth", "dataAlign"], input: ["type", "checked", "disabled"], button: ["type", "className"], th: ["align"], td: ["align"] },
     protocols: { ...defaultSchema.protocols, href: ["http", "https", "mailto"], src: ["http", "https"] } };

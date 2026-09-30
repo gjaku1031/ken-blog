@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# HTTP-01 webroot로 지정한 IP 인증서만 갱신하고 성공한 시도 뒤 gateway가 인증서를 다시 읽도록 함.
+# IP 인증서를 갱신한 뒤 Spring SSL bundle이 읽는 PEM을 원자적으로 교체.
 : "${KEN_BLOG_ACME_WEBROOT_DIR:?ACME webroot directory is required}"
 : "${KEN_BLOG_CERTBOT_CONFIG_DIR:?Certbot configuration directory is required}"
-: "${KEN_BLOG_GATEWAY_CONTAINER:?Gateway container name is required}"
+: "${KEN_BLOG_TLS_DIR:?Dedicated application TLS directory is required}"
 certbot_image="${KEN_BLOG_CERTBOT_IMAGE:-certbot/certbot:v5.4.0}"
 
 if [[ "$KEN_BLOG_ACME_WEBROOT_DIR" != /* || ! -d "$KEN_BLOG_ACME_WEBROOT_DIR" ]]; then
@@ -15,12 +15,11 @@ if [[ "$KEN_BLOG_CERTBOT_CONFIG_DIR" != /* || ! -f "$KEN_BLOG_CERTBOT_CONFIG_DIR
     echo 'The ken-blog-api Certbot lineage is missing' >&2
     exit 2
 fi
-if [[ ! "$KEN_BLOG_GATEWAY_CONTAINER" =~ ^[A-Za-z0-9][A-Za-z0-9_.-]*$ ]]; then
-    echo 'Gateway container name is invalid' >&2
-    exit 2
-fi
-
 command -v docker >/dev/null
+
+# 수동 실행과 systemd 중복 갱신 방지. 잠금 파일은 운영 디렉터리에 보존.
+exec 9>"$KEN_BLOG_CERTBOT_CONFIG_DIR/.ken-blog-renew.lock"
+flock -n 9 || exit 0
 
 docker run --rm --pull=never \
     --mount "type=bind,source=$KEN_BLOG_CERTBOT_CONFIG_DIR,target=/etc/letsencrypt" \
@@ -32,5 +31,4 @@ docker run --rm --pull=never \
     --preferred-profile shortlived \
     --non-interactive
 
-docker exec "$KEN_BLOG_GATEWAY_CONTAINER" nginx -t
-docker exec "$KEN_BLOG_GATEWAY_CONTAINER" nginx -s reload
+"$(dirname "$(readlink -f "$0")")/install-tls-material.sh"

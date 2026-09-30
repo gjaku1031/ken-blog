@@ -14,7 +14,7 @@ import org.springframework.stereotype.Service
 /** 공개 HTTP 헤더에 필요한 안전한 이미지 값과 호출자가 닫을 OCI 스트림. */
 data class PostAttachmentContent(val contentType: String, val byteSize: Long, val stream: InputStream)
 
-/** 본문·Redis 없이 현재 글 권한을 DB에서 판정한 뒤 DB 트랜잭션 밖에서 OCI 객체를 여는 서비스. */
+/** 본문을 읽지 않고 출간 상태와 첨부 연결을 확인한 뒤 DB 트랜잭션 밖에서 OCI 객체를 여는 서비스. */
 @Service
 class PostAttachmentDeliveryService(
     private val links: PostAttachmentRepository,

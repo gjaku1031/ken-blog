@@ -1,5 +1,7 @@
 package io.github.gjaku1031.kenblog.attachment.service
 
+import io.github.gjaku1031.kenblog.deployment.ContentMutation
+
 import io.github.gjaku1031.kenblog.attachment.domain.AttachmentFailure
 import io.github.gjaku1031.kenblog.attachment.domain.AttachmentStatus
 import io.github.gjaku1031.kenblog.attachment.domain.EditorDraftAttachmentEntity
@@ -43,6 +45,7 @@ class AttachmentLinkService(
      * @throws AttachmentFailure 없는 ID면 404, READY가 아니면 409
      */
     @Transactional
+    @ContentMutation
     fun replacePost(postId: Long, ids: List<Long>) = replacePostInTransaction(postId, ids)
 
     /**
@@ -50,6 +53,7 @@ class AttachmentLinkService(
      * @throws AttachmentFailure 없는 ID면 404, READY가 아니면 409
      */
     @Transactional
+    @ContentMutation
     fun replaceDraft(draftId: Long, ids: List<Long>) {
         val normalized = ids.distinct().sorted()
         lockReady(normalized)
@@ -59,6 +63,7 @@ class AttachmentLinkService(
 
     /** 편집본 출간 트랜잭션에서 현재 선언을 글로 옮기고 편집본 삭제 시 FK 연결이 제거되게 함. */
     @Transactional
+    @ContentMutation
     fun publishDraft(postId: Long, draftId: Long) =
         replacePostInTransaction(postId, drafts.findCurrentByDraftId(draftId).map { it.key.attachmentId })
 

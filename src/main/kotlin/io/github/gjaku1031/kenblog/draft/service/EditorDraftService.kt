@@ -1,5 +1,8 @@
 package io.github.gjaku1031.kenblog.draft.service
 
+import io.github.gjaku1031.kenblog.deployment.ContentMutation
+import io.github.gjaku1031.kenblog.deployment.PublicationChange
+
 import io.github.gjaku1031.kenblog.attachment.service.AttachmentLinkService
 import io.github.gjaku1031.kenblog.category.domain.CategoryNotFoundException
 import io.github.gjaku1031.kenblog.category.repository.CategoryRepository
@@ -64,6 +67,7 @@ class EditorDraftService(
      * @throws CategoryNotFoundException 지정한 분류가 이미 없을 때
      */
     @Transactional
+    @ContentMutation
     fun create(request: EditorDraftCreateRequest): EditorDraftDetailResponse = conflicts {
         if (request.visibility != PostVisibility.PUBLIC) throw InvalidEditorDraftRequestException()
         val section = request.section ?: request.postId?.let { posts.findByIdOrNull(it)?.section } ?: PostSection.TECH
@@ -133,6 +137,7 @@ class EditorDraftService(
      * @throws EditorDraftConflictException 오래된 revision 또는 동시 경합
      */
     @Transactional
+    @ContentMutation
     fun update(id: Long, request: EditorDraftUpdateRequest): EditorDraftDetailResponse = conflicts {
         if (request.visibility != PostVisibility.PUBLIC) throw InvalidEditorDraftRequestException()
         validId(id)
@@ -166,6 +171,7 @@ class EditorDraftService(
      * @throws EditorDraftConflictException 오래된 revision 또는 동시 경합
      */
     @Transactional
+    @ContentMutation
     fun delete(id: Long, revision: Long) = conflicts {
         validRevision(revision)
         val draft = lockDraftAfterPost(id)
@@ -183,6 +189,7 @@ class EditorDraftService(
      * @throws CategoryNotFoundException 삭제된 분류 스냅샷일 때
      */
     @Transactional
+    @ContentMutation(publication = PublicationChange.ALWAYS)
     fun publish(id: Long, revision: Long): PostDetailResponse = conflicts {
         validRevision(revision)
         val snapshot = preview(id)

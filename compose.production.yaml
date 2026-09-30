@@ -18,16 +18,3 @@ services:
     # 512MiB 힙 외 JVM 네이티브 메모리에도 약 512MiB를 남긴다.
     mem_limit: 1g
     cpus: 1.0
-
-  web:
-    build:
-      context: .
-      dockerfile: ops/nginx/Dockerfile
-    image: ken-blog-web:production
-    restart: unless-stopped
-    depends_on:
-      - api
-    ports:
-      - "127.0.0.1:18082:8080"
-    mem_limit: 128m
-    cpus: 0.5

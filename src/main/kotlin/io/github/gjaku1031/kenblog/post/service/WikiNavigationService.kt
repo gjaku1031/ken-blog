@@ -41,7 +41,7 @@ class WikiNavigationService(private val posts: PostRepository) {
 
     /**
      * 현재 canonical 출간 글의 공개 가능 출처만 10개씩 조회하고 11번째 행으로 hasMore 판정.
-     * 비관리자의 PRIVATE 대상은 404로 숨기며 출처 PRIVATE 본문·건수는 SQL에서 제외함.
+     * 미발행 대상은 404로 처리하며 공개되지 않은 출처는 본문·건수에서 제외함.
      * @throws PostNotFoundException 없는 글·초안·읽기 불가 대상일 때
      * @throws InvalidPostRequestException 페이지가 SQL 범위를 넘을 때
      */

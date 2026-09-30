@@ -55,10 +55,12 @@ class PostEntity protected constructor() {
     var summary: String = ""
         protected set
 
+    /** 기존 스키마 호환용 열. 핀 정렬 기능은 더 이상 제공하지 않음. */
     @Column(name = "pin_order")
     var pinOrder: Int? = null
         protected set
 
+    /** 기존 스키마 호환용 열. 조회수 수집·수정 기능은 제공하지 않음. */
     @Column(name = "view_count", nullable = false)
     var viewCount: Long = 0
         protected set

@@ -19,5 +19,5 @@ WORKDIR /app
 RUN useradd --system --uid 10001 --create-home appuser
 COPY --from=build /build/target/ken-blog-api-0.0.1-SNAPSHOT.jar /app/app.jar
 USER appuser
-EXPOSE 8080
+EXPOSE 8080 8082 8443
 ENTRYPOINT ["java", "-XX:MaxRAMPercentage=50", "-jar", "/app/app.jar"]

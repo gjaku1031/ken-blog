@@ -111,12 +111,12 @@ class SecurityConfig {
         )
 
     /**
-     * 공개 읽기는 지정 origin의 GET, 관리자 변경과 조회 집계는 인증 origin의 credential 요청으로 분리.
-     * 관리자 경로의 GET·POST·PUT·PATCH·DELETE와 공개 조회 집계 POST의 CSRF 헤더를 허용.
+     * 공개 읽기는 지정 origin의 GET, 관리자 변경은 인증 origin의 credential 요청으로 분리.
+     * 관리자 경로의 GET·POST·PUT·PATCH·DELETE와 CSRF 헤더를 허용.
      *
      * @param publicOriginsCsv 공개 상태 조회 허용 origin
      * @param authOriginsCsv 인증 요청을 허용할 명시적 origin; 기본은 빈 목록
-     * @return 공개 읽기·관리자 변경·조회 집계 경로를 구분하는 [CorsConfigurationSource]
+     * @return 공개 읽기·관리자 변경 경로를 구분하는 [CorsConfigurationSource]
      * @throws IllegalStateException origin에 와일드카드 또는 형식 오류가 있을 때
      */
     @Bean

@@ -1,6 +1,7 @@
 import './style.css';
 import { AdminApi, ApiError, errorMessage } from './api';
 import { MarkdownEditor } from './editor';
+import { WikiPreviewResolver } from './wiki-preview';
 import { renderMarkdown } from '../shared/markdown';
 
 type Section = 'TECH' | 'PROJECT_HOME' | 'PROJECT_DOC' | 'NOTE_CHAPTER';
@@ -692,7 +693,9 @@ async function showEditor(content: HTMLElement, route: ReturnType<typeof current
   page.append(statusNode, conflictActions);
   content.replaceChildren(page);
   renderDeployment();
-  editor = new MarkdownEditor(editorHost, preview, form.body, updateEditorActions, () => { void saveDraft(); });
+  const wikiResolver = new WikiPreviewResolver(api);
+  editor = new MarkdownEditor(editorHost, preview, form.body, updateEditorActions, () => { void saveDraft(); },
+    (titles, signal) => wikiResolver.resolve(titles, signal));
   savedFingerprint = formFingerprint(); updateEditorActions();
 }
 

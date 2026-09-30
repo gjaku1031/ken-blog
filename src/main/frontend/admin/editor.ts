@@ -8,6 +8,7 @@ import { renderMarkdown } from '../shared/markdown';
 import { enhanceMarkdown } from '../shared/enhance';
 
 type Anchor = { line: number; top: number };
+type WikiResolver = (titles: readonly string[], signal: AbortSignal) => Promise<Map<string, string | null>>;
 
 /** CodeMirror 인스턴스를 유지하면서 왼쪽 입력만 오른쪽 미리보기 스크롤을 구동한다. */
 export class MarkdownEditor {
@@ -19,6 +20,7 @@ export class MarkdownEditor {
   private documentRevision = 0;
   private mappedRevision = -1;
   private enhancementAbort: AbortController | null = null;
+  private wikiAbort: AbortController | null = null;
   private enhancedTheme: 'light' | 'dark' | null = null;
   private composing = false;
   private scrollFrame = 0;
@@ -29,12 +31,14 @@ export class MarkdownEditor {
   private readonly scrollListener = () => this.scheduleScroll();
   private readonly compositionStart = () => {
     this.composing = true; this.renderId++; this.mappedRevision = -1; window.clearTimeout(this.timer);
+    this.wikiAbort?.abort();
   };
   private readonly compositionEnd = () => { this.composing = false; this.scheduleRender(); };
   private readonly resizeListener = () => { this.view.requestMeasure(); this.collectAnchors(); this.scheduleScroll(); };
 
   constructor(host: HTMLElement, private readonly preview: HTMLElement, source: string,
-    private readonly onChange: () => void, private readonly onSave: () => void) {
+    private readonly onChange: () => void, private readonly onSave: () => void,
+    private readonly resolveWiki?: WikiResolver) {
     this.initialSource = source;
     const firstBreak = source.match(/\r\n|\r|\n/)?.[0];
     this.view = new EditorView({
@@ -87,6 +91,8 @@ export class MarkdownEditor {
   }
 
   destroy(): void {
+    this.renderId++;
+    this.wikiAbort?.abort();
     window.clearTimeout(this.timer);
     window.cancelAnimationFrame(this.scrollFrame);
     this.enhancementAbort?.abort();
@@ -103,6 +109,7 @@ export class MarkdownEditor {
 
   private scheduleRender(delay = 260): void {
     window.clearTimeout(this.timer);
+    this.wikiAbort?.abort();
     const generation = ++this.renderId;
     if (this.composing) return;
     this.timer = window.setTimeout(() => { void this.render(generation); }, delay);
@@ -130,6 +137,7 @@ export class MarkdownEditor {
       this.mappedRevision = revision;
       this.collectAnchors();
       this.scheduleScroll();
+      void this.resolveWikiLinks(result.wikiTargets, generation);
       await enhanceMarkdown(this.preview, { theme, signal: controller.signal });
       if (generation !== this.renderId || controller.signal.aborted || revision !== this.documentRevision) return;
       this.collectAnchors();
@@ -141,6 +149,34 @@ export class MarkdownEditor {
       message.className = 'notice';
       message.textContent = '미리보기를 표시할 수 없습니다. 원문 입력은 유지됩니다.';
       this.preview.append(message);
+    }
+  }
+
+  /** 위키 대상만 비동기로 연결하며 입력 원문·도식 DOM은 다시 만들지 않음. */
+  private async resolveWikiLinks(titles: readonly string[], generation: number): Promise<void> {
+    if (!this.resolveWiki || !titles.length) return;
+    const controller = new AbortController();
+    this.wikiAbort = controller;
+    try {
+      const targets = await this.resolveWiki(titles, controller.signal);
+      if (controller.signal.aborted || generation !== this.renderId) return;
+      for (const node of this.preview.querySelectorAll<HTMLElement>('[data-wiki-title]')) {
+        const title = node.dataset.wikiTitle ?? '';
+        const url = targets.get(title);
+        if (!url) { node.title = '아직 출간된 대상을 찾지 못했습니다.'; continue; }
+        const link = document.createElement('a');
+        link.href = url; link.target = '_blank'; link.rel = 'noopener noreferrer';
+        link.className = 'ken-wiki-link'; link.dataset.wikiTitle = title;
+        link.title = '공개 글을 새 탭에서 열기 · 최신 변경은 Pages 배포 후 반영';
+        link.append(...Array.from(node.childNodes));
+        node.replaceWith(link);
+      }
+    } catch {
+      if (controller.signal.aborted || generation !== this.renderId) return;
+      for (const node of this.preview.querySelectorAll<HTMLElement>('[data-wiki-title]'))
+        node.title = '대상 확인에 실패했습니다. 다음 미리보기 갱신 때 다시 확인합니다.';
+    } finally {
+      if (this.wikiAbort === controller) this.wikiAbort = null;
     }
   }
 

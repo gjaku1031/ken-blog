@@ -1,5 +1,8 @@
 package io.github.gjaku1031.kenblog.note.service
 
+import io.github.gjaku1031.kenblog.deployment.ContentMutation
+import io.github.gjaku1031.kenblog.deployment.PublicationChange
+
 import io.github.gjaku1031.kenblog.note.domain.CourseConflictException
 import io.github.gjaku1031.kenblog.note.domain.CourseEntity
 import io.github.gjaku1031.kenblog.note.domain.CourseNotFoundException
@@ -79,6 +82,7 @@ class CourseService(private val courses: CourseRepository, private val chapters:
 
     /** @return 과목 생성과 DB 고유 주소 확인을 마친 관리자 값. */
     @Transactional
+    @ContentMutation(publication = PublicationChange.ALWAYS)
     fun create(request: CourseWriteRequest): io.github.gjaku1031.kenblog.note.dto.CourseAdminResponse = conflicts {
         courses.saveAndFlush(CourseEntity(ContentAddress.createCourse(), request.field, request.name,
             request.description, request.status, now())).adminResponse()
@@ -86,6 +90,7 @@ class CourseService(private val courses: CourseRepository, private val chapters:
 
     /** @return 과목 행을 잠그고 소개 값을 교체한 관리자 값. */
     @Transactional
+    @ContentMutation(publication = PublicationChange.ALWAYS)
     fun update(id: Long, request: CourseWriteRequest): io.github.gjaku1031.kenblog.note.dto.CourseAdminResponse = conflicts {
         val course = lockedParent(id)
         course.replace(request.field, request.name, request.description, request.status, now())
@@ -128,6 +133,7 @@ class CourseService(private val courses: CourseRepository, private val chapters:
 
     /** 과목 잠금 뒤 회차 한 건과 그 DB 연결을 삭제. */
     @Transactional
+    @ContentMutation(publication = PublicationChange.ALWAYS)
     fun deleteChapter(id: Long, postId: Long) = conflicts {
         lockedParent(id)
         if (postId <= 0) throw InvalidCourseRequestException()
@@ -139,6 +145,7 @@ class CourseService(private val courses: CourseRepository, private val chapters:
 
     /** 과목과 회차를 함께 삭제하며 OCI 원본 객체는 보존. */
     @Transactional
+    @ContentMutation(publication = PublicationChange.ALWAYS)
     fun delete(id: Long) = conflicts {
         val course = lockedParent(id)
         chapters.deleteAllByIdInBatch(chapters.findAdminChapters(id).map { it.id })
