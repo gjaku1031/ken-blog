@@ -1,0 +1,25 @@
+<main xmlns:th="http://www.thymeleaf.org" th:fragment="main" id="main-content" class="page-container notes-page">
+  <div class="section-heading">
+    <h1>Notes</h1>
+  </div>
+  <section th:each="group : ${groups}" class="notes-group">
+    <h2 th:text="${group.field}">분야</h2>
+    <div class="notes-grid">
+      <article th:each="course : ${group.courses}" class="course-card card hv">
+        <h3>
+          <a th:href="${course.href}" th:text="${course.name}">과목</a>
+        </h3>
+        <p th:if="${!#strings.isEmpty(course.description)}" th:text="${course.description}">
+        </p>
+        <div class="course-card-meta">
+          <th:block th:text="|${course.chapterCount}회차 · ${course.statusLabel}|"></th:block><time
+            th:if="${!#strings.isEmpty(course.displayDate)}"
+            th:datetime="${course.latestPublishedDate}"
+            th:text="| · ${course.displayDate}|"
+          ></time>
+        </div>
+      </article>
+    </div>
+  </section>
+  <div th:unless="${hasNotes}" class="message-card card">아직 등록된 과목이 없습니다.</div>
+</main>

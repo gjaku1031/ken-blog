@@ -1,0 +1,39 @@
+<main xmlns:th="http://www.thymeleaf.org" th:fragment="main" id="main-content" class="post-page page-container">
+  <a th:href="${base + 'tech/'}" class="back-link">← Tech</a>
+  <article>
+    <div class="post-overline">
+      <a th:href="${base + 'tech/'}">Tech</a><span th:if="${post.category != null}"> · </span><span th:if="${post.category != null}" th:text="${post.category.path}">분류</span>
+    </div>
+    <h1 th:text="${post.title}">제목</h1>
+    <p th:if="${post.relatedProject != null}" class="post-related-project">
+      <span>[연관 프로젝트]</span><a th:href="${base + 'project/' + post.relatedProject.slug + '/'}" th:text="${post.relatedProject.name}">프로젝트</a>
+    </p>
+    <div class="detail-meta">
+      <time class="mono" th:datetime="${post.publishedDate}" th:text="${post.displayDate}">날짜</time>
+    </div>
+    <div th:if="${!#lists.isEmpty(post.tags)}" class="tag-list detail-tags">
+      <a th:each="tag : ${post.tags}" th:href="${base + 'tech/?tag=' + #uris.escapeQueryParam(tag)}" th:text="|#${tag}|">태그</a>
+    </div>
+    <div class="post-reading-layout" th:classappend="${!#lists.isEmpty(toc) or !#lists.isEmpty(series)} ? 'has-toc' : ''">
+      <div class="post-main-content">
+        <div class="markdown-body" th:utext="${html}">
+        </div>
+        <section th:replace="~{views/backlinks :: backlinks}">
+        </section>
+      </div>
+      <aside th:if="${!#lists.isEmpty(toc) or !#lists.isEmpty(series)}" class="post-side-rail can-stick">
+        <nav th:replace="~{views/toc :: toc}">
+        </nav>
+        <nav th:if="${!#lists.isEmpty(series)}" class="series-nav" aria-label="시리즈 글 목록">
+          <h2>시리즈 <span th:text="|${seriesPosition}/${#lists.size(series)}|">1/1</span>
+          </h2>
+          <ol>
+            <li th:each="item : ${series}">
+              <a th:href="${item.href}" th:attr="aria-current=${item.current ? 'page' : null}"><span class="series-number" th:text="${item.order}">1</span><span th:text="${item.title}">글</span></a>
+            </li>
+          </ol>
+        </nav>
+      </aside>
+    </div>
+  </article>
+</main>

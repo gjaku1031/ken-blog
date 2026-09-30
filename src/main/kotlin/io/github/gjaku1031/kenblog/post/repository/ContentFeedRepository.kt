@@ -66,49 +66,4 @@ interface ContentFeedRepository : JpaRepository<PostEntity, Long> {
         @Param("descendantPath") descendantPath: String?, @Param("tag") tag: String?,
         pageable: Pageable): Page<ContentFeedRow>
 
-    /** @return 제목·본문·태그·분류·과목 이름을 부분 문자열로 찾되 공개 부모 경계를 적용한 페이지. */
-    @Query(value = "select new io.github.gjaku1031.kenblog.post.dto.ContentFeedRow(" +
-        "p.id, p.title, p.slug, p.section, case when p.section = :homeSection then project.overview else p.summary end, p.publishedAt, p.visibility, p.categoryId, " +
-        "coalesce(project.slug, case when :includePrivate = true or (related.visibility = :publicVisibility and " +
-        "relatedHome.status = :published and relatedHome.section = :homeSection and " +
-        "relatedHome.projectId = related.id and relatedHome.visibility = :publicVisibility) then related.slug else null end), " +
-        "course.slug, coalesce(project.name, case when :includePrivate = true or (related.visibility = :publicVisibility and " +
-        "relatedHome.status = :published and relatedHome.section = :homeSection and " +
-        "relatedHome.projectId = related.id and relatedHome.visibility = :publicVisibility) then related.name else null end), " +
-        "course.name, course.field, p.courseId, p.chapterOrder, p.techSeriesOrder) " +
-        "from PostEntity p left join ProjectEntity project on project.id = p.projectId " +
-        "left join PostEntity home on home.id = project.homePostId " +
-        "left join ProjectEntity related on related.id = p.relatedProjectId " +
-        "left join PostEntity relatedHome on relatedHome.id = related.homePostId " +
-        "left join CourseEntity course on course.id = p.courseId " +
-        "left join CategoryEntity category on category.id = p.categoryId " +
-        "where p.status = :published and p.section <> :homeSection " +
-        "and (p.section not in (:projectDoc, :homeSection) or (home.status = :published and home.section = :homeSection " +
-        "and home.projectId = project.id and (p.section <> :homeSection or p.id = home.id))) " +
-        "and (:includePrivate = true or (p.visibility = :publicVisibility and " +
-        "(p.section not in (:projectDoc, :homeSection) or (project.visibility = :publicVisibility and home.visibility = :publicVisibility)))) " +
-        "and (locate(:query, lower(p.title)) > 0 or locate(:query, lower(p.body)) > 0 " +
-        "or locate(:query, lower(p.summary)) > 0 or locate(:query, lower(project.overview)) > 0 " +
-        "or locate(:query, lower(category.path)) > 0 " +
-        "or locate(:query, lower(course.field)) > 0 or locate(:query, lower(course.name)) > 0 " +
-        "or exists (select t.id from PostTagEntity t where t.postId = p.id and locate(:query, lower(t.name)) > 0)) " +
-        "order by p.publishedAt desc, p.id desc",
-        countQuery = "select count(p) from PostEntity p left join ProjectEntity project on project.id = p.projectId " +
-            "left join PostEntity home on home.id = project.homePostId " +
-            "left join CourseEntity course on course.id = p.courseId " +
-            "left join CategoryEntity category on category.id = p.categoryId " +
-            "where p.status = :published and p.section <> :homeSection " +
-            "and (p.section not in (:projectDoc, :homeSection) or (home.status = :published and home.section = :homeSection " +
-            "and home.projectId = project.id and (p.section <> :homeSection or p.id = home.id))) " +
-            "and (:includePrivate = true or (p.visibility = :publicVisibility and " +
-            "(p.section not in (:projectDoc, :homeSection) or (project.visibility = :publicVisibility and home.visibility = :publicVisibility)))) " +
-            "and (locate(:query, lower(p.title)) > 0 or locate(:query, lower(p.body)) > 0 " +
-            "or locate(:query, lower(p.summary)) > 0 or locate(:query, lower(project.overview)) > 0 " +
-            "or locate(:query, lower(category.path)) > 0 " +
-            "or locate(:query, lower(course.field)) > 0 or locate(:query, lower(course.name)) > 0 " +
-            "or exists (select t.id from PostTagEntity t where t.postId = p.id and locate(:query, lower(t.name)) > 0))")
-    fun search(@Param("published") published: PostStatus, @Param("homeSection") homeSection: PostSection,
-        @Param("projectDoc") projectDoc: PostSection, @Param("publicVisibility") publicVisibility: PostVisibility,
-        @Param("includePrivate") includePrivate: Boolean, @Param("query") query: String,
-        pageable: Pageable): Page<ContentFeedRow>
 }

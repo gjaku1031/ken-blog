@@ -1,0 +1,8 @@
+<nav xmlns:th="http://www.thymeleaf.org" th:fragment="toc" th:if="${!#lists.isEmpty(toc)}" class="post-toc" aria-label="목차">
+  <h2>목차</h2>
+  <ol>
+    <li th:each="heading : ${toc}" th:class="${heading.depth == 3 ? 'toc-depth-three' : ''}">
+      <a th:href="${'#' + heading.id}" th:text="${heading.label}">목차</a>
+    </li>
+  </ol>
+</nav>

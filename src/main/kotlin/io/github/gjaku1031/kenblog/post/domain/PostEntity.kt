@@ -153,6 +153,13 @@ class PostEntity protected constructor() {
         this.updatedAt = updatedAt
     }
 
+    /** 저장소 Markdown을 읽거나 수정하지 않고 제목·요약만 갱신. */
+    internal fun replaceMetadata(title: String, summary: String, updatedAt: LocalDateTime) {
+        this.title = title
+        this.summary = summary
+        this.updatedAt = updatedAt
+    }
+
     /**
      * 출간 또는 재출간하고 최초 UTC 출간 시각을 보존.
      *

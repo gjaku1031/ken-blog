@@ -13,8 +13,22 @@ services:
         format: raw
     environment:
       SESSION_COOKIE_SECURE: "true"
+      APP_ASSETS_DIRECTORY: /var/lib/ken-blog/assets
+      APP_ASSETS_KEY_PREFIX: ${APP_ASSETS_KEY_PREFIX:-ken-blog/attachments}
+      APP_CONTENT_DIRECTORY: /app/content
     ports:
       - "127.0.0.1:${API_PORT:-18081}:8080"
+    volumes:
+      - type: bind
+        source: ${KEN_BLOG_ASSETS_DIR:?Durable local assets directory is required}
+        target: /var/lib/ken-blog/assets
+        bind:
+          create_host_path: false
+      - type: bind
+        source: ${KEN_BLOG_CONTENT_DIR:?Repository content checkout directory is required}
+        target: /app/content
+        bind:
+          create_host_path: false
     # 512MiB 힙 외 JVM 네이티브 메모리에도 약 512MiB를 남긴다.
     mem_limit: 1g
     cpus: 1.0

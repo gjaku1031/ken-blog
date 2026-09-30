@@ -9,7 +9,7 @@ const HARD_MAX_POSTS = 5000;
 const DEFAULT_TIMEOUT_MS = 35000;
 const MAX_RESPONSE_BYTES = 8 * 1024 * 1024;
 const SESSION_COOKIE = "KENBLOGSESSION";
-const sharedUrl = new URL("../../src/main/frontend/shared/", import.meta.url).href;
+const sharedUrl = new URL("../../src/main/resources/web/shared/", import.meta.url).href;
 
 /** 비밀값·본문·요청 URL을 출력하지 않는 오류. */
 class ToolError extends Error {
@@ -64,8 +64,8 @@ async function sharedParser() {
   });
   try {
     const [details, wiki] = await Promise.all([
-      import(new URL("../../src/main/frontend/shared/markdown-details.ts", import.meta.url).href),
-      import(new URL("../../src/main/frontend/shared/wiki-link-syntax.ts", import.meta.url).href),
+      import(new URL("../../src/main/resources/web/shared/markdown-details.ts", import.meta.url).href),
+      import(new URL("../../src/main/resources/web/shared/wiki-link-syntax.ts", import.meta.url).href),
     ]);
     return { parseAnnotationDocument: details.parseAnnotationDocument,
       collectWikiTitles: wiki.collectWikiTitles };

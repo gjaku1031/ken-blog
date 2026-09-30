@@ -23,7 +23,7 @@ data class AttachmentSnapshot(val objectKey: String, val response: AttachmentRes
 /**
  * 첨부 상태와 계정 참조를 짧은 DB 트랜잭션으로 처리.
  *
- * OCI 네트워크 호출은 이 구체 서비스 밖에서 실행하며, 상태 전환은 행 잠금으로 직렬화함.
+ * 로컬 파일 작업은 이 구체 서비스 밖에서 실행하며, 상태 전환은 행 잠금으로 직렬화함.
  */
 @Service
 class AttachmentMetadataService(
@@ -32,7 +32,7 @@ class AttachmentMetadataService(
     private val links: AttachmentLinkService,
 ) {
     /**
-     * 인증 계정에 연결된 PENDING 행을 객체 업로드보다 먼저 확정.
+     * 인증 계정에 연결된 PENDING 행을 파일 저장보다 먼저 확정.
      *
      * @param username 현재 세션에서 얻은 계정명
      * @param key 서버에서 생성한 객체 key
@@ -51,7 +51,7 @@ class AttachmentMetadataService(
     }
 
     /**
-     * 성공한 OCI 업로드의 PENDING 행만 READY로 변경.
+     * 성공한 파일 저장의 PENDING 행만 READY로 변경.
      *
      * @param id 앞서 생성한 첨부 ID
      * @return 다운로드 가능한 상태의 [AttachmentSnapshot]
@@ -78,11 +78,11 @@ class AttachmentMetadataService(
         (if (id > 0) attachments.findByIdOrNull(id) else null)?.snapshot() ?: throw notFound()
 
     /**
-     * READY 또는 오래된 PENDING 행을 DELETING으로 변경하고 객체 key를 반환.
+     * READY 또는 오래된 PENDING 행을 DELETING으로 변경하고 파일 key를 반환.
      *
      * 글·편집본에 연결된 첨부는 동일 행 잠금 안에서 409로 거부함.
-     * 활성 PENDING은 SDK 요청 제한 30초보다 긴 2분 동안 삭제를 거부함.
-     * 오래된 PENDING의 행은 늦은 PUT을 추적하도록 삭제 후에도 유예함.
+     * 활성 PENDING은 파일 저장과 경쟁하지 않도록 2분 동안 삭제를 거부함.
+     * 오래된 PENDING의 행은 기존 지연 쓰기 상태도 추적하도록 삭제 후 유예함.
      *
      * @param id 삭제 대상 ID
      * @return 객체 삭제에 필요한 [AttachmentSnapshot]
@@ -106,10 +106,10 @@ class AttachmentMetadataService(
     }
 
     /**
-     * 실패한 업로드를 보상 삭제 대상으로 표시. READY면 실제 객체를 삭제하지 않음.
+     * 실패한 업로드를 보상 삭제 대상으로 표시. READY면 실제 파일을 삭제하지 않음.
      *
      * @param id 업로드 중 생성한 ID
-     * @param uncertainWrite PUT 응답 유실로 뒤늦은 객체 생성을 배제할 수 없는지 여부
+     * @param uncertainWrite 기존 원격 쓰기에서 지연 완료를 배제할 수 없는지 여부
      * @return 삭제해도 되는 상태 또는 이미 사라진 행이면 `true`, READY면 `false`
      */
     @Transactional
@@ -125,7 +125,7 @@ class AttachmentMetadataService(
     }
 
     /**
-     * 객체 삭제 성공 후 DELETING 행을 제거하거나 불확실한 PUT의 추적 행을 보존.
+     * 파일 삭제 성공 후 DELETING 행을 제거하거나 기존 지연 쓰기의 추적 행을 보존.
      *
      * PENDING에서 시작한 삭제는 상태 전환 뒤 2분간 남으며 이후 삭제 재시도로 제거 가능.
      *

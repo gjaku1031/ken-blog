@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+
 const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const operationId = process.env.SITE_DEPLOYMENT_ID;
 const runId = process.env.GITHUB_RUN_ID;
@@ -54,6 +56,41 @@ export async function assertCaptureOwner(base) {
   const state = object(await response.json(), "deployment capture state");
   requireValue(state.id === operationId && state.status === "RUNNING" && state.runId === runId &&
     String(state.runAttempt) === runAttempt, "deployment capture owner changed");
+}
+
+/** 잠금 소유자를 재확인한 뒤 checkout의 전체 공개 본문을 서버 파일 원본에 맞춘다. */
+export async function synchronizeSources(base, bodies) {
+  await assertCaptureOwner(base);
+  const sourceUrl = new URL("/api/v1/deployments/source", base);
+  sourceUrl.searchParams.set("id", operationId);
+  sourceUrl.searchParams.set("runId", runId);
+  sourceUrl.searchParams.set("runAttempt", runAttempt);
+  const pendingResponse = await fetch(sourceUrl, {
+    method: "GET", headers: { Accept: "application/json", Authorization: `Bearer ${deployToken}` },
+    credentials: "omit", redirect: "error", cache: "no-store", signal: AbortSignal.timeout(20_000),
+  });
+  if (!pendingResponse.ok) throw new Error(`공개 Markdown 동기화 조회 실패: HTTP ${pendingResponse.status}`);
+  const pending = object(await pendingResponse.json(), "pending Markdown sources");
+  for (const [name, expected] of Object.entries(pending)) {
+    const slugName = slug(name, "pending Markdown slug");
+    requireValue(typeof expected === "string" && /^[a-f0-9]{64}$/.test(expected), "pending Markdown hash");
+    const body = Object.hasOwn(bodies, slugName) ? bodies[slugName] : null;
+    requireValue(typeof body === "string", `checkout Markdown missing: ${slugName}`);
+    const actual = createHash("sha256").update(body, "utf8").digest("hex");
+    requireValue(actual === expected, `checkout Markdown hash mismatch: ${slugName}`);
+  }
+  await assertCaptureOwner(base);
+  const response = await fetch(new URL("/api/v1/deployments/source", base), {
+    method: "POST", headers: { Accept: "application/json", "Content-Type": "application/json", Authorization: `Bearer ${deployToken}` },
+    body: JSON.stringify({ id: operationId, runId, runAttempt, bodies }),
+    credentials: "omit", redirect: "error", cache: "no-store", signal: AbortSignal.timeout(60_000),
+  });
+  if (!response.ok) throw new Error(`공개 Markdown 동기화 실패: HTTP ${response.status}`);
+  const result = object(await response.json(), "Markdown synchronization result");
+  requireValue(Number.isSafeInteger(result.synchronized) && result.synchronized >= 0 && result.synchronized <= Object.keys(bodies).length,
+    "Markdown synchronization count");
+  await assertCaptureOwner(base);
+  return result.synchronized;
 }
 
 /** 쿠키·인증 헤더 없이 정해진 공개 GET만 호출하고 오류·과도한 본문을 거부. */

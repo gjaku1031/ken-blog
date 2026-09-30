@@ -1,5 +1,8 @@
 package io.github.gjaku1031.kenblog.note.service
 
+import io.github.gjaku1031.kenblog.content.service.RepositoryMarkdown
+import io.github.gjaku1031.kenblog.post.domain.PostBodyHash
+
 import io.github.gjaku1031.kenblog.deployment.ContentMutation
 import io.github.gjaku1031.kenblog.deployment.PublicationChange
 
@@ -42,7 +45,7 @@ import org.springframework.transaction.annotation.Transactional
 /** Notes 과목·회차의 저장 순서와 권한별 표시 번호를 일치시키는 서비스. */
 @Service
 class CourseService(private val courses: CourseRepository, private val chapters: CoursePostRepository,
-    private val posts: PostService) {
+    private val posts: PostService, private val markdown: RepositoryMarkdown) {
     /** @return 분야 생성 순서와 권한별 회차 수를 가진 과목 카드 전체. */
     @Transactional(readOnly = true)
     fun list(authentication: Authentication?): NotesListResponse = NotesListResponse(
@@ -73,9 +76,9 @@ class CourseService(private val courses: CourseRepository, private val chapters:
         val position = visible.indexOfFirst { it.id == post.id }
         if (position < 0) throw CourseNotFoundException()
         val readable = chapters.findByIdOrNull(post.id) ?: throw CourseNotFoundException()
-        val body = readable.body
+        val body = markdown.readPost(readable)
         val response = ChapterDetailResponse(post.id, post.title, post.slug, body,
-            post.publishedAt.kstDate(), false, courseSlug = course.slug, bodySha256 = readable.bodySha256)
+            post.publishedAt.kstDate(), false, courseSlug = course.slug, bodySha256 = PostBodyHash.sha256(body))
         return CourseChapterResponse(course.summary(visible), response,
             visible.mapIndexed { index, item -> item.summary(index + 1) }, position + 1, visible.size)
     }
@@ -139,16 +142,19 @@ class CourseService(private val courses: CourseRepository, private val chapters:
         if (postId <= 0) throw InvalidCourseRequestException()
         val post = chapters.findLockedChapter(postId, id) ?: throw CourseNotFoundException()
         if (post.section != PostSection.NOTE_CHAPTER) throw CourseConflictException()
+        markdown.deletePost(post)
         chapters.delete(post)
         chapters.flush()
     }
 
-    /** 과목과 회차를 함께 삭제하며 OCI 원본 객체는 보존. */
+    /** 과목과 회차를 함께 삭제하며 로컬 원본 파일는 보존. */
     @Transactional
     @ContentMutation(publication = PublicationChange.ALWAYS)
     fun delete(id: Long) = conflicts {
         val course = lockedParent(id)
-        chapters.deleteAllByIdInBatch(chapters.findAdminChapters(id).map { it.id })
+        val chapterIds = chapters.findAdminChapters(id).map { it.id }
+        chapters.findAllById(chapterIds).forEach(markdown::deletePost)
+        chapters.deleteAllByIdInBatch(chapterIds)
         courses.delete(course)
         courses.flush()
     }

@@ -1,10 +1,12 @@
 package io.github.gjaku1031.kenblog.post.service
 
 import io.github.gjaku1031.kenblog.category.repository.CategoryRepository
+import io.github.gjaku1031.kenblog.content.service.RepositoryMarkdown
 import io.github.gjaku1031.kenblog.note.repository.CoursePostRepository
 import io.github.gjaku1031.kenblog.note.repository.CourseRepository
 import io.github.gjaku1031.kenblog.post.domain.InvalidPostRequestException
 import io.github.gjaku1031.kenblog.post.domain.PostEntity
+import io.github.gjaku1031.kenblog.post.domain.PostBodyHash
 import io.github.gjaku1031.kenblog.post.domain.PostNotFoundException
 import io.github.gjaku1031.kenblog.post.domain.PostSection
 import io.github.gjaku1031.kenblog.post.domain.PostStatus
@@ -41,6 +43,7 @@ class PublicPostService(
     private val projects: ProjectRepository,
     private val courses: CourseRepository,
     private val coursePosts: CoursePostRepository,
+    private val markdown: RepositoryMarkdown,
 ) {
     @Transactional(readOnly = true)
     fun list(page: Int, size: Int, authentication: Authentication?, categoryId: Long?, tag: String?): PublicPostPageResponse {
@@ -77,8 +80,9 @@ class PublicPostService(
         val course = courseId?.let(courses::findByIdOrNull)
         val related = relatedProjectId?.let { repository.findReadableProject(it, PostSection.PROJECT_HOME,
             PostStatus.PUBLISHED, PostVisibility.PUBLIC, false) }
-        return PublicPostDetailResponse(postId, title, slug, publishedAt.kstDate(), false, body,
-            view.category, view.tags, section, project?.slug, related, course?.slug, bodySha256,
+        val fileBody = markdown.readPost(this)
+        return PublicPostDetailResponse(postId, title, slug, publishedAt.kstDate(), false, fileBody,
+            view.category, view.tags, section, project?.slug, related, course?.slug, PostBodyHash.sha256(fileBody),
             series(postId, section, categoryId, courseId), summary = summary, techSeriesOrder = techSeriesOrder)
     }
 

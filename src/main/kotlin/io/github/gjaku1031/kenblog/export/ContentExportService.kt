@@ -1,10 +1,12 @@
 package io.github.gjaku1031.kenblog.export
 
 import io.github.gjaku1031.kenblog.attachment.domain.AttachmentStatus
+import io.github.gjaku1031.kenblog.content.service.RepositoryMarkdown
+import io.github.gjaku1031.kenblog.post.domain.PostBodyHash
 import io.github.gjaku1031.kenblog.attachment.repository.AttachmentRepository
 import io.github.gjaku1031.kenblog.attachment.repository.EditorDraftAttachmentRepository
 import io.github.gjaku1031.kenblog.attachment.repository.PostAttachmentRepository
-import io.github.gjaku1031.kenblog.attachment.storage.OciObjectStorage
+import io.github.gjaku1031.kenblog.attachment.storage.LocalAssetStorage
 import io.github.gjaku1031.kenblog.draft.repository.EditorDraftRepository
 import io.github.gjaku1031.kenblog.draft.repository.EditorDraftWikiLinkRepository
 import io.github.gjaku1031.kenblog.post.domain.InvalidPostRequestException
@@ -34,7 +36,7 @@ import org.commonmark.node.Node
 import org.commonmark.parser.IncludeSourceSpans
 import org.commonmark.parser.Parser
 
-/** 원문과 OCI 첨부를 별도 DB 트랜잭션·스트림 단계로 ZIP에 내보냄. */
+/** 원문과 로컬 첨부를 별도 DB 트랜잭션·스트림 단계로 ZIP에 내보냄. */
 @Service
 class ContentExportService(
     private val posts: PostRepository,
@@ -47,8 +49,9 @@ class ContentExportService(
     private val postWikiLinks: PostWikiLinkRepository,
     private val draftWikiLinks: EditorDraftWikiLinkRepository,
     private val attachments: AttachmentRepository,
-    private val storage: OciObjectStorage,
+    private val storage: LocalAssetStorage,
     private val mapper: ObjectMapper,
+    private val markdown: RepositoryMarkdown,
 ) {
     /** 스트림 시작 전 DB 원본과 READY 첨부의 불변 스냅샷을 수집. */
     @Transactional(readOnly = true)
@@ -77,10 +80,11 @@ class ContentExportService(
         }
         val result = selected.map { post ->
             val id = post.id ?: error("Persisted post has no ID")
-            ExportDocument("posts", id, post.slug, post.body,
+            val body = markdown.readPost(post)
+            ExportDocument("posts", id, post.slug, body,
                 mapOf("id" to id, "title" to post.title, "slug" to post.slug, "section" to post.section.name,
                     "status" to post.status.name, "publishedAt" to post.publishedAt?.toString(),
-                    "visibility" to post.visibility.name, "bodySha256" to post.bodySha256,
+                    "visibility" to post.visibility.name, "bodySha256" to PostBodyHash.sha256(body),
                     "createdAt" to post.createdAt.toString(), "updatedAt" to post.updatedAt.toString(),
                     "categoryId" to post.categoryId, "projectId" to post.projectId,
                     "relatedProjectId" to post.relatedProjectId, "documentOrder" to post.documentOrder,
@@ -99,7 +103,7 @@ class ContentExportService(
         }
         result += selectedDrafts.map { draft ->
             val id = draft.id ?: error("Persisted editor draft has no ID")
-            ExportDocument("drafts", id, draft.slug, draft.body,
+            ExportDocument("drafts", id, draft.slug, markdown.readDraft(id),
                 mapOf("id" to id, "postId" to draft.postId, "title" to draft.title,
                     "slug" to draft.slug, "section" to draft.section.name, "revision" to draft.revision,
                     "visibility" to draft.visibility.name, "baseUpdatedAt" to draft.baseUpdatedAt?.toString(),
@@ -121,7 +125,7 @@ class ContentExportService(
         return result
     }
 
-    /** 모든 OCI 객체를 먼저 검증한 제한 크기 ZIP을 비공개 임시 파일에 완성. */
+    /** 모든 로컬 첨부를 검증한 제한 크기 ZIP을 비공개 임시 파일에 완성. */
     fun prepare(documents: List<ExportDocument>): ExportArchive {
         val path = Files.createTempFile("ken-blog-export-", ".zip")
         try {
@@ -134,7 +138,7 @@ class ContentExportService(
         }
     }
 
-    /** OCI 객체는 장기 DB 트랜잭션 없이 각 ZIP 항목으로 복사. */
+    /** 로컬 파일은 장기 DB 트랜잭션 없이 각 ZIP 항목으로 복사. */
     fun write(documents: List<ExportDocument>, output: OutputStream) {
         val deadline = System.nanoTime() + TimeUnit.MINUTES.toNanos(10)
         ZipOutputStream(output).use { zip ->

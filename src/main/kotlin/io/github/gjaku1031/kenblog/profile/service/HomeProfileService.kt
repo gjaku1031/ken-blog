@@ -4,7 +4,7 @@ import io.github.gjaku1031.kenblog.deployment.ContentMutation
 import io.github.gjaku1031.kenblog.deployment.PublicationChange
 
 import io.github.gjaku1031.kenblog.attachment.service.ManagedImageNormalizer
-import io.github.gjaku1031.kenblog.attachment.storage.OciObjectStorage
+import io.github.gjaku1031.kenblog.attachment.storage.LocalAssetStorage
 import io.github.gjaku1031.kenblog.operations.domain.OperationFailure
 import io.github.gjaku1031.kenblog.profile.domain.HomeProfileEntity
 import io.github.gjaku1031.kenblog.profile.dto.HomeProfileRequest
@@ -24,12 +24,12 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.transaction.support.TransactionTemplate
 import org.springframework.web.multipart.MultipartFile
 
-/** 홈 소개의 확정 텍스트와 OCI 프로필 사진을 관리. */
+/** 홈 소개의 확정 텍스트와 로컬 프로필 사진을 관리. */
 @Service
 class HomeProfileService(
     private val profiles: HomeProfileRepository,
     private val images: ManagedImageNormalizer,
-    private val storage: OciObjectStorage,
+    private val storage: LocalAssetStorage,
     manager: PlatformTransactionManager,
 ) {
     private val transactions = TransactionTemplate(manager)
@@ -47,7 +47,7 @@ class HomeProfileService(
         return profiles.saveAndFlush(profile).response()
     }
 
-    /** 텍스트와 선택 사진을 단일 DB 트랜잭션에 확정하고 실패 시 새 OCI 객체를 제거. */
+    /** 텍스트와 선택 사진을 단일 DB 트랜잭션에 확정하고 실패 시 새 파일을 제거. */
     @ContentMutation(publication = PublicationChange.ALWAYS, externalIoArgument = 1)
     fun save(request: HomeProfileRequest, file: MultipartFile?, removePhoto: Boolean): HomeProfileResponse {
         val clean = validate(request)
@@ -87,7 +87,7 @@ class HomeProfileService(
         } ?: error("프로필 사진 저장 결과가 없습니다.")
     }
 
-    /** 사진 참조를 먼저 없애고 커밋 뒤 OCI 객체를 제거. */
+    /** 사진 참조를 먼저 없애고 커밋 뒤 로컬 파일을 제거. */
     @Transactional
     @ContentMutation(publication = PublicationChange.ALWAYS)
     fun removePhoto(): HomeProfileResponse {

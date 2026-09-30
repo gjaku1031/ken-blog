@@ -1,0 +1,23 @@
+<main
+  xmlns:th="http://www.thymeleaf.org"
+  th:fragment="main"
+  id="main-content"
+  class="page-container"
+  th:classappend="${searching} ? 'search-page' : 'tech-page'"
+>
+  <div class="content-grid">
+    <section class="feed-column">
+      <div class="section-heading">
+        <h1 th:text="${heading}">Tech</h1>
+        <span id="filter-count" class="mono feed-total"></span>
+      </div>
+      <p th:if="${searching}" id="search-filter" class="active-filters">
+      </p>
+      <div class="post-list" th:insert="~{views/cards :: cards}">
+      </div>
+      <p id="filter-empty" class="message-card card" hidden>검색 결과가 없습니다.</p>
+    </section>
+    <aside th:replace="~{views/sidebar :: sidebar}">
+    </aside>
+  </div>
+</main>

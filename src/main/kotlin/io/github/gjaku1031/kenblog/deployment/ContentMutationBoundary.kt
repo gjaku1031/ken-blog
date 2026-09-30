@@ -18,7 +18,7 @@ import org.springframework.stereotype.Component
 class ContentMutationBoundary(private val lifecycle: DeploymentLifecycle) {
     private val entered = ThreadLocal<Boolean>()
 
-    /** 내부 저장·OCI I/O 종료까지 경계를 유지하며 서비스 이름 목록을 별도로 관리하지 않음. */
+    /** 내부 저장·로컬 파일 I/O 종료까지 경계를 유지하며 서비스 이름 목록을 별도로 관리하지 않음. */
     @Around("@annotation(mutation)")
     fun guard(joinPoint: ProceedingJoinPoint, mutation: ContentMutation): Any? {
         if (entered.get() == true) return joinPoint.proceed()

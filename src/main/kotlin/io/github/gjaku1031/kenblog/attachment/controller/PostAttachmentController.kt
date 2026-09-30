@@ -8,10 +8,10 @@ import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody
 
-/** [PostAttachmentApi]를 현재 DB 권한 조회와 OCI 스트리밍에 연결. */
+/** [PostAttachmentApi]를 현재 DB 권한 조회와 로컬 파일 스트리밍에 연결. */
 @RestController
 class PostAttachmentController(private val service: PostAttachmentDeliveryService) : PostAttachmentApi {
-    /** 헤더 확정 전 OCI 입력을 열고 내부 key·원본 이름·계정을 제외한 안전한 헤더만 반환. */
+    /** 헤더 확정 전 로컬 파일 입력을 열고 내부 key·원본 이름·계정을 제외한 안전한 헤더만 반환. */
     override fun content(postId: Long, id: Long, authentication: Authentication?): ResponseEntity<StreamingResponseBody> {
         val content = service.open(postId, id, authentication)
         return ResponseEntity.ok()

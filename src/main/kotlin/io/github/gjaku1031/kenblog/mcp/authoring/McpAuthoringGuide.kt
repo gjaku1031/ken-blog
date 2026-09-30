@@ -36,14 +36,14 @@ class McpAuthoringGuide(private val declarations: McpBodyDeclarations) {
         description = "이미지, 표, 위키, 주석, KaTeX, Mermaid, 접기의 본문 원문", mimeType = "text/markdown")
     fun markdown(): String = read("references/markdown.md")
 
-    /** @return 화면 단축키와 저장 문법의 차이. */
-    @McpResource(uri = "kenblog://authoring/editor-shortcuts", name = "Ken Blog editor shortcuts",
-        description = "CodeMirror 원문 편집과 자동 미리보기", mimeType = "text/markdown")
+    /** @return 저장소 Markdown의 작성·반영 절차. */
+    @McpResource(uri = "kenblog://authoring/editor-shortcuts", name = "Ken Blog Markdown authoring",
+        description = "Markdown 원문 작성과 Git 반영", mimeType = "text/markdown")
     fun shortcuts(): String = read("references/editor-shortcuts.md")
 
     /** resource 조회를 지원하지 않는 MCP 클라이언트에도 같은 파일을 제공. */
     @McpTool(name = "get_authoring_guide",
-        description = "Ken Blog 글 작성 스킬과 섹션·Markdown·원문 편집 참조 문서를 읽습니다. 실제 저장 문법과 도구 호출 순서를 확인할 때 사용하세요.",
+        description = "Ken Blog 글 작성 스킬과 섹션·Markdown·Git 반영 참조 문서를 읽습니다. 실제 저장 문법과 도구 호출 순서를 확인할 때 사용하세요.",
         annotations = McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false, openWorldHint = false))
     fun getAuthoringGuide(): String = listOf(skill(), contentModel(), markdown(), shortcuts()).joinToString("\n\n")
 

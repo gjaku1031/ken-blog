@@ -4,7 +4,7 @@ import io.github.gjaku1031.kenblog.deployment.ContentMutation
 import io.github.gjaku1031.kenblog.deployment.PublicationChange
 
 import io.github.gjaku1031.kenblog.attachment.service.ManagedImageNormalizer
-import io.github.gjaku1031.kenblog.attachment.storage.OciObjectStorage
+import io.github.gjaku1031.kenblog.attachment.storage.LocalAssetStorage
 import io.github.gjaku1031.kenblog.operations.domain.OperationFailure
 import io.github.gjaku1031.kenblog.project.repository.ProjectRepository
 import io.github.gjaku1031.kenblog.stack.domain.ProjectStackBadgeEntity
@@ -27,14 +27,14 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 import org.springframework.transaction.support.TransactionTemplate
 import org.springframework.web.multipart.MultipartFile
 
-/** OCI 아이콘과 프로젝트의 뱃지 선택을 ID로 관리하는 구체 서비스. */
+/** 로컬 아이콘과 프로젝트의 뱃지 선택을 ID로 관리하는 구체 서비스. */
 @Service
 class StackBadgeService(
     private val badges: StackBadgeRepository,
     private val links: ProjectStackBadgeRepository,
     private val projects: ProjectRepository,
     private val images: ManagedImageNormalizer,
-    private val storage: OciObjectStorage,
+    private val storage: LocalAssetStorage,
     manager: PlatformTransactionManager,
 ) {
     private val transactions = TransactionTemplate(manager)
@@ -171,7 +171,7 @@ class StackBadgeService(
     /** 롤백 때 새 객체만 보상 삭제. */
     private fun cleanupOnRollback(key: String) {
         TransactionSynchronizationManager.registerSynchronization(object : TransactionSynchronization {
-            /** 롤백 결과가 확정된 뒤 새 OCI 객체를 보상 삭제. */
+            /** 롤백 결과가 확정된 뒤 새 로컬 파일을 보상 삭제. */
             override fun afterCompletion(status: Int) {
                 if (status != TransactionSynchronization.STATUS_COMMITTED) runCatching { storage.delete(key) }
             }

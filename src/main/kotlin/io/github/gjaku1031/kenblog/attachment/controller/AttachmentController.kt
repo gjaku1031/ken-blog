@@ -40,7 +40,7 @@ class AttachmentController(private val service: AttachmentService) : AttachmentA
     override fun find(id: Long): AttachmentResponse = service.find(id)
 
     /**
-     * OCI 스트림을 응답 전에 열어 오류 상태를 판별한 뒤 원본 바이트를 전송.
+     * 로컬 파일 스트림을 응답 전에 열어 오류 상태를 판별한 뒤 원본 바이트를 전송.
      *
      * @param id READY 첨부 식별자
      * @return 길이·MIME·nosniff·비공개 캐시·RFC 5987 파일명을 가진 응답

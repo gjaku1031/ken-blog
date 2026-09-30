@@ -13,7 +13,7 @@ import kotlin.concurrent.write
 import org.springframework.transaction.support.TransactionSynchronization
 import org.springframework.transaction.support.TransactionSynchronizationManager
 
-/** 단일 JVM에서 콘텐츠 커밋·OCI 완료와 배포 게이트 전환을 직렬화. */
+/** 단일 JVM에서 콘텐츠 커밋·파일 저장 완료와 배포 게이트 전환을 직렬화. */
 @Service
 class DeploymentLifecycle(
     private val store: DeploymentStateStore,
@@ -26,7 +26,7 @@ class DeploymentLifecycle(
     private val active = setOf("QUEUED", "RUNNING")
     private val dispatching = ConcurrentHashMap.newKeySet<String>()
 
-    /** 공개 DB 변경은 QUEUED와 함께 커밋하고 OCI 변경은 사전 게이트를 사용. */
+    /** 공개 DB 변경은 QUEUED와 함께 커밋하고 파일 변경은 사전 게이트를 사용. */
     fun <T> mutate(publicCandidate: Boolean, externalIo: Boolean, block: () -> T, changed: (T) -> Boolean): T {
         val outcome = boundary.write {
             if (store.current().status in active) throw locked()
@@ -80,6 +80,12 @@ class DeploymentLifecycle(
         val state = store.current()
         if (state.id != id || state.status != "RUNNING" || state.runId != runId || state.runAttempt != runAttempt) throw conflict()
         return state
+    }
+
+    /** 배포 소유권을 유지한 채 커밋된 Markdown의 파일·DB 동기화를 완료. */
+    fun <T> withCapture(id: String, runId: String, runAttempt: Int, block: () -> T): T = boundary.write {
+        captureState(id, runId, runAttempt)
+        block()
     }
 
     /** 정확한 GitHub 실행 시도를 확인한 뒤에만 capture 소유권을 부여. */

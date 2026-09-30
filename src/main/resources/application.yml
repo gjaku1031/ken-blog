@@ -52,14 +52,11 @@ app:
     enabled: ${APP_MCP_ENABLED:false}
     allowed-peers: ${APP_MCP_ALLOWED_PEERS:127.0.0.1,::1}
     allowed-hosts: ${APP_MCP_ALLOWED_HOSTS:127.0.0.1:18081}
-  attachment:
-    storage:
-      endpoint: ${OCI_OBJECT_STORAGE_ENDPOINT:${S3_ENDPOINT:}}
-      region: ${OCI_OBJECT_STORAGE_REGION:${S3_REGION:}}
-      bucket: ${OCI_OBJECT_STORAGE_BUCKET:${S3_BUCKET:}}
-      access-key: ${OCI_OBJECT_STORAGE_ACCESS_KEY:${S3_ACCESS_KEY:}}
-      secret-key: ${OCI_OBJECT_STORAGE_SECRET_KEY:${S3_SECRET_KEY:}}
-      key-prefix: ${OCI_OBJECT_STORAGE_KEY_PREFIX:ken-blog/attachments}
+  assets:
+    directory: ${APP_ASSETS_DIRECTORY:}
+    key-prefix: ${APP_ASSETS_KEY_PREFIX:ken-blog/attachments}
+  content:
+    directory: ${APP_CONTENT_DIRECTORY:content}
   auth:
     cors:
       allowed-origins: ${APP_AUTH_CORS_ALLOWED_ORIGINS:}

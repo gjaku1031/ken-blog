@@ -12,7 +12,11 @@ Kotlin 사용. Java 소스 추가 없음. 생성자 주입과 `val` 우선. Serv
 
 ## 웹 자산과 정적 배포
 
-루트 Maven Spring Boot 프로젝트 안의 `src/main/frontend`에 TypeScript 자산 관리. CodeMirror 원문 입력과 동일 Markdown 렌더러의 자동 미리보기. npm은 컴파일·정적사이트 생성 전용이며 Next/React/Node 운영 서버 없음. 관리자 화면은 Spring의 `/manage/`, 공개 사이트는 GitHub Pages에 배포. MySQL·Object Storage가 유일한 원본. 공개 콘텐츠 변경 시 원고와 QUEUED 상태를 같은 트랜잭션에 확정하고 커밋 뒤 배포 요청. 배포 중 공통 서비스의 콘텐츠 쓰기 차단, 세션·배포상태 DB 쓰기는 허용. 콘텐츠 경계는 단일 Spring JVM 전제이며 다중 API 인스턴스 운영 금지. 실패·취소는 정확한 run/attempt와 Pages 단계·marker 확인 후 복구, TTL 해제 없음.
+루트 Maven Spring Boot 프로젝트 안의 `src/main/resources/web`에 TypeScript·CSS 자산 관리. HTML은 `resources/templates`의 Thymeleaf 템플릿 사용. 관리자는 Spring `/manage/`에서 렌더링하고 공개 사이트는 빌드 시 HTML을 생성해 GitHub Pages에 배포. npm은 컴파일·Markdown 렌더링·정적사이트 생성 전용이며 Next/React/Node 운영 서버 없음. 웹 본문 편집기 없음.
+
+본문 원본은 `content/posts/{slug}.md`, 미발행 원고·편집본은 Git에서 제외한 로컬 파일 사용. MySQL은 메타데이터·세션·배포 상태와 이전 본문의 복구용 호환 열 유지. 첨부 원본은 명시한 영속 로컬 디렉터리 사용. MCP 본문 변경은 파일 확정 뒤 소스 커밋·push 필요. Pages workflow는 배포 잠금 안에서 checkout 원고와 서버의 미반영 해시를 대조하고 파일 원본·DB 호환 열 동기화. 오래된 checkout의 원고 덮어쓰기 거부. 공개 메타데이터 변경은 DB와 QUEUED 상태를 함께 확정하고 커밋 뒤 배포 요청.
+
+배포 중 공통 서비스의 콘텐츠 쓰기 차단, 세션·배포상태 DB 쓰기 허용. 콘텐츠 경계는 단일 Spring JVM 전제이며 다중 API 인스턴스 운영 금지. 실패·취소는 정확한 run/attempt와 Pages 단계·marker 확인 후 복구, TTL 해제 없음.
 
 ## 주석
 

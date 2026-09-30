@@ -1,0 +1,14 @@
+<section
+  xmlns:th="http://www.thymeleaf.org"
+  th:fragment="backlinks"
+  th:if="${!#lists.isEmpty(backlinks)}"
+  class="post-backlinks"
+  aria-label="이 글을 가리키는 글"
+>
+  <h2>이 글을 가리키는 글</h2>
+  <ul>
+    <li th:each="item : ${backlinks}">
+      <a th:href="${item.href}" th:text="${item.title}">글</a><span th:text="${item.section}">분류</span>
+    </li>
+  </ul>
+</section>

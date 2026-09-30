@@ -1,0 +1,41 @@
+<main xmlns:th="http://www.thymeleaf.org" th:fragment="main" id="main-content" class="page-container home-page">
+  <div th:if="${hasProfile}" class="home-summary">
+    <section class="profile-card card" aria-label="블로그 소개">
+      <div class="profile-head">
+        <div class="profile-avatar">
+          <img th:if="${!#strings.isEmpty(profile.photoUrl)}" th:src="${profile.photoUrl}" alt="" width="64" height="64"><span
+            th:unless="${!#strings.isEmpty(profile.photoUrl)}"
+            aria-hidden="true"
+            th:text="${#strings.isEmpty(profile.name) ? 'K' : #strings.substring(profile.name, 0, 1)}"
+          >K</span>
+        </div>
+        <div>
+          <h2 th:text="${#strings.isEmpty(profile.name) ? 'ken.blog' : profile.name}">ken.blog</h2>
+          <p th:if="${!#strings.isEmpty(profile.tagline)}" th:text="${profile.tagline}">
+          </p>
+        </div>
+      </div>
+      <p th:if="${!#strings.isEmpty(profile.intro)}" class="profile-intro" th:text="${profile.intro}">
+      </p>
+      <div class="profile-links" th:if="${#strings.startsWith(profile.github, 'https://github.com/') or profileEmailSafe}">
+        <a
+          th:if="${#strings.startsWith(profile.github, 'https://github.com/')}"
+          th:href="${profile.github}"
+          target="_blank"
+          rel="noreferrer noopener"
+        >GitHub</a><a th:if="${profileEmailSafe}" class="profile-email-link" th:href="${'mailto:' + profile.email}"><span th:text="${profile.email}"></span></a>
+      </div>
+    </section>
+  </div>
+  <div class="content-grid">
+    <section class="feed-column">
+      <div class="section-heading">
+        <h2>최근 글</h2>
+      </div>
+      <div class="post-list" th:insert="~{views/cards :: cards}">
+      </div>
+    </section>
+    <aside th:replace="~{views/sidebar :: sidebar}">
+    </aside>
+  </div>
+</main>

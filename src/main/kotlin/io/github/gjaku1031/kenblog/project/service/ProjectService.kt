@@ -1,5 +1,8 @@
 package io.github.gjaku1031.kenblog.project.service
 
+import io.github.gjaku1031.kenblog.content.service.RepositoryMarkdown
+import io.github.gjaku1031.kenblog.post.domain.PostBodyHash
+
 import io.github.gjaku1031.kenblog.deployment.ContentMutation
 import io.github.gjaku1031.kenblog.deployment.PublicationChange
 
@@ -48,7 +51,7 @@ import org.springframework.transaction.annotation.Transactional
  * 프로젝트 대문·문서·관련 Tech의 부모 권한과 관리자 순서·삭제를 담당.
  *
  * 읽기에서는 HOME 출간과 부모 visibility를 먼저 확인하고, 쓰기에서는 프로젝트 행을
- * 자식 게시글보다 먼저 잠금. OCI 객체는 삭제하지 않으며 글 FK 연결만 함께 제거함.
+ * 자식 게시글보다 먼저 잠금. 로컬 원본 파일는 삭제하지 않으며 글 FK 연결만 함께 제거함.
  */
 @Service
 class ProjectService(
@@ -57,6 +60,7 @@ class ProjectService(
     private val posts: PostRepository,
     private val postService: PostService,
     private val stackBadges: StackBadgeService,
+    private val markdown: RepositoryMarkdown,
 ) {
     /** @return HOME이 출간됐고 현재 역할이 읽을 수 있는 프로젝트의 12개 기본 페이지. */
     @Transactional(readOnly = true)
@@ -87,9 +91,10 @@ class ProjectService(
         val info = ProjectPublicInfo(id, project.slug, project.name, project.status, project.startPeriod,
             project.endPeriod, project.overview, project.visibility, documents.size.toLong(), related.totalElements,
             stackBadges.listForProject(id), project.sortOrder)
+        val homeBody = markdown.readPost(home)
         return ProjectDetailResponse(false, info,
             ProjectHomeResponse(home.id ?: error("Persisted home has no ID"), home.title, home.slug,
-                home.body, home.publishedAt.kstDate(), home.bodySha256),
+                homeBody, home.publishedAt.kstDate(), PostBodyHash.sha256(homeBody)),
             documents, related.content.map { it.response() }, related.totalElements)
     }
 
@@ -202,6 +207,7 @@ class ProjectService(
         if (postId <= 0) throw InvalidProjectRequestException()
         val post = projectPosts.findLockedProjectPost(postId, projectId) ?: throw ProjectNotFoundException()
         if (post.section != PostSection.PROJECT_DOC) throw ProjectConflictException()
+        markdown.deletePost(post)
         projectPosts.delete(post)
         projectPosts.flush()
     }
@@ -220,7 +226,7 @@ class ProjectService(
 
     /**
      * 부모를 잠그고 HOME 순환 FK를 해제한 후 모든 소속 글을 삭제.
-     * 연결된 첨부·위키·편집본 행은 FK CASCADE, OCI 객체는 그대로 추적 가능하게 둠.
+     * 연결된 첨부·위키·편집본 행은 FK CASCADE, 로컬 원본 파일는 그대로 추적 가능하게 둠.
      */
     @Transactional
     @ContentMutation(publication = PublicationChange.ALWAYS)
@@ -229,7 +235,9 @@ class ProjectService(
         val project = lockedParent(id)
         project.detachHome()
         projects.saveAndFlush(project)
-        projectPosts.deleteAllByIdInBatch(projectPosts.findProjectPostIds(id))
+        val postIds = projectPosts.findProjectPostIds(id)
+        projectPosts.findAllById(postIds).forEach(markdown::deletePost)
+        projectPosts.deleteAllByIdInBatch(postIds)
         projects.delete(project)
         projects.flush()
     }

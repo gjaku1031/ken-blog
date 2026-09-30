@@ -8,7 +8,7 @@ import jakarta.persistence.Id
 import jakarta.persistence.Table
 import java.time.LocalDateTime
 
-/** OCI PNG 객체와 대소문자 무시 고유 이름을 연결하는 기술 뱃지. */
+/** 로컬 저장소 PNG 객체와 대소문자 무시 고유 이름을 연결하는 기술 뱃지. */
 @Entity
 @Table(name = "stack_badges")
 class StackBadgeEntity protected constructor() {

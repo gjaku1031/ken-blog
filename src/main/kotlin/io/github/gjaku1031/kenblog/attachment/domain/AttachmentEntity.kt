@@ -14,11 +14,11 @@ import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
 import java.time.LocalDateTime
 
-/** [AttachmentEntity.status]에 기록하는 DB와 OCI Object Storage 간 처리 단계. */
+/** [AttachmentEntity.status]에 기록하는 DB와 로컬 파일 간 처리 단계. */
 enum class AttachmentStatus { PENDING, READY, DELETING }
 
 /**
- * 비공개 OCI 객체의 위치와 처리 상태를 추적하는 Flyway V4의 `attachments` 행.
+ * 비공개 이미지 파일의 key와 처리 상태를 추적하는 Flyway V4의 `attachments` 행.
  *
  * [objectKey]는 서버가 생성하고 [uploadedBy]는 인증된 계정에서만 가져옴.
  * 새 행은 [AttachmentStatus.PENDING]으로 시작하며 외부 객체 작업은 트랜잭션 밖에서 수행함.
@@ -108,7 +108,7 @@ class AttachmentEntity protected constructor() {
     }
 
     /**
-     * OCI 객체 삭제를 재시도할 수 있도록 상태를 먼저 기록.
+     * 파일 삭제를 재시도할 수 있도록 상태를 먼저 기록.
      *
      * @param now UTC 변경 시각
      * @param retainForUncertainWrite 늦은 PUT 완료 가능성 때문에 삭제 행을 잠시 보존할지 여부

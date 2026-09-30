@@ -16,3 +16,6 @@ target/
 .DS_Store
 /AGENTS.md
 /docs/study/
+
+# 영속 로컬 파일은 Git에 복사하지 않고 별도 백업. 공개 본문만 content/posts에 관리.
+/data/

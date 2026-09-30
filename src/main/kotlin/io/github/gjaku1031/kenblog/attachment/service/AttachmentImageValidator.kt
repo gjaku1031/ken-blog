@@ -14,7 +14,7 @@ import org.springframework.web.multipart.MultipartFile
 data class ValidatedImage(val bytes: ByteArray, val contentType: String, val extension: String, val filename: String)
 
 /**
- * 업로드 파일의 크기·시그니처·디코딩·픽셀 상한을 OCI 쓰기 전에 검증.
+ * 업로드 파일의 크기·시그니처·디코딩·픽셀 상한을 로컬 저장 전에 검증.
  *
  * [ImageIO]가 이미지 전체를 디코딩하기 전에 너비·높이·픽셀 수를 먼저 제한함.
  */

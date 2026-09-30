@@ -3,7 +3,7 @@ package io.github.gjaku1031.kenblog.attachment.service
 import io.github.gjaku1031.kenblog.attachment.domain.AttachmentFailure
 import io.github.gjaku1031.kenblog.attachment.domain.AttachmentStatus
 import io.github.gjaku1031.kenblog.attachment.repository.PostAttachmentRepository
-import io.github.gjaku1031.kenblog.attachment.storage.OciObjectStorage
+import io.github.gjaku1031.kenblog.attachment.storage.LocalAssetStorage
 import io.github.gjaku1031.kenblog.post.domain.PostStatus
 import io.github.gjaku1031.kenblog.post.domain.PostVisibility
 import java.io.InputStream
@@ -11,14 +11,14 @@ import org.springframework.http.HttpStatus
 import org.springframework.security.core.Authentication
 import org.springframework.stereotype.Service
 
-/** 공개 HTTP 헤더에 필요한 안전한 이미지 값과 호출자가 닫을 OCI 스트림. */
+/** 공개 HTTP 헤더에 필요한 안전한 이미지 값과 호출자가 닫을 로컬 파일 스트림. */
 data class PostAttachmentContent(val contentType: String, val byteSize: Long, val stream: InputStream)
 
-/** 본문을 읽지 않고 출간 상태와 첨부 연결을 확인한 뒤 DB 트랜잭션 밖에서 OCI 객체를 여는 서비스. */
+/** 본문을 읽지 않고 출간 상태와 첨부 연결을 확인한 뒤 DB 트랜잭션 밖에서 파일을 여는 서비스. */
 @Service
 class PostAttachmentDeliveryService(
     private val links: PostAttachmentRepository,
-    private val storage: OciObjectStorage,
+    private val storage: LocalAssetStorage,
 ) {
     /**
      * 현재 출간 글·연결·READY와 비공개이면 명시적 관리자 역할을 확인해 이미지를 열음.

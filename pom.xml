@@ -13,10 +13,11 @@
   <version>0.0.1-SNAPSHOT</version>
   <name>ken-blog-api</name>
   <properties>
+    <start-class>io.github.gjaku1031.kenblog.KenBlogApiApplicationKt</start-class>
     <java.version>25</java.version>
     <kotlin.version>2.3.21</kotlin.version>
     <spring-ai.version>2.0.1</spring-ai.version>
-    <skip.frontend>false</skip.frontend>
+    <skip.web>false</skip.web>
   </properties>
   <dependencyManagement>
     <dependencies>
@@ -37,6 +38,10 @@
     <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-webmvc</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-thymeleaf</artifactId>
     </dependency>
     <dependency>
       <groupId>org.springframework.boot</groupId>
@@ -94,16 +99,6 @@
       <version>3.1.1</version>
     </dependency>
     <dependency>
-      <groupId>software.amazon.awssdk</groupId>
-      <artifactId>s3</artifactId>
-      <version>2.55.5</version>
-    </dependency>
-    <dependency>
-      <groupId>software.amazon.awssdk</groupId>
-      <artifactId>url-connection-client</artifactId>
-      <version>2.55.5</version>
-    </dependency>
-    <dependency>
       <groupId>org.springframework.boot</groupId>
       <artifactId>spring-boot-starter-webmvc-test</artifactId>
       <scope>test</scope>
@@ -126,19 +121,25 @@
     <resources>
       <resource>
         <directory>${project.basedir}/src/main/resources</directory>
+        <excludes><exclude>web/**</exclude></excludes>
       </resource>
       <resource>
         <directory>${project.build.directory}/generated-resources</directory>
       </resource>
     </resources>
     <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-dependency-plugin</artifactId>
+        <version>3.8.1</version>
+      </plugin>
       <!-- npm은 자산 컴파일에만 사용. 완성한 정적 파일은 같은 Spring Boot JAR에 포함. -->
       <plugin>
         <groupId>org.codehaus.mojo</groupId>
         <artifactId>exec-maven-plugin</artifactId>
         <version>3.6.3</version>
         <configuration>
-          <skip>${skip.frontend}</skip>
+          <skip>${skip.web}</skip>
           <workingDirectory>${project.basedir}</workingDirectory>
           <executable>npm</executable>
         </configuration>
@@ -153,7 +154,7 @@
           </execution>
           <execution>
             <id>compile-web-assets</id><phase>generate-resources</phase><goals><goal>exec</goal></goals>
-            <configuration><arguments><argument>run</argument><argument>build:frontend</argument></arguments></configuration>
+            <configuration><arguments><argument>run</argument><argument>build:assets</argument></arguments></configuration>
           </execution>
         </executions>
       </plugin>

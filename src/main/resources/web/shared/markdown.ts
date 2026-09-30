@@ -6,7 +6,7 @@ import rehypeSanitize, { defaultSchema } from "rehype-sanitize";
 import { unified } from "unified";
 import katex from "katex";
 import { parseAnnotationDocument } from "./markdown-details";
-import { collectAttachmentIds, parseAttachmentId, parseImageAlt } from "./editor-image";
+import { collectAttachmentIds, parseAttachmentId, parseImageAlt } from "./markdown-image";
 import { collectWikiTitles, parseWikiMarkdown } from "./wiki-link-syntax";
 import { readableMathFallback, isOversizeMath } from "./math-format";
 import { highlightCode, resolveHighlightLanguage } from "./code-highlight";

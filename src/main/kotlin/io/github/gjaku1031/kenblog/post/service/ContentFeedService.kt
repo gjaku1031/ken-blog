@@ -1,6 +1,7 @@
 package io.github.gjaku1031.kenblog.post.service
 
 import io.github.gjaku1031.kenblog.category.repository.CategoryRepository
+import io.github.gjaku1031.kenblog.content.service.RepositoryMarkdown
 import io.github.gjaku1031.kenblog.note.repository.CoursePostRepository
 import io.github.gjaku1031.kenblog.post.domain.InvalidPostRequestException
 import io.github.gjaku1031.kenblog.post.domain.PostSection
@@ -27,7 +28,7 @@ import org.springframework.transaction.annotation.Transactional
 @Service
 class ContentFeedService(private val feeds: ContentFeedRepository, private val posts: PostRepository,
     private val categories: CategoryRepository, private val taxonomy: PostTaxonomyMetadata,
-    private val chapters: CoursePostRepository) {
+    private val chapters: CoursePostRepository, private val markdown: RepositoryMarkdown) {
     /** @return 전체에는 프로젝트 문서를 포함하고 Tech/Notes 구획에서는 해당 글만 조회한 최신 페이지. */
     @Transactional(readOnly = true)
     fun feed(section: String, page: Int, size: Int, categoryId: Long?, tag: String?,
@@ -59,10 +60,26 @@ class ContentFeedService(private val feeds: ContentFeedRepository, private val p
         val normalized = query.trim().lowercase(Locale.ROOT)
         if (normalized.codePointCount(0, normalized.length) !in 1..100 ||
             normalized.any(Character::isISOControl)) throw InvalidPostRequestException()
-        val result = feeds.search(PostStatus.PUBLISHED, PostSection.PROJECT_HOME,
-            PostSection.PROJECT_DOC, PostVisibility.PUBLIC, false,
-            normalized, PageRequest.of(page, size))
-        return page(result.content, page, size, result.totalElements, result.totalPages, false)
+        val matches = mutableListOf<ContentFeedRow>()
+        var batch = 0
+        do {
+            val result = feeds.feed(PostStatus.PUBLISHED, PostSection.TECH, PostSection.NOTE_CHAPTER,
+                PostSection.PROJECT_DOC, null, PostSection.PROJECT_HOME, PostVisibility.PUBLIC,
+                false, false, null, null, null, PageRequest.of(batch++, 200))
+            val rows = result.content.filter { it.section != PostSection.PROJECT_HOME }
+            val views = taxonomy.batch(rows.map { it.id }, rows.map { it.categoryId })
+            rows.forEach { row ->
+                val view = views.getValue(row.id)
+                val metadata = listOfNotNull(row.title, row.summary, row.projectName, row.courseName,
+                    row.courseField, view.category?.path, view.category?.name).plus(view.tags)
+                if (metadata.any { it.lowercase(Locale.ROOT).contains(normalized) } ||
+                    posts.findByIdOrNull(row.id)?.let { markdown.readPost(it).lowercase(Locale.ROOT).contains(normalized) } == true)
+                    matches += row
+            }
+        } while (result.hasNext())
+        val from = page * size
+        val selected = if (from >= matches.size) emptyList() else matches.drop(from).take(size)
+        return page(selected, page, size, matches.size.toLong(), (matches.size + size - 1) / size, false)
     }
 
     /** @return 본문 없는 페이지에 일괄 taxonomy와 권한별 회차 번호를 결합. */

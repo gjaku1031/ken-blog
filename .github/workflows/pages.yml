@@ -36,6 +36,13 @@ jobs:
           node-version: '24.21.0'
           cache: npm
           cache-dependency-path: package-lock.json
+      - name: Set up Java for Thymeleaf generation
+        uses: actions/setup-java@v6.0.1
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+          cache-dependency-path: pom.xml
       - name: Claim durable content gate
         id: claim
         env:
@@ -48,7 +55,10 @@ jobs:
         run: npm ci
       - name: Build Spring and public assets
         if: steps.claim.outputs.claimed == 'true'
-        run: npm run build:frontend
+        run: npm run build:assets
+      - name: Compile standalone Thymeleaf generator
+        if: steps.claim.outputs.claimed == 'true'
+        run: ./mvnw -B -Dskip.web=true -DskipTests compile dependency:copy-dependencies -DincludeScope=runtime
       - name: Capture public content and build Pages site
         if: steps.claim.outputs.claimed == 'true'
         env:

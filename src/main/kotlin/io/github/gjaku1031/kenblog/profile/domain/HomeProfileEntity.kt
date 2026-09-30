@@ -6,7 +6,7 @@ import jakarta.persistence.Id
 import jakarta.persistence.Table
 import java.time.LocalDateTime
 
-/** 홈 카드의 확정된 소개와 비공개 OCI 사진 key를 저장하는 단일 행. */
+/** 홈 카드의 확정된 소개와 비공개 로컬 저장소 사진 key를 저장하는 단일 행. */
 @Entity
 @Table(name = "home_profile")
 class HomeProfileEntity protected constructor() {

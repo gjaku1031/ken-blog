@@ -4,7 +4,6 @@ import io.github.gjaku1031.kenblog.draft.domain.InvalidEditorDraftRequestExcepti
 import io.github.gjaku1031.kenblog.draft.dto.EditorDraftCreateRequest
 import io.github.gjaku1031.kenblog.draft.dto.EditorDraftUpdateRequest
 import io.github.gjaku1031.kenblog.draft.service.EditorDraftService
-import io.github.gjaku1031.kenblog.deployment.DeploymentLifecycle
 import io.github.gjaku1031.kenblog.deployment.DeploymentState
 import io.github.gjaku1031.kenblog.mcp.authoring.McpBodyDeclarations
 import io.github.gjaku1031.kenblog.mcp.dto.McpDraftInput
@@ -28,8 +27,9 @@ import org.springframework.ai.mcp.annotation.McpTool
 import org.springframework.ai.mcp.annotation.McpToolParam
 import org.springframework.stereotype.Component
 
-/** DB에 확정된 글과 별도로 진행되는 Pages 배포 상태. */
-data class McpPublishedResult(val post: PostDetailResponse, val deployment: DeploymentState)
+/** 원고 확정 뒤 저장소 커밋과 Pages push 배포가 남아 있음을 명시. */
+data class McpPublishedResult(val post: PostDetailResponse, val sourcePath: String,
+    val sourceCommitPending: Boolean = true, val deployment: DeploymentState? = null)
 
 /** VM 내부 MCP의 글·편집본 도구를 기존 트랜잭션 서비스에 연결. */
 @Component
@@ -39,7 +39,6 @@ class McpContentTools(
     private val feed: ContentFeedService,
     private val wikiLinks: WikiLinkService,
     private val declarations: McpBodyDeclarations,
-    private val deployment: DeploymentLifecycle,
     private val calls: McpToolCalls,
 ) {
     /** @return 비출간 글을 포함한 관리자 목록 [PostService.listDrafts]. */
@@ -49,7 +48,7 @@ class McpContentTools(
         calls.call { posts.listDrafts(page, size) }
 
     /** @return 본문·분류·태그·첨부·위키 선언을 포함한 [PostService.adminDetail] 결과. */
-    @McpTool(name = "blog_get_post", description = "원본 글 ID의 전체 내용과 updatedAt, section, 소속, 첨부/위키 선언을 조회합니다. 기존 글 편집본 생성 전에 호출하세요.", annotations = McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false, openWorldHint = false))
+    @McpTool(name = "blog_get_post", description = "저장소 Markdown 원본과 DB 메타데이터·첨부/위키 선언을 조회합니다. 공개 파일은 content/posts/{slug}.md입니다. 기존 글 편집본 생성 전에 호출하세요.", annotations = McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false, openWorldHint = false))
     fun getPost(@McpToolParam(description = "양수 원본 글 ID") postId: Long) =
         calls.call { posts.adminDetail(postId) }
 
@@ -83,7 +82,7 @@ class McpContentTools(
      * 모든 섹션의 새 원고 또는 기존 글 편집본을 [EditorDraftService.create]로 저장.
      * 기존 글은 [McpDraftInput.postId]와 원본 updatedAt을 함께 지정해야 함.
      */
-    @McpTool(name = "blog_create_draft", description = "TECH/PROJECT_HOME/PROJECT_DOC/NOTE_CHAPTER 편집본을 만듭니다. attachmentIds와 wikiTargets는 본문에 쓴 참조의 전체 배열입니다. 기존 글 수정은 blog_get_post의 postId와 baseUpdatedAt 및 기존 소속을 지정하세요. 발행은 별도 blog_publish_draft입니다.", annotations = McpTool.McpAnnotations(destructiveHint = false, openWorldHint = false))
+    @McpTool(name = "blog_create_draft", description = "TECH/PROJECT_HOME/PROJECT_DOC/NOTE_CHAPTER 편집본을 비추적 Markdown 파일에 만듭니다. attachmentIds와 wikiTargets는 본문에 쓴 참조의 전체 배열입니다. 기존 글 수정은 blog_get_post의 postId와 baseUpdatedAt 및 기존 소속을 지정하세요. 발행은 별도 blog_publish_draft입니다.", annotations = McpTool.McpAnnotations(destructiveHint = false, openWorldHint = false))
     fun createDraft(@McpToolParam(description = "전체 원고, 섹션, 소속, 명시적 본문 선언 및 선택적 원본 기준 시각") input: McpDraftInput) = calls.call {
         val inspection = declarations.validate(input.body, input.attachmentIds, input.wikiTargets)
         val prepared = prepare(input)
@@ -112,10 +111,13 @@ class McpContentTools(
     }
 
     /** 현재 revision의 편집본과 배포 대기 상태를 구분해 반환. */
-    @McpTool(name = "blog_publish_draft", description = "편집본 ID와 현재 revision이 일치할 때만 원본 글로 원자적으로 발행합니다. 새 프로젝트 HOME은 프로젝트도 함께 생성합니다. 최신 blog_get_draft 후 호출하세요.", annotations = McpTool.McpAnnotations(openWorldHint = false))
+    @McpTool(name = "blog_publish_draft", description = "편집본 ID와 현재 revision이 일치할 때 원본 글과 저장소 Markdown을 확정합니다. Pages 배포는 이 도구가 요청하지 않습니다. 반환된 sourcePath를 커밋·push한 뒤 Pages 성공을 확인하세요.", annotations = McpTool.McpAnnotations(openWorldHint = false))
     fun publishDraft(@McpToolParam(description = "양수 편집본 ID") draftId: Long,
         @McpToolParam(description = "조회한 현재 revision") revision: Long) =
-        calls.call { McpPublishedResult(drafts.publish(draftId, revision), deployment.current()) }
+        calls.call {
+            val post = drafts.publish(draftId, revision)
+            McpPublishedResult(post, "content/posts/${post.slug}.md")
+        }
 
     /** 원본 글은 유지하고 명시 revision의 편집본만 [EditorDraftService.delete]로 삭제. */
     @McpTool(name = "blog_delete_draft", description = "지정한 편집본만 삭제합니다. 원본 출간 글은 유지됩니다. ID와 현재 revision을 명시해야 합니다.", annotations = McpTool.McpAnnotations(openWorldHint = false))

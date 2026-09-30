@@ -38,14 +38,11 @@ services:
       ADMIN_RECOVERY_CODE_HASHES: ${ADMIN_RECOVERY_CODE_HASHES:-}
       APP_AUTH_CORS_ALLOWED_ORIGINS: ${APP_AUTH_CORS_ALLOWED_ORIGINS:-}
       APP_MCP_ENABLED: ${APP_MCP_ENABLED:-false}
+      APP_ASSETS_DIRECTORY: /var/lib/ken-blog/assets
+      APP_ASSETS_KEY_PREFIX: ${APP_ASSETS_KEY_PREFIX:-ken-blog/attachments}
+      APP_CONTENT_DIRECTORY: /app/content
       APP_MCP_ALLOWED_PEERS: ${APP_MCP_ALLOWED_PEERS:-127.0.0.1,::1}
       APP_MCP_ALLOWED_HOSTS: ${APP_MCP_ALLOWED_HOSTS:-127.0.0.1:18081}
-      OCI_OBJECT_STORAGE_ENDPOINT: ${OCI_OBJECT_STORAGE_ENDPOINT:-}
-      OCI_OBJECT_STORAGE_REGION: ${OCI_OBJECT_STORAGE_REGION:-}
-      OCI_OBJECT_STORAGE_BUCKET: ${OCI_OBJECT_STORAGE_BUCKET:-}
-      OCI_OBJECT_STORAGE_ACCESS_KEY: ${OCI_OBJECT_STORAGE_ACCESS_KEY:-}
-      OCI_OBJECT_STORAGE_SECRET_KEY: ${OCI_OBJECT_STORAGE_SECRET_KEY:-}
-      OCI_OBJECT_STORAGE_KEY_PREFIX: ${OCI_OBJECT_STORAGE_KEY_PREFIX:-ken-blog/attachments}
       APP_DEPLOY_ENABLED: ${APP_DEPLOY_ENABLED:-false}
       APP_DEPLOY_GITHUB_TOKEN: ${APP_DEPLOY_GITHUB_TOKEN:-}
       APP_DEPLOY_CALLBACK_TOKEN: ${APP_DEPLOY_CALLBACK_TOKEN:-}
@@ -56,9 +53,17 @@ services:
       APP_DEPLOY_GITHUB_API_BASE: ${APP_DEPLOY_GITHUB_API_BASE:-https://api.github.com}
     ports:
     - 127.0.0.1:${API_PORT:-18081}:8080
+    volumes:
+    - ken_blog_assets:/var/lib/ken-blog/assets
+    - type: bind
+      source: ./content
+      target: /app/content
+      bind:
+        create_host_path: false
     mem_limit: 1g
     build:
       context: .
       dockerfile: Dockerfile
 volumes:
   ken_blog_mysql_data: null
+  ken_blog_assets: null

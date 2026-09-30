@@ -25,7 +25,7 @@ interface HomeProfileApi {
     @Operation(summary = "홈 소개 조회")
     fun get(): HomeProfileResponse
 
-    /** @return OCI 프로필 사진 PNG. */
+    /** @return 로컬 저장소 프로필 사진 PNG. */
     @GetMapping("/api/v1/profile/photo", produces = [MediaType.IMAGE_PNG_VALUE])
     @Operation(summary = "홈 소개 사진")
     @ApiResponses(value = [ApiResponse(responseCode = "200"), ApiResponse(responseCode = "404"), ApiResponse(responseCode = "503")])

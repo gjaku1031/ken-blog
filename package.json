@@ -1,23 +1,16 @@
 {
-  "name": "ken-blog-frontend",
+  "name": "ken-blog-web-assets",
   "private": true,
   "type": "module",
   "scripts": {
-    "build:frontend": "node scripts/build-frontend.mjs",
     "build:site": "node scripts/site/build.mjs",
     "typecheck": "tsc --noEmit",
-    "test": "npm run typecheck && npm run build:site -- --fixture=empty"
+    "test": "npm run typecheck && npm run build:site -- --fixture=empty",
+    "build:assets": "node scripts/build-web.mjs"
   },
   "dependencies": {
-    "@codemirror/commands": "6.10.2",
-    "@codemirror/lang-javascript": "6.2.4",
-    "@codemirror/lang-markdown": "6.3.4",
-    "@codemirror/language": "6.12.0",
-    "@codemirror/state": "6.5.2",
-    "@codemirror/view": "6.39.2",
     "@fontsource-variable/noto-sans-kr": "5.3.0",
     "@fontsource/ibm-plex-mono": "5.3.0",
-    "@lezer/highlight": "1.2.3",
     "@shikijs/langs": "4.4.3",
     "@shikijs/themes": "4.4.3",
     "hast-util-to-html": "9.0.5",

@@ -75,7 +75,7 @@ interface AttachmentApi {
     fun find(@PathVariable id: Long): AttachmentResponse
 
     /**
-     * READY 이미지를 서버에서 비공개 OCI 버킷으로부터 스트리밍.
+     * READY 이미지를 서버에서 비공개 로컬 파일 버킷으로부터 스트리밍.
      *
      * @param id 내려받을 첨부 ID
      * @return 확인된 MIME·길이·안전한 이름의 파일 응답

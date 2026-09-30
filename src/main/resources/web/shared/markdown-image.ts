@@ -1,7 +1,7 @@
 import type { Root } from "mdast";
 import { parseAnnotationDocument } from "./markdown-details";
 
-/** 내부 첨부 이미지의 대체 설명·상대 너비·정렬과 선택적 다크 테마 첨부를 담는 편집 값. */
+/** 내부 첨부 이미지의 대체 설명·상대 너비·정렬과 선택적 다크 테마 첨부를 담는 문서 값. */
 export type ImageData = {
   attachmentId: number; darkAttachmentId?: number; caption: string; width: number; align: "left" | "center" | "right";
 };

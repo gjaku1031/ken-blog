@@ -29,7 +29,7 @@ class StackBadgeController(private val service: StackBadgeService) : StackBadgeA
     @GetMapping("/api/v1/admin/stack-badges")
     override fun listAdmin(): List<StackBadgeResponse> = service.listAdmin()
 
-    /** @return OCI PNG 스트림을 닫는 공개 이미지 응답. */
+    /** @return 로컬 저장소 PNG 스트림을 닫는 공개 이미지 응답. */
     @GetMapping("/api/v1/stack-badges/{id}/image", produces = [MediaType.IMAGE_PNG_VALUE])
     override fun image(@PathVariable id: Long): ResponseEntity<StreamingResponseBody> {
         val stream = service.openImage(id)

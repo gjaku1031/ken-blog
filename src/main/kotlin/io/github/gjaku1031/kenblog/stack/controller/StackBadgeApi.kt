@@ -25,7 +25,7 @@ interface StackBadgeApi {
     @Operation(summary = "공개 기술 뱃지 목록")
     fun list(): List<StackBadgeResponse>
 
-    /** @return OCI에 저장된 정규화 PNG. */
+    /** @return 로컬 저장소에 저장된 정규화 PNG. */
     @GetMapping("/api/v1/stack-badges/{id}/image", produces = [MediaType.IMAGE_PNG_VALUE])
     @Operation(summary = "공개 기술 뱃지 PNG")
     @ApiResponses(value = [ApiResponse(responseCode = "200"), ApiResponse(responseCode = "404"), ApiResponse(responseCode = "503")])
@@ -37,7 +37,7 @@ interface StackBadgeApi {
     @Operation(summary = "관리자 기술 뱃지 목록")
     fun listAdmin(): List<StackBadgeResponse>
 
-    /** @return 64×64 PNG 변환과 OCI 저장을 마친 뱃지. */
+    /** @return 64×64 PNG 변환과 로컬 저장소 저장을 마친 뱃지. */
     @PostMapping("/api/v1/admin/stack-badges", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
     @SecurityRequirement(name = "sessionCookie")
     @Operation(summary = "기술 뱃지 등록")
