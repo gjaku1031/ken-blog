@@ -29,10 +29,14 @@ spring:
     url: ${DB_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
+  sql:
+    init:
+      mode: always
   jpa:
     open-in-view: false
+    defer-datasource-initialization: true
     hibernate:
-      ddl-auto: validate
+      ddl-auto: ${APP_JPA_DDL_AUTO:update}
 server:
   servlet:
     session:

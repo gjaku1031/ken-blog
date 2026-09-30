@@ -70,15 +70,6 @@
       "useCondition": "Devicon MIT asset; preserve included copyright/license notice. MySQL mark remains a product trademark."
     },
     {
-      "file": "icons/redis.svg",
-      "name": "Redis",
-      "sha256": "4707378b190878f36f7e6e1c01fa3ee7e7884c76101809d191dddd943a2e6bdb",
-      "sourceUrl": "https://raw.githubusercontent.com/devicons/devicon/7330accdbc47e2dc0c19789a48533c4a3c50fe58/icons/redis/redis-original.svg",
-      "sourceVersion": "Devicon commit 7330accdbc47e2dc0c19789a48533c4a3c50fe58",
-      "licenseNotice": "icons/DEVICON-LICENSE",
-      "useCondition": "Devicon MIT asset; preserve included copyright/license notice. Redis mark remains a product trademark."
-    },
-    {
       "file": "icons/kotlin.svg",
       "name": "Kotlin",
       "sha256": "5053c2e1288582d1ac2cfc1e807eabb7f6059b1aa2f7d04e5cf00063682a2cbe",
@@ -89,8 +80,8 @@
     }
   ],
   "textOnlyNodes": [
-    "Google Analytics 4",
-    "Object Storage",
+    "GitHub Pages 정적 HTML",
+    "로컬 파일 저장소",
     "JPA Repository 및 기능 역할 카드"
   ],
   "rendering": {

@@ -5,14 +5,23 @@ import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.Authentication
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody
 
-/** [PostAttachmentApi]를 현재 DB 권한 조회와 로컬 파일 스트리밍에 연결. */
+/** [PostAttachmentController]를 현재 DB 권한 조회와 로컬 파일 스트리밍에 연결. */
 @RestController
-class PostAttachmentController(private val service: PostAttachmentDeliveryService) : PostAttachmentApi {
+@RequestMapping("/api/v1/posts/{postId}/attachments")
+class PostAttachmentController(private val service: PostAttachmentDeliveryService) {
     /** 헤더 확정 전 로컬 파일 입력을 열고 내부 key·원본 이름·계정을 제외한 안전한 헤더만 반환. */
-    override fun content(postId: Long, id: Long, authentication: Authentication?): ResponseEntity<StreamingResponseBody> {
+    @GetMapping("/{id}/content", produces = [MediaType.IMAGE_JPEG_VALUE, MediaType.IMAGE_PNG_VALUE])
+    fun content(
+        @PathVariable("postId") postId: Long,
+        @PathVariable("id") id: Long,
+        authentication: Authentication?,
+    ): ResponseEntity<StreamingResponseBody> {
         val content = service.open(postId, id, authentication)
         return ResponseEntity.ok()
             .contentType(MediaType.parseMediaType(content.contentType))

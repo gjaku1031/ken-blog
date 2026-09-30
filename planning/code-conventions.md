@@ -2,7 +2,7 @@
 
 ## 백엔드
 
-Kotlin 사용. Java 소스 추가 없음. 생성자 주입과 `val` 우선. Service는 구체 클래스, JPA Repository는 Spring Data JPA의 `JpaRepository`를 확장하는 인터페이스로 선언. Swagger용 Controller 계약도 인터페이스로 선언. 기본 CRUD는 상속받고 필요한 조건 조회만 파생 쿼리 등으로 선언하며 기본 메서드를 중복 선언하거나 불필요한 공통 Repository 계층을 만들지 않음.
+Kotlin 사용. Java 소스 추가 없음. 생성자 주입과 `val` 우선. Service는 구체 클래스, JPA Repository는 Spring Data JPA의 `JpaRepository`를 확장하는 인터페이스로 선언. HTTP 매핑·입력 설정은 구체 Controller에 선언하며 Swagger용 `*Api.kt` 계약 인터페이스와 문서 생성 계층 없음. 기본 CRUD는 상속받고 필요한 조건 조회만 파생 쿼리 등으로 선언하며 기본 메서드를 중복 선언하거나 불필요한 공통 Repository 계층을 만들지 않음.
 
 새 엔티티 저장에서 즉시 DB 제약 검사가 필요한 경로는 `saveAndFlush` 사용. flush는 SQL 동기화이지 트랜잭션 커밋이 아니며 외부 트랜잭션 롤백 경계 유지. 상속 `findById`의 `Optional`은 Kotlin `findByIdOrNull`로 변환해 조회 결과가 없을 때 `null`을 반환. `Optional.get()`이나 강제 non-null로 내부 조회 계약을 바꾸지 않음.
 
@@ -12,7 +12,7 @@ Kotlin 사용. Java 소스 추가 없음. 생성자 주입과 `val` 우선. Serv
 
 ## 웹 자산과 정적 배포
 
-루트 Maven Spring Boot 프로젝트 안의 `src/main/resources/web`에 TypeScript·CSS 자산 관리. HTML은 `resources/templates`의 Thymeleaf 템플릿 사용. 관리자는 Spring `/manage/`에서 렌더링하고 공개 사이트는 빌드 시 HTML을 생성해 GitHub Pages에 배포. npm은 컴파일·Markdown 렌더링·정적사이트 생성 전용이며 Next/React/Node 운영 서버 없음. 웹 본문 편집기 없음.
+루트 Gradle Kotlin DSL Spring Boot 프로젝트 안의 `src/main/resources/web`에 TypeScript·CSS 자산 관리. HTML은 `resources/templates`의 Thymeleaf 템플릿 사용. 관리자는 Spring `/manage/`에서 렌더링하고 공개 사이트는 빌드 시 HTML을 생성해 GitHub Pages에 배포. npm은 컴파일·Markdown 렌더링·정적사이트 생성 전용이며 Next/React/Node 운영 서버 없음. 웹 본문 편집기 없음. Wrapper는 `gradlew`, 빌드 산출물은 `build/`, 독립 Pages 생성기의 클래스패스는 `writeSiteClasspath` 작업으로 준비.
 
 본문 원본은 `content/posts/{slug}.md`, 미발행 원고·편집본은 Git에서 제외한 로컬 파일 사용. MySQL은 메타데이터·세션·배포 상태와 이전 본문의 복구용 호환 열 유지. 첨부 원본은 명시한 영속 로컬 디렉터리 사용. MCP 본문 변경은 파일 확정 뒤 소스 커밋·push 필요. Pages workflow는 배포 잠금 안에서 checkout 원고와 서버의 미반영 해시를 대조하고 파일 원본·DB 호환 열 동기화. 오래된 checkout의 원고 덮어쓰기 거부. 공개 메타데이터 변경은 DB와 QUEUED 상태를 함께 확정하고 커밋 뒤 배포 요청.
 
@@ -35,7 +35,7 @@ Kotlin 사용. Java 소스 추가 없음. 생성자 주입과 `val` 우선. Serv
 
 ## 인증 경계
 
-인증은 Spring Security의 서버 세션과 Spring Session JDBC 사용. 계정·게시글·세션은 MySQL에 저장하며 세션 테이블은 Flyway로 관리. 로그인·로그아웃·CSRF·세션 ID 교체·권한 검사를 유지. 비밀번호·세션 식별자·CSRF 토큰 원문은 로그나 객체 문자열에 노출하지 않음. Redis 캐시와 통계·비공개 출간 기능 제거. 기존 PRIVATE 자료는 미발행으로 보존.
+인증은 Spring Security의 서버 세션과 Spring Session JDBC 사용. 계정·메타데이터·세션은 MySQL에 저장. Flyway 의존성과 과거 마이그레이션은 사용자 확정에 따라 제거. 개발 DB는 JPA `ddl-auto=update`로 생성하며 필요 시 `APP_JPA_DDL_AUTO`로 변경. JPA 밖 세션·인증·배포 테이블은 JPA 이후 `schema.sql`의 `IF NOT EXISTS`·`INSERT IGNORE`로 준비하여 재기동 시 기존 상태 보존. 로그인·로그아웃·CSRF·세션 ID 교체·권한 검사 유지. 비밀번호·세션 식별자·CSRF 토큰 원문은 로그나 객체 문자열에 노출하지 않음. Redis 캐시와 통계·비공개 출간 기능 제거. 기존 PRIVATE 자료는 미발행으로 보존.
 
 ## 검증 범위
 

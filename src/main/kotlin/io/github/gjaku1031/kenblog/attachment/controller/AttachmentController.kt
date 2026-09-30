@@ -11,14 +11,21 @@ import org.springframework.http.HttpStatus
 import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.Authentication
+import org.springframework.web.bind.annotation.DeleteMapping
+import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.PathVariable
+import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.RequestMapping
+import org.springframework.web.bind.annotation.RequestPart
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.multipart.MultipartFile
 import org.springframework.web.multipart.MultipartHttpServletRequest
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody
 
-/** [AttachmentApi]의 관리자 요청을 [AttachmentService]에 연결하고 안전한 다운로드 헤더를 구성. */
+/** 관리자 첨부 요청을 [AttachmentService]에 연결하고 안전한 다운로드 헤더를 구성. */
 @RestController
-class AttachmentController(private val service: AttachmentService) : AttachmentApi {
+@RequestMapping("/api/v1/admin/attachments")
+class AttachmentController(private val service: AttachmentService) {
     /**
      * 요청 전체의 파일 항목이 정확히 하나인지 확인하고 인증 계정으로 업로드.
      *
@@ -27,7 +34,12 @@ class AttachmentController(private val service: AttachmentService) : AttachmentA
      * @param authentication 현재 관리자 계정
      * @return READY [AttachmentResponse]와 HTTP 201
      */
-    override fun upload(file: MultipartFile, request: HttpServletRequest, authentication: Authentication): ResponseEntity<AttachmentResponse> {
+    @PostMapping(consumes = [MediaType.MULTIPART_FORM_DATA_VALUE], produces = [MediaType.APPLICATION_JSON_VALUE])
+    fun upload(
+        @RequestPart("file") file: MultipartFile,
+        request: HttpServletRequest,
+        authentication: Authentication,
+    ): ResponseEntity<AttachmentResponse> {
         val multipart = request as? MultipartHttpServletRequest
             ?: throw AttachmentFailure(HttpStatus.BAD_REQUEST, "이미지 파일 하나가 필요합니다.")
         if (multipart.multiFileMap.values.sumOf { it.size } != 1 || multipart.getFiles("file").size != 1) {
@@ -37,7 +49,8 @@ class AttachmentController(private val service: AttachmentService) : AttachmentA
     }
 
     /** @return 상태를 포함하고 object key를 숨긴 [AttachmentResponse]. */
-    override fun find(id: Long): AttachmentResponse = service.find(id)
+    @GetMapping("/{id}", produces = [MediaType.APPLICATION_JSON_VALUE])
+    fun find(@PathVariable id: Long): AttachmentResponse = service.find(id)
 
     /**
      * 로컬 파일 스트림을 응답 전에 열어 오류 상태를 판별한 뒤 원본 바이트를 전송.
@@ -45,7 +58,8 @@ class AttachmentController(private val service: AttachmentService) : AttachmentA
      * @param id READY 첨부 식별자
      * @return 길이·MIME·nosniff·비공개 캐시·RFC 5987 파일명을 가진 응답
      */
-    override fun content(id: Long): ResponseEntity<StreamingResponseBody> {
+    @GetMapping("/{id}/content", produces = [MediaType.IMAGE_JPEG_VALUE, MediaType.IMAGE_PNG_VALUE])
+    fun content(@PathVariable id: Long): ResponseEntity<StreamingResponseBody> {
         val content = service.open(id)
         val body = StreamingResponseBody { output -> content.stream.use { it.copyTo(output) } }
         return ResponseEntity.ok()
@@ -65,7 +79,8 @@ class AttachmentController(private val service: AttachmentService) : AttachmentA
      * @return 본문 없는 응답
      * @throws AttachmentFailure 처리 중이거나 추적 행이 유예 중이면 HTTP 409
      */
-    override fun delete(id: Long): ResponseEntity<Void> {
+    @DeleteMapping("/{id}")
+    fun delete(@PathVariable id: Long): ResponseEntity<Void> {
         service.delete(id)
         return ResponseEntity.noContent().build()
     }

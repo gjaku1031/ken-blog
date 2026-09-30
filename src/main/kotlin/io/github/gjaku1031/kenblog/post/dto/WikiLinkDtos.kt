@@ -1,8 +1,5 @@
 package io.github.gjaku1031.kenblog.post.dto
 
-import io.swagger.v3.oas.annotations.media.Schema
-import io.swagger.v3.oas.annotations.media.DiscriminatorMapping
-
 /** 제목으로 찾은 출간 글의 열람 상태. */
 enum class WikiLinkStatus { READABLE, MISSING }
 
@@ -11,15 +8,6 @@ enum class WikiLinkStatus { READABLE, MISSING }
  *
  * [WikiLinkReadable]에만 이동용 메타데이터가 있으며 미존재 결과에는 대상 정보가 없음.
  */
-@Schema(
-    oneOf = [WikiLinkReadable::class, WikiLinkMissing::class],
-    discriminatorProperty = "status",
-    discriminatorMapping = [
-        DiscriminatorMapping(value = "READABLE", schema = WikiLinkReadable::class),
-        DiscriminatorMapping(value = "MISSING", schema = WikiLinkMissing::class),
-    ],
-    requiredProperties = ["requestedTitle", "status"],
-)
 sealed interface WikiLinkResult {
     /** 앞뒤 공백을 제거한 요청 제목. 입력 순서와 중복은 응답에서 유지함. */
     val requestedTitle: String
@@ -34,13 +22,9 @@ sealed interface WikiLinkResult {
  * 본문·분류·태그·첨부 메타데이터는 조회하지 않음.
  */
 data class WikiLinkReadable(
-    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["string"])
     override val requestedTitle: String,
-    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["integer"], format = "int64")
     val id: Long,
-    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["string"])
     val title: String,
-    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["string"])
     val slug: String,
     /** 실제 글의 소속 구획. */
     val section: String = "TECH",
@@ -48,24 +32,18 @@ data class WikiLinkReadable(
     val projectSlug: String? = null,
     val courseSlug: String? = null,
 ) : WikiLinkResult {
-    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["string"],
-        allowableValues = ["READABLE"], accessMode = Schema.AccessMode.READ_ONLY)
     override val status = WikiLinkStatus.READABLE
 }
 
 /** 초안 또는 일치하는 출간 글이 없는 요청의 결과. */
 data class WikiLinkMissing(
-    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["string"])
     override val requestedTitle: String,
 ) : WikiLinkResult {
-    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["string"],
-        allowableValues = ["MISSING"], accessMode = Schema.AccessMode.READ_ONLY)
     override val status = WikiLinkStatus.MISSING
 }
 
 /** 반복 title 입력과 같은 순서의 위키 링크 대상 결과. */
 data class WikiLinkResolveResponse(
-    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["array"])
     val items: List<WikiLinkResult>,
 )
 

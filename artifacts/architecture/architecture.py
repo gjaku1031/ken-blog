@@ -99,33 +99,29 @@ def draw(output, icons, kind, theme):
         if kind == "infrastructure":
             with region("GitHub · 독립된 두 워크플로", (28, 690, 990, 950)):
                 source = card("GitHub main", "push · 수동 실행", "github", 145, 825)
-                ci = card("CI", "API Maven verify · 임시 MySQL/HTTP\n웹 typecheck · test · 정적 검사", "actions", 445, 825)
-                pages_job = card("Pages 빌드", "공개 API 수집·변경 비교\n정적 빌드·내용 재검증", "actions", 785, 825)
+                ci = card("CI", "API Gradle build · 임시 MySQL/HTTP\n웹 typecheck · test · 정적 검사", "actions", 445, 825)
+                pages_job = card("Pages 빌드", "공개 API·저장소 Markdown 수집\nThymeleaf 정적 생성·내용 재검증", "actions", 785, 825)
 
             operator = card("운영자", "VM에서 Docker 이미지 빌드\nCompose 교체 · health 확인", "user", 1230, 825)
-            browser = card("독자·관리자 브라우저", "읽기 · 로그인 · 글쓰기", "user", 145, 505)
-            pages = card("GitHub Pages", "Next.js 정적 화면 · 공개 본문", "nextjs", 445, 505)
+            browser = card("독자·관리자 브라우저", "읽기 · 로그인 · 메타데이터 관리", "user", 145, 505)
+            pages = card("GitHub Pages", "정적 HTML 화면 · 공개 본문", None, 445, 505)
             with region("OCI VM · Docker Compose", (650, 180, 1135, 625), "vm"):
-                proxy = card("공인 HTTPS · Nginx", "API 역방향 프록시 · /mcp 차단", "nginx", 775, 505)
+                proxy = card("Spring 직접 HTTPS", "내장 Tomcat · 공개 /mcp 차단", "spring", 775, 505)
                 api = card("Spring Boot API", "Kotlin · Security · JDBC 세션", "spring", 1000, 505)
                 mcp = card("로컬 작성 클라이언트", "VM 내부 또는 SSH 터널 · /mcp", "user", 805, 300)
                 deploy_port = port(1100, 625)
-            with region("OCI 관리형 서비스", (1170, 345, 1530, 630), "cloud"):
-                mysql = card("MySQL HeatWave", "원고 · 계정 · JDBC 세션", "mysql", 1350, 535)
-                objects = card("Object Storage", "이미지 원본 · 비공개 첨부", None, 1350, 405)
-            redis = card("Redis Cloud", "선택적 공개 Tech 본문 캐시", "redis", 1350, 275)
-            ga4 = card("Google Analytics 4", "브라우저 방문 수집 · 관리자 보고", None, 445, 275)
+            with region("데이터 저장소", (1170, 345, 1530, 630), "cloud"):
+                mysql = card("MySQL HeatWave", "글 메타데이터 · 계정 · JDBC 세션", "mysql", 1350, 535)
+                objects = card("로컬 파일 저장소", "동기화 Markdown · 영속 첨부", None, 1350, 405)
 
             notes = [
                 ("main push → CI", 300, 870, "muted"),
-                ("main push · 예약 · 수동", 590, 890, "muted"),
+                ("main push · 수동", 590, 890, "muted"),
                 ("공개 자료 조회", 925, 710, "muted"),
                 ("수동 API 배포", 1175, 710, "deploy"),
                 ("정적 산출물", 710, 665, "deploy"),
                 ("정적 페이지", 270, 535, "muted"),
                 ("API 요청", 310, 385, "muted"),
-                ("방문 관측", 245, 255, "control"),
-                ("관리자 보고 조회", 750, 155, "muted"),
                 ("로컬 전용", 1040, 300, "muted"),
             ]
             wires = [
@@ -139,33 +135,28 @@ def draw(output, icons, kind, theme):
                 (operator, deploy_port, [(1230, 680), (1100, 680)], "delivery", "s", "c"),
                 (api, mysql, [(1180, 505), (1180, 535)], "request", "e", "w"),
                 (api, objects, [(1160, 505), (1160, 405)], "request", "e", "w"),
-                (api, redis, [(1150, 505), (1150, 275)], "request", "e", "w"),
                 (mcp, api, [(1000, 300)], "request", "e", "s"),
-                (browser, ga4, [(145, 275)], "control", "s", "w"),
-                (api, ga4, [(1000, 175), (445, 175)], "request", "s", "s"),
             ]
         else:
             reader = card("독자", "공개 글 · 검색 · 첨부 조회", "user", 145, 740)
-            editor = card("블록 편집기", "Markdown 편집본 · 출간", "nextjs", 145, 545)
+            editor = card("관리자 화면", "메타데이터 · 출간 · 배포", None, 145, 545)
             agent = card("작성 에이전트", "VM 내부 또는 SSH 터널", "user", 145, 320)
             with region("하나의 Spring Boot · Kotlin API", (370, 120, 1185, 850), "vm"):
                 rest = card("REST · Security", "Spring Session JDBC · 권한 · CSRF", "spring", 500, 650)
                 mcp_entry = card("MCP 로컬 입구", "/mcp · 공개 프록시 차단", "spring", 500, 320)
                 read = card("공개 글 조회", "PublicPostService · PostService", "kotlin", 800, 740)
-                draft = card("편집본 · 출간", "EditorDraftService · 충돌 검사", "kotlin", 800, 545)
-                references = card("첨부 관리 · 위키 참조", "첨부 상태·OCI 파일 / 첨부·위키 연결", None, 800, 365)
+                draft = card("원고 상태 · 출간", "저장소 Markdown · 충돌 검사", "kotlin", 800, 545)
+                references = card("첨부 관리 · 위키 참조", "로컬 첨부 파일 / 첨부·위키 연결", None, 800, 365)
                 belonging = card("글 소속", "Projects 대문·문서 · Notes 과목·회차", None, 800, 205)
-                repo = card("JPA Repository", "원고 · 첨부 · 참조 · 소속", None, 1060, 510)
-            with region("외부 데이터 서비스", (1230, 245, 1530, 830), "cloud"):
-                redis = card("Redis Cloud", "선택적 공개 Tech 본문 캐시", "redis", 1380, 740)
-                mysql = card("MySQL HeatWave", "원고·참조·세션의 단일 DB", "mysql", 1380, 510)
-                objects = card("Object Storage", "이미지 바이트 · 비공개 첨부", None, 1380, 320)
+                repo = card("JPA Repository", "글 메타데이터 · 첨부 · 참조 · 소속", None, 1060, 510)
+            with region("데이터 저장소", (1230, 245, 1530, 830), "cloud"):
+                mysql = card("MySQL HeatWave", "글 메타데이터·참조·세션", "mysql", 1380, 510)
+                objects = card("로컬 파일 저장소", "Markdown 동기화본 · 영속 첨부", None, 1380, 320)
             notes = [
                 ("작성 경로 중심 · MCP 조회·첨부 세부선 생략", 805, 805, "muted"),
                 ("같은 작성 서비스 호출", 610, 455, "muted"),
                 ("참조와 글을 한 DB 트랜잭션에 출간", 970, 135, "muted"),
                 ("이미지 바이트", 1190, 300, "muted"),
-                ("공개 본문만", 1175, 770, "muted"),
                 ("인증 세션은 Spring Session JDBC로 MySQL에 별도 저장", 800, 95, "muted"),
             ]
             wires = [
@@ -182,7 +173,6 @@ def draw(output, icons, kind, theme):
                 (references, repo, [(950, 365), (950, 480)], "request", "e", "w"),
                 (repo, mysql, (), "request", "e", "w"),
                 (references, objects, [(1180, 365), (1380, 365)], "request", "e", "n"),
-                (read, redis, (), "request", "e", "w"),
             ]
 
         # 배치 측정 후 간선 경로를 고정해 글자 위를 관통하지 않도록 한다.
@@ -219,7 +209,6 @@ def draw(output, icons, kind, theme):
         if kind == "infrastructure":
             note("━━ 요청 · 데이터", 500, 105, "edge")
             note("┄┄ 빌드 · 수동 배포", 750, 105, "deploy")
-            note("···· 방문 관측", 1015, 105, "control")
         else:
             note("━━ 서비스 호출 · 데이터 접근", 815, 70, "edge")
     svg_file(diagram, output, stem)

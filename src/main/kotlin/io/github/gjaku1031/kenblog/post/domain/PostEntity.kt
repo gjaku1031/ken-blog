@@ -1,15 +1,24 @@
 package io.github.gjaku1031.kenblog.post.domain
 
+import io.github.gjaku1031.kenblog.category.domain.CategoryEntity
+import io.github.gjaku1031.kenblog.note.domain.CourseEntity
 import io.github.gjaku1031.kenblog.post.service.PostService
+import io.github.gjaku1031.kenblog.project.domain.ProjectEntity
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
 import jakarta.persistence.Enumerated
+import jakarta.persistence.FetchType
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
+import jakarta.persistence.JoinColumn
+import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
+import jakarta.persistence.UniqueConstraint
 import java.time.LocalDateTime
+import org.hibernate.annotations.OnDelete
+import org.hibernate.annotations.OnDeleteAction
 
 /** 게시글의 임시 저장과 공개 출간 여부. */
 enum class PostStatus { DRAFT, PUBLISHED }
@@ -21,15 +30,35 @@ enum class PostVisibility { PUBLIC, PRIVATE }
 enum class PostSection { TECH, PROJECT_HOME, PROJECT_DOC, NOTE_CHAPTER }
 
 /**
- * Flyway의 `posts` 행에 대응하는 초안·출간 게시글 저장 모델.
+ * `posts` 행에 대응하는 초안·출간 게시글 저장 모델.
  *
  * 시간은 UTC의 [LocalDateTime]으로 저장하며 생성 시 [updatedAt]은 [createdAt]과 같음.
  * [replaceDraft]는 출간 상태와 공개 주소를 건드리지 않고 검증된 내용만 교체함.
  * 최초 [publishedAt]은 철회·재출간에도 유지함.
  */
 @Entity
-@Table(name = "posts")
+@Table(name = "posts", uniqueConstraints = [
+    UniqueConstraint(name = "uk_posts_slug", columnNames = ["slug"]),
+])
 class PostEntity protected constructor() {
+    // DB 외래 키와 삭제 규칙. 저장은 기존 ID 필드를 사용.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "category_id", insertable = false, updatable = false)
+    private var category: CategoryEntity? = null
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "project_id", insertable = false, updatable = false)
+    private var project: ProjectEntity? = null
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "related_project_id", insertable = false, updatable = false)
+    @OnDelete(action = OnDeleteAction.SET_NULL)
+    private var relatedProject: ProjectEntity? = null
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "course_id", insertable = false, updatable = false)
+    private var course: CourseEntity? = null
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null
@@ -39,7 +68,7 @@ class PostEntity protected constructor() {
     lateinit var title: String
         protected set
 
-    @Column(nullable = false, length = 160, unique = true)
+    @Column(nullable = false, length = 160, columnDefinition = "varchar(160) character set ascii collate ascii_bin")
     lateinit var slug: String
         protected set
 

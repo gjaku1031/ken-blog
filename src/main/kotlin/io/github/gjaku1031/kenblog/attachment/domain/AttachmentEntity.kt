@@ -18,7 +18,7 @@ import java.time.LocalDateTime
 enum class AttachmentStatus { PENDING, READY, DELETING }
 
 /**
- * 비공개 이미지 파일의 key와 처리 상태를 추적하는 Flyway V4의 `attachments` 행.
+ * 비공개 이미지 파일의 key와 처리 상태를 추적하는 `attachments` 행.
  *
  * [objectKey]는 서버가 생성하고 [uploadedBy]는 인증된 계정에서만 가져옴.
  * 새 행은 [AttachmentStatus.PENDING]으로 시작하며 외부 객체 작업은 트랜잭션 밖에서 수행함.
@@ -31,7 +31,7 @@ class AttachmentEntity protected constructor() {
     var id: Long? = null
         protected set
 
-    @Column(name = "object_key", nullable = false, length = 255, unique = true)
+    @Column(name = "object_key", nullable = false, length = 255, unique = true, columnDefinition = "varchar(255) character set ascii collate ascii_bin")
     lateinit var objectKey: String
         protected set
 

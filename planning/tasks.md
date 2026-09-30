@@ -1,5 +1,16 @@
 # 현재 작업
 
+## 2026-10-01 누락된 Gradle·컨트롤러·DB 정리 통합
+
+- 별도 작업의 Gradle 전환·Swagger/Api 인터페이스·Flyway 제거를 현재 TS·Thymeleaf 후보에 통합하라는 사용자 확정.
+- Gradle9.3.0 Wrapper와 Kotlin DSL, CI·Docker·Pages 산출물 `build/` 경로 사용. Maven 파일 제거.
+- HTTP 매핑58개와 입력·반환 계약을 구체 Controller로 이전. 웹 본문 편집 REST 재도입 없음, Markdown workflow 동기화와 관리자 MFA 유지.
+- Swagger UI·문서 설정·애너테이션과 `*Api.kt` 제거. Flyway27개와 직접 의존성 제거, JPA·최소 SQL 개발 초기화로 통합.
+- 기존 별도 작업의 로컬 저장소 검사7개와 DB 제약·재초기화 검사2개 복원. 로컬 파일 구조는 현재 영속 `assets`와 공유 `content` 계약으로 통합.
+- Gradle 빌드·기존/복원 검사35개, 빈/전체 섹션 Pages 생성, 실제 격리 API→Markdown·이미지→Thymeleaf 생성 성공.
+- 비밀번호+TOTP·CSRF·메타데이터 수정·MCP·배포 잠금·원고 동기화와 재기동 후 세션/파일 보존 확인. [통합·검증 기록](issues/INTEGRATION-2026-10-01.md) 참조.
+- 소스 통합 완료. 실제 운영 DB 변경·원고/첨부 이관·배포·push 미수행.
+
 ## 2026-10-01 TS·Thymeleaf와 저장소 원고 중심 축소
 
 - 사용자 확정: 공개 Pages 유지, 웹 본문 편집기 제거, 저장소 Markdown을 본문 원본으로 사용.

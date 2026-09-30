@@ -8,7 +8,10 @@
 .local-security/
 # Generated assets and build output
 node_modules/
+build/
 target/
+.gradle/
+.kotlin/
 *.tsbuildinfo
 # Local-only files
 .idea/

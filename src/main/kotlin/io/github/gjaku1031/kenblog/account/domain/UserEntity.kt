@@ -9,26 +9,30 @@ import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
 import jakarta.persistence.Table
+import jakarta.persistence.UniqueConstraint
 import java.time.LocalDateTime
+import org.hibernate.annotations.ColumnDefault
 
 /** [UserEntity.role]에 저장하는 계정 권한. 현재 자동 준비 대상은 [ADMIN]뿐임. */
 enum class UserRole { ADMIN, USER }
 
 /**
- * Flyway V2의 `users` 행에 대응하는 인증 계정.
+ * `users` 행에 대응하는 인증 계정.
  *
  * [passwordHash]는 `{bcrypt}` 접두사가 있는 해시이며 평문 비밀번호를 저장하지 않음.
  * 생성 시각은 UTC [LocalDateTime]으로 기록함.
  */
 @Entity
-@Table(name = "users")
+@Table(name = "users", uniqueConstraints = [
+    UniqueConstraint(name = "uk_users_username", columnNames = ["username"]),
+])
 class UserEntity protected constructor() {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null
         protected set
 
-    @Column(nullable = false, length = 64, unique = true)
+    @Column(nullable = false, length = 64, columnDefinition = "varchar(64) character set ascii collate ascii_bin")
     lateinit var username: String
         protected set
 
@@ -49,6 +53,7 @@ class UserEntity protected constructor() {
     var displayName: String? = null
         protected set
 
+    @ColumnDefault("true")
     @Column(nullable = false)
     var enabled: Boolean = true
         protected set

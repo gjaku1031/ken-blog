@@ -1,7 +1,6 @@
 package io.github.gjaku1031.kenblog.post.dto
 
 import io.github.gjaku1031.kenblog.post.domain.InvalidPostRequestException
-import io.swagger.v3.oas.annotations.media.Schema
 import tools.jackson.databind.JsonNode
 
 /**
@@ -11,9 +10,7 @@ import tools.jackson.databind.JsonNode
  * @property tags 순서를 보존할 문자열 배열, 빈 배열이면 모두 해제
  */
 data class PostTaxonomyRequest(
-    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["integer", "null"], format = "int64")
     val categoryId: Long?,
-    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["array"])
     val tags: List<String>,
 ) {
     companion object {

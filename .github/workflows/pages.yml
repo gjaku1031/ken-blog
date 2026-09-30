@@ -41,8 +41,7 @@ jobs:
         with:
           distribution: temurin
           java-version: '25'
-          cache: maven
-          cache-dependency-path: pom.xml
+      - uses: gradle/actions/setup-gradle@v4
       - name: Claim durable content gate
         id: claim
         env:
@@ -58,7 +57,7 @@ jobs:
         run: npm run build:assets
       - name: Compile standalone Thymeleaf generator
         if: steps.claim.outputs.claimed == 'true'
-        run: ./mvnw -B -Dskip.web=true -DskipTests compile dependency:copy-dependencies -DincludeScope=runtime
+        run: ./gradlew --no-daemon -PskipWeb=true writeSiteClasspath
       - name: Capture public content and build Pages site
         if: steps.claim.outputs.claimed == 'true'
         env:
@@ -78,8 +77,8 @@ jobs:
       - name: Verify public site artifact
         if: steps.claim.outputs.claimed == 'true'
         run: |
-          test -s target/site/index.html
-          if find target/site -type f | grep -E '/(AGENTS\.md|\.env[^/]*|pom\.xml)$'; then
+          test -s build/site/index.html
+          if find build/site -type f | grep -E '/(AGENTS\.md|\.env[^/]*|build\.gradle\.kts|settings\.gradle\.kts|gradlew)$'; then
             echo 'Unexpected internal file in Pages artifact.' >&2
             exit 1
           fi
@@ -90,7 +89,7 @@ jobs:
         if: steps.claim.outputs.claimed == 'true'
         uses: actions/upload-pages-artifact@v5.0.0
         with:
-          path: target/site
+          path: build/site
       - name: Deploy completed artifact
         id: deploy
         if: steps.claim.outputs.claimed == 'true'

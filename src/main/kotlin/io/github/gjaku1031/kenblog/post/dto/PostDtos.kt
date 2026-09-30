@@ -8,7 +8,6 @@ import io.github.gjaku1031.kenblog.post.domain.PostStatus
 import io.github.gjaku1031.kenblog.post.domain.PostVisibility
 import io.github.gjaku1031.kenblog.post.domain.PostSection
 import io.github.gjaku1031.kenblog.project.domain.ProjectMetadata
-import io.swagger.v3.oas.annotations.media.Schema
 import java.time.LocalDate
 import java.time.LocalDateTime
 import tools.jackson.databind.JsonNode
@@ -22,13 +21,9 @@ import tools.jackson.databind.JsonNode
  * @property wikiTargets 명시적 위키 대상 제목; 생략·null은 본문 변경 여부에 따라 유지 또는 해제
  */
 data class PostWriteRequest(
-    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["string"], description = "1~200자 제목")
     val title: String,
-    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["string"], description = "UTF-8 최대 1 MiB, 빈 문자열 허용")
     val body: String,
-    @field:Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, types = ["array", "null"], description = "선택적 READY 첨부 ID 최대 100개; 새 글 생략 시 빈 연결")
     val attachmentIds: List<Long>? = null,
-    @field:Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, types = ["array", "null"], description = "선택적 위키 대상 제목 최대 128개")
     val wikiTargets: List<String>? = null,
 )
 
@@ -55,7 +50,6 @@ object PostWriteRequests {
  * @property visibility 공개 또는 로그인 열람 범위
  */
 data class PostVisibilityRequest(
-    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["string"], allowableValues = ["PUBLIC"])
     val visibility: String = "PUBLIC",
 ) {
     /**

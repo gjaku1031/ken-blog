@@ -1,10 +1,11 @@
 package io.github.gjaku1031.kenblog
 
 import io.github.gjaku1031.kenblog.fixture.TestMysqlConfig
+import io.github.gjaku1031.kenblog.draft.dto.EditorDraftCreateRequest
+import io.github.gjaku1031.kenblog.draft.service.EditorDraftService
 import io.github.gjaku1031.kenblog.post.domain.InvalidPostDraftException
 import io.github.gjaku1031.kenblog.post.domain.PostVisibility
 import io.github.gjaku1031.kenblog.post.service.PostService
-import org.flywaydb.core.Flyway
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNull
@@ -15,21 +16,22 @@ import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.context.annotation.Import
+import org.springframework.core.io.ClassPathResource
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.jdbc.core.JdbcTemplate
+import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator
 import org.springframework.transaction.PlatformTransactionManager
 import org.springframework.transaction.support.TransactionTemplate
 import java.time.Instant
 import java.time.ZoneOffset
 
 /**
- * Flyway 스키마와 [PostService] 저장 계약을 격리된 실제 MySQL에서 검증.
+ * 새 DB 스키마와 [PostService] 저장 계약을 격리된 실제 MySQL에서 검증.
  *
- * 각 테스트는 데이터 행만 지우며 스키마와 Flyway 이력은 유지하여 재마이그레이션 동작도 검증함.
+ * 각 테스트는 데이터 행만 지우며 JPA가 생성한 스키마의 제약도 검증함.
  *
  * @property service 검증 대상 초안 서비스
  * @property jdbc DB 제약과 남은 행을 독립적으로 확인할 JDBC 도구
- * @property flyway 실제 마이그레이션 이력 확인 도구
  * @property transactionManager 여러 서비스 호출의 롤백을 확인할 트랜잭션 관리자
  */
 @SpringBootTest
@@ -37,7 +39,7 @@ import java.time.ZoneOffset
 class PostPersistenceIntegrationTest(
     @Autowired private val service: PostService,
     @Autowired private val jdbc: JdbcTemplate,
-    @Autowired private val flyway: Flyway,
+    @Autowired private val drafts: EditorDraftService,
     @Autowired private val transactionManager: PlatformTransactionManager,
 ) {
     /** 각 테스트가 이전 테스트의 초안 행에 영향을 받지 않도록 데이터만 비움. */
@@ -118,13 +120,9 @@ class PostPersistenceIntegrationTest(
         assertEquals(1, countPosts())
     }
 
-    /** 기존 Flyway 이력과 V25 이후 이력이 연속 적용되고 재실행은 멱등인지 검증. */
+    /** 새 DB에서도 주소·계정의 고유 제약이 생성되는지 검증. */
     @Test
-    fun migrationIsIdempotent() {
-        val migrations = flyway.info().applied()
-        assertTrue(migrations.size >= 25)
-        assertEquals((1..migrations.size).map(Int::toString), migrations.map { it.version.version })
-        assertEquals(0, flyway.migrate().migrationsExecuted)
+    fun freshSchemaHasUniqueConstraints() {
         assertTrue(jdbc.queryForObject(
             "SELECT COUNT(*) FROM information_schema.table_constraints WHERE table_schema = DATABASE() AND table_name = 'posts' AND constraint_name = 'uk_posts_slug'",
             Int::class.java,
@@ -133,7 +131,54 @@ class PostPersistenceIntegrationTest(
             "SELECT COUNT(*) FROM information_schema.table_constraints WHERE table_schema = DATABASE() AND table_name = 'users' AND constraint_name = 'uk_users_username'",
             Int::class.java,
         )!! > 0)
-        assertFalse(flyway.info().applied().isEmpty())
+    }
+
+    /** 새 스키마의 FK가 글 삭제 시 태그·위키·편집본까지 제거하는지 검증. */
+    @Test
+    fun deletingPostCascadesToItsMetadataAndDraft() {
+        val post = service.createDraft("삭제할 글", "본문")
+        val id = post.id!!
+        jdbc.update("INSERT INTO post_tags (post_id, position, tag_name, display_name) VALUES (?, 0, 'kotlin', 'Kotlin')", id)
+        jdbc.update("INSERT INTO post_wiki_links (post_id, position, target_title) VALUES (?, 0, '다른 글')", id)
+        val draft = drafts.create(EditorDraftCreateRequest(
+            postId = id, baseUpdatedAt = post.updatedAt, title = post.title, body = post.body,
+            categoryId = null, tags = emptyList(), visibility = PostVisibility.PUBLIC,
+            attachmentIds = emptyList(), wikiTargets = listOf("다른 글"),
+        ))
+
+        service.deleteDraft(id)
+
+        for (table in listOf("post_tags", "post_wiki_links", "editor_drafts")) {
+            assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM $table WHERE post_id = ?", Int::class.java, id))
+        }
+        assertEquals(0, jdbc.queryForObject(
+            "SELECT COUNT(*) FROM editor_draft_wiki_links WHERE editor_draft_id = ?", Int::class.java, draft.id,
+        ))
+        assertThrows<DataIntegrityViolationException> {
+            jdbc.update("INSERT INTO post_tags (post_id, position, tag_name, display_name) VALUES (?, 0, 'kotlin', 'Kotlin')", id)
+        }
+    }
+
+    /** 재시작 초기화가 게시글과 소비된 복구 코드, 배포 버전을 초기값으로 덮지 않는지 검증. */
+    @Test
+    fun repeatedInitializationPreservesExistingState() {
+        val post = service.createDraft("유지할 글", "본문")
+        val codeHash = "c".repeat(64)
+        val version = jdbc.queryForObject("SELECT version FROM deployment_state WHERE singleton_id = 1", Long::class.java)!!
+        try {
+            jdbc.update("INSERT INTO admin_recovery_codes (code_hash, consumed_at) VALUES (?, UTC_TIMESTAMP(6))", codeHash)
+            jdbc.update("UPDATE deployment_state SET version = ? WHERE singleton_id = 1", version + 1)
+
+            val initializer = ResourceDatabasePopulator(ClassPathResource("schema.sql"))
+            repeat(2) { initializer.execute(jdbc.dataSource!!) }
+
+            assertEquals("유지할 글", service.findById(post.id!!)?.title)
+            assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM admin_recovery_codes WHERE code_hash = ? AND consumed_at IS NOT NULL", Int::class.java, codeHash))
+            assertEquals(version + 1, jdbc.queryForObject("SELECT version FROM deployment_state WHERE singleton_id = 1", Long::class.java))
+        } finally {
+            jdbc.update("DELETE FROM admin_recovery_codes WHERE code_hash = ?", codeHash)
+            jdbc.update("UPDATE deployment_state SET version = ? WHERE singleton_id = 1", version)
+        }
     }
 
     /**

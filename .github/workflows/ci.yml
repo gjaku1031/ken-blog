@@ -38,17 +38,14 @@ jobs:
         with:
           distribution: temurin
           java-version: '25'
-          cache: maven
-          cache-dependency-path: pom.xml
+      - uses: gradle/actions/setup-gradle@v4
       - uses: actions/setup-node@v7.0.0
         with:
           node-version: '24.21.0'
           cache: npm
           cache-dependency-path: package-lock.json
-      - name: Verify root Maven application
-        run: ./mvnw -B clean verify
-      - name: Prepare standalone generator dependencies
-        run: ./mvnw -B -Dskip.web=true -DskipTests dependency:copy-dependencies -DincludeScope=runtime
+      - name: Verify root Gradle application and prepare Pages generator
+        run: ./gradlew --no-daemon clean build writeSiteClasspath
       - name: Build explicit empty site fixture
         run: |
           mkdir -p "$RUNNER_TEMP/ken-blog-fixture"
@@ -56,4 +53,4 @@ jobs:
           {"version":1,"profile":null,"feed":[],"projects":[],"notes":[],"posts":[],"projectDetails":{},"projectDocuments":{},"courseDetails":{},"chapters":{}}
           JSON
           SITE_INPUT="$RUNNER_TEMP/ken-blog-fixture/empty.json" SITE_BASE_PATH=/ken-blog npm run build:site -- --fixture="$RUNNER_TEMP/ken-blog-fixture/empty.json"
-          test -s target/site/index.html
+          test -s build/site/index.html

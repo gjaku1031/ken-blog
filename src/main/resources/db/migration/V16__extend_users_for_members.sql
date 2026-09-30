@@ -1,5 +1,0 @@
-ALTER TABLE users
-    ADD COLUMN display_name VARCHAR(100) NULL,
-    ADD COLUMN email VARCHAR(254) CHARACTER SET ascii COLLATE ascii_general_ci NULL,
-    ADD COLUMN enabled BOOLEAN NOT NULL DEFAULT TRUE,
-    ADD CONSTRAINT uk_users_email UNIQUE (email);

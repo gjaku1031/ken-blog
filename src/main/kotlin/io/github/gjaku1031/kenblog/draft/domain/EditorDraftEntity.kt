@@ -1,18 +1,25 @@
 package io.github.gjaku1031.kenblog.draft.domain
 
-import io.github.gjaku1031.kenblog.post.domain.PostVisibility
+import io.github.gjaku1031.kenblog.post.domain.PostEntity
 import io.github.gjaku1031.kenblog.post.domain.PostSection
+import io.github.gjaku1031.kenblog.post.domain.PostVisibility
 import io.github.gjaku1031.kenblog.project.domain.ProjectMetadata
 import io.github.gjaku1031.kenblog.project.domain.ProjectStatus
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
 import jakarta.persistence.Enumerated
+import jakarta.persistence.FetchType
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
+import jakarta.persistence.JoinColumn
+import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
+import jakarta.persistence.UniqueConstraint
 import java.time.LocalDateTime
+import org.hibernate.annotations.OnDelete
+import org.hibernate.annotations.OnDeleteAction
 
 /**
  * 공개 원문 [io.github.gjaku1031.kenblog.post.domain.PostEntity]과 독립된 편집 스냅샷.
@@ -21,8 +28,16 @@ import java.time.LocalDateTime
  * 제어문자를 거부한 태그들을 U+001F로 구분하며 목록·상세에서만 역직렬화함.
  */
 @Entity
-@Table(name = "editor_drafts")
+@Table(name = "editor_drafts", uniqueConstraints = [
+    UniqueConstraint(name = "uk_editor_drafts_post", columnNames = ["post_id"]),
+])
 class EditorDraftEntity protected constructor() {
+    // DB 외래 키와 삭제 규칙. 저장은 기존 ID 필드를 사용.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "post_id", insertable = false, updatable = false)
+    @OnDelete(action = OnDeleteAction.CASCADE)
+    private var post: PostEntity? = null
+
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null
         protected set

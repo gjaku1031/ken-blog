@@ -20,11 +20,11 @@ class StackBadgeEntity protected constructor() {
     lateinit var name: String
         protected set
 
-    @Column(name = "name_key", nullable = false, length = 100, unique = true)
+    @Column(name = "name_key", nullable = false, length = 100, unique = true, columnDefinition = "varchar(100) character set utf8mb4 collate utf8mb4_bin")
     lateinit var nameKey: String
         protected set
 
-    @Column(name = "object_key", nullable = false, length = 255, unique = true)
+    @Column(name = "object_key", nullable = false, length = 255, unique = true, columnDefinition = "varchar(255) character set ascii collate ascii_bin")
     lateinit var objectKey: String
         protected set
 

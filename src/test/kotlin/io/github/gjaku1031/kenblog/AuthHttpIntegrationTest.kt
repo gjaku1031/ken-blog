@@ -85,11 +85,7 @@ class AuthHttpIntegrationTest {
         assertTrue(csrf.headers().allValues("set-cookie").any { it.contains("HttpOnly") && it.contains("SameSite=Lax") })
         assertFalse(csrf.headers().allValues("set-cookie").any { it.contains("Secure") })
 
-        val apiDocs = mapper.readTree(send(client, "GET", "/v3/api-docs").body())
-        assertEquals("cookie", apiDocs.path("components").path("securitySchemes").path("sessionCookie").path("in").asText())
-        assertEquals("KENBLOGSESSION", apiDocs.path("components").path("securitySchemes").path("sessionCookie").path("name").asText())
-        assertTrue(apiDocs.path("paths").path("/api/v1/auth/login").path("post").path("parameters")
-            .any { it.path("name").asText() == "X-CSRF-TOKEN" && it.path("required").asBoolean() })
+
     }
 
     /** 로그인 CSRF, 세션 ID 교체, 로그아웃 후 이전 쿠키와 토큰의 무효화를 검증. */

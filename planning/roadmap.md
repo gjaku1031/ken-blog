@@ -2,6 +2,7 @@
 
 ## 현재 후보 — 2026-10-01
 
+- 누락된 별도 작업의 Gradle·Swagger/Api·Flyway 제거를 TS·Thymeleaf 후보와 통합 완료. Gradle 빌드·검사35개와 실제 격리 API→Pages 생성·재기동 보존 검증 성공. [통합·검증 기록](issues/INTEGRATION-2026-10-01.md) 참조.
 - TS·Thymeleaf, 저장소 Markdown 원본, 영속 로컬 첨부 구조 구현·격리 검증 완료.
 - 웹 본문 편집기와 OCI SDK 제거, 기존 비밀번호+MFA·JDBC 세션 유지.
 - 운영 연결 복구 후 기존 원고·첨부 이관, 새 Spring 런타임 배포, 소스 push와 Pages 검증 필요.

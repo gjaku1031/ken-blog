@@ -1,7 +1,6 @@
 package io.github.gjaku1031.kenblog.fixture
 
 import io.github.gjaku1031.kenblog.status.dto.StatusResponse
-import io.swagger.v3.oas.annotations.Hidden
 import org.springframework.http.MediaType
 import org.springframework.http.HttpStatus
 import org.springframework.web.server.ResponseStatusException
@@ -15,9 +14,8 @@ import org.springframework.web.bind.annotation.RestController
 /**
  * 테스트에서만 입력 변환과 예기치 못한 예외를 유발하는 Controller.
  *
- * 운영 JAR에는 포함되지 않으며 [Hidden]으로 OpenAPI 명세에서도 제외됨.
+ * 운영 JAR에는 포함되지 않음.
  */
-@Hidden
 @RestController
 @RequestMapping("/__test")
 class TestProbeController {

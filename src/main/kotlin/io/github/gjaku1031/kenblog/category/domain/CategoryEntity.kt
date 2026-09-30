@@ -2,15 +2,26 @@ package io.github.gjaku1031.kenblog.category.domain
 
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
+import jakarta.persistence.FetchType
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
+import jakarta.persistence.JoinColumn
+import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
+import jakarta.persistence.UniqueConstraint
 
 /** FK로 부모를 참조하고 정규화 경로를 독립적으로 보존하는 Tech 분류 행. */
 @Entity
-@Table(name = "categories")
+@Table(name = "categories", uniqueConstraints = [
+    UniqueConstraint(name = "uk_categories_path", columnNames = ["path"]),
+])
 class CategoryEntity protected constructor() {
+    // DB 외래 키와 삭제 규칙. 저장은 기존 ID 필드를 사용.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "parent_id", insertable = false, updatable = false)
+    private var parent: CategoryEntity? = null
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null
@@ -20,7 +31,7 @@ class CategoryEntity protected constructor() {
     var parentId: Long? = null
         protected set
 
-    @Column(nullable = false, length = 256)
+    @Column(nullable = false, length = 256, columnDefinition = "varchar(256) character set utf8mb4 collate utf8mb4_bin")
     lateinit var path: String
         protected set
 

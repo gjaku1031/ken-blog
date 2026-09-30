@@ -7,7 +7,6 @@ import io.github.gjaku1031.kenblog.project.domain.ProjectEntity
 import io.github.gjaku1031.kenblog.project.domain.ProjectStatus
 import io.github.gjaku1031.kenblog.project.domain.InvalidProjectRequestException
 import io.github.gjaku1031.kenblog.stack.dto.StackBadgeResponse
-import io.swagger.v3.oas.annotations.media.Schema
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId

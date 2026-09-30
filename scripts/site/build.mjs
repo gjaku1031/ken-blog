@@ -8,9 +8,9 @@ import { resolve, join } from "node:path";
 import { pathToFileURL } from "node:url";
 
 const root = resolve(import.meta.dirname, "../..");
-const staging = join(root, "target/site-staging");
-const output = join(root, "target/site");
-const input = join(root, "target/site-input/rendered.json");
+const staging = join(root, "build/site-staging");
+const output = join(root, "build/site");
+const input = join(root, "build/site-input/rendered.json");
 const basePath = "/ken-blog/";
 const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const route = (path = "") => `${basePath}${path}`;
@@ -138,7 +138,7 @@ async function checkArtifact() {
       if (++files > 20_000) throw new Error("Pages 파일 수 초과");
       bytes += (await stat(filename)).size;
       if (bytes > 900 * 1024 * 1024) throw new Error("Pages 산출물 크기 초과");
-      if (entry.name.startsWith(".env") || /^(AGENTS\.md|pom\.xml|package(?:-lock)?\.json)$/i.test(entry.name))
+      if (entry.name.startsWith(".env") || /^(AGENTS\.md|pom\.xml|build\.gradle\.kts|settings\.gradle\.kts|gradlew(?:\.bat)?|gradle\.properties|package(?:-lock)?\.json)$/i.test(entry.name))
         throw new Error(`내부 파일이 Pages 산출물에 포함됨: ${entry.name}`);
       if (folder === join(staging, "assets") && /^admin(?:\.|-)/i.test(entry.name)) throw new Error("관리자 자산이 Pages에 포함됨");
     }
@@ -148,7 +148,11 @@ async function checkArtifact() {
 
 /** 실행 중인 JVM과 결과 코드를 그대로 전달한다. */
 async function runGenerator(args) {
-  const classpath = process.env.SITE_JAVA_CLASSPATH || join(root, "target/classes") + ":" + join(root, "target/dependency/*");
+  const classpathFile = join(root, "build/site-runtime-classpath.txt");
+  const classpath = process.env.SITE_JAVA_CLASSPATH || await readFile(classpathFile, "utf8").then((value) => value.trim()).catch(() => {
+    throw new Error("Pages 생성기 클래스패스가 없습니다. ./gradlew -PskipWeb=true writeSiteClasspath를 먼저 실행하세요.");
+  });
+  if (!classpath) throw new Error("Pages 생성기 클래스패스가 비어 있습니다.");
   const child = spawn(process.env.JAVA_BINARY || "java", ["-cp", classpath, "io.github.gjaku1031.kenblog.site.SiteGeneratorKt", ...args], { cwd: root, stdio: "inherit" });
   const code = await new Promise((accept, reject) => { child.once("error", reject); child.once("close", accept); });
   if (code !== 0) throw new Error(`Kotlin Pages 생성 실패: ${code}`);
@@ -172,9 +176,9 @@ async function main() {
   await rm(staging, { recursive: true, force: true });
   const { public: assets } = await buildWebAssets({ adminAssets: false });
   await mkdir(join(staging, "assets"), { recursive: true });
-  await cp(join(root, "target/public-assets"), join(staging, "assets"), { recursive: true });
+  await cp(join(root, "build/public-assets"), join(staging, "assets"), { recursive: true });
   await cp(join(root, "src/main/resources/web/public/licenses"), join(staging, "licenses"), { recursive: true });
-  const rendererFile = join(root, "target/.site-markdown.mjs");
+  const rendererFile = join(root, "build/.site-markdown.mjs");
   await bundle({ entryPoints: [join(root, "src/main/resources/web/shared/markdown.ts")], outfile: rendererFile,
     bundle: true, packages: "external", platform: "node", format: "esm", target: "node24", logLevel: "silent" });
   const { renderMarkdown } = await import(pathToFileURL(rendererFile).href);
@@ -221,7 +225,7 @@ async function main() {
       wikiUrl: (title) => links.get(wikiKey(title)) ?? null, sourceMap: true });
     post.rendered = { html: rendered.html, headings: rendered.headings, wikiTargets: rendered.wikiTargets };
   }
-  await mkdir(join(root, "target/site-input"), { recursive: true });
+  await mkdir(join(root, "build/site-input"), { recursive: true });
   await writeFile(input, JSON.stringify({ snapshot, assets, adminHref: base ? `${base.origin}/manage/` : "" }));
   if (!fixture) await assertCaptureOwner(base);
   await runGenerator([`--input=${input}`, `--output=${staging}`, ...(fixture ? ["--fixture"] : [])]);

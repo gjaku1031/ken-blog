@@ -19,14 +19,14 @@ import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBo
 
 /** 공개 홈 카드 조회와 관리자 소개·사진 편집을 [HomeProfileService]에 연결. */
 @RestController
-class HomeProfileController(private val service: HomeProfileService) : HomeProfileApi {
+class HomeProfileController(private val service: HomeProfileService) {
     /** @return 저장된 소개나 빈 카드. */
     @GetMapping("/api/v1/profile")
-    override fun get(): HomeProfileResponse = service.get()
+    fun get(): HomeProfileResponse = service.get()
 
     /** @return 공개 PNG 사진 스트림. */
     @GetMapping("/api/v1/profile/photo", produces = [MediaType.IMAGE_PNG_VALUE])
-    override fun photo(): ResponseEntity<StreamingResponseBody> {
+    fun photo(): ResponseEntity<StreamingResponseBody> {
         val stream = service.openPhoto()
         return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG)
             .header("X-Content-Type-Options", "nosniff")
@@ -36,11 +36,11 @@ class HomeProfileController(private val service: HomeProfileService) : HomeProfi
 
     /** @return 저장된 텍스트 소개. */
     @PutMapping("/api/v1/admin/profile")
-    override fun update(@RequestBody body: HomeProfileRequest): HomeProfileResponse = service.update(body)
+    fun update(@RequestBody body: HomeProfileRequest): HomeProfileResponse = service.update(body)
 
     /** @return 텍스트와 선택 사진을 한 번에 확정한 홈 소개. */
     @PostMapping("/api/v1/admin/profile/save", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
-    override fun save(
+    fun save(
         @RequestPart("profile") profile: HomeProfileRequest,
         @RequestPart("file", required = false) file: MultipartFile?,
         @RequestParam(defaultValue = "false") removePhoto: Boolean,
@@ -48,9 +48,9 @@ class HomeProfileController(private val service: HomeProfileService) : HomeProfi
 
     /** @return 256×256 사진이 적용된 소개. */
     @PostMapping("/api/v1/admin/profile/photo", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
-    override fun upload(@RequestParam file: MultipartFile): HomeProfileResponse = service.uploadPhoto(file)
+    fun upload(@RequestParam file: MultipartFile): HomeProfileResponse = service.uploadPhoto(file)
 
     /** @return 사진 참조가 제거된 소개. */
     @DeleteMapping("/api/v1/admin/profile/photo")
-    override fun delete(): HomeProfileResponse = service.removePhoto()
+    fun delete(): HomeProfileResponse = service.removePhoto()
 }

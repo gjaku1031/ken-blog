@@ -6,9 +6,9 @@ import { pathToFileURL } from "node:url";
 
 const root = resolve(import.meta.dirname, "..");
 const source = join(root, "src/main/resources/web");
-const generated = join(root, "target/generated-resources");
+const generated = join(root, "build/generated-resources");
 const adminOutput = join(generated, "static/assets");
-const publicOutput = join(root, "target/public-assets");
+const publicOutput = join(root, "build/public-assets");
 
 /** TS·CSS를 해시 이름 자산으로 컴파일하며 HTML은 Thymeleaf가 담당. */
 async function compile(name, entry, output, publicPath) {

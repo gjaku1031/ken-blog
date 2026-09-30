@@ -2,12 +2,10 @@ package io.github.gjaku1031.kenblog.category.dto
 
 import io.github.gjaku1031.kenblog.category.domain.CategoryEntity
 import io.github.gjaku1031.kenblog.category.domain.InvalidCategoryRequestException
-import io.swagger.v3.oas.annotations.media.Schema
 import tools.jackson.databind.JsonNode
 
 /** 관리자 분류 경로 생성 입력. */
 data class CategoryCreateRequest(
-    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["string"], description = "슬래시 구분 1~3단계 경로")
     val path: String,
 ) {
     companion object {

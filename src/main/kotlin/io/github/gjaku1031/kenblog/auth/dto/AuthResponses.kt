@@ -3,7 +3,6 @@ package io.github.gjaku1031.kenblog.auth.dto
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import io.github.gjaku1031.kenblog.account.domain.UserRole
 import io.github.gjaku1031.kenblog.auth.controller.AuthController
-import io.swagger.v3.oas.annotations.media.Schema
 
 /**
  * 단일 관리자 로그인 요청의 원문 비밀번호·일회용 검증 코드.
@@ -16,9 +15,7 @@ import io.swagger.v3.oas.annotations.media.Schema
  */
 @JsonIgnoreProperties(value = ["username"])
 class LoginRequest(
-    @field:Schema(accessMode = Schema.AccessMode.WRITE_ONLY, description = "로그인 검증에만 사용하는 원문 비밀번호")
     val password: String,
-    @field:Schema(accessMode = Schema.AccessMode.WRITE_ONLY, description = "Google Authenticator 6자리 코드 또는 복구 코드")
     val verificationCode: String? = null,
     val rememberMe: Boolean = false,
 ) {

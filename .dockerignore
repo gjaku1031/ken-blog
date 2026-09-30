@@ -1,7 +1,10 @@
 .git
 node_modules
+build
 target
-apps
+.gradle
+.kotlin
+data
 artifacts
 planning
 .local-security

@@ -4,9 +4,6 @@ import io.github.gjaku1031.kenblog.auth.controller.AuthController
 import io.github.gjaku1031.kenblog.global.security.AccountSessionValidationFilter
 import io.github.gjaku1031.kenblog.global.security.SecurityProblemWriter
 import io.github.gjaku1031.kenblog.mcp.transport.McpLocalAccessFilter
-import io.swagger.v3.oas.annotations.enums.SecuritySchemeIn
-import io.swagger.v3.oas.annotations.enums.SecuritySchemeType
-import io.swagger.v3.oas.annotations.security.SecurityScheme
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.web.servlet.FilterRegistrationBean
@@ -41,7 +38,6 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource
  * 로그인과 로그아웃은 [AuthController]에서 수행하며 폼 로그인·Basic 인증은 비활성화.
  */
 @Configuration
-@SecurityScheme(name = "sessionCookie", type = SecuritySchemeType.APIKEY, `in` = SecuritySchemeIn.COOKIE, paramName = "KENBLOGSESSION")
 class SecurityConfig {
     /** 세션 검증 필터를 관리자 Security chain에서만 실행해 workflow bearer 세션을 보호. */
     @Bean
@@ -212,7 +208,7 @@ class SecurityConfig {
         }
         .addFilterBefore(accountSessionValidationFilter, AuthorizationFilter::class.java)
         .authorizeHttpRequests {
-            it.requestMatchers(HttpMethod.GET, "/api/v1/status", "/actuator/health", "/v3/api-docs", "/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
+            it.requestMatchers(HttpMethod.GET, "/api/v1/status", "/actuator/health").permitAll()
             it.requestMatchers(HttpMethod.GET, "/api/v1/posts", "/api/v1/posts/*").permitAll()
             it.requestMatchers(HttpMethod.GET, "/api/v1/posts/*/backlinks").permitAll()
             it.requestMatchers(HttpMethod.GET, "/api/v1/posts/*/attachments/*/content").permitAll()

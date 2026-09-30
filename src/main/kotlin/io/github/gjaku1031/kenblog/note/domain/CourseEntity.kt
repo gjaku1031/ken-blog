@@ -21,7 +21,7 @@ class CourseEntity protected constructor() {
     var id: Long? = null
         protected set
 
-    @Column(nullable = false, length = 160, unique = true)
+    @Column(nullable = false, length = 160, unique = true, columnDefinition = "varchar(160) character set ascii collate ascii_bin")
     lateinit var slug: String
         protected set
 

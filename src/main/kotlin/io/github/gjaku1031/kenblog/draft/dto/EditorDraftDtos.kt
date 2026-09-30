@@ -11,7 +11,6 @@ import io.github.gjaku1031.kenblog.post.domain.TagNames
 import io.github.gjaku1031.kenblog.post.dto.WikiDeclarations
 import io.github.gjaku1031.kenblog.project.domain.ProjectMetadata
 import io.github.gjaku1031.kenblog.project.dto.ProjectMetadataRequests
-import io.swagger.v3.oas.annotations.media.Schema
 import java.time.LocalDateTime
 import java.time.format.DateTimeParseException
 import tools.jackson.databind.JsonNode
@@ -21,38 +20,23 @@ import tools.jackson.databind.JsonNode
  * 실제 JSON 파싱은 [EditorDraftRequests.create]가 타입 강제를 거부함.
  */
 data class EditorDraftCreateRequest(
-    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["integer", "null"], format = "int64")
     val postId: Long?,
-    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["string", "null"], format = "date-time")
     val baseUpdatedAt: LocalDateTime?,
-    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["string"])
     val title: String,
-    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["string"])
     val body: String,
-    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["integer", "null"], format = "int64")
     val categoryId: Long?,
-    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["array"])
     val tags: List<String>,
-    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["string"], allowableValues = ["PUBLIC"])
     val visibility: PostVisibility,
-    @field:Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, types = ["array", "null"], description = "선택적 READY 첨부 ID 최대 100개; 원본 편집 생성 시 생략하면 상속")
     val attachmentIds: List<Long>?,
-    @field:Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, types = ["array", "null"], description = "선택적 위키 대상 제목 최대 128개")
     val wikiTargets: List<String>?,
-    @field:Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, types = ["string", "null"], allowableValues = ["TECH", "PROJECT_HOME", "PROJECT_DOC"])
     val section: PostSection? = null,
-    @field:Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, types = ["integer", "null"], format = "int64")
     val projectId: Long? = null,
-    @field:Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, types = ["integer", "null"], format = "int64")
     val relatedProjectId: Long? = null,
-    @field:Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, types = ["integer", "null"])
     val documentOrder: Int? = null,
-    @field:Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, implementation = ProjectMetadata::class)
     val projectMetadata: ProjectMetadata? = null,
     val courseId: Long? = null,
     val chapterOrder: Int? = null,
     val summary: String = "",
-    @field:Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, types = ["integer", "null"], description = "TECH 소분류 시리즈 양수 순서")
     val techSeriesOrder: Int? = null,
 ) {
     /** @return 정규화·상한 검사를 마친 내용과 프로젝트 스냅샷. */
@@ -63,36 +47,22 @@ data class EditorDraftCreateRequest(
 
 /** revision 조건과 전체 편집 내용을 받되 원본 ID·기준 시각은 바꾸지 않는 PUT 계약. */
 data class EditorDraftUpdateRequest(
-    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["integer"], format = "int64", minimum = "0")
     val revision: Long,
-    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["string"])
     val title: String,
-    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["string"])
     val body: String,
-    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["integer", "null"], format = "int64")
     val categoryId: Long?,
-    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["array"])
     val tags: List<String>,
-    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["string"], allowableValues = ["PUBLIC"])
     val visibility: PostVisibility,
-    @field:Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, types = ["array", "null"], description = "선택적 READY 첨부 ID 최대 100개; 생략하면 기존 연결 유지")
     val attachmentIds: List<Long>?,
-    @field:Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, types = ["array", "null"], description = "선택적 위키 대상 제목 최대 128개")
     val wikiTargets: List<String>?,
-    @field:Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, types = ["string", "null"], allowableValues = ["TECH", "PROJECT_HOME", "PROJECT_DOC"])
     val section: PostSection? = null,
-    @field:Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, types = ["integer", "null"], format = "int64")
     val projectId: Long? = null,
-    @field:Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, types = ["integer", "null"], format = "int64")
     val relatedProjectId: Long? = null,
-    @field:Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, types = ["integer", "null"])
     val documentOrder: Int? = null,
-    @field:Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, implementation = ProjectMetadata::class)
     val projectMetadata: ProjectMetadata? = null,
     val courseId: Long? = null,
     val chapterOrder: Int? = null,
     val summary: String = "",
-    @field:Schema(requiredMode = Schema.RequiredMode.NOT_REQUIRED, types = ["integer", "null"], description = "TECH 소분류 시리즈 양수 순서")
     val techSeriesOrder: Int? = null,
 ) {
     /** @return 검증한 전체 교체 내용과 불변 섹션·소속 후보. */
@@ -103,7 +73,6 @@ data class EditorDraftUpdateRequest(
 
 /** 현재 편집본 revision만 받는 원자적 출간 계약. */
 data class EditorDraftPublishRequest(
-    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["integer"], format = "int64", minimum = "0")
     val revision: Long,
 )
 

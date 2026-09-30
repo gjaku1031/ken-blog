@@ -21,9 +21,9 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.context.annotation.Import
 
 /**
- * 실제 MVC 설정에서 상태 계약, OpenAPI 문서와 오류 응답을 검증하는 통합 테스트.
+ * 실제 MVC 설정에서 상태 응답과 오류 응답을 검증하는 통합 테스트.
  *
- * [TestMysqlConfig]가 실제 MySQL에 마이그레이션을 적용하고,
+ * [TestMysqlConfig]가 실제 MySQL 스키마를 초기화하고,
  * [TestProbeController]는 테스트에서만 오류 입력과 예상하지 못한 예외를 생성함.
  *
  * @property mvc 테스트 HTTP 요청을 처리할 Spring MVC 인스턴스
@@ -76,30 +76,6 @@ class StatusApiIntegrationTest(@Autowired private val mvc: MockMvc) {
             .andExpect(status().isOk)
             .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$.status").value("UP"))
-    }
-
-    /** 인터페이스에 선언한 경로·응답 스키마가 OpenAPI에 반영되었는지 검증. */
-    @Test
-    fun openApiContainsStatusContract() {
-        mvc.perform(get("/v3/api-docs"))
-            .andExpect(status().isOk)
-            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.paths['/api/v1/status'].get.responses['200'].content['application/json'].schema['\$ref']")
-                .value("#/components/schemas/StatusResponse"))
-            .andExpect(jsonPath("$.paths['/api/v1/status'].get.responses['406'].content['application/problem+json'].schema['\$ref']")
-                .value("#/components/schemas/ProblemDetail"))
-            .andExpect(jsonPath("$.paths['/api/v1/status'].get.responses['500'].content['application/problem+json'].schema['\$ref']")
-                .value("#/components/schemas/ProblemDetail"))
-            .andExpect(jsonPath("$.components.schemas.StatusResponse.properties.status.type").value("string"))
-    }
-
-    /** Swagger UI의 실제 정적 진입 파일 제공을 검증. */
-    @Test
-    fun swaggerUiIsAvailable() {
-        mvc.perform(get("/swagger-ui/index.html"))
-            .andExpect(status().isOk)
-            .andExpect(content().contentTypeCompatibleWith(MediaType.TEXT_HTML))
-            .andExpect(content().string(containsString("Swagger UI")))
     }
 
     /** 수치로 변환할 수 없는 입력이 원문 노출 없이 ProblemDetail로 반환되는지 검증. */

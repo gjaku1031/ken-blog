@@ -8,7 +8,7 @@ import org.testcontainers.mysql.MySQLContainer
 /**
  * 실제 MySQL을 테스트별 Spring 컨텍스트에 연결하는 전용 설정.
  *
- * [ServiceConnection]이 DataSource와 Flyway 접속 정보를 컨테이너에서 공급하고,
+ * [ServiceConnection]이 DataSource 접속 정보를 컨테이너에서 공급하고,
  * Spring이 컨텍스트 종료 시 컨테이너를 함께 정리함.
  */
 @TestConfiguration(proxyBeanMethods = false)

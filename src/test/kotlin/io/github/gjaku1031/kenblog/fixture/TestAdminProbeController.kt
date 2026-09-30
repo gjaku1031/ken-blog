@@ -1,16 +1,14 @@
 package io.github.gjaku1031.kenblog.fixture
 
 import io.github.gjaku1031.kenblog.status.dto.StatusResponse
-import io.swagger.v3.oas.annotations.Hidden
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RestController
 
 /**
  * 관리자 권한 경계를 실제 HTTP로 시험하는 테스트 전용 Controller.
  *
- * 운영 JAR와 OpenAPI에는 포함되지 않음.
+ * 운영 JAR에는 포함되지 않음.
  */
-@Hidden
 @RestController
 class TestAdminProbeController {
     /**

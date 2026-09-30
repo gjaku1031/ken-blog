@@ -1,14 +1,19 @@
 package io.github.gjaku1031.kenblog.project.domain
 
+import io.github.gjaku1031.kenblog.post.domain.PostEntity
 import io.github.gjaku1031.kenblog.post.domain.PostVisibility
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
 import jakarta.persistence.Enumerated
+import jakarta.persistence.FetchType
 import jakarta.persistence.GeneratedValue
 import jakarta.persistence.GenerationType
 import jakarta.persistence.Id
+import jakarta.persistence.JoinColumn
+import jakarta.persistence.ManyToOne
 import jakarta.persistence.Table
+import jakarta.persistence.UniqueConstraint
 import java.time.LocalDateTime
 
 /** 프로젝트 진행 단계를 공개 카드에 표시하는 값. */
@@ -16,17 +21,25 @@ enum class ProjectStatus { PLAN, DEV, MAINT, DONE }
 
 /** 공개 대문 속성을 저장하며 본문은 PROJECT_HOME 게시글에서 관리하는 행. */
 @Entity
-@Table(name = "projects")
+@Table(name = "projects", uniqueConstraints = [
+    UniqueConstraint(name = "uk_projects_name", columnNames = ["name"]),
+    UniqueConstraint(name = "uk_projects_home_post", columnNames = ["home_post_id"]),
+])
 class ProjectEntity protected constructor() {
+    // DB 외래 키와 삭제 규칙. 저장은 기존 ID 필드를 사용.
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "home_post_id", insertable = false, updatable = false)
+    private var homePost: PostEntity? = null
+
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null
         protected set
 
-    @Column(nullable = false, length = 160, unique = true)
+    @Column(nullable = false, length = 160, unique = true, columnDefinition = "varchar(160) character set ascii collate ascii_bin")
     lateinit var slug: String
         protected set
 
-    @Column(nullable = false, length = 200)
+    @Column(nullable = false, length = 200, columnDefinition = "varchar(200) character set utf8mb4 collate utf8mb4_bin")
     lateinit var name: String
         protected set
 

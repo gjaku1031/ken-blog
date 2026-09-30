@@ -1,7 +1,6 @@
 package io.github.gjaku1031.kenblog.post.dto
 
 import io.github.gjaku1031.kenblog.post.domain.InvalidWikiLinkRequestException
-import io.swagger.v3.oas.annotations.media.Schema
 import tools.jackson.databind.JsonNode
 
 /** 관리자 명시적 위키 대상 선언을 JSON 강제 변환 없이 읽고 정규화함. */
@@ -53,9 +52,9 @@ object WikiDeclarations {
 
 /** 관리자 제목 검색·공개 역링크의 본문 없는 게시글 이동 정보. */
 data class WikiNavigationItem(
-    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["integer"], format = "int64") val id: Long,
-    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["string"]) val title: String,
-    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["string"]) val slug: String,
+    val id: Long,
+    val title: String,
+    val slug: String,
     val section: String = "TECH",
     val projectSlug: String? = null,
     val courseSlug: String? = null,
@@ -65,27 +64,20 @@ data class WikiNavigationItem(
 
 /** 관리자 부분 제목 검색과 동일 입력의 정확한 위키 해석. */
 data class WikiTitleSearchResponse(
-    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["array"])
     val items: List<WikiNavigationItem>,
-    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED)
     val exact: WikiLinkResult,
 )
 
 /** 현재 권한으로 읽을 수 있는 출간 글만 담는 10개 역링크 페이지. */
 data class WikiBacklinkPageResponse(
-    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["array"])
     val items: List<WikiNavigationItem>,
-    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["integer"], format = "int32")
     val page: Int,
-    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["boolean"])
     val hasMore: Boolean,
 )
 
 /** 본문 버전을 확인한 뒤 선언만 바꾸는 관리자 보정 입력. */
 data class WikiLinkCorrectionRequest(
-    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["string"], pattern = "[0-9a-f]{64}")
     val expectedBodySha256: String,
-    @field:Schema(requiredMode = Schema.RequiredMode.REQUIRED, types = ["array"])
     val wikiTargets: List<String>,
 ) {
     companion object {

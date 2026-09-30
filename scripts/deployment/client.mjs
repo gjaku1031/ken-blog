@@ -69,7 +69,7 @@ if (command === 'claim') {
   if (!/^[0-9a-f-]{36}$/.test(id ?? '') || !/^[0-9a-f]{40}$/.test(sourceSha ?? '')) {
     throw new Error('Deployment marker input is invalid.');
   }
-  writeFileSync('target/site/deployment.json', JSON.stringify({
+  writeFileSync('build/site/deployment.json', JSON.stringify({
     operationId: id, runId, runAttempt, sourceSha, generatedAt: new Date().toISOString(),
   }));
 } else if (command === 'recover') {
