@@ -1,5 +1,11 @@
 # 현재 작업
 
+## 2026-10-01 수동 도면 자료 정리
+
+- 사용자 명시 승인으로 artifacts의 수동 도면 코드·아이콘·출처 자료10개 제거. 앱/빌드/Actions 외부 참조 없음 확인.
+- scripts의3개 파일은 package.json·Gradle·Docker·Actions 연결에서 사용 중 확인. TS 자산 생성·공개 snapshot 수집·Thymeleaf Pages 생성용으로 유지.
+- 앱 코드·빌드 설정 변경 없음. 차이/참조 검증과 로컬 커밋·앱 폴더 동기화.
+
 ## 2026-10-01 미사용 ZIP 내보내기 추가 정리
 
 - 사용자 지적 후 export 전역 참조 확인. 관리자 화면·MCP·Actions 호출이 없는 ZIP API와 서비스·보조 함수·CommonMark 전용 의존성 제거.

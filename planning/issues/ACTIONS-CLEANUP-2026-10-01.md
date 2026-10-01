@@ -41,3 +41,9 @@
 - Gradle offline clean build/writeSiteClasspath 성공, 기존35개 검사 failures/errors/skipped0. TypeScript·브라우저 자산 생성 성공. 새 JAR·Pages classpath에서 ZIP 클래스와 CommonMark 부재, 가이드의 구 ZIP 안내 부재 확인.
 - 삭제 후 네 섹션의 저장소 Markdown을 Thymeleaf HTML로 생성하고 CI 빈 Pages fixture도 성공. 신규 저장소 테스트 추가 없음. git diff --check와 활성 코드의 export API·DTO·파서 잔여 참조0건 확인.
 - 로컬 소스 정리이며 원격 Actions·운영 이관·push 미수행. 운영 원고/첨부 이관 전 push 보류 유지.
+
+## 수동 도면 자료 추가 정리
+
+- 사용자 명시 승인으로 artifacts 전체10개 파일 제거. 도면 Python·아이콘·출처/이용조건만 포함, 서비스·빌드·CI/Pages가 참조하지 않음 확인. 과거 검증 기록의 도면 언급은 당시 이력으로 유지.
+- scripts/build-web.mjs는 TS·CSS 자산 빌드, scripts/site/capture.mjs는 공개 DB snapshot 수집과 revision 대조, scripts/site/build.mjs는 Markdown·이미지·Thymeleaf 정적사이트 생성에서 현재 사용. package.json·Gradle·Docker·Actions 연결 확인, scripts 유지.
+- 앱 코드·빌드 설정·데이터 변경 없음. diff/잔여 참조와 scripts 원본 일치 확인만 수행, 기존 빌드/테스트 재실행 없음. 로컬 커밋과 앱 폴더 동기화, push/운영 배포 보류 유지.
