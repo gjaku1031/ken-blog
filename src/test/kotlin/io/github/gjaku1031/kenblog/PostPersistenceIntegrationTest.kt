@@ -2,7 +2,6 @@ package io.github.gjaku1031.kenblog
 
 import io.github.gjaku1031.kenblog.fixture.TestMysqlConfig
 import io.github.gjaku1031.kenblog.post.domain.InvalidPostRequestException
-import io.github.gjaku1031.kenblog.post.domain.PostSection
 import io.github.gjaku1031.kenblog.post.domain.PostVisibility
 import io.github.gjaku1031.kenblog.post.dto.PostMetadataCreateRequest
 import io.github.gjaku1031.kenblog.post.service.PostService
@@ -40,7 +39,7 @@ class PostPersistenceIntegrationTest(
     @Test
     fun savesMetadataAndReloadsByIdAndSlug() {
         val beforeCreate = Instant.now().truncatedTo(java.time.temporal.ChronoUnit.MICROS)
-        val created = service.createMetadata(PostMetadataCreateRequest("  첫 글  ", "  FIRST-POST  ", PostSection.TECH))
+        val created = service.createMetadata(PostMetadataCreateRequest("  첫 글  ", "  FIRST-POST  "))
         val afterCreate = Instant.now()
         val id = created.id
         val byId = service.findById(id) ?: error("ID로 재조회 실패")
@@ -63,7 +62,7 @@ class PostPersistenceIntegrationTest(
     fun acceptsExactMetadataLimits() {
         val title = "😀".repeat(200)
         val summary = "가".repeat(120)
-        val created = service.createMetadata(PostMetadataCreateRequest(title, "limit-post", PostSection.TECH, summary))
+        val created = service.createMetadata(PostMetadataCreateRequest(title, "limit-post", summary))
         val reloaded = service.findBySlug(created.slug) ?: error("메타데이터 재조회 실패")
         assertEquals(title, reloaded.title)
         assertEquals(summary, reloaded.summary)
@@ -74,16 +73,16 @@ class PostPersistenceIntegrationTest(
     @Test
     fun rejectsInvalidInputsBeforeWriting() {
         assertThrows<InvalidPostRequestException> {
-            service.createMetadata(PostMetadataCreateRequest("   ", "blank-title", PostSection.TECH))
+            service.createMetadata(PostMetadataCreateRequest("   ", "blank-title"))
         }
         assertThrows<InvalidPostRequestException> {
-            service.createMetadata(PostMetadataCreateRequest("가".repeat(201), "long-title", PostSection.TECH))
+            service.createMetadata(PostMetadataCreateRequest("가".repeat(201), "long-title"))
         }
         assertThrows<InvalidPostRequestException> {
-            service.createMetadata(PostMetadataCreateRequest("제목", "invalid slug", PostSection.TECH))
+            service.createMetadata(PostMetadataCreateRequest("제목", "invalid slug"))
         }
         assertThrows<InvalidPostRequestException> {
-            service.createMetadata(PostMetadataCreateRequest("제목", "long-summary", PostSection.TECH, "가".repeat(121)))
+            service.createMetadata(PostMetadataCreateRequest("제목", "long-summary", "가".repeat(121)))
         }
         assertEquals(0, countPosts())
     }
@@ -91,8 +90,8 @@ class PostPersistenceIntegrationTest(
     /** 같은 slug의 DB 고유 인덱스가 직접 SQL 변경도 거부. */
     @Test
     fun duplicateSlugFailsAtDatabaseConstraint() {
-        val first = service.createMetadata(PostMetadataCreateRequest("원본", "same-slug", PostSection.TECH))
-        val second = service.createMetadata(PostMetadataCreateRequest("다른 제목", "other-slug", PostSection.TECH))
+        val first = service.createMetadata(PostMetadataCreateRequest("원본", "same-slug"))
+        val second = service.createMetadata(PostMetadataCreateRequest("다른 제목", "other-slug"))
         assertThrows<DataIntegrityViolationException> {
             jdbc.update("UPDATE posts SET slug = ? WHERE id = ?", first.slug, second.id)
         }
@@ -103,11 +102,11 @@ class PostPersistenceIntegrationTest(
     /** 나중 검증 실패가 같은 외부 트랜잭션의 첫 등록까지 되돌림. */
     @Test
     fun rollsBackWholeTransactionAfterValidationFailure() {
-        service.createMetadata(PostMetadataCreateRequest("기존", "existing-post", PostSection.TECH))
+        service.createMetadata(PostMetadataCreateRequest("기존", "existing-post"))
         assertThrows<InvalidPostRequestException> {
             TransactionTemplate(transactionManager).execute {
-                service.createMetadata(PostMetadataCreateRequest("첫 저장", "first-post", PostSection.TECH))
-                service.createMetadata(PostMetadataCreateRequest("   ", "invalid-post", PostSection.TECH))
+                service.createMetadata(PostMetadataCreateRequest("첫 저장", "first-post"))
+                service.createMetadata(PostMetadataCreateRequest("   ", "invalid-post"))
             }
         }
         assertEquals(1, countPosts())
@@ -129,7 +128,7 @@ class PostPersistenceIntegrationTest(
     /** 글 삭제 시 FK가 태그·위키 선언을 함께 정리. */
     @Test
     fun deletingPostCascadesToItsMetadata() {
-        val post = service.createMetadata(PostMetadataCreateRequest("삭제할 글", "delete-post", PostSection.TECH))
+        val post = service.createMetadata(PostMetadataCreateRequest("삭제할 글", "delete-post"))
         val id = post.id
         jdbc.update("INSERT INTO post_tags (post_id, position, tag_name, display_name) VALUES (?, 0, 'kotlin', 'Kotlin')", id)
         jdbc.update("INSERT INTO post_wiki_links (post_id, position, target_title) VALUES (?, 0, '다른 글')", id)
@@ -138,21 +137,16 @@ class PostPersistenceIntegrationTest(
             assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM $table WHERE post_id = ?", Int::class.java, id))
     }
 
-    /** schema 재실행이 기존 글·소비된 복구 코드·분류 잠금 행을 보존. */
+    /** schema 재실행이 기존 글·로그인 실패 상태·분류 잠금 행을 보존. */
     @Test
     fun repeatedInitializationPreservesExistingState() {
-        val post = service.createMetadata(PostMetadataCreateRequest("유지할 글", "keep-post", PostSection.TECH))
-        val codeHash = "c".repeat(64)
-        try {
-            jdbc.update("INSERT INTO admin_recovery_codes (code_hash, consumed_at) VALUES (?, UTC_TIMESTAMP(6))", codeHash)
-            val initializer = ResourceDatabasePopulator(ClassPathResource("schema.sql"))
-            repeat(2) { initializer.execute(jdbc.dataSource!!) }
-            assertEquals("유지할 글", service.findById(post.id)?.title)
-            assertEquals(1, jdbc.queryForObject(
-                "SELECT COUNT(*) FROM admin_recovery_codes WHERE code_hash = ? AND consumed_at IS NOT NULL",
-                Int::class.java, codeHash))
-            assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM content_state WHERE id = 1", Int::class.java))
-        } finally { jdbc.update("DELETE FROM admin_recovery_codes WHERE code_hash = ?", codeHash) }
+        val post = service.createMetadata(PostMetadataCreateRequest("유지할 글", "keep-post"))
+        jdbc.update("UPDATE admin_auth_state SET failure_count = 2 WHERE id = 1")
+        val initializer = ResourceDatabasePopulator(ClassPathResource("schema.sql"))
+        repeat(2) { initializer.execute(jdbc.dataSource!!) }
+        assertEquals("유지할 글", service.findBySlug(post.slug)?.title)
+        assertEquals(2, jdbc.queryForObject("SELECT failure_count FROM admin_auth_state WHERE id = 1", Int::class.java))
+        assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM content_state WHERE id = 1", Int::class.java))
     }
 
     private fun countPosts(): Int = jdbc.queryForObject("SELECT COUNT(*) FROM posts", Int::class.java)!!

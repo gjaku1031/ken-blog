@@ -1,255 +1,116 @@
 package io.github.gjaku1031.kenblog.post.domain
 
 import io.github.gjaku1031.kenblog.category.domain.CategoryEntity
-import io.github.gjaku1031.kenblog.note.domain.CourseEntity
-import io.github.gjaku1031.kenblog.post.service.PostService
-import io.github.gjaku1031.kenblog.project.domain.ProjectEntity
-import jakarta.persistence.Column
-import jakarta.persistence.Entity
-import jakarta.persistence.EnumType
-import jakarta.persistence.Enumerated
-import jakarta.persistence.FetchType
-import jakarta.persistence.GeneratedValue
-import jakarta.persistence.GenerationType
-import jakarta.persistence.Id
-import jakarta.persistence.JoinColumn
-import jakarta.persistence.ManyToOne
-import jakarta.persistence.Table
-import jakarta.persistence.UniqueConstraint
+import io.github.gjaku1031.kenblog.series.domain.SeriesEntity
+import jakarta.persistence.*
 import java.time.LocalDateTime
 import org.hibernate.annotations.OnDelete
 import org.hibernate.annotations.OnDeleteAction
 
-/** 게시글의 임시 저장과 공개 출간 여부. */
+/** 글의 출간 여부. 본문은 저장소 Markdown에서만 수정. */
 enum class PostStatus { DRAFT, PUBLISHED }
-
-/** 이전 DB 열의 호환 값. 새 원고와 출간은 PUBLIC만 허용. */
+/** 기존 비공개 자료를 자동 공개하지 않기 위한 저장 호환 값. */
 enum class PostVisibility { PUBLIC, PRIVATE }
 
-/** Tech 글·프로젝트 대문·문서의 공개 탐색 구획. */
-enum class PostSection { TECH, PROJECT_HOME, PROJECT_DOC, NOTE_CHAPTER }
-
-/**
- * `posts` 행에 대응하는 초안·출간 게시글 저장 모델.
- *
- * 시간은 UTC의 [LocalDateTime]으로 저장하며 생성 시 [updatedAt]은 [createdAt]과 같음.
- * 본문 호환 열은 기존 데이터 복구를 위해 유지하고 새 글은 빈 값으로 등록함.
- * 최초 [publishedAt]은 철회·재출간에도 유지함.
- */
+/** Tech·프로젝트·공부를 같은 글 모델로 저장하고 시리즈 소속으로 탐색 구획 결정. */
 @Entity
-@Table(name = "posts", uniqueConstraints = [
-    UniqueConstraint(name = "uk_posts_slug", columnNames = ["slug"]),
-])
+@Table(name = "posts", uniqueConstraints = [UniqueConstraint(name = "uk_posts_slug", columnNames = ["slug"])])
 class PostEntity protected constructor() {
-    // DB 외래 키와 삭제 규칙. 저장은 기존 ID 필드를 사용.
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "category_id", insertable = false, updatable = false)
     private var category: CategoryEntity? = null
-
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "project_id", insertable = false, updatable = false)
-    private var project: ProjectEntity? = null
-
+    @JoinColumn(name = "series_id", insertable = false, updatable = false)
+    private var series: SeriesEntity? = null
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "related_project_id", insertable = false, updatable = false)
+    @JoinColumn(name = "related_series_id", insertable = false, updatable = false)
     @OnDelete(action = OnDeleteAction.SET_NULL)
-    private var relatedProject: ProjectEntity? = null
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "course_id", insertable = false, updatable = false)
-    private var course: CourseEntity? = null
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private var relatedSeries: SeriesEntity? = null
+    @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     var id: Long? = null
         protected set
-
     @Column(nullable = false, length = 200)
     lateinit var title: String
         protected set
-
     @Column(nullable = false, length = 160, columnDefinition = "varchar(160) character set ascii collate ascii_bin")
     lateinit var slug: String
         protected set
-
+    // 옛 DB 원문과 해시는 복구 자료로 유지하며 신규 등록은 빈 값.
     @Column(nullable = false, columnDefinition = "longtext")
     lateinit var body: String
         protected set
-
-    @Column(name = "body_sha256", nullable = false, length = 64, columnDefinition = "char(64)")
+    @Column(name = "body_sha256", nullable = false, columnDefinition = "char(64)")
     lateinit var bodySha256: String
         protected set
-
     @Column(nullable = false, length = 120)
     var summary: String = ""
         protected set
-
-    /** 기존 스키마 호환용 열. 핀 정렬 기능은 더 이상 제공하지 않음. */
-    @Column(name = "pin_order")
-    var pinOrder: Int? = null
-        protected set
-
-    /** 기존 스키마 호환용 열. 조회수 수집·수정 기능은 제공하지 않음. */
-    @Column(name = "view_count", nullable = false)
-    var viewCount: Long = 0
-        protected set
-
     @Column(name = "category_id")
     var categoryId: Long? = null
         protected set
-
-    @Column(name = "tech_series_order")
-    var techSeriesOrder: Int? = null
+    @Column(name = "series_id")
+    var seriesId: Long? = null
         protected set
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 16)
-    var section: PostSection = PostSection.TECH
+    @Column(name = "related_series_id")
+    var relatedSeriesId: Long? = null
         protected set
-
-    @Column(name = "project_id")
-    var projectId: Long? = null
+    @Column(name = "series_order")
+    var seriesOrder: Int? = null
         protected set
-
-    @Column(name = "related_project_id")
-    var relatedProjectId: Long? = null
+    // 이전 구획은 이관 때 TECH로 정규화. 앱의 종류 판단에는 사용하지 않음.
+    @Column(name = "section", nullable = false, length = 16)
+    private var legacySection: String = "TECH"
+    @Column(name = "legacy_path", length = 500)
+    var legacyPath: String? = null
         protected set
-
-    @Column(name = "document_order")
-    var documentOrder: Int? = null
-        protected set
-
-    @Column(name = "course_id")
-    var courseId: Long? = null
-        protected set
-
-    @Column(name = "chapter_order")
-    var chapterOrder: Int? = null
-        protected set
-
+    @Column(name = "pin_order")
+    private var legacyPinOrder: Int? = null
+    @Column(name = "view_count", nullable = false)
+    private var legacyViewCount: Long = 0
     @Column(name = "created_at", nullable = false, columnDefinition = "datetime(6)")
     lateinit var createdAt: LocalDateTime
         protected set
-
     @Column(name = "updated_at", nullable = false, columnDefinition = "datetime(6)")
     lateinit var updatedAt: LocalDateTime
         protected set
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 16)
+    @Enumerated(EnumType.STRING) @Column(nullable = false, columnDefinition = "varchar(16)")
     var status: PostStatus = PostStatus.DRAFT
         protected set
-
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 16)
+    @Enumerated(EnumType.STRING) @Column(nullable = false, columnDefinition = "varchar(16)")
     var visibility: PostVisibility = PostVisibility.PUBLIC
         protected set
-
     @Column(name = "published_at", columnDefinition = "datetime(6)")
     var publishedAt: LocalDateTime? = null
         protected set
 
-    /**
-     * 검증된 초안과 UTC 시각으로 새 영속 객체를 생성.
-     *
-     * 호출자는 [PostService.createMetadata]에서 입력을 먼저 검증해야 함.
-     *
-     * @param title 앞뒤 공백을 제거한 제목
-     * @param slug 정규화한 고유 주소
-     * @param body 기존 DB 호환 열에 기록할 초기 본문(신규 등록은 빈 문자열)
-     * @param createdAt 생성 및 최초 수정 시각
-     */
-    internal constructor(title: String, slug: String, body: String, createdAt: LocalDateTime) : this() {
+    internal constructor(title: String, slug: String, body: String, now: LocalDateTime) : this() {
         this.title = title
         this.slug = slug
         this.body = body
         this.bodySha256 = PostBodyHash.sha256(body)
-        this.createdAt = createdAt
-        this.updatedAt = createdAt
+        this.createdAt = now
+        this.updatedAt = now
     }
 
-    /** 저장소 Markdown을 읽거나 수정하지 않고 제목·요약만 갱신. */
-    internal fun replaceMetadata(title: String, summary: String, updatedAt: LocalDateTime) {
+    internal fun replaceMetadata(title: String, summary: String, now: LocalDateTime) {
         this.title = title
         this.summary = summary
-        this.updatedAt = updatedAt
+        this.updatedAt = now
     }
-
-    /**
-     * 출간 또는 재출간하고 최초 UTC 출간 시각을 보존.
-     *
-     * 상태·범위가 이미 같다면 수정 시각도 유지함.
-     *
-     * @param visibility 새 [PostVisibility]
-     * @param now UTC 상태 변경 시각
-     */
+    internal fun changeCategory(id: Long?, now: LocalDateTime) { categoryId = id; updatedAt = now }
+    internal fun assignSeries(id: Long?, order: Int?, relatedId: Long?, now: LocalDateTime) {
+        seriesId = id; seriesOrder = order; relatedSeriesId = relatedId; updatedAt = now
+    }
+    /** 순서만 바꿔 원고의 수정 시각·해시 보존. */
+    internal fun reorder(order: Int?) { seriesOrder = order }
     internal fun publish(visibility: PostVisibility, now: LocalDateTime) {
         if (visibility != PostVisibility.PUBLIC) throw InvalidPostRequestException()
         if (status == PostStatus.PUBLISHED && this.visibility == visibility) return
         if (publishedAt == null) publishedAt = now
-        status = PostStatus.PUBLISHED
-        this.visibility = visibility
-        updatedAt = now
+        status = PostStatus.PUBLISHED; this.visibility = visibility; updatedAt = now
     }
-
-    /**
-     * 초안으로 되돌리되 최초 [publishedAt]을 보존.
-     *
-     * @param now UTC 상태 변경 시각
-     */
     internal fun unpublish(now: LocalDateTime) {
         if (status == PostStatus.DRAFT) return
-        status = PostStatus.DRAFT
-        updatedAt = now
-    }
-
-    /**
-     * 본문·출간 상태를 건드리지 않고 연결한 분류 ID와 수정 시각을 바꿈.
-     *
-     * @param categoryId 현재 존재 확인을 마친 분류 ID 또는 해제를 뜻하는 `null`
-     * @param now UTC 수정 시각
-     */
-    internal fun changeCategory(categoryId: Long?, now: LocalDateTime) {
-        if (this.categoryId != categoryId) this.techSeriesOrder = null
-        this.categoryId = categoryId
-        this.updatedAt = now
-    }
-
-    /** [PostService]가 검증한 TECH 소분류 번호를 원문 수정 시각과 함께 적용. */
-    internal fun changeTechSeriesOrder(order: Int?, now: LocalDateTime) {
-        techSeriesOrder = order
-        updatedAt = now
-    }
-
-    /** 새 PROJECT_HOME 또는 PROJECT_DOC 글의 소속과 문서 순서를 지정. */
-    internal fun assignProject(section: PostSection, projectId: Long, documentOrder: Int?) {
-        this.section = section
-        this.projectId = projectId
-        this.relatedProjectId = null
-        this.documentOrder = documentOrder
-    }
-
-    /** 새 회차에 과목 식별자와 삭제 후에도 유지되는 저장 순서를 지정. */
-    internal fun assignCourse(courseId: Long, chapterOrder: Int) {
-        section = PostSection.NOTE_CHAPTER
-        this.courseId = courseId
-        this.chapterOrder = chapterOrder
-    }
-
-    /** 과목 잠금 아래 순서만 변경해 공개 본문의 수정 기준 시각을 보존. */
-    internal fun reorderChapter(order: Int) { chapterOrder = order }
-
-    /** 등록한 글의 명시 요약을 저장. */
-    internal fun replaceSummary(value: String) { summary = value }
-
-    /** TECH 글의 관련 프로젝트를 저장하거나 해제. */
-    internal fun relateProject(projectId: Long?, now: LocalDateTime) {
-        relatedProjectId = projectId
-        updatedAt = now
-    }
-
-    /** 부모 프로젝트 잠금 아래 문서 순서만 변경해 원고 수정 기준 시각을 보존. */
-    internal fun reorder(order: Int) {
-        documentOrder = order
+        status = PostStatus.DRAFT; updatedAt = now
     }
 }

@@ -4,11 +4,11 @@ package io.github.gjaku1031.kenblog.stack.service
 import io.github.gjaku1031.kenblog.attachment.service.ManagedImageNormalizer
 import io.github.gjaku1031.kenblog.attachment.storage.LocalAssetStorage
 import io.github.gjaku1031.kenblog.operations.domain.OperationFailure
-import io.github.gjaku1031.kenblog.project.repository.ProjectRepository
-import io.github.gjaku1031.kenblog.stack.domain.ProjectStackBadgeEntity
+import io.github.gjaku1031.kenblog.series.repository.SeriesRepository
+import io.github.gjaku1031.kenblog.stack.domain.SeriesStackBadgeEntity
 import io.github.gjaku1031.kenblog.stack.domain.StackBadgeEntity
 import io.github.gjaku1031.kenblog.stack.dto.StackBadgeResponse
-import io.github.gjaku1031.kenblog.stack.repository.ProjectStackBadgeRepository
+import io.github.gjaku1031.kenblog.stack.repository.SeriesStackBadgeRepository
 import io.github.gjaku1031.kenblog.stack.repository.StackBadgeRepository
 import java.io.InputStream
 import java.time.LocalDateTime
@@ -29,8 +29,8 @@ import org.springframework.web.multipart.MultipartFile
 @Service
 class StackBadgeService(
     private val badges: StackBadgeRepository,
-    private val links: ProjectStackBadgeRepository,
-    private val projects: ProjectRepository,
+    private val links: SeriesStackBadgeRepository,
+    private val projects: SeriesRepository,
     private val images: ManagedImageNormalizer,
     private val storage: LocalAssetStorage,
     manager: PlatformTransactionManager,
@@ -46,7 +46,7 @@ class StackBadgeService(
 
     /** @return 프로젝트 출간 속성에서 사용할 선택 순서의 뱃지 목록. */
     @Transactional(readOnly = true)
-    fun listForProject(projectId: Long): List<StackBadgeResponse> = links.findByIdProjectIdOrderBySortOrder(projectId).mapNotNull {
+    fun listForSeries(seriesId: Long): List<StackBadgeResponse> = links.findByIdSeriesIdOrderBySortOrder(seriesId).mapNotNull {
         badges.findByIdOrNull(it.id.badgeId)?.response(false)
     }
 
@@ -56,17 +56,17 @@ class StackBadgeService(
      * @throws OperationFailure 없는 프로젝트나 등록되지 않은 이름·중복 입력일 때
      */
     @Transactional
-    fun replaceProjectStack(projectId: Long, names: List<String>) {
-        if (projectId <= 0 || !projects.existsById(projectId) || names.size > 30) badInput()
+    fun replaceSeriesStack(seriesId: Long, names: List<String>) {
+        if (seriesId <= 0 || projects.findByIdOrNull(seriesId)?.kind != io.github.gjaku1031.kenblog.series.domain.SeriesKind.PROJECT || names.size > 30) badInput()
         val selected = names.map { name ->
             val key = nameKey(name)
             badges.findByNameKey(key) ?: badInput()
         }
         if (selected.map { it.id }.toSet().size != selected.size) badInput()
-        links.deleteByIdProjectId(projectId)
+        links.deleteByIdSeriesId(seriesId)
         links.flush()
         links.saveAllAndFlush(selected.mapIndexed { index, badge ->
-            ProjectStackBadgeEntity(projectId, badge.id ?: error("Persisted badge has no ID"), index)
+            SeriesStackBadgeEntity(seriesId, badge.id ?: error("Persisted badge has no ID"), index)
         })
     }
 

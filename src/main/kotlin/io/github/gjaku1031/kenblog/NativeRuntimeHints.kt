@@ -1,13 +1,12 @@
 package io.github.gjaku1031.kenblog
 
 import io.github.gjaku1031.kenblog.mcp.authoring.McpDocumentValidation
-import io.github.gjaku1031.kenblog.mcp.dto.McpCourseInput
+import io.github.gjaku1031.kenblog.series.dto.*
 import io.github.gjaku1031.kenblog.mcp.dto.McpImageInput
 import io.github.gjaku1031.kenblog.mcp.dto.McpPostMetadataInput
 import io.github.gjaku1031.kenblog.mcp.dto.McpStackBadgeInput
 import io.github.gjaku1031.kenblog.mcp.tool.McpRegisteredPostResult
-import io.github.gjaku1031.kenblog.post.dto.ContentFeedItem
-import io.github.gjaku1031.kenblog.post.dto.ContentFeedPage
+import io.github.gjaku1031.kenblog.post.dto.*
 import io.modelcontextprotocol.spec.McpSchema
 import java.lang.reflect.RecordComponent
 import org.springframework.aot.hint.BindingReflectionHintsRegistrar
@@ -30,6 +29,7 @@ class NativeRuntimeHints : RuntimeHintsRegistrar {
         hints.resources().registerPattern("META-INF/spring.schemas")
         hints.resources().registerPattern("org/springframework/beans/factory/xml/spring-beans.xsd")
         registerImageIoHints(hints)
+        registerJooqHints(hints)
 
         // Jackson과 Kotlin reflection이 MCP Java record의 구성 요소 접근자를 Method.invoke로 조회한다.
         hints.reflection().registerType(RecordComponent::class.java, MemberCategory.INVOKE_PUBLIC_METHODS)
@@ -61,11 +61,16 @@ class NativeRuntimeHints : RuntimeHintsRegistrar {
             McpPostMetadataInput::class.java,
             McpImageInput::class.java,
             McpStackBadgeInput::class.java,
-            McpCourseInput::class.java,
+            SeriesCreateRequest::class.java,
+            SeriesMetadataRequest::class.java,
+            SeriesResponse::class.java,
+            SeriesDetailResponse::class.java,
             McpRegisteredPostResult::class.java,
             McpDocumentValidation::class.java,
-            ContentFeedItem::class.java,
+            PublicPostSummaryResponse::class.java,
             ContentFeedPage::class.java,
+            PostPageResponse::class.java,
+            PublicPostDetailResponse::class.java,
         )
 
         // Jackson의 Kotlin 모듈이 빈 컬렉션 싱글턴을 Kotlin reflection으로 다시 찾는다.
@@ -87,6 +92,19 @@ class NativeRuntimeHints : RuntimeHintsRegistrar {
         hints.reflection().registerJavaSerialization(UsernamePasswordAuthenticationToken::class.java)
         hints.reflection().registerJavaSerialization(SimpleGrantedAuthority::class.java)
         hints.reflection().registerJavaSerialization(DefaultCsrfToken::class.java)
+    }
+
+    /** jOOQ는 초기화 시 내장 SQL 타입의 배열 클래스와 dialect 클래스를 이름으로 찾는다. */
+    private fun registerJooqHints(hints: RuntimeHints) {
+        val sqlTypes = org.jooq.impl.SQLDataType::class.java
+        hints.reflection().registerType(sqlTypes, MemberCategory.ACCESS_PUBLIC_FIELDS)
+        sqlTypes.fields.filter { org.jooq.DataType::class.java.isAssignableFrom(it.type) }.forEach { field ->
+            val type = (field.get(null) as org.jooq.DataType<*>).type
+            hints.reflection().registerType(type.arrayType())
+        }
+        Class.forName("org.jooq.impl.SQLDataTypes").declaredClasses.forEach { type ->
+            hints.reflection().registerType(type)
+        }
     }
 
     /** JVM 추적 에이전트가 실제 PNG/JPEG 읽기·리사이즈·PNG 쓰기에서 관찰한 JDK JNI 접근. */

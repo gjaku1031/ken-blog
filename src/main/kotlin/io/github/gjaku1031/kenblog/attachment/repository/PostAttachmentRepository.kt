@@ -27,22 +27,4 @@ interface PostAttachmentRepository : JpaRepository<PostAttachmentEntity, PostAtt
     @Query("delete from PostAttachmentEntity l where l.key.postId = :postId")
     fun deleteByPostId(@Param("postId") postId: Long): Int
 
-    /** @return 현재 글 권한·연결·READY가 모두 맞는 객체의 비공개 내부 위치와 안전한 MIME·길이. */
-    @Query("select new io.github.gjaku1031.kenblog.attachment.dto.AttachmentDeliveryRow(a.objectKey, a.contentType, a.byteSize) " +
-        "from PostAttachmentEntity l, PostEntity p, AttachmentEntity a where l.key.postId = :postId " +
-        "and l.key.attachmentId = :attachmentId and p.id = l.key.postId and a.id = l.key.attachmentId " +
-        "and p.status = :published and (:includePrivate = true or p.visibility = :publicVisibility) and a.status = :ready " +
-        "and (p.section in ('TECH', 'NOTE_CHAPTER') or exists (select project.id from ProjectEntity project, PostEntity home " +
-        "where project.id = p.projectId and home.id = project.homePostId and home.projectId = project.id " +
-        "and home.section = 'PROJECT_HOME' and home.status = :published " +
-        "and (:includePrivate = true or (project.visibility = :publicVisibility and home.visibility = :publicVisibility))))")
-    @Transactional(readOnly = true)
-    fun findReadable(
-        @Param("postId") postId: Long,
-        @Param("attachmentId") attachmentId: Long,
-        @Param("published") published: PostStatus,
-        @Param("publicVisibility") publicVisibility: PostVisibility,
-        @Param("includePrivate") includePrivate: Boolean,
-        @Param("ready") ready: AttachmentStatus,
-    ): AttachmentDeliveryRow?
 }

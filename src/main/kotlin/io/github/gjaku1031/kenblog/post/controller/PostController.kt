@@ -98,7 +98,16 @@ class PostController(private val service: PostService, private val navigation: W
         ))
     }
 
-    /** 원고를 건드리지 않고 Tech 번호·프로젝트 문서·Notes 회차의 표시 순서만 변경. */
+    @PutMapping("/{id}/series")
+    fun series(@PathVariable id: Long, @RequestBody request: JsonNode): ResponseEntity<PostDetailResponse> {
+        if (!request.isObject || request.size() != 3 || !request.has("seriesId") || !request.has("order") || !request.has("relatedSeriesId"))
+            throw InvalidPostRequestException()
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.setSeries(id,
+            PostMetadataCreateRequest.optionalLong(request, "seriesId"), PostMetadataCreateRequest.optionalInt(request, "order"),
+            PostMetadataCreateRequest.optionalLong(request, "relatedSeriesId")))
+    }
+
+    /** 원고를 건드리지 않고 문서의 표시 순서만 변경. */
     @PutMapping("/{id}/order", consumes = [MediaType.APPLICATION_JSON_VALUE], produces = [MediaType.APPLICATION_JSON_VALUE])
     fun order(@PathVariable id: Long, @RequestBody request: JsonNode): ResponseEntity<PostDetailResponse> {
         if (!request.isObject || request.size() != 1 || !request.has("order")) throw InvalidPostRequestException()

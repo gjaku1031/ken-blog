@@ -7,8 +7,8 @@
     <div class="card-meta">
       <strong th:text="${card.label}">Tech</strong><span th:if="${!#strings.isEmpty(card.categoryPath)}" th:text="|· ${card.categoryPath}|">분류</span><span th:if="${!#strings.isEmpty(card.context)}" th:text="|· ${card.context}|">문맥</span>
     </div>
-    <div th:if="${card.section == 'TECH' and card['relatedProject'] != null}" class="card-related-project">
-      <span>[연관 프로젝트]</span><th:block th:text="${card.relatedProject.name}">프로젝트</th:block>
+    <div th:if="${card.section == 'TECH' and card['relatedSeries'] != null}" class="card-related-project">
+      <span>[연관 프로젝트]</span><th:block th:text="${card.relatedSeries.name}">프로젝트</th:block>
     </div>
     <div class="card-title-row">
       <h2>

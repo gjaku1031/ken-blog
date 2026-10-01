@@ -13,6 +13,9 @@
       </div>
       <p th:if="${searching}" id="search-filter" class="active-filters">
       </p>
+      <nav th:if="${!#lists.isEmpty(groups)}" class="tag-list" aria-label="시리즈와 소분류 대문">
+        <a th:each="group : ${groups}" th:href="${group.href}" th:text="${group.name}"></a>
+      </nav>
       <div class="post-list" th:insert="~{views/cards :: cards}">
       </div>
       <p id="filter-empty" class="message-card card" hidden>검색 결과가 없습니다.</p>

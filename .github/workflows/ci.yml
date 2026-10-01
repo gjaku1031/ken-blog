@@ -49,7 +49,7 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/ken-blog-fixture"
           cat > "$RUNNER_TEMP/ken-blog-fixture/empty.json" <<'JSON'
-          {"version":1,"profile":null,"feed":[],"projects":[],"notes":[],"posts":[],"projectDetails":{},"projectDocuments":{},"courseDetails":{},"chapters":{}}
+          {"version":2,"profile":null,"posts":[],"series":[]}
           JSON
           SITE_BASE_PATH=/ken-blog npm run build:site -- --fixture="$RUNNER_TEMP/ken-blog-fixture/empty.json"
           test -s build/site/index.html
@@ -117,8 +117,9 @@ jobs:
             -e DB_URL=jdbc:mysql://127.0.0.1:13308/ken_blog_native_ci \
             -e DB_USERNAME=ci_native -e DB_PASSWORD=ci_native_ephemeral_only \
             -e BOOTSTRAP_ADMIN_USERNAME=ci_native_admin \
-            -e 'BOOTSTRAP_ADMIN_PASSWORD_HASH={bcrypt}$2b$10$NzwQIXy4U0AK.St1qn26Q.SKkJ/28hRZXbUgeJDqveETfsF3Z7fcG' \
+            -e 'BOOTSTRAP_ADMIN_PASSWORD_HASH={bcrypt}$2b$10$EJqDJenc5ZUn8Jk6tx/.ZuLJGLmLPghnFRE10HV3/1bFZNK54uZT.' \
             -e ADMIN_USERNAME=ci_native_admin \
+            -e SESSION_COOKIE_SECURE=false -e SESSION_COOKIE_SAME_SITE=lax -e SESSION_COOKIE_PARTITIONED=false \
             -e APP_MCP_ENABLED=true \
             -e APP_MCP_ALLOWED_HOSTS=127.0.0.1:8080 \
             -e APP_MCP_ALLOWED_PEERS=127.0.0.1,::1 \
@@ -158,6 +159,7 @@ jobs:
           python3 - <<'PY'
           import base64
           import hashlib
+          import http.cookiejar
           import json
           import os
           import struct
@@ -222,7 +224,9 @@ jobs:
           })
           rpc('notifications/initialized', notification=True)
           tools = {item['name'] for item in rpc('tools/list')['tools']}
-          assert len(tools) == 25, tools
+          assert len(tools) == 24, tools
+          assert {'blog_create_series', 'blog_set_post_series'} <= tools
+          assert not any('project' in name or 'course' in name for name in tools)
           assert {'blog_upload_image', 'blog_create_stack_badge'} <= tools
           resources = rpc('resources/list')['resources']
           assert resources
@@ -262,48 +266,75 @@ jobs:
               assert normalized[12:16] == b'IHDR'
               assert struct.unpack('>II', normalized[16:24]) == (64, 64), label
 
+          series = tool('blog_create_series', {'input': {
+              'slug': 'native-ci-series', 'kind': 'PROJECT',
+              'metadata': {'name': 'Native CI Project', 'projectStatus': 'PLAN',
+                           'startPeriod': '2026.10', 'stackBadgeNames': ['Native CI PNG']},
+          }})
+          assert series['kind'] == 'PROJECT' and series.get('cover') is None, series
+          assert series['startPeriod'] == '2026.10' and len(series['stackBadges']) == 1, series
           slug = 'native-ci-project'
           registered = tool('blog_register_post', {'input': {
-              'title': 'Native CI Project',
-              'slug': slug,
-              'section': 'PROJECT_HOME',
-              'projectMetadata': {
-                  'status': 'PLAN',
-                  'startPeriod': '2026.10',
-                  'overview': 'Native metadata fixture',
-              },
+              'title': 'Native CI Project', 'slug': slug, 'seriesId': series['id'], 'order': 1,
           }})
           assert registered['sourcePath'] == 'content/posts/' + slug + '.md', registered
           post = registered['post']
-          assert post['id'] > 0 and post['projectId'] > 0, post
-          assert post['section'] == 'PROJECT_HOME' and post['status'] == 'DRAFT', post
-          assert post['body'] == '' and post['projectMetadata']['startPeriod'] == '2026.10', post
-          assert post['projectMetadata']['status'] == 'PLAN', post
+          assert post['id'] > 0 and post['series']['id'] == series['id'], post
+          assert post['section'] == 'PROJECT' and post['status'] == 'DRAFT', post
+          assert post['body'] == '' and post['seriesOrder'] == 1, post
 
           source = os.path.join(os.environ['RUNNER_TEMP'], 'ken-blog-native-content', 'posts', slug + '.md')
           assert subprocess.run(['sudo', 'test', '!', '-e', source], check=False).returncode == 0, source
-          project = tool('blog_get_project', {'projectId': post['projectId']})
-          assert project['project']['id'] == post['projectId'], project
-          assert project['project']['homePostId'] == post['id'], project
-          assert project['home']['id'] == post['id'] and project['documents'] == [], project
+          detail = tool('blog_get_series', {'id': series['id']})
+          assert detail['series']['id'] == series['id'], detail
+          assert detail['series'].get('cover') is None, detail
+          assert len(detail['posts']) == 1 and detail['posts'][0]['id'] == post['id'], detail
 
           body = '# Native CI Project\n\nRepository Markdown fixture.\n'
           subprocess.run(['sudo', 'tee', source], input=body.encode(), stdout=subprocess.DEVNULL, check=True)
+          subprocess.run(['sudo', 'chown', '10001:1001', source], check=True)
+          subprocess.run(['sudo', 'chmod', '0640', source], check=True)
           fetched = tool('blog_get_post', {'postId': post['id']})
-          assert fetched['body'] == body and fetched['projectId'] == post['projectId'], fetched
+          assert fetched['body'] == body and fetched['series']['id'] == series['id'], fetched
           assert fetched['bodySha256'] == hashlib.sha256(body.encode()).hexdigest(), fetched
 
           request = urllib.request.Request(base + '/api/v1/pages/snapshot', headers={'Accept': 'application/json'})
           with opener.open(request, timeout=30) as response:
               assert response.status == 200
               snapshot = json.load(response)
-          assert snapshot['version'] == 1 and len(snapshot['revision']) == 64, snapshot
-          assert all(snapshot[key] == [] for key in ('feed', 'projects', 'notes', 'posts')), snapshot
-          assert all(snapshot[key] == {} for key in
-                     ('projectDetails', 'projectDocuments', 'courseDetails', 'chapters')), snapshot
+          assert snapshot['version'] == 2 and len(snapshot['revision']) == 64, snapshot
+          assert snapshot['posts'] == [] and snapshot['series'] == [], snapshot
           assert slug not in json.dumps(snapshot), snapshot
 
-          print('PASS native MCP metadata, 25 tools, resource, prompt, PNG/JPEG uploads, 64px badges and draft-safe empty Pages snapshot')
+          tool('blog_set_post_publication', {'postId': post['id'], 'published': True})
+          with opener.open(request, timeout=30) as response:
+              snapshot = json.load(response)
+          assert len(snapshot['posts']) == 1 and len(snapshot['series']) == 1, snapshot
+          assert snapshot['series'][0]['cover']['id'] == post['id'], snapshot
+          assert snapshot['posts'][0]['section'] == 'PROJECT', snapshot
+          tool('blog_list_posts', {'page': 0, 'size': 20})
+          tool('blog_search_posts', {'query': 'Native', 'page': 0, 'size': 20})
+          tool('blog_set_post_publication', {'postId': post['id'], 'published': False})
+
+          auth = urllib.request.build_opener(urllib.request.ProxyHandler({}),
+              urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+          with auth.open(base + '/api/v1/auth/csrf') as response:
+              csrf = json.load(response)['token']
+          login = urllib.request.Request(base + '/api/v1/auth/login',
+              json.dumps({'password': 'native-ci-ephemeral-only', 'rememberMe': True}).encode(),
+              headers={'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf})
+          with auth.open(login) as response:
+              assert response.status == 200
+          with auth.open(base + '/api/v1/auth/me') as response:
+              assert json.load(response)['username'] == 'ci_native_admin'
+          with auth.open(base + '/api/v1/auth/csrf') as response:
+              csrf = json.load(response)['token']
+          logout = urllib.request.Request(base + '/api/v1/auth/logout', data=b'',
+              headers={'X-CSRF-TOKEN': csrf})
+          with auth.open(logout) as response:
+              assert response.status == 204
+
+          print('PASS password-only login/logout and native MCP metadata, 24 tools, series/post jOOQ reads, resource, prompt, PNG/JPEG uploads, 64px badges and Pages v2 visibility')
           PY
       - name: Upload reviewed image archive
         uses: actions/upload-artifact@v7.0.1

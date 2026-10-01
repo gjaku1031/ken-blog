@@ -56,10 +56,8 @@ data class WikiNavigationItem(
     val title: String,
     val slug: String,
     val section: String = "TECH",
-    val projectSlug: String? = null,
-    val courseSlug: String? = null,
-    val projectName: String? = null,
-    val courseName: String? = null,
+    val seriesSlug: String? = null,
+    val seriesName: String? = null,
 )
 
 /** 관리자 부분 제목 검색과 동일 입력의 정확한 위키 해석. */
@@ -93,18 +91,6 @@ data class WikiLinkCorrectionRequest(
     }
 }
 
-/** SQL 본문 없는 네이티브 조회가 제공하는 이동용 최소 행. */
-interface WikiNavigationRow {
-    val id: Long
-    val title: String
-    val slug: String
-    val section: String
-    val projectSlug: String?
-    val courseSlug: String?
-    val projectName: String?
-    val courseName: String?
-}
-
-/** @return [WikiNavigationRow]의 허용된 소속 이름과 이동 주소를 공개 DTO로 복사. */
-fun WikiNavigationRow.navigationItem(): WikiNavigationItem = WikiNavigationItem(id, title, slug, section,
-    projectSlug, courseSlug, projectName, courseName)
+/** 공통 조회 행의 공개 이동 정보. */
+fun io.github.gjaku1031.kenblog.post.repository.PostRow.navigationItem() = WikiNavigationItem(
+    id, title, slug, series?.kind?.name ?: "TECH", series?.slug, series?.name)

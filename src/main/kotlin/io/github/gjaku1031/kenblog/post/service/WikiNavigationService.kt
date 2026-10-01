@@ -8,7 +8,7 @@ import io.github.gjaku1031.kenblog.post.dto.WikiLinkMissing
 import io.github.gjaku1031.kenblog.post.dto.WikiLinkReadable
 import io.github.gjaku1031.kenblog.post.dto.WikiTitleSearchResponse
 import io.github.gjaku1031.kenblog.post.dto.navigationItem
-import io.github.gjaku1031.kenblog.post.repository.PostRepository
+import io.github.gjaku1031.kenblog.post.repository.PostQueries
 import java.util.Locale
 import org.springframework.security.core.Authentication
 import org.springframework.stereotype.Service
@@ -16,7 +16,7 @@ import org.springframework.transaction.annotation.Transactional
 
 /** 본문 없이 제목 대표 검색과 현재 권한의 저장된 역링크를 읽는 서비스. */
 @Service
-class WikiNavigationService(private val posts: PostRepository) {
+class WikiNavigationService(private val posts: PostQueries) {
     /**
      * ADMIN 입력의 실제 부분 문자열 후보와 동일 제목 정확 해석을 본문 없이 반환.
      * @throws InvalidWikiLinkRequestException 길이·제어 문자가 잘못됐을 때
@@ -32,11 +32,11 @@ class WikiNavigationService(private val posts: PostRepository) {
                 codePoint in 0xD800..0xDFFF) throw InvalidWikiLinkRequestException()
             offset += Character.charCount(codePoint)
         }
-        val exact = posts.findWikiLinkTarget(query)?.let {
-            WikiLinkReadable(query, it.id, it.title, it.slug, it.section, it.projectSlug, it.courseSlug)
+        val exact = posts.wikiTarget(query)?.let {
+            WikiLinkReadable(query, it.id, it.title, it.slug, it.series?.kind?.name ?: "TECH", it.series?.slug)
         }
             ?: WikiLinkMissing(query)
-        return WikiTitleSearchResponse(posts.searchCanonicalTitles(query).map { it.navigationItem() }, exact)
+        return WikiTitleSearchResponse(posts.titleSearch(query).map { it.navigationItem() }, exact)
     }
 
     /**
@@ -50,12 +50,10 @@ class WikiNavigationService(private val posts: PostRepository) {
         if (page < 0 || page.toLong() * PAGE_SIZE > Int.MAX_VALUE) throw InvalidPostRequestException()
         val normalizedSlug = slug.trim().lowercase(Locale.ROOT)
         if (normalizedSlug.length > 160 || !SLUG_PATTERN.matches(normalizedSlug)) throw PostNotFoundException()
-        val target = posts.findPublishedWikiTargetBySlug(normalizedSlug) ?: throw PostNotFoundException()
-        if (target.visibility != "PUBLIC" || target.section !in listOf("TECH", "NOTE_CHAPTER") &&
-                (target.projectVisibility != "PUBLIC" || target.homeVisibility != "PUBLIC")) throw PostNotFoundException()
-        val canonical = posts.findWikiLinkTarget(target.title)
+        val target = posts.publicBySlug(normalizedSlug) ?: throw PostNotFoundException()
+        val canonical = posts.wikiTarget(target.title)
         if (canonical?.id != target.id) return WikiBacklinkPageResponse(emptyList(), page, false)
-        val rows = posts.findBacklinkRows(target.id, target.title, false, page * PAGE_SIZE)
+        val rows = posts.backlinks(target.id, target.title, page * PAGE_SIZE)
         return WikiBacklinkPageResponse(rows.take(PAGE_SIZE).map { it.navigationItem() }, page, rows.size > PAGE_SIZE)
     }
 

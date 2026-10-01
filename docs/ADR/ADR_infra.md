@@ -1,6 +1,6 @@
 # 인프라 결정 기록
 
-기준일: 2026-10-01. 인프라 변경 시 구현과 함께 갱신하는 결정 원본 문서.
+기준일: 2026-10-02. 인프라 변경 시 구현과 함께 갱신하는 결정 원본 문서.
 
 **코드의 구성과 실제 운영 적용 상태를 구분하는 원칙.** 현재 운영 원고·OCI 첨부 이관 전이며, 아래 신규 구성의 실서버 전환·push·배포는 보류 상태.
 
@@ -25,7 +25,7 @@ flowchart LR
 | Caddy가 공개 HTTPS 종료·인증서 갱신 | 별도 Certbot·systemd·Spring 직접 TLS 관리 제거 | 소스 및 시험 인증서 검증 완료, 운영 발급·전환 전 |
 | 공개 IPv4 + Let’s Encrypt ACME `shortlived` | 도메인 구매 없이 지원되는 브라우저의 공개 신뢰 사용 | 설정 검증 완료, 실제 공개 인증서 요청 전 |
 | Caddy `default_sni`에 공인 IP 지정 | IP 접속의 SNI 부재와 OCI NAT 환경에서 올바른 인증서 선택 | IP URL의 TLS·주소 검증 완료 |
-| MySQL/JDBC 세션, 비밀번호+MFA, CSRF 유지 | 기존 인증·데이터 계약 유지 | JVM·Native의 비밀번호+MFA·JDBC 세션 및 재시작 검증 완료 |
+| MySQL/JDBC 세션, 단일 관리자 비밀번호, CSRF 유지 | 사용자 승인에 따라 MFA 제거, 로그인 실패 제한과 계정 변경 시 세션 해제 유지 | Post·Series 통합 브랜치 JVM 검증 완료; 아래 병합 검증 기록 참조 |
 | 원고는 저장소 Markdown, 이미지는 영속 로컬 파일 | 본문 웹 편집·S3/Redis 의존 제거 | 소스 구현 완료, 기존 자료 이관 전 |
 | Dockerfile 대신 CI의 `bootBuildImage` | 이미지 빌드 정의를 Gradle·Cloud Native Buildpacks로 통합 | 로컬 ARM64 이미지 빌드·CI 동일 검사 완료 |
 | GraalVM Native Image·Linux ARM64 | OCI ARM 서버 호환과 실행 시 JVM 메모리 부담 감소 목적 | 격리 Native 기능 검증 및 메모리 감소 실측 완료 |
@@ -106,3 +106,17 @@ AOT 분석은 `caddy` 프로필로 수행하며 해당 프로필의 쿠키·CORS
 - 같은 최종 코드·환경·DB·1 CPU/1GiB 조건의 API 메모리 비교 완료. 동일 읽기 요청 120회 후 중앙값 JVM 684.4MiB/Native 136.3MiB, 약 80.1% 감소 관측. 기본 한도 1GiB 유지.
 - 운영 잔여: 기존 DB 원고 추출·공개 Markdown 반영, OCI 이미지 로컬 이관·해시 확인, 운영 API/env·권한·방화벽·이미지 선택·Caddy 전환 후 Pages 배포.
 - 운영 이관 전 push·실서버 전환·실제 공개 인증서 발급은 보류 상태.
+
+## Post·Series 통합 병합 — 2026-10-02
+
+메인의 Native Image·Buildpacks·ARM64 CI·Caddy 구성을 유지한 채 Post·Series와 jOOQ 변경을 병합한다. JPA는 저장·단일 조회·잠금, jOOQ는 목록·검색·태그·위키·공개 첨부 조회를 담당한다. jOOQ 3.21.8의 Kotlin 테이블 코드는 저장소 DDL로 생성하며 코드 생성과 AOT가 운영 DB에 연결하지 않는다. 본문은 Markdown 정본을 유지하고 기존 DB 원문·ID·slug·비공개 상태를 보존하는 명시적 `ops/unify-post-series.py` 이관 도구를 제공한다.
+
+MFA 제거는 사용자 승인된 인증 요구사항 변경이다. 단일 설정 관리자 비밀번호·JDBC 세션·CSRF·로그인 실패 제한은 유지한다. 기존 MFA 자료는 DB에서 삭제하지 않으며 신규 세션 증명으로 이전 MFA 세션의 자동 재사용을 막는다. 운영 환경 예시에서 TOTP·복구 코드 설정도 제거한다.
+
+Native 힌트는 삭제된 Course·ContentFeedItem 대신 Series와 공통 Post DTO를 등록한다. CI의 과거 PROJECT_HOME/스냅샷 v1 검사를 새 Series→Post 등록·jOOQ 조회·공개/미출간 스냅샷 v2로 교체하고, 비밀번호 로그인·로그아웃 검사를 추가한다. CI의 HTTP loopback 검증만 개발 쿠키 설정을 사용하며 운영 Caddy의 Secure/SameSite=None/Partitioned 기본값은 유지한다.
+
+과거 Native 메모리·MFA 측정은 `504c2ab` 구현의 이력이며, 이번 jOOQ 통합 코드의 메모리 실측이나 MFA 동작을 뜻하지 않는다. 이번 병합은 기존 JVM 테스트 35개(실패·오류 0), TypeScript, Pages 빈 fixture, Spring AOT 생성과 새 DTO 힌트를 검증했다. 수정된 CI 시나리오를 JVM에서 실행하여 비밀번호 로그인·로그아웃, MCP 24개 도구·문서·프롬프트, PNG/JPEG·64px 배지, Series/Post 생성·jOOQ 목록/검색·공개 대문 및 스냅샷 v2를 확인했다. 수정 후 ARM64 Native 컨테이너에서도 동일 CI 기능 검사와 재시작 후 JDBC 비밀번호 세션·jOOQ 조회가 통과했다. 최종 로컬 기능 검증 이미지는 `-Ob` 빠른 컴파일 옵션을 사용했으며 저장소의 운영 최적화·메모리·Buildpacks 설정은 변경하지 않았다. 이 이미지는 배포하거나 메모리 성능 비교에 사용하지 않았다. 운영 DB 이관·push·배포는 이번 로컬 병합에 포함하지 않는다.
+
+병합 후 첫 Native 기동에서 jOOQ `SQLDataType`의 unsigned 배열 클래스 이름 조회가 누락되어 `DefaultDataType` 초기화가 실패했다. AOT에서 현재 jOOQ 버전의 공개 `DataType` 필드를 읽어 대응하는 배열 클래스를 등록하고, 내부 중첩 dialect 클래스 이름도 등록하도록 보완했다. 개별 타입 이름을 수동으로 고정하지 않아 라이브러리 갱신 시 새 내장 타입도 같은 규칙을 적용한다. [GraalVM 메타데이터 저장소의 관련 오류](https://github.com/oracle/graalvm-reachability-metadata/issues/752)
+
+CI 원고 fixture는 API와 동일한 10001:1001 소유자 및 0640 권한을 명시하여 runner의 umask에 따른 읽기 실패를 막는다. 운영 파일의 권한은 이 검사에서 변경하지 않는다.

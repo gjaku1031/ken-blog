@@ -8,11 +8,13 @@ plugins {
     kotlin("plugin.spring") version "2.3.21"
     id("org.springframework.boot") version "4.1.1"
     id("org.graalvm.buildtools.native") version "1.1.14"
+    id("org.jooq.jooq-codegen-gradle") version "3.21.8"
     id("io.spring.dependency-management") version "1.1.7"
 }
 
 group = "io.github.gjaku1031"
 version = "0.0.1-SNAPSHOT"
+extra["jooq.version"] = "3.21.8"
 
 repositories {
     mavenCentral()
@@ -41,6 +43,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-webmvc")
     implementation("org.springframework.boot:spring-boot-starter-thymeleaf")
     implementation("org.springframework.boot:spring-boot-starter-data-jpa")
+    implementation("org.springframework.boot:spring-boot-starter-jooq")
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-session-jdbc")
     implementation("org.springframework.ai:spring-ai-starter-mcp-server-webmvc")
@@ -51,7 +54,34 @@ dependencies {
     testImplementation("org.springframework.boot:spring-boot-testcontainers")
     testImplementation("org.testcontainers:testcontainers-mysql")
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
+    jooqCodegen("org.jooq:jooq-meta-extensions:3.21.8")
 }
+
+// 조회용 Kotlin 테이블 타입은 로컬 DDL로 생성하며 운영 DB에 연결하지 않는다.
+jooq {
+    configuration {
+        generator {
+            name = "org.jooq.codegen.KotlinGenerator"
+            database {
+                name = "org.jooq.meta.extensions.ddl.DDLDatabase"
+                properties {
+                    property { key = "scripts"; value = "src/jooq/schema.sql" }
+                    property { key = "unqualifiedSchema"; value = "none" }
+                    property { key = "defaultNameCase"; value = "lower" }
+                }
+            }
+            generate { isPojos = false; isDaos = false }
+            target {
+                packageName = "io.github.gjaku1031.kenblog.jooq"
+                directory = "build/generated-src/jooq/main"
+            }
+        }
+    }
+}
+
+kotlin.sourceSets.main { kotlin.srcDir("build/generated-src/jooq/main") }
+tasks.named("jooqCodegen") { inputs.file("src/jooq/schema.sql") }
+tasks.named("compileKotlin") { dependsOn("jooqCodegen") }
 
 // API JAR에는 화면 자산을 넣지 않고 Pages 빌드에서 npm으로 별도 생성한다.
 val skipWeb = providers.gradleProperty("skipWeb").map(String::toBoolean).orElse(false)

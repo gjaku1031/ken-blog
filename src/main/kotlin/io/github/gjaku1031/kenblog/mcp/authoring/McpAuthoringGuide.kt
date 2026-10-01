@@ -26,9 +26,9 @@ class McpAuthoringGuide(private val declarations: McpBodyDeclarations) {
         description = "Ken Blog MCP 글 작성 순서와 참조 문서 안내", mimeType = "text/markdown")
     fun skill(): String = read("SKILL.md")
 
-    /** @return Tech·Projects·Notes의 메타데이터 관계. */
+    /** @return 글·시리즈·프로젝트의 메타데이터 관계. */
     @McpResource(uri = "kenblog://authoring/content-model", name = "Ken Blog content model",
-        description = "섹션, 프로젝트, Notes, 뱃지의 저장 계약", mimeType = "text/markdown")
+        description = "글, 시리즈, 프로젝트 뱃지의 저장 계약", mimeType = "text/markdown")
     fun contentModel(): String = read("references/content-model.md")
 
     /** @return 웹 렌더러에 맞춘 저장 Markdown 문법. */
@@ -71,10 +71,10 @@ class McpAuthoringGuide(private val declarations: McpBodyDeclarations) {
     }
 
     /** 글감과 저장 위치를 받되 도구 실행은 요구하지 않는 작성 prompt. */
-    @McpPrompt(name = "plan_ken_blog_article", description = "Ken Blog 섹션에 맞는 Markdown 원고와 저장 필드 계획")
+    @McpPrompt(name = "plan_ken_blog_article", description = "Ken Blog 글 묶음에 맞는 Markdown 원고와 저장 필드 계획")
     fun planArticle(
         @McpArg(name = "topic", description = "글의 주제", required = true) topic: String,
-        @McpArg(name = "section", description = "TECH, PROJECT_HOME, PROJECT_DOC, NOTE_CHAPTER", required = true) section: String,
+        @McpArg(name = "section", description = "일반 글 또는 프로젝트 시리즈", required = true) section: String,
     ): GetPromptResult = GetPromptResult("Ken Blog 원고 계획", listOf(PromptMessage(Role.USER,
         TextContent("주제: $topic\n섹션: $section\nKen Blog 작성 스킬 kenblog://authoring/skill과 해당 참조를 읽고 " +
             "본문 구조·필요한 저장 메타데이터·첨부/위키 선언을 계획하세요. 출간은 사용자의 요청 범위에 맞추세요."))))

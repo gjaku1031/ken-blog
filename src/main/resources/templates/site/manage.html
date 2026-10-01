@@ -15,13 +15,11 @@
     <section id="login" class="login-card card" hidden>
       <p class="eyebrow">KEN BLOG / MANAGE</p>
       <h1>관리자 로그인</h1>
-      <p class="muted">비밀번호와 인증 앱의 일회용 코드를 입력하세요.</p>
+      <p class="muted">관리자 비밀번호를 입력하세요.</p>
       <p id="login-message" class="notice error" role="alert" hidden></p>
       <form id="login-form" autocomplete="on">
         <label for="password">비밀번호</label>
         <input id="password" name="password" type="password" autocomplete="current-password" required>
-        <label for="verificationCode">MFA 코드 또는 복구 코드</label>
-        <input id="verificationCode" name="verificationCode" type="text" autocomplete="one-time-code" required inputmode="text">
         <label class="check"><input name="rememberMe" type="checkbox"> 30일 동안 로그인 유지</label>
         <button class="button primary" type="submit">로그인</button>
       </form>
@@ -33,8 +31,7 @@
         <div class="header-inner">
           <a class="brand" href="./">ken<span class="brand-dot">.</span>blog <small>관리</small></a>
           <nav aria-label="관리 메뉴">
-            <a href="#posts">글</a><a href="#categories">분류</a><a href="#projects">Projects</a>
-            <a href="#courses">Notes</a><a href="#badges">뱃지</a><a href="#profile">프로필</a><a href="#deployment">배포</a>
+            <a href="#posts">글</a><a href="#categories">분류</a><a href="#series">시리즈·프로젝트</a><a href="#badges">뱃지</a><a href="#profile">프로필</a><a href="#deployment">배포</a>
           </nav>
           <button class="button ghost" type="button" data-theme-toggle aria-label="테마 변경">테마</button>
           <button class="button ghost" id="logout" type="button">로그아웃</button>
@@ -60,13 +57,10 @@
         <div class="section-heading"><div><p class="eyebrow">CATEGORIES</p><h2>분류</h2></div></div>
         <div id="category-create"></div><div id="category-list"></div>
       </section>
-      <section id="projects" class="panel card">
-        <div class="section-heading"><div><p class="eyebrow">PROJECTS</p><h2>프로젝트</h2></div></div>
-        <div id="project-list"></div>
-      </section>
-      <section id="courses" class="panel card">
-        <div class="section-heading"><div><p class="eyebrow">NOTES</p><h2>과목</h2></div></div>
-        <div id="course-create"></div><div id="course-list"></div>
+      <section id="series" class="panel card">
+        <div class="section-heading"><div><p class="eyebrow">SERIES</p><h2>시리즈·프로젝트</h2>
+          <p class="muted">지정 순서의 첫 공개 글이 대문입니다. 기술 스택과 기간은 프로젝트에만 지정합니다.</p></div></div>
+        <div id="series-create"></div><div id="series-list"></div>
       </section>
       <section id="badges" class="panel card">
         <div class="section-heading"><div><p class="eyebrow">STACK</p><h2>기술 뱃지</h2></div></div>

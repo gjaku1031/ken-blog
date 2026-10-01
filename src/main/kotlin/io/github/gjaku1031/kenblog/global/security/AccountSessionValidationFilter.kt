@@ -12,14 +12,14 @@ import org.springframework.security.core.context.SecurityContextHolder
 import org.springframework.stereotype.Component
 import org.springframework.web.filter.OncePerRequestFilter
 
-/** JDBC 세션 복원 뒤 단일 관리자와 MFA 증명·설정 버전을 매 요청에서 재검사. */
+/** JDBC 세션 복원 뒤 단일 관리자와 인증 증명·설정 버전을 매 요청에서 재검사. */
 @Component
 class AccountSessionValidationFilter(
     private val accounts: AccountRepository,
     private val attempts: AdminLoginAttemptService,
 ) : OncePerRequestFilter() {
     /**
-     * 기존 세션 주체가 단일 관리자·활성·MFA 설정에 맞지 않으면 즉시 세션을 폐기.
+     * 기존 세션 주체가 단일 관리자·활성·관리자 설정에 맞지 않으면 즉시 세션을 폐기.
      *
      * @param request 세션을 가진 요청
      * @param response 후속 보안 필터가 401/403을 기록할 응답
@@ -35,8 +35,8 @@ class AccountSessionValidationFilter(
                 !attempts.isValidSession(
                     authentication.name,
                     account.passwordHash,
-                    session?.getAttribute(AuthService.MFA_PROOF_ATTRIBUTE),
-                    session?.getAttribute(AuthService.MFA_VERSION_ATTRIBUTE),
+                    session?.getAttribute(AuthService.AUTH_PROOF_ATTRIBUTE),
+                    session?.getAttribute(AuthService.AUTH_VERSION_ATTRIBUTE),
                 )) {
                 request.getSession(false)?.invalidate()
                 SecurityContextHolder.clearContext()
