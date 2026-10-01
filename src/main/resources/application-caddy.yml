@@ -5,12 +5,12 @@ server:
   servlet:
     session:
       cookie:
-        secure: true
-        same-site: none
-        partitioned: true
+        secure: ${SESSION_COOKIE_SECURE:true}
+        same-site: ${SESSION_COOKIE_SAME_SITE:none}
+        partitioned: ${SESSION_COOKIE_PARTITIONED:true}
 app:
   auth:
     cors:
-      allowed-origins: https://gjaku1031.github.io
+      allowed-origins: ${APP_AUTH_CORS_ALLOWED_ORIGINS:https://gjaku1031.github.io}
   cors:
-    allowed-origins: https://gjaku1031.github.io
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:https://gjaku1031.github.io}

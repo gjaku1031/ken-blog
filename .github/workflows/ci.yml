@@ -54,3 +54,262 @@ jobs:
           SITE_BASE_PATH=/ken-blog npm run build:site -- --fixture="$RUNNER_TEMP/ken-blog-fixture/empty.json"
           test -s build/site/index.html
           test -s build/site/manage/index.html
+
+  native-image:
+    needs: verify
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 120
+    services:
+      mysql:
+        image: mysql:8.4.11
+        env:
+          MYSQL_DATABASE: ken_blog_native_ci
+          MYSQL_USER: ci_native
+          MYSQL_PASSWORD: ci_native_ephemeral_only
+          MYSQL_ROOT_PASSWORD: ci_native_root_ephemeral_only
+        ports:
+          - 13308:3306
+        options: >-
+          --health-cmd "mysqladmin ping -h 127.0.0.1"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 20
+    env:
+      IMAGE_NAME: ken-blog-api:native-${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-java@v6.0.1
+        with:
+          distribution: temurin
+          java-version: '25'
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Build Linux ARM64 GraalVM image with Cloud Native Buildpacks
+        run: |
+          test "$(uname -m)" = aarch64
+          ./gradlew --no-daemon -PskipWeb=true bootBuildImage \
+            --imageName="$IMAGE_NAME" \
+            --environment BP_NATIVE_IMAGE=true \
+            --environment BP_JVM_VERSION=25
+      - name: Verify and archive native image
+        run: |
+          test "$(docker image inspect --format '{{.Os}}/{{.Architecture}}' "$IMAGE_NAME")" = linux/arm64
+          image_user=$(docker image inspect --format '{{.Config.User}}' "$IMAGE_NAME")
+          case "$image_user" in
+            ''|root|root:*|0|0:*) echo 'Native image must declare a non-root user' >&2; exit 1 ;;
+          esac
+          mkdir -p "$RUNNER_TEMP/ken-blog-native-image"
+          docker image inspect --format '{{ index .Config.Labels "io.buildpacks.build.metadata" }}' "$IMAGE_NAME" \
+            > "$RUNNER_TEMP/ken-blog-native-image/buildpacks.json"
+          jq -e '.buildpacks | any(.id == "paketo-buildpacks/native-image")' \
+            "$RUNNER_TEMP/ken-blog-native-image/buildpacks.json" >/dev/null
+          docker save "$IMAGE_NAME" | gzip -1 > "$RUNNER_TEMP/ken-blog-native-image/image.tar.gz"
+          cd "$RUNNER_TEMP/ken-blog-native-image"
+          sha256sum image.tar.gz > image.tar.gz.sha256
+          printf 'image=%s\nsource_sha=%s\nplatform=linux/arm64\ndefault_user=%s\n' \
+            "$IMAGE_NAME" "$GITHUB_SHA" "$image_user" > image.txt
+      - name: Start native image with production storage identity
+        run: |
+          sudo install -d -o 10001 -g 1001 -m 0750 "$RUNNER_TEMP/ken-blog-native-assets"
+          sudo install -d -o 10001 -g 1001 -m 0750 "$RUNNER_TEMP/ken-blog-native-content"
+          sudo install -d -o 10001 -g 1001 -m 0750 "$RUNNER_TEMP/ken-blog-native-content/posts"
+          docker run -d --name ken-blog-native-ci --network host --user 10001:1001 \
+            -e SPRING_PROFILES_ACTIVE=caddy \
+            -e DB_URL=jdbc:mysql://127.0.0.1:13308/ken_blog_native_ci \
+            -e DB_USERNAME=ci_native -e DB_PASSWORD=ci_native_ephemeral_only \
+            -e BOOTSTRAP_ADMIN_USERNAME=ci_native_admin \
+            -e 'BOOTSTRAP_ADMIN_PASSWORD_HASH={bcrypt}$2b$10$NzwQIXy4U0AK.St1qn26Q.SKkJ/28hRZXbUgeJDqveETfsF3Z7fcG' \
+            -e ADMIN_USERNAME=ci_native_admin \
+            -e APP_MCP_ENABLED=true \
+            -e APP_MCP_ALLOWED_HOSTS=127.0.0.1:8080 \
+            -e APP_MCP_ALLOWED_PEERS=127.0.0.1,::1 \
+            -e APP_ASSETS_DIRECTORY=/var/lib/ken-blog/assets \
+            -e APP_CONTENT_DIRECTORY=/app/content \
+            --mount "type=bind,source=$RUNNER_TEMP/ken-blog-native-assets,target=/var/lib/ken-blog/assets" \
+            --mount "type=bind,source=$RUNNER_TEMP/ken-blog-native-content,target=/app/content,readonly" \
+            "$IMAGE_NAME"
+          trap 'docker rm -f ken-blog-native-ci >/dev/null 2>&1 || true' EXIT
+          for attempt in $(seq 1 60); do
+            if curl -fsS --connect-timeout 2 --max-time 5 http://127.0.0.1:8080/actuator/health 2>/dev/null \
+              | jq -e '.status == "UP"' >/dev/null; then
+              break
+            fi
+            if [ "$(docker inspect --format '{{.State.Running}}' ken-blog-native-ci)" != true ]; then
+              docker logs ken-blog-native-ci
+              exit 1
+            fi
+            sleep 2
+          done
+          if ! curl -fsS --max-time 5 http://127.0.0.1:8080/actuator/health \
+            | jq -e '.status == "UP"'; then
+            docker logs ken-blog-native-ci
+            exit 1
+          fi
+          if ! curl -fsS --max-time 5 http://127.0.0.1:8080/api/v1/status \
+            | jq -e '.status == "UP"'; then
+            docker logs ken-blog-native-ci
+            exit 1
+          fi
+          if ! curl -fsS --max-time 5 http://127.0.0.1:8080/api/v1/auth/csrf \
+            | jq -e '.headerName == "X-CSRF-TOKEN" and (.token | type == "string" and length > 0)'; then
+            docker logs ken-blog-native-ci
+            exit 1
+          fi
+          # Native Image의 MCP 리플렉션과 ImageIO JNI 누락을 아카이브 업로드 전에 확인.
+          python3 - <<'PY'
+          import base64
+          import hashlib
+          import json
+          import os
+          import struct
+          import subprocess
+          import urllib.request
+          import zlib
+
+          base = 'http://127.0.0.1:8080'
+          opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+          sequence = 0
+          session = None
+
+          def rpc(method, params=None, notification=False):
+              global sequence, session
+              sequence += 1
+              payload = {'jsonrpc': '2.0', 'method': method}
+              if not notification:
+                  payload['id'] = sequence
+              if params is not None:
+                  payload['params'] = params
+              headers = {
+                  'Accept': 'application/json, text/event-stream',
+                  'Content-Type': 'application/json',
+                  'MCP-Protocol-Version': '2025-03-26',
+              }
+              if session:
+                  headers['Mcp-Session-Id'] = session
+              request = urllib.request.Request(base + '/mcp', json.dumps(payload).encode(), headers=headers)
+              with opener.open(request, timeout=30) as response:
+                  body = response.read()
+                  session = response.headers.get('Mcp-Session-Id') or session
+              if notification:
+                  return None
+              events = [line.removeprefix('data:').strip() for line in body.decode().splitlines()
+                        if line.startswith('data:')]
+              result = json.loads(events[-1] if events else body)
+              assert 'error' not in result, (method, result)
+              return result['result']
+
+          def tool(name, arguments):
+              response = rpc('tools/call', {'name': name, 'arguments': arguments})
+              assert not response.get('isError'), (name, response)
+              result = response.get('structuredContent') or json.loads(response['content'][0]['text'])
+              assert result['ok'], (name, result)
+              return result['data']
+
+          def chunk(kind, payload):
+              return (struct.pack('>I', len(payload)) + kind + payload
+                      + struct.pack('>I', zlib.crc32(kind + payload)))
+
+          png = b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', struct.pack('>IIBBBBB', 2, 2, 8, 6, 0, 0, 0))
+          png += chunk(b'IDAT', zlib.compress((b'\x00' + b'\xff\x00\x00\xff' * 2) * 2))
+          png += chunk(b'IEND', b'')
+          jpeg = base64.b64decode(
+              '/9j/4AAQSkZJRgABAgAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAADAAQDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDn6KKK+PP2Q//Z'
+          )
+
+          rpc('initialize', {
+              'protocolVersion': '2025-03-26',
+              'capabilities': {},
+              'clientInfo': {'name': 'native-image-ci', 'version': '1'},
+          })
+          rpc('notifications/initialized', notification=True)
+          tools = {item['name'] for item in rpc('tools/list')['tools']}
+          assert len(tools) == 25, tools
+          assert {'blog_upload_image', 'blog_create_stack_badge'} <= tools
+          resources = rpc('resources/list')['resources']
+          assert resources
+          contents = rpc('resources/read', {'uri': resources[0]['uri']})['contents']
+          assert contents and len(contents[0]['text']) > 100
+          prompt = rpc('prompts/get', {
+              'name': 'plan_ken_blog_article',
+              'arguments': {'topic': 'Native Image', 'section': 'TECH'},
+          })
+          assert prompt['messages']
+
+          images = [
+              ('PNG', 'image/png', 'fixture.png', png),
+              ('JPEG', 'image/jpeg', 'fixture.jpg', jpeg),
+          ]
+          for label, mime_type, filename, image_bytes in images:
+              image = {
+                  'filename': filename,
+                  'mimeType': mime_type,
+                  'base64': base64.b64encode(image_bytes).decode(),
+              }
+              uploaded = tool('blog_upload_image', {'image': image})
+              assert uploaded['id'], (label, uploaded)
+              badge = tool('blog_create_stack_badge', {
+                  'input': {'name': 'Native CI ' + label, 'image': image},
+              })
+              assert badge['id'], (label, badge)
+              request = urllib.request.Request(
+                  base + '/api/v1/stack-badges/' + str(badge['id']) + '/image',
+                  headers={'Accept': 'image/png'},
+              )
+              with opener.open(request, timeout=30) as response:
+                  normalized = response.read()
+                  assert response.status == 200
+                  assert response.headers.get_content_type() == 'image/png'
+              assert normalized.startswith(b'\x89PNG\r\n\x1a\n')
+              assert normalized[12:16] == b'IHDR'
+              assert struct.unpack('>II', normalized[16:24]) == (64, 64), label
+
+          slug = 'native-ci-project'
+          registered = tool('blog_register_post', {'input': {
+              'title': 'Native CI Project',
+              'slug': slug,
+              'section': 'PROJECT_HOME',
+              'projectMetadata': {
+                  'status': 'PLAN',
+                  'startPeriod': '2026.10',
+                  'overview': 'Native metadata fixture',
+              },
+          }})
+          assert registered['sourcePath'] == 'content/posts/' + slug + '.md', registered
+          post = registered['post']
+          assert post['id'] > 0 and post['projectId'] > 0, post
+          assert post['section'] == 'PROJECT_HOME' and post['status'] == 'DRAFT', post
+          assert post['body'] == '' and post['projectMetadata']['startPeriod'] == '2026.10', post
+          assert post['projectMetadata']['status'] == 'PLAN', post
+
+          source = os.path.join(os.environ['RUNNER_TEMP'], 'ken-blog-native-content', 'posts', slug + '.md')
+          assert subprocess.run(['sudo', 'test', '!', '-e', source], check=False).returncode == 0, source
+          project = tool('blog_get_project', {'projectId': post['projectId']})
+          assert project['project']['id'] == post['projectId'], project
+          assert project['project']['homePostId'] == post['id'], project
+          assert project['home']['id'] == post['id'] and project['documents'] == [], project
+
+          body = '# Native CI Project\n\nRepository Markdown fixture.\n'
+          subprocess.run(['sudo', 'tee', source], input=body.encode(), stdout=subprocess.DEVNULL, check=True)
+          fetched = tool('blog_get_post', {'postId': post['id']})
+          assert fetched['body'] == body and fetched['projectId'] == post['projectId'], fetched
+          assert fetched['bodySha256'] == hashlib.sha256(body.encode()).hexdigest(), fetched
+
+          request = urllib.request.Request(base + '/api/v1/pages/snapshot', headers={'Accept': 'application/json'})
+          with opener.open(request, timeout=30) as response:
+              assert response.status == 200
+              snapshot = json.load(response)
+          assert snapshot['version'] == 1 and len(snapshot['revision']) == 64, snapshot
+          assert all(snapshot[key] == [] for key in ('feed', 'projects', 'notes', 'posts')), snapshot
+          assert all(snapshot[key] == {} for key in
+                     ('projectDetails', 'projectDocuments', 'courseDetails', 'chapters')), snapshot
+          assert slug not in json.dumps(snapshot), snapshot
+
+          print('PASS native MCP metadata, 25 tools, resource, prompt, PNG/JPEG uploads, 64px badges and draft-safe empty Pages snapshot')
+          PY
+      - name: Upload reviewed image archive
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: ken-blog-native-arm64-${{ github.sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/ken-blog-native-image/
+          if-no-files-found: error
+          compression-level: 0
+          retention-days: 90

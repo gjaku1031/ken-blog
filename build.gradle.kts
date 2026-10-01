@@ -1,10 +1,13 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.springframework.boot.gradle.tasks.aot.ProcessAot
 import org.springframework.boot.gradle.tasks.bundling.BootJar
+import org.springframework.boot.gradle.tasks.bundling.BootBuildImage
 
 plugins {
     kotlin("jvm") version "2.3.21"
     kotlin("plugin.spring") version "2.3.21"
     id("org.springframework.boot") version "4.1.1"
+    id("org.graalvm.buildtools.native") version "1.1.14"
     id("io.spring.dependency-management") version "1.1.7"
 }
 
@@ -98,6 +101,26 @@ tasks.withType<Test>().configureEach {
 
 tasks.named<BootJar>("bootJar") {
     archiveFileName = "ken-blog-api.jar"
+}
+
+// AOT의 조건부 MCP Bean을 포함하고 운영 자격 증명 없이 caddy 구성을 분석한다.
+tasks.named<ProcessAot>("processAot") {
+    environment("SPRING_PROFILES_ACTIVE", "caddy")
+    environment("APP_MCP_ENABLED", "true")
+    environment("DB_URL", "jdbc:mysql://127.0.0.1:1/kenblog_native_aot?connectTimeout=1000")
+    environment("DB_USERNAME", "native_build")
+    environment("DB_PASSWORD", "native_build")
+}
+
+// java.desktop 이미지 처리에 필요한 공유 라이브러리가 있는 Noble base 스택을 사용한다.
+tasks.named<BootBuildImage>("bootBuildImage") {
+    builder.set("paketobuildpacks/ubuntu-noble-builder:latest")
+    runImage.set("paketobuildpacks/ubuntu-noble-run:latest")
+    environment.putAll(mapOf(
+        "BP_NATIVE_IMAGE" to "true",
+        "BP_JVM_VERSION" to "25",
+        "BP_NATIVE_IMAGE_BUILD_ARGUMENTS" to "--no-fallback -J-Xmx6g -J-XX:-UseParallelGC -J-XX:+UseG1GC -march=compatibility",
+    ))
 }
 
 tasks.named<Jar>("jar") {

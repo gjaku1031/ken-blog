@@ -18,11 +18,23 @@ services:
       timeout: 3s
       retries: 20
       start_period: 30s
+  # 새 named volume의 루트만 앱 UID/GID로 조정. 기존 첨부 파일은 건드리지 않는다.
+  assets-init:
+    image: busybox:1.37.0
+    user: "0:0"
+    command: ["sh", "-ec", "chown 10001:1001 /assets && chmod 0750 /assets"]
+    volumes:
+    - ken_blog_assets:/assets
+    restart: "no"
   api:
-    image: ken-blog-api:local
+    # 로컬에서 ./gradlew bootBuildImage --imageName=ken-blog-api:native 로 생성.
+    image: ${KEN_BLOG_API_IMAGE:-ken-blog-api:native}
+    user: "10001:1001"
     depends_on:
       mysql:
         condition: service_healthy
+      assets-init:
+        condition: service_completed_successfully
     environment:
       APP_CORS_ALLOWED_ORIGINS: ${APP_CORS_ALLOWED_ORIGINS:-}
       DB_URL: jdbc:mysql://mysql:3306/ken_blog
@@ -52,10 +64,7 @@ services:
       target: /app/content
       bind:
         create_host_path: false
-    mem_limit: 1g
-    build:
-      context: .
-      dockerfile: Dockerfile
+    mem_limit: ${API_MEMORY_LIMIT:-1g}
 volumes:
   ken_blog_mysql_data: null
   ken_blog_assets: null

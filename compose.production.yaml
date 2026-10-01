@@ -2,10 +2,9 @@
 # DB는 기존 외부 MySQL을 사용하며, api와 caddy만 이 Compose 네트워크에 둔다.
 services:
   api:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    image: ken-blog-api:production
+    # 검증된 CI 이미지 아카이브를 먼저 docker load 하고 SHA 태그를 지정.
+    image: ${KEN_BLOG_API_IMAGE:?Reviewed native image tag is required}
+    user: "10001:1001"
     restart: unless-stopped
     env_file:
       - path: ${KEN_BLOG_PRODUCTION_ENV_FILE:?Dedicated production env file is required}
@@ -36,8 +35,8 @@ services:
         target: /app/content
         bind:
           create_host_path: false
-    # 512MiB 힙 외 JVM 네이티브 메모리에도 약 512MiB를 남긴다.
-    mem_limit: 1g
+    # 실제 사용량 측정 전까지 기존 한도를 기본값으로 유지.
+    mem_limit: ${API_MEMORY_LIMIT:-1g}
     cpus: 1.0
 
   caddy:
@@ -48,9 +47,7 @@ services:
         condition: service_started
     environment:
       KEN_BLOG_PUBLIC_IP: ${KEN_BLOG_PUBLIC_IP:?Public IPv4 certificate SAN is required}
-      KEN_BLOG_PUBLIC_BIND_IP: ${KEN_BLOG_PUBLIC_BIND_IP:?Private NIC bind IPv4 is required}
-    entrypoint: ["/bin/sh", "/usr/local/bin/start-caddy.sh"]
-    command: ["run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]
+    command: ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]
     ports:
       - "${KEN_BLOG_PUBLIC_BIND_IP:?Private NIC bind IPv4 is required}:80:80"
       - "${KEN_BLOG_PUBLIC_BIND_IP:?Private NIC bind IPv4 is required}:443:443"
@@ -58,12 +55,6 @@ services:
       - type: bind
         source: ./deploy/Caddyfile
         target: /etc/caddy/Caddyfile
-        read_only: true
-        bind:
-          create_host_path: false
-      - type: bind
-        source: ./deploy/start-caddy.sh
-        target: /usr/local/bin/start-caddy.sh
         read_only: true
         bind:
           create_host_path: false
