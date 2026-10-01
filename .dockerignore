@@ -5,7 +5,6 @@ target
 .gradle
 .kotlin
 data
-planning
 .local-security
 .env
 .env.*
