@@ -1,4 +1,4 @@
-package io.github.gjaku1031.kenblog.web
+package io.github.gjaku1031.kenblog.project.service
 
 import io.github.gjaku1031.kenblog.post.domain.PostVisibility
 import io.github.gjaku1031.kenblog.project.domain.InvalidProjectRequestException
@@ -18,7 +18,7 @@ import org.springframework.transaction.annotation.Transactional
 
 /** 본문을 읽지 않고 프로젝트 대문 메타데이터와 뱃지 선택만 갱신. */
 @Service
-class ProjectMetadataManagementService(private val projects: ProjectRepository,
+class ProjectMetadataService(private val projects: ProjectRepository,
     private val badges: StackBadgeService) {
     /** 기준 수정 시각을 확인한 뒤 이름·기간·상태·개요·뱃지를 같은 트랜잭션에 저장. */
     @Transactional

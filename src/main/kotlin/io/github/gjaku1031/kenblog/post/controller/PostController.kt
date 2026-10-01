@@ -97,4 +97,17 @@ class PostController(private val service: PostService, private val navigation: W
             id, request.get("title").textValue(), request.get("summary").textValue(), taxonomy.categoryId, taxonomy.tags,
         ))
     }
+
+    /** 원고를 건드리지 않고 Tech 번호·프로젝트 문서·Notes 회차의 표시 순서만 변경. */
+    @PutMapping("/{id}/order", consumes = [MediaType.APPLICATION_JSON_VALUE], produces = [MediaType.APPLICATION_JSON_VALUE])
+    fun order(@PathVariable id: Long, @RequestBody request: JsonNode): ResponseEntity<PostDetailResponse> {
+        if (!request.isObject || request.size() != 1 || !request.has("order")) throw InvalidPostRequestException()
+        val value = request.get("order")
+        val order = when {
+            value.isNull -> null
+            value.isIntegralNumber && value.canConvertToInt() -> value.intValue()
+            else -> throw InvalidPostRequestException()
+        }
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.setOrder(id, order))
+    }
 }

@@ -190,6 +190,47 @@ class PostService(
         return post.adminDetail(includeBody = false)
     }
 
+    /** 부모 잠금 순서를 지키며 섹션별 번호만 저장하고 Markdown 원문은 유지. */
+    @Transactional
+    fun setOrder(id: Long, order: Int?): PostDetailResponse {
+        if (id <= 0 || (order != null && order <= 0)) throw InvalidPostRequestException()
+        val scope = repository.findOrderScope(id) ?: throw PostNotFoundException()
+        when (scope.section) {
+            PostSection.TECH -> {
+                if (order != null && (scope.categoryId == null ||
+                        categories.findSharedById(scope.categoryId)?.depth != 3)) throw InvalidPostRequestException()
+            }
+            PostSection.PROJECT_DOC -> {
+                projects.findLockedById(scope.projectId ?: throw ProjectConflictException())
+                    ?: throw ProjectConflictException()
+            }
+            PostSection.NOTE_CHAPTER -> {
+                courses.findLockedById(scope.courseId ?: throw CourseConflictException())
+                    ?: throw CourseConflictException()
+            }
+            PostSection.PROJECT_HOME -> throw InvalidPostRequestException()
+        }
+        val post = lockedPost(id)
+        if (post.section != scope.section || post.categoryId != scope.categoryId ||
+            post.projectId != scope.projectId || post.courseId != scope.courseId) throw InvalidPostRequestException()
+        when (post.section) {
+            PostSection.TECH -> {
+                if (post.techSeriesOrder != order) post.changeTechSeriesOrder(order, now())
+            }
+            PostSection.PROJECT_DOC -> {
+                if (order == null) throw InvalidPostRequestException()
+                post.reorder(order)
+            }
+            PostSection.NOTE_CHAPTER -> {
+                if (order == null) throw InvalidPostRequestException()
+                post.reorderChapter(order)
+            }
+            PostSection.PROJECT_HOME -> throw InvalidPostRequestException()
+        }
+        repository.saveAndFlush(post)
+        return post.adminDetail(includeBody = false)
+    }
+
     /** 본문 해시를 확인한 후 위키 대상 선언만 교체한다. */
     @Transactional
     fun replaceWikiLinks(id: Long, expectedBodySha256: String, wikiTargets: List<String>): PostDetailResponse {

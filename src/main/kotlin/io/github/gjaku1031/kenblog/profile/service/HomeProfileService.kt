@@ -44,28 +44,6 @@ class HomeProfileService(
         return profiles.saveAndFlush(profile).response()
     }
 
-    /** 텍스트와 선택 사진을 단일 DB 트랜잭션에 확정하고 실패 시 새 파일을 제거. */
-    fun save(request: HomeProfileRequest, file: MultipartFile?, removePhoto: Boolean): HomeProfileResponse {
-        val clean = validate(request)
-        if (file != null && removePhoto) badInput()
-        val png = file?.let { images.normalize(it, 256) }
-        val key = png?.let {
-            storage.requireConfigured()
-            storage.newKey("png").also { newKey ->
-                storage.put(newKey, it, "image/png")
-            }
-        }
-        return transactions.execute {
-            if (key != null) cleanupOnRollback(key)
-            val profile = profiles.findByIdOrNull(1) ?: HomeProfileEntity(now())
-            profile.update(clean.name, clean.tagline, clean.intro, clean.github, clean.email, now())
-            val previous = if (key != null || removePhoto) profile.replacePhoto(key, now()) else null
-            val saved = profiles.saveAndFlush(profile).response()
-            if (previous != null) cleanupAfterCommit(previous)
-            saved
-        } ?: error("프로필 저장 결과가 없습니다.")
-    }
-
     /** 새 사진을 256×256 PNG로 저장해 텍스트와 독립적으로 교체. */
     fun uploadPhoto(file: MultipartFile): HomeProfileResponse {
         val png = images.normalize(file, 256)

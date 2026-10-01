@@ -98,6 +98,18 @@ class SiteGenerator(private val input: Path, private val output: Path) {
         result
     }
 
+    /** 로그인 껍데기와 자산 주소만 렌더링하며 관리자 데이터는 템플릿에 전달하지 않는다. */
+    private fun manage() {
+        val admin = record(payload["admin"])
+        val context = Context(java.util.Locale.KOREAN).apply {
+            setVariables(mapOf("apiBase" to value(admin, "apiBase"),
+                "adminCss" to value(admin, "css"), "adminJs" to value(admin, "js")))
+        }
+        val file = output.resolve("manage/index.html")
+        Files.createDirectories(file.parent)
+        Files.writeString(file, "<!doctype html>\n" + engine.process("manage", context), StandardCharsets.UTF_8)
+    }
+
     /** 공통 헤더·메타 태그와 지정한 본문 fragment를 결합한다. */
     private fun page(path: String, view: String, section: String, title: String, description: String, data: Record = emptyMap(), sitemap: Boolean = true) {
         val canonicalPath = when (path) { "post" -> "tech/"; "project" -> "projects/"; "course" -> "notes/";
@@ -134,6 +146,7 @@ class SiteGenerator(private val input: Path, private val output: Path) {
     /** 필요한 공개 경로를 모두 생성하고 sitemap·robots를 기록한다. */
     fun generate() {
         require((snapshot["version"] as? Number)?.toInt() == 1) { "공개 스냅샷 버전 오류" }
+        manage()
         val feed = list(snapshot["feed"])
         val home = feed.sortedByDescending { value(it, "publishedDate") }.take(12)
         val profile = record(snapshot["profile"])

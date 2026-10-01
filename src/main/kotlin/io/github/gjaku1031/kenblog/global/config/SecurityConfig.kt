@@ -4,6 +4,9 @@ import io.github.gjaku1031.kenblog.auth.controller.AuthController
 import io.github.gjaku1031.kenblog.global.security.AccountSessionValidationFilter
 import io.github.gjaku1031.kenblog.global.security.SecurityProblemWriter
 import io.github.gjaku1031.kenblog.mcp.transport.McpLocalAccessFilter
+import jakarta.servlet.FilterChain
+import jakarta.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpServletResponse
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.beans.factory.annotation.Qualifier
 import org.springframework.boot.web.servlet.FilterRegistrationBean
@@ -31,6 +34,7 @@ import org.springframework.security.web.savedrequest.NullRequestCache
 import org.springframework.web.cors.CorsConfiguration
 import org.springframework.web.cors.CorsConfigurationSource
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource
+import org.springframework.web.filter.OncePerRequestFilter
 
 /**
  * 공개 조회와 인증 경계를 구분하고 JDBC 기반 Servlet 세션 인증을 구성.
@@ -39,6 +43,30 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource
  */
 @Configuration
 class SecurityConfig {
+    /** 이전 Spring 관리자 화면과 서버 자산 경로는 인증 상태와 관계없이 404. */
+    @Bean
+    fun retiredWebPathRegistration(): FilterRegistrationBean<OncePerRequestFilter> =
+        FilterRegistrationBean<OncePerRequestFilter>(object : OncePerRequestFilter() {
+            override fun doFilterInternal(
+                request: HttpServletRequest,
+                response: HttpServletResponse,
+                chain: FilterChain,
+            ) {
+                val path = request.requestURI
+                val retired = listOf("/manage", "/assets", "/write", "/admin")
+                    .any { path == it || path.startsWith("$it/") }
+                if (retired) {
+                    response.setHeader("Cache-Control", "no-store")
+                    response.status = HttpStatus.NOT_FOUND.value()
+                    return
+                }
+                chain.doFilter(request, response)
+            }
+        }).apply {
+            order = Ordered.HIGHEST_PRECEDENCE
+            addUrlPatterns("/*")
+        }
+
     /** 세션 검증 필터를 Security chain에서만 실행. */
     @Bean
     fun accountSessionValidationRegistration(filter: AccountSessionValidationFilter): FilterRegistrationBean<AccountSessionValidationFilter> =

@@ -39,8 +39,6 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - name: Install static build dependencies
         run: npm ci
-      - name: Build Spring and public assets
-        run: npm run build:assets
       - name: Compile standalone Thymeleaf generator
         run: ./gradlew --no-daemon -PskipWeb=true writeSiteClasspath
       - name: Capture public content and build Pages site
@@ -51,6 +49,7 @@ jobs:
       - name: Verify public site artifact
         run: |
           test -s build/site/index.html
+          test -s build/site/manage/index.html
           if find build/site -type f | grep -E '/(AGENTS\.md|\.env[^/]*|build\.gradle\.kts|settings\.gradle\.kts|gradlew)$'; then
             echo 'Unexpected internal file in Pages artifact.' >&2
             exit 1

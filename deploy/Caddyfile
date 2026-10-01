@@ -1,0 +1,56 @@
+{
+	# IP URL 클라이언트는 TLS ClientHello에 SNI를 보내지 않을 수 있다.
+	default_sni {$KEN_BLOG_PUBLIC_IP}
+}
+
+(proxy_api) {
+	reverse_proxy api:8080 {
+		# 클라이언트가 보낸 프록시 메타데이터를 상류에 전달하지 않는다.
+		header_up -Forwarded
+		header_up -X-Forwarded-For
+		header_up -X-Forwarded-Host
+		header_up -X-Forwarded-Proto
+		header_up -X-Forwarded-Port
+		header_up -X-Real-IP
+		header_up -X-Original-URL
+		header_up -X-Rewrite-URL
+		header_up X-Forwarded-For {remote_host}
+		header_up X-Forwarded-Host {host}
+		header_up X-Forwarded-Proto https
+	}
+}
+
+# KEN_BLOG_PUBLIC_IP는 인증서 SAN에 들어가는 공인 IPv4. bind IP는 별도 사설 NIC.
+{$KEN_BLOG_PUBLIC_IP} {
+	tls {
+		issuer acme https://acme-v02.api.letsencrypt.org/directory {
+			profile shortlived
+		}
+	}
+
+	@public_read {
+		method GET HEAD OPTIONS
+		path /api/v1/status /api/v1/pages/snapshot /api/v1/profile/photo /api/v1/stack-badges/*/image /api/v1/posts/*/attachments/*/content /actuator/health
+	}
+	@auth {
+		method GET POST OPTIONS
+		path /api/v1/auth/csrf /api/v1/auth/login /api/v1/auth/me /api/v1/auth/logout
+	}
+	@admin {
+		method GET POST PUT PATCH DELETE OPTIONS
+		path /api/v1/admin/attachments /api/v1/admin/attachments/* /api/v1/admin/categories /api/v1/admin/categories/* /api/v1/admin/courses /api/v1/admin/courses/* /api/v1/admin/posts /api/v1/admin/posts/* /api/v1/admin/profile /api/v1/admin/profile/* /api/v1/admin/projects /api/v1/admin/projects/* /api/v1/admin/stack-badges /api/v1/admin/stack-badges/* /api/v1/admin/tags /api/v1/admin/tags/*
+	}
+
+	handle @public_read {
+		import proxy_api
+	}
+	handle @auth {
+		import proxy_api
+	}
+	handle @admin {
+		import proxy_api
+	}
+	handle {
+		respond 404
+	}
+}

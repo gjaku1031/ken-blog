@@ -53,3 +53,4 @@ jobs:
           JSON
           SITE_BASE_PATH=/ken-blog npm run build:site -- --fixture="$RUNNER_TEMP/ken-blog-fixture/empty.json"
           test -s build/site/index.html
+          test -s build/site/manage/index.html

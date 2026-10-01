@@ -34,6 +34,9 @@ private const val PUBLISHED_OLDER_PROJECT_PARENT =
         "and older_home.status = 'PUBLISHED' " +
         "and (older.section <> 'PROJECT_HOME' or older.id = older_home.id)))"
 
+/** 순서 변경 전에 부모 잠금을 선택하는 본문 없는 게시글 소속. */
+data class PostOrderScope(val section: PostSection, val categoryId: Long?, val projectId: Long?, val courseId: Long?)
+
 /**
  * [PostEntity]의 기본 저장·ID 조회를 [JpaRepository]에 맡기는 게시글 저장소.
  *
@@ -42,6 +45,11 @@ private const val PUBLISHED_OLDER_PROJECT_PARENT =
  * ID 조회는 [JpaRepository.findById]를 사용함.
  */
 interface PostRepository : JpaRepository<PostEntity, Long> {
+    /** @return 글 엔티티를 로드하지 않고 순서 변경에 필요한 소속만 조회. */
+    @Query("select new io.github.gjaku1031.kenblog.post.repository.PostOrderScope(" +
+        "p.section, p.categoryId, p.projectId, p.courseId) from PostEntity p where p.id = :id")
+    fun findOrderScope(@Param("id") id: Long): PostOrderScope?
+
     /** @return [PostSeriesRow]를 빈 번호 먼저, 저장 번호·최초 출간일·ID 순서로 조회. */
     @Query("select new io.github.gjaku1031.kenblog.post.dto.PostSeriesRow(p.id, p.slug, p.title) " +
         "from PostEntity p where p.section = :tech and p.categoryId = :categoryId " +

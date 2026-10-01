@@ -1,0 +1,16 @@
+# Caddy가 공개 TLS를 종료하고 허용한 API 경로만 내부 HTTP 8080으로 전달.
+server:
+  port: 8080
+  forward-headers-strategy: none
+  servlet:
+    session:
+      cookie:
+        secure: true
+        same-site: none
+        partitioned: true
+app:
+  auth:
+    cors:
+      allowed-origins: https://gjaku1031.github.io
+  cors:
+    allowed-origins: https://gjaku1031.github.io

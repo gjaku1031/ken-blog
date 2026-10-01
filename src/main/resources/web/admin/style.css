@@ -5,6 +5,7 @@
 :root[data-theme=dark]{color-scheme:dark;--bg:#121417;--card:#1b1e23;--text:#e9ecef;--muted:#a1a8b0;--line:#343a42;--soft:#252a31;--accent:#2fc4a6;--accent-dark:#5ad6bd;--danger:#f3a3a3;--shadow:0 1px 3px #0006,0 6px 20px #0005}
 
 *{box-sizing:border-box}
+[hidden]{display:none!important}
 html{scroll-behavior:smooth}
 body{margin:0;background:var(--bg);color:var(--text);font-size:15px;line-height:1.6}
 button,input,select,textarea{font:inherit}
@@ -43,6 +44,10 @@ nav a{font-size:14px;color:var(--muted)}
 .field-grid input,.field-grid select,.field-grid textarea,.login-card input:not([type=checkbox]){width:100%;border:1px solid var(--line);border-radius:7px;padding:9px 11px;background:var(--card);color:var(--text);font-size:14px}
 .field-grid textarea{resize:vertical}
 .field-grid .wide,.field-grid .form-actions{grid-column:1/-1}
+.create-form{border-bottom:1px solid var(--line);padding:18px 0 28px}
+.create-group{border:1px solid var(--line);border-radius:7px;padding:12px}
+.create-group legend{font-size:13px;color:var(--muted)}
+.inline-actions{display:flex;gap:8px;margin:14px 0}
 .form-actions{display:flex;justify-content:flex-end}
 .button{display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:7px;padding:8px 14px;background:var(--card);color:var(--text);font-weight:600;min-height:39px}
 .button.primary{background:var(--accent-dark);border-color:var(--accent-dark);color:#fff}
@@ -58,6 +63,7 @@ nav a{font-size:14px;color:var(--muted)}
 .check input{width:auto}
 .login-page{min-height:100vh;display:grid;place-items:center;padding:20px}
 .login-card{width:min(100%,410px);padding:32px}
+.page-container>.login-card{margin:12vh auto}
 .login-card h1{margin:6px 0;font-size:27px}
 .login-card form{display:grid;gap:10px;margin:25px 0}
 .login-card label{font-size:13px;font-weight:600}

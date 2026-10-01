@@ -126,7 +126,7 @@ function validate(snapshot) {
 /** 생성된 Pages 트리에서 의도하지 않은 파일과 크기 초과를 거부한다. */
 async function checkArtifact() {
   const allowed = new Set(["assets", "licenses", "index.html", "404.html", "robots.txt", "sitemap.xml", "routes.json",
-    "tech", "post", "projects", "project", "notes", "course", "search"]);
+    "tech", "post", "projects", "project", "notes", "course", "search", "manage"]);
   for (const name of await readdir(staging)) if (!allowed.has(name)) throw new Error(`허용되지 않은 Pages 산출물: ${name}`);
   let bytes = 0; let files = 0;
   const visit = async (folder) => {
@@ -139,7 +139,6 @@ async function checkArtifact() {
       if (bytes > 900 * 1024 * 1024) throw new Error("Pages 산출물 크기 초과");
       if (entry.name.startsWith(".env") || /^(AGENTS\.md|pom\.xml|build\.gradle\.kts|settings\.gradle\.kts|gradlew(?:\.bat)?|gradle\.properties|package(?:-lock)?\.json)$/i.test(entry.name))
         throw new Error(`내부 파일이 Pages 산출물에 포함됨: ${entry.name}`);
-      if (folder === join(staging, "assets") && /^admin(?:\.|-)/i.test(entry.name)) throw new Error("관리자 자산이 Pages에 포함됨");
     }
   };
   await visit(staging);
@@ -189,9 +188,10 @@ async function main() {
   else snapshot = await capture(base);
   snapshot = validate(snapshot);
   await rm(staging, { recursive: true, force: true });
-  const { public: assets } = await buildWebAssets({ adminAssets: false });
+  const { public: assets, admin } = await buildWebAssets();
   await mkdir(join(staging, "assets"), { recursive: true });
   await cp(join(root, "build/public-assets"), join(staging, "assets"), { recursive: true });
+  await cp(join(root, "build/admin-assets"), join(staging, "assets"), { recursive: true });
   await cp(join(root, "src/main/resources/web/public/licenses"), join(staging, "licenses"), { recursive: true });
   const rendererFile = join(root, "build/.site-markdown.mjs");
   await bundle({ entryPoints: [join(root, "src/main/resources/web/shared/markdown.ts")], outfile: rendererFile,
@@ -237,7 +237,8 @@ async function main() {
     post.rendered = { html: rendered.html, headings: rendered.headings, wikiTargets: rendered.wikiTargets };
   }
   await mkdir(join(root, "build/site-input"), { recursive: true });
-  await writeFile(input, JSON.stringify({ snapshot, assets, adminHref: base ? `${base.origin}/manage/` : "" }));
+  await writeFile(input, JSON.stringify({ snapshot, assets, adminHref: route("manage/"),
+    admin: { apiBase: base?.origin ?? "", css: route(`assets/${admin.css}`), js: route(`assets/${admin.js}`) } }));
   await runGenerator([`--input=${input}`, `--output=${staging}`, ...(fixture ? ["--fixture"] : [])]);
   await checkArtifact();
   if (!fixture) await confirmRevision(base, snapshot.revision);

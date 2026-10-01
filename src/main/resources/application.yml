@@ -43,7 +43,7 @@ server:
       cookie:
         name: KENBLOGSESSION
         http-only: true
-        secure: ${SESSION_COOKIE_SECURE:true}
+        secure: ${SESSION_COOKIE_SECURE:false}
         same-site: ${SESSION_COOKIE_SAME_SITE:lax}
         partitioned: ${SESSION_COOKIE_PARTITIONED:false}
 management:

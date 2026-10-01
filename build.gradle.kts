@@ -50,7 +50,7 @@ dependencies {
     testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
 
-// Docker와 Pages는 npm으로 만든 자산을 재사용한다.
+// API JAR에는 화면 자산을 넣지 않고 Pages 빌드에서 npm으로 별도 생성한다.
 val skipWeb = providers.gradleProperty("skipWeb").map(String::toBoolean).orElse(false)
 val npm = if (System.getProperty("os.name").startsWith("Windows")) "npm.cmd" else "npm"
 
@@ -73,24 +73,19 @@ val checkWeb by tasks.registering(Exec::class) {
 
 val buildWeb by tasks.registering(Exec::class) {
     group = "build"
-    description = "관리자와 공개 화면 자산을 컴파일합니다."
+    description = "Pages 관리자와 공개 화면 자산을 컴파일합니다."
     dependsOn(checkWeb)
     commandLine(npm, "run", "build:assets")
     inputs.files("package.json", "package-lock.json", "tsconfig.json", "src/main/resources/web/build.mjs")
     inputs.dir("src/main/resources/web")
-    outputs.dirs(layout.buildDirectory.dir("generated-resources"), layout.buildDirectory.dir("public-assets"))
+    outputs.dirs(layout.buildDirectory.dir("admin-assets"), layout.buildDirectory.dir("public-assets"))
     onlyIf { !skipWeb.get() }
 }
 
 sourceSets.main {
     resources {
         exclude("web/**")
-        srcDir(layout.buildDirectory.dir("generated-resources"))
     }
-}
-
-tasks.processResources {
-    dependsOn(buildWeb)
 }
 
 tasks.check {

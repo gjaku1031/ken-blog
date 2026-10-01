@@ -7,6 +7,11 @@ import io.github.gjaku1031.kenblog.project.dto.ProjectDetailResponse
 import io.github.gjaku1031.kenblog.project.dto.ProjectPageResponse
 import io.github.gjaku1031.kenblog.project.dto.ProjectRelatedPageResponse
 import io.github.gjaku1031.kenblog.project.service.ProjectService
+import io.github.gjaku1031.kenblog.project.service.ProjectMetadataService
+import io.github.gjaku1031.kenblog.project.domain.ProjectStatus
+import io.github.gjaku1031.kenblog.project.domain.InvalidProjectRequestException
+import java.time.LocalDateTime
+import java.time.format.DateTimeParseException
 import org.springframework.http.CacheControl
 import org.springframework.http.ResponseEntity
 import org.springframework.security.core.Authentication
@@ -22,7 +27,7 @@ import org.springframework.web.bind.annotation.RestController
 /** 프로젝트 삭제와 문서 순서를 [ProjectService]의 부모 잠금 아래 처리. */
 @RestController
 @RequestMapping("/api/v1/admin/projects")
-class AdminProjectController(private val service: ProjectService) {
+class AdminProjectController(private val service: ProjectService, private val metadata: ProjectMetadataService) {
     /** @return 관리자 프로젝트 메타데이터 페이지. */
     @GetMapping
     fun list(@RequestParam(defaultValue = "0") page: Int, @RequestParam(defaultValue = "20") size: Int): ResponseEntity<ProjectAdminPageResponse> =
@@ -32,6 +37,16 @@ class AdminProjectController(private val service: ProjectService) {
     @GetMapping("/{id}")
     fun detail(@PathVariable id: Long): ResponseEntity<ProjectAdminDetailResponse> =
         ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.adminDetail(id))
+
+    /** 프로젝트 대문 원문을 건드리지 않고 기준 수정 시각으로 메타데이터를 갱신. */
+    @PutMapping("/{id}/metadata")
+    fun updateMetadata(@PathVariable id: Long, @RequestBody request: ProjectMetadataUpdateRequest): ResponseEntity<ProjectAdminDetailResponse> {
+        val base = try { LocalDateTime.parse(request.baseUpdatedAt) }
+        catch (_: DateTimeParseException) { throw InvalidProjectRequestException() }
+        metadata.update(id, request.name, request.status, request.startPeriod, request.endPeriod,
+            request.overview, request.stackBadgeNames, base)
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.adminDetail(id))
+    }
 
     /** @return 같은 게이트 아래 저장된 카드 숫자 순서. */
     @PutMapping("/{id}/order")
@@ -55,3 +70,14 @@ class AdminProjectController(private val service: ProjectService) {
 
 /** 관리자 프로젝트 카드의 표시 순서 입력. */
 data class ProjectOrderRequest(val order: Long)
+
+/** 프로젝트 대문과 뱃지 선택의 메타데이터 입력. */
+data class ProjectMetadataUpdateRequest(
+    val name: String,
+    val status: ProjectStatus,
+    val startPeriod: String,
+    val endPeriod: String?,
+    val overview: String,
+    val stackBadgeNames: List<String>,
+    val baseUpdatedAt: String,
+)

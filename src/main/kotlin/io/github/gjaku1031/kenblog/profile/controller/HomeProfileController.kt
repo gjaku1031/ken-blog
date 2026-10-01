@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.PutMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestParam
-import org.springframework.web.bind.annotation.RequestPart
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.multipart.MultipartFile
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody
@@ -20,6 +19,10 @@ import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBo
 /** 공개 홈 카드 조회와 관리자 소개·사진 편집을 [HomeProfileService]에 연결. */
 @RestController
 class HomeProfileController(private val service: HomeProfileService) {
+    /** @return 관리자 편집 폼을 채울 현재 홈 소개. */
+    @GetMapping("/api/v1/admin/profile")
+    fun current(): HomeProfileResponse = service.get()
+
     /** @return 공개 PNG 사진 스트림. */
     @GetMapping("/api/v1/profile/photo", produces = [MediaType.IMAGE_PNG_VALUE])
     fun photo(): ResponseEntity<StreamingResponseBody> {
@@ -33,14 +36,6 @@ class HomeProfileController(private val service: HomeProfileService) {
     /** @return 저장된 텍스트 소개. */
     @PutMapping("/api/v1/admin/profile")
     fun update(@RequestBody body: HomeProfileRequest): HomeProfileResponse = service.update(body)
-
-    /** @return 텍스트와 선택 사진을 한 번에 확정한 홈 소개. */
-    @PostMapping("/api/v1/admin/profile/save", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
-    fun save(
-        @RequestPart("profile") profile: HomeProfileRequest,
-        @RequestPart("file", required = false) file: MultipartFile?,
-        @RequestParam(defaultValue = "false") removePhoto: Boolean,
-    ): HomeProfileResponse = service.save(profile, file, removePhoto)
 
     /** @return 256×256 사진이 적용된 소개. */
     @PostMapping("/api/v1/admin/profile/photo", consumes = [MediaType.MULTIPART_FORM_DATA_VALUE])
