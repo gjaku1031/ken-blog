@@ -5,8 +5,8 @@ import io.github.gjaku1031.kenblog.post.dto.WikiLinkMissing
 import io.github.gjaku1031.kenblog.post.dto.WikiLinkReadable
 import io.github.gjaku1031.kenblog.post.dto.WikiLinkResolveResponse
 import io.github.gjaku1031.kenblog.post.dto.WikiLinkResult
-import io.github.gjaku1031.kenblog.post.dto.WikiLinkTargetRow
-import io.github.gjaku1031.kenblog.post.repository.PostRepository
+import io.github.gjaku1031.kenblog.post.repository.PostRow
+import io.github.gjaku1031.kenblog.post.repository.PostQueries
 import java.nio.charset.StandardCharsets
 import org.springframework.security.core.Authentication
 import org.springframework.stereotype.Service
@@ -18,7 +18,7 @@ import org.springframework.transaction.annotation.Transactional
  * PUBLIC 출간 결과만 반환하며 제목별 SQL 조회는 최대 20번으로 제한함.
  */
 @Service
-class WikiLinkService(private val posts: PostRepository) {
+class WikiLinkService(private val posts: PostQueries) {
     /**
      * 원래 요청 순서·중복을 유지하면서 제목을 조회.
      *
@@ -45,24 +45,15 @@ class WikiLinkService(private val posts: PostRepository) {
                 }
             }
         }
-        val found = mutableMapOf<String, WikiLinkTargetRow?>()
+        val found = mutableMapOf<String, PostRow?>()
         val items: List<WikiLinkResult> = titles.map { title ->
-            val target = if (found.containsKey(title)) found[title] else posts.findWikiLinkTarget(title).also { found[title] = it }
-            when {
-                target == null -> WikiLinkMissing(title)
-                target.readable() ->
-                    WikiLinkReadable(title, target.id, target.title, target.slug, target.section,
-                        target.projectSlug, target.courseSlug)
-                else -> WikiLinkMissing(title)
-            }
+            val target = if (found.containsKey(title)) found[title] else posts.wikiTarget(title).also { found[title] = it }
+            if (target == null) WikiLinkMissing(title) else
+                WikiLinkReadable(title, target.id, target.title, target.slug,
+                    target.series?.kind?.name ?: "TECH", target.series?.slug)
         }
         return WikiLinkResolveResponse(items)
     }
-
-    /** @return 게시글과 출간 부모의 공개 범위를 모두 통과하는지 여부. */
-    private fun WikiLinkTargetRow.readable(): Boolean =
-        visibility == "PUBLIC" && (section == "TECH" || section == "NOTE_CHAPTER" ||
-            (projectVisibility == "PUBLIC" && homeVisibility == "PUBLIC"))
 
     /** 제어 문자·줄 구분자·짝 없는 UTF-16 surrogate를 SQL 조회 전에 거부. */
     private fun validateCharacters(value: String) {

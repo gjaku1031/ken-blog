@@ -1,6 +1,6 @@
 package io.github.gjaku1031.kenblog.stack.domain
 
-import io.github.gjaku1031.kenblog.project.domain.ProjectEntity
+import io.github.gjaku1031.kenblog.series.domain.SeriesEntity
 import jakarta.persistence.Column
 import jakarta.persistence.Embeddable
 import jakarta.persistence.EmbeddedId
@@ -16,22 +16,22 @@ import org.hibernate.annotations.OnDeleteAction
 
 /** 프로젝트와 기술 뱃지의 복합 키. */
 @Embeddable
-data class ProjectStackBadgeId(
-    @Column(name = "project_id") var projectId: Long = 0,
+data class SeriesStackBadgeId(
+    @Column(name = "series_id") var seriesId: Long = 0,
     @Column(name = "badge_id") var badgeId: Long = 0,
 ) : Serializable
 
 /** 프로젝트 뱃지 선택 순서를 보존하는 연결 행. */
 @Entity
-@Table(name = "project_stack_badges", uniqueConstraints = [
-    UniqueConstraint(name = "uk_project_stack_badges_order", columnNames = ["project_id", "sort_order"]),
+@Table(name = "series_stack_badges", uniqueConstraints = [
+    UniqueConstraint(name = "uk_series_stack_badges_order", columnNames = ["series_id", "sort_order"]),
 ])
-class ProjectStackBadgeEntity protected constructor() {
+class SeriesStackBadgeEntity protected constructor() {
     // DB 외래 키와 삭제 규칙. 저장은 기존 ID 필드를 사용.
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "project_id", insertable = false, updatable = false)
+    @JoinColumn(name = "series_id", insertable = false, updatable = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
-    private var project: ProjectEntity? = null
+    private var project: SeriesEntity? = null
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "badge_id", insertable = false, updatable = false)
@@ -39,7 +39,7 @@ class ProjectStackBadgeEntity protected constructor() {
     private var badge: StackBadgeEntity? = null
 
     @EmbeddedId
-    lateinit var id: ProjectStackBadgeId
+    lateinit var id: SeriesStackBadgeId
         protected set
 
     @Column(name = "sort_order", nullable = false)
@@ -47,8 +47,8 @@ class ProjectStackBadgeEntity protected constructor() {
         protected set
 
     /** 프로젝트 ID와 이미 등록된 뱃지 ID를 순서대로 연결. */
-    constructor(projectId: Long, badgeId: Long, sortOrder: Int) : this() {
-        id = ProjectStackBadgeId(projectId, badgeId)
+    constructor(seriesId: Long, badgeId: Long, sortOrder: Int) : this() {
+        id = SeriesStackBadgeId(seriesId, badgeId)
         this.sortOrder = sortOrder
     }
 }

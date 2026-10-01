@@ -26,11 +26,8 @@ data class WikiLinkReadable(
     val id: Long,
     val title: String,
     val slug: String,
-    /** 실제 글의 소속 구획. */
     val section: String = "TECH",
-    /** 프로젝트 문서·대문만 이동 가능한 부모 주소. */
-    val projectSlug: String? = null,
-    val courseSlug: String? = null,
+    val seriesSlug: String? = null,
 ) : WikiLinkResult {
     override val status = WikiLinkStatus.READABLE
 }
@@ -46,20 +43,3 @@ data class WikiLinkMissing(
 data class WikiLinkResolveResponse(
     val items: List<WikiLinkResult>,
 )
-
-/**
- * SQL의 본문 없는 한 행을 담는 Spring Data 네이티브 투영.
- *
- * status는 WHERE 절에서 출간으로 제한하며 visibility는 DB의 대문자 값으로 읽음.
- */
-interface WikiLinkTargetRow {
-    val id: Long
-    val title: String
-    val slug: String
-    val visibility: String
-    val section: String
-    val projectSlug: String?
-    val courseSlug: String?
-    val projectVisibility: String?
-    val homeVisibility: String?
-}

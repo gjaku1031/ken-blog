@@ -4,11 +4,10 @@ type Csrf = { headerName: string; token: string };
 type Page<T> = { items: T[]; page: number; totalElements: number; totalPages: number };
 type Category = { id: number; path: string; name: string; depth: number; sortOrder: number; directCount: number; children: Category[] };
 type Badge = { id: number; name: string; projectCount: number | null };
-type Post = { id: number; title: string; slug: string; section: string; status: string; summary: string; category: Category | null; tags: string[]; techSeriesOrder: number | null; documentOrder: number | null; chapterOrder: number | null };
-type Project = { id: number; name: string; slug: string; status: string; startPeriod: string; endPeriod: string | null; overview: string; updatedAt: string; sortOrder: number; stackBadges: Badge[] };
-type Course = { id: number; field: string; name: string; description: string; status: string };
+type Series = { id: number; name: string; slug: string; kind: 'TECH' | 'PROJECT'; description: string; projectStatus: string | null; startPeriod: string | null; endPeriod: string | null; updatedAt: string; sortOrder: number; stackBadges: Badge[] };
+type Post = { id: number; title: string; slug: string; section: string; status: string; summary: string; category: Category | null; tags: string[]; series: Series | null; seriesOrder: number | null; relatedSeriesId: number | null };
 type Profile = { name: string; tagline: string; intro: string; github: string; email: string };
-type AdminData = { posts: Page<Post>; projects: Page<Project>; courses: { items: Course[] }; categories: Category[]; badges: Badge[]; profile: Profile };
+type AdminData = { posts: Page<Post>; series: Series[]; categories: Category[]; badges: Badge[]; profile: Profile };
 
 const root = document.documentElement;
 const savedTheme = localStorage.getItem('ken-blog-theme');
@@ -50,8 +49,7 @@ function setMessage(target: HTMLElement, message: string, error = false) {
 }
 function clearDashboard() {
   currentData = null;
-  for (const id of ['post-create', 'post-list', 'post-pages', 'category-create', 'category-list', 'project-list',
-    'course-create', 'course-list', 'badge-create', 'badge-list', 'profile-form']) get(id).replaceChildren();
+  for (const id of ['post-create', 'post-list', 'post-pages', 'category-create', 'category-list', 'series-create', 'series-list', 'badge-create', 'badge-list', 'profile-form']) get(id).replaceChildren();
 }
 function showLogin(message = '') {
   sessionReady = false;
@@ -219,97 +217,36 @@ async function loadDashboard() {
   if (!sessionReady) return;
   const data = await Promise.all([
     request<Page<Post>>(`/admin/posts?page=${postPage}&size=30`),
-    request<Page<Project>>('/admin/projects?page=0&size=100'),
-    request<{ items: Course[] }>('/admin/courses'),
+    request<Series[]>('/admin/series'),
     request<Category[]>('/admin/categories'),
     request<Badge[]>('/admin/stack-badges'),
     request<Profile>('/admin/profile'),
   ]);
   if (!sessionReady) return;
-  currentData = { posts: data[0], projects: data[1], courses: data[2], categories: data[3], badges: data[4], profile: data[5] };
+  currentData = { posts: data[0], series: data[1], categories: data[2], badges: data[3], profile: data[4] };
   render(currentData);
   showDashboard();
 }
 function render(data: AdminData) {
   renderPosts(data);
   renderCategories(data);
-  renderProjects(data);
-  renderCourses(data);
+  renderSeries(data);
   renderBadges(data);
   renderProfile(data);
 }
 function renderPosts(data: AdminData) {
-  const create = get('post-create');
-  const createForm = form(async input => {
-    const section = value(input, 'section');
-    const payload: Record<string, unknown> = {
-      title: value(input, 'title'), slug: value(input, 'slug'), section,
-      summary: value(input, 'summary'),
-    };
-    if (section === 'TECH' || section === 'PROJECT_DOC') {
-      payload.categoryId = optionalNumber(input, section === 'TECH' ? 'techCategory' : 'docCategory');
-      payload.tags = value(input, section === 'TECH' ? 'techTags' : 'docTags').split(',').map(item => item.trim()).filter(Boolean);
-    }
-    if (section === 'TECH') {
-      payload.techSeriesOrder = optionalNumber(input, 'techSeriesOrder');
-      payload.relatedProjectId = optionalNumber(input, 'relatedProjectId');
-    } else if (section === 'PROJECT_HOME') {
-      payload.projectMetadata = {
-        status: value(input, 'projectStatus'), startPeriod: value(input, 'startPeriod'),
-        endPeriod: value(input, 'endPeriod') || null, overview: value(input, 'overview'),
-        stackBadgeNames: badgeNames(input),
-      };
-    } else if (section === 'PROJECT_DOC') {
-      payload.projectId = optionalNumber(input, 'projectId');
-      payload.documentOrder = optionalNumber(input, 'documentOrder');
-    } else if (section === 'NOTE_CHAPTER') {
-      payload.courseId = optionalNumber(input, 'courseId');
-      payload.chapterOrder = optionalNumber(input, 'chapterOrder');
-    }
-    return mutate('/admin/posts', 'POST', payload);
-  }, '글 메타데이터를 만들었습니다.');
-  createForm.classList.add('create-form');
-  createForm.append(el('h3', 'wide', '새 글 만들기'));
-  field(createForm, '제목', 'title', '', { required: true, max: 200 });
-  field(createForm, '주소 slug', 'slug', '', { required: true, max: 160, placeholder: 'lowercase-hyphen' });
-  const sectionSelect = choice(createForm, '종류', 'section', [
-    ['TECH', 'Tech'], ['PROJECT_HOME', '프로젝트 대문'], ['PROJECT_DOC', '프로젝트 문서'], ['NOTE_CHAPTER', 'Notes 회차'],
-  ], 'TECH');
-  area(createForm, '요약', 'summary', '', 120);
-  const groups = new Map<string, HTMLElement>();
-  const group = (name: string, heading: string) => {
-    const fieldset = el('fieldset', 'wide create-group');
-    fieldset.append(el('legend', '', heading));
-    createForm.append(fieldset); groups.set(name, fieldset);
-    return fieldset;
-  };
-  const tech = group('TECH', 'Tech 속성');
-  const techFields = el('div', 'field-grid'); tech.append(techFields);
-  choice(techFields, '분류', 'techCategory', categoryOptions(data.categories));
-  field(techFields, '태그 (쉼표 구분)', 'techTags');
-  field(techFields, '소분류 시리즈 번호', 'techSeriesOrder', '', { type: 'number' }).min = '1';
-  choice(techFields, '관련 프로젝트', 'relatedProjectId', [['', '없음'], ...data.projects.items.map(item => [String(item.id), item.name] as [string, string])]);
-  const home = group('PROJECT_HOME', '프로젝트 속성');
-  const homeFields = el('div', 'field-grid'); home.append(homeFields);
-  choice(homeFields, '상태', 'projectStatus', [['PLAN', '기획'], ['DEV', '개발'], ['MAINT', '유지보수'], ['DONE', '완료']], 'PLAN');
-  field(homeFields, '시작 기간', 'startPeriod', '', { placeholder: 'YYYY.MM' });
-  field(homeFields, '종료 기간', 'endPeriod', '', { placeholder: 'YYYY.MM' });
-  area(homeFields, '개요', 'overview');
-  checkboxes(homeFields, '기술 뱃지', data.badges);
-  const doc = group('PROJECT_DOC', '프로젝트 문서 속성');
-  const docFields = el('div', 'field-grid'); doc.append(docFields);
-  choice(docFields, '프로젝트', 'projectId', [['', '선택'], ...data.projects.items.map(item => [String(item.id), item.name] as [string, string])]);
-  field(docFields, '문서 번호', 'documentOrder', '', { type: 'number' }).min = '1';
-  choice(docFields, '분류', 'docCategory', categoryOptions(data.categories));
-  field(docFields, '태그 (쉼표 구분)', 'docTags');
-  const chapter = group('NOTE_CHAPTER', 'Notes 회차 속성');
-  const chapterFields = el('div', 'field-grid'); chapter.append(chapterFields);
-  choice(chapterFields, '과목', 'courseId', [['', '선택'], ...data.courses.items.map(item => [String(item.id), item.name] as [string, string])]);
-  field(chapterFields, '회차 번호', 'chapterOrder', '', { type: 'number' }).min = '1';
-  const toggle = () => { for (const [name, element] of groups) element.hidden = sectionSelect.value !== name; };
-  sectionSelect.addEventListener('change', toggle); toggle();
-  submit(createForm, '글 만들기');
-  create.replaceChildren(createForm);
+  const create = form(input => mutate('/admin/posts', 'POST', {
+    title: value(input, 'title'), slug: value(input, 'slug'), summary: value(input, 'summary'),
+    categoryId: optionalNumber(input, 'categoryId'), tags: tags(input),
+    seriesId: optionalNumber(input, 'seriesId'), relatedSeriesId: optionalNumber(input, 'relatedSeriesId'), order: optionalNumber(input, 'order'),
+  }), '글 메타데이터를 만들었습니다.');
+  field(create, '제목', 'title', '', { required: true, max: 200 });
+  field(create, '주소 slug', 'slug', '', { required: true, max: 160, placeholder: 'lowercase-hyphen' });
+  field(create, '요약', 'summary', '', { max: 120 });
+  choice(create, '분류', 'categoryId', categoryOptions(data.categories));
+  field(create, '태그 (쉼표 구분)', 'tags');
+  seriesFields(create, data, null, null, null);
+  submit(create, '글 만들기'); get('post-create').replaceChildren(create);
 
   const list = get('post-list'); list.replaceChildren();
   if (!data.posts.items.length) list.append(el('p', 'empty', '등록된 글이 없습니다.'));
@@ -317,7 +254,7 @@ function renderPosts(data: AdminData) {
     const article = el('article', 'item');
     article.append(itemHeading(post.title, `${post.section} · ${post.status}`));
     article.append(el('p', 'muted', `/${post.slug} · content/posts/${post.slug}.md`));
-    if (post.section === 'TECH' || post.section === 'PROJECT_DOC') {
+    {
       const edit = form(input => mutate(`/admin/posts/${post.id}/metadata`, 'PATCH', {
         title: value(input, 'title'), summary: value(input, 'summary'),
         categoryId: optionalNumber(input, 'categoryId'), tags: tags(input),
@@ -328,20 +265,11 @@ function renderPosts(data: AdminData) {
       field(edit, '태그 (쉼표 구분)', 'tags', post.tags.join(', '));
       submit(edit, '메타데이터 저장'); article.append(edit);
     }
-    if (post.section === 'TECH' || post.section === 'PROJECT_DOC' || post.section === 'NOTE_CHAPTER') {
-      const currentOrder = post.section === 'TECH' ? post.techSeriesOrder :
-        post.section === 'PROJECT_DOC' ? post.documentOrder : post.chapterOrder;
-      const order = form(input => {
-        const number = optionalNumber(input, 'order');
-        if (number === null && post.section !== 'TECH') throw new Error('번호를 입력하세요.');
-        return mutate(`/admin/posts/${post.id}/order`, 'PUT', { order: number });
-      }, '글 순서를 저장했습니다.');
-      const input = field(order, post.section === 'TECH' ? '소분류 시리즈 번호 (비우면 해제)' :
-        post.section === 'PROJECT_DOC' ? '문서 번호' : '회차 번호', 'order', String(currentOrder ?? ''),
-        { type: 'number', required: post.section !== 'TECH' });
-      input.min = '1';
-      submit(order, '번호 저장'); article.append(order);
-    }
+    const membership = form(input => mutate(`/admin/posts/${post.id}/series`, 'PUT', {
+      seriesId: optionalNumber(input, 'seriesId'), relatedSeriesId: optionalNumber(input, 'relatedSeriesId'), order: optionalNumber(input, 'order'),
+    }), '시리즈와 문서 순서를 저장했습니다.');
+    seriesFields(membership, data, post.series?.id ?? null, post.seriesOrder, post.relatedSeriesId);
+    submit(membership, '시리즈·순서 저장'); article.append(membership);
     const actions = el('div', 'inline-actions');
     const published = post.status === 'PUBLISHED';
     smallAction(actions, published ? '발행 취소' : '발행', () =>
@@ -390,55 +318,47 @@ function renderCategories(data: AdminData) {
     list.append(article);
   }
 }
-function renderProjects(data: AdminData) {
-  const list = get('project-list'); list.replaceChildren();
-  if (!data.projects.items.length) list.append(el('p', 'empty', '등록된 프로젝트가 없습니다.'));
-  for (const project of data.projects.items) {
-    const article = el('article', 'item'); article.append(itemHeading(project.name, project.slug));
-    const edit = form(input => mutate(`/admin/projects/${project.id}/metadata`, 'PUT', {
-      name: value(input, 'name'), status: value(input, 'status'),
-      startPeriod: value(input, 'startPeriod'), endPeriod: value(input, 'endPeriod') || null,
-      overview: value(input, 'overview'), stackBadgeNames: badgeNames(input),
-      baseUpdatedAt: project.updatedAt,
-    }), '프로젝트를 저장했습니다.');
-    field(edit, '이름', 'name', project.name, { required: true, max: 200 });
-    choice(edit, '상태', 'status', [['PLAN', '기획'], ['DEV', '개발'], ['MAINT', '유지보수'], ['DONE', '완료']], project.status);
-    field(edit, '시작 기간', 'startPeriod', project.startPeriod, { placeholder: 'YYYY.MM' });
-    field(edit, '종료 기간', 'endPeriod', project.endPeriod ?? '', { placeholder: 'YYYY.MM' });
-    area(edit, '개요', 'overview', project.overview);
-    checkboxes(edit, '기술 뱃지', data.badges, project.stackBadges.map(badge => badge.name));
-    submit(edit, '프로젝트 저장'); article.append(edit);
-    const order = form(input => mutate(`/admin/projects/${project.id}/order`, 'PUT', { order: Number(value(input, 'order')) }), '프로젝트 순서를 저장했습니다.');
-    field(order, '카드 순서', 'order', String(project.sortOrder), { type: 'number' });
-    submit(order, '순서 저장'); article.append(order);
-    smallAction(article, '프로젝트 삭제', () => mutate(`/admin/projects/${project.id}`, 'DELETE'),
-      '프로젝트를 삭제했습니다.', `${project.name} 프로젝트와 연결된 문서를 삭제할까요?`);
-    list.append(article);
-  }
+function seriesFields(parent: HTMLElement, data: AdminData, selected: number | null, order: number | null, related: number | null) {
+  choice(parent, '시리즈', 'seriesId', [['', '없음'], ...data.series.map(item => [String(item.id), `${item.kind === 'PROJECT' ? '프로젝트' : '일반'} · ${item.name}`] as [string, string])], String(selected ?? ''));
+  field(parent, '문서 순서 (비우면 마지막)', 'order', String(order ?? ''), { type: 'number' }).min = '1';
+  choice(parent, '관련 프로젝트', 'relatedSeriesId', [['', '없음'], ...data.series.filter(item => item.kind === 'PROJECT').map(item => [String(item.id), item.name] as [string, string])], String(related ?? ''));
 }
-function renderCourses(data: AdminData) {
-  const create = form(input => mutate('/admin/courses', 'POST', {
-    field: value(input, 'field'), name: value(input, 'name'), status: value(input, 'status'), description: value(input, 'description'),
-  }), '과목을 만들었습니다.');
-  field(create, '분야', 'field', '', { required: true, max: 100 });
-  field(create, '과목명', 'name', '', { required: true, max: 200 });
-  choice(create, '상태', 'status', [['IN_PROGRESS', '진행 중'], ['COMPLETED', '완료']]);
-  area(create, '설명', 'description').required = true;
-  submit(create, '과목 만들기'); get('course-create').replaceChildren(create);
-  const list = get('course-list'); list.replaceChildren();
-  if (!data.courses.items.length) list.append(el('p', 'empty', '등록된 과목이 없습니다.'));
-  for (const course of data.courses.items) {
-    const article = el('article', 'item'); article.append(itemHeading(course.name, course.field));
-    const edit = form(input => mutate(`/admin/courses/${course.id}`, 'PUT', {
-      field: value(input, 'field'), name: value(input, 'name'), status: value(input, 'status'), description: value(input, 'description'),
-    }), '과목을 저장했습니다.');
-    field(edit, '분야', 'field', course.field, { required: true, max: 100 });
-    field(edit, '과목명', 'name', course.name, { required: true, max: 200 });
-    choice(edit, '상태', 'status', [['IN_PROGRESS', '진행 중'], ['COMPLETED', '완료']], course.status);
-    area(edit, '설명', 'description', course.description).required = true;
-    submit(edit, '과목 저장'); article.append(edit);
-    smallAction(article, '과목 삭제', () => mutate(`/admin/courses/${course.id}`, 'DELETE'),
-      '과목을 삭제했습니다.', `${course.name} 과목과 연결된 회차를 삭제할까요?`);
+function seriesMetadata(input: FormData, project: boolean) {
+  return { name: value(input, 'name'), description: value(input, 'description'),
+    ...(project ? { projectStatus: value(input, 'projectStatus'), startPeriod: value(input, 'startPeriod'),
+      endPeriod: value(input, 'endPeriod') || null, stackBadgeNames: badgeNames(input) } : {}) };
+}
+function projectFields(parent: HTMLElement, badges: Badge[], item?: Series) {
+  choice(parent, '상태', 'projectStatus', [['PLAN', '기획'], ['DEV', '개발'], ['MAINT', '유지보수'], ['DONE', '완료']], item?.projectStatus ?? 'PLAN');
+  field(parent, '시작 기간', 'startPeriod', item?.startPeriod ?? '', { placeholder: 'YYYY.MM' });
+  field(parent, '종료 기간', 'endPeriod', item?.endPeriod ?? '', { placeholder: 'YYYY.MM' });
+  checkboxes(parent, '기술 뱃지', badges, item?.stackBadges.map(b => b.name) ?? []);
+}
+function renderSeries(data: AdminData) {
+  const create = form(input => mutate('/admin/series', 'POST', {
+    slug: value(input, 'slug'), kind: value(input, 'kind'), metadata: seriesMetadata(input, value(input, 'kind') === 'PROJECT'),
+  }), '시리즈를 만들었습니다.');
+  field(create, '이름', 'name', '', { required: true, max: 200 });
+  field(create, '주소 slug', 'slug', '', { required: true, max: 160 });
+  const kind = choice(create, '종류', 'kind', [['TECH', '일반'], ['PROJECT', '프로젝트']]);
+  area(create, '설명', 'description', '', 1000);
+  const project = el('fieldset', 'wide field-grid'); projectFields(project, data.badges); create.append(project);
+  const toggle = () => { project.hidden = kind.value !== 'PROJECT'; project.disabled = project.hidden; };
+  kind.addEventListener('change', toggle); toggle();
+  submit(create, '시리즈 만들기'); get('series-create').replaceChildren(create);
+  const list = get('series-list'); list.replaceChildren();
+  if (!data.series.length) list.append(el('p', 'empty', '등록된 시리즈가 없습니다.'));
+  for (const item of data.series) {
+    const article = el('article', 'item'); article.append(itemHeading(item.name, `${item.kind === 'PROJECT' ? '프로젝트' : '일반'} · ${item.slug}`));
+    const edit = form(input => mutate(`/admin/series/${item.id}/metadata`, 'PUT', {
+      ...seriesMetadata(input, item.kind === 'PROJECT'), baseUpdatedAt: item.updatedAt,
+    }), '시리즈 메타데이터를 저장했습니다.');
+    field(edit, '이름', 'name', item.name, { required: true, max: 200 }); area(edit, '설명', 'description', item.description, 1000);
+    if (item.kind === 'PROJECT') projectFields(edit, data.badges, item);
+    submit(edit, '메타데이터 저장'); article.append(edit);
+    const order = form(input => mutate(`/admin/series/${item.id}/order`, 'PUT', { order: Number(value(input, 'order')) }), '시리즈 순서를 저장했습니다.');
+    field(order, '카드 순서', 'order', String(item.sortOrder), { type: 'number' }); submit(order, '순서 저장'); article.append(order);
+    smallAction(article, '빈 시리즈 삭제', () => mutate(`/admin/series/${item.id}`, 'DELETE'), '시리즈를 삭제했습니다.', `${item.name} 시리즈를 삭제할까요? 연결된 글이 있으면 삭제할 수 없습니다.`);
     list.append(article);
   }
 }
@@ -495,7 +415,6 @@ loginForm.addEventListener('submit', async event => {
     await refreshCsrf();
     await mutate('/auth/login', 'POST', {
       password: String(input.get('password') ?? ''),
-      verificationCode: String(input.get('verificationCode') ?? ''),
       rememberMe: input.has('rememberMe'),
     });
     loginAccepted = true;
@@ -508,12 +427,12 @@ loginForm.addEventListener('submit', async event => {
     loginForm.reset();
   } catch (error) {
     const message = error instanceof HttpError && error.status === 401
-      ? loginAccepted ? '로그인 상태를 확인할 수 없습니다. 브라우저에서 사이트 간 쿠키를 허용한 뒤 다시 시도하세요.' : '비밀번호 또는 인증 코드를 확인하세요.'
+      ? loginAccepted ? '로그인 상태를 확인할 수 없습니다. 브라우저에서 사이트 간 쿠키를 허용한 뒤 다시 시도하세요.' : '비밀번호를 확인하세요.'
       : error instanceof HttpError && error.status === 403
         ? '로그인 요청이 거부되었습니다. 브라우저에서 사이트 간 쿠키를 허용하고 새로고침한 뒤 다시 시도하세요.'
         : error instanceof Error ? error.message : '로그인에 실패했습니다.';
     showLogin(message);
-    loginForm.querySelectorAll<HTMLInputElement>('input[type=password], input[name=verificationCode]').forEach(input => { input.value = ''; });
+    loginForm.querySelectorAll<HTMLInputElement>('input[type=password]').forEach(input => { input.value = ''; });
   } finally { if (button) button.disabled = false; }
 });
 get('logout').addEventListener('click', async () => {

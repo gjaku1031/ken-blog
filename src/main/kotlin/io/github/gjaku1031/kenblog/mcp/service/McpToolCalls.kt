@@ -4,18 +4,13 @@ import io.github.gjaku1031.kenblog.attachment.domain.AttachmentFailure
 import io.github.gjaku1031.kenblog.category.domain.CategoryConflictException
 import io.github.gjaku1031.kenblog.category.domain.CategoryNotFoundException
 import io.github.gjaku1031.kenblog.category.domain.InvalidCategoryRequestException
-import io.github.gjaku1031.kenblog.note.domain.CourseConflictException
-import io.github.gjaku1031.kenblog.note.domain.CourseNotFoundException
-import io.github.gjaku1031.kenblog.note.domain.InvalidCourseRequestException
+import io.github.gjaku1031.kenblog.series.domain.*
 import io.github.gjaku1031.kenblog.operations.domain.OperationFailure
 import io.github.gjaku1031.kenblog.post.domain.DuplicatePostSlugException
 import io.github.gjaku1031.kenblog.post.domain.InvalidPostRequestException
 import io.github.gjaku1031.kenblog.post.domain.InvalidWikiLinkRequestException
 import io.github.gjaku1031.kenblog.post.domain.PostNotFoundException
 import io.github.gjaku1031.kenblog.post.domain.WikiLinkConflictException
-import io.github.gjaku1031.kenblog.project.domain.InvalidProjectRequestException
-import io.github.gjaku1031.kenblog.project.domain.ProjectConflictException
-import io.github.gjaku1031.kenblog.project.domain.ProjectNotFoundException
 import org.springframework.dao.DataAccessException
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
@@ -43,13 +38,13 @@ class McpToolCalls(private val mapper: ObjectMapper) {
         is AttachmentFailure -> fromStatus(ex.status, ex.publicDetail)
         is InvalidPostRequestException,
         is InvalidWikiLinkRequestException, is InvalidCategoryRequestException,
-        is InvalidProjectRequestException, is InvalidCourseRequestException ->
+        is InvalidSeriesRequestException ->
             error("validation", "입력값과 본문 선언을 확인하세요.")
         is PostNotFoundException, is CategoryNotFoundException,
-        is ProjectNotFoundException, is CourseNotFoundException ->
+        is SeriesNotFoundException ->
             error("not_found", "요청한 콘텐츠를 찾을 수 없습니다.")
         is DuplicatePostSlugException, is CategoryConflictException,
-        is ProjectConflictException, is CourseConflictException, is WikiLinkConflictException ->
+        is SeriesConflictException, is WikiLinkConflictException ->
             error("conflict", "콘텐츠가 변경됐습니다. 최신 내용을 다시 조회하세요.")
         is DataAccessException -> error("unavailable", "데이터 저장소에 연결할 수 없습니다.")
         else -> error("internal", "요청을 처리하지 못했습니다.")

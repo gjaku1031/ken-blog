@@ -4,14 +4,11 @@ import io.github.gjaku1031.kenblog.attachment.service.AttachmentLinkService
 import io.github.gjaku1031.kenblog.category.domain.CategoryNotFoundException
 import io.github.gjaku1031.kenblog.category.repository.CategoryRepository
 import io.github.gjaku1031.kenblog.content.service.RepositoryMarkdown
-import io.github.gjaku1031.kenblog.note.domain.CourseConflictException
-import io.github.gjaku1031.kenblog.note.repository.CourseRepository
 import io.github.gjaku1031.kenblog.post.domain.DuplicatePostSlugException
 import io.github.gjaku1031.kenblog.post.domain.InvalidPostRequestException
 import io.github.gjaku1031.kenblog.post.domain.PostBodyHash
 import io.github.gjaku1031.kenblog.post.domain.PostEntity
 import io.github.gjaku1031.kenblog.post.domain.PostNotFoundException
-import io.github.gjaku1031.kenblog.post.domain.PostSection
 import io.github.gjaku1031.kenblog.post.domain.PostStatus
 import io.github.gjaku1031.kenblog.post.domain.PostTagEntity
 import io.github.gjaku1031.kenblog.post.domain.PostVisibility
@@ -24,11 +21,9 @@ import io.github.gjaku1031.kenblog.post.dto.PostSummaryResponse
 import io.github.gjaku1031.kenblog.post.dto.TagCountResponse
 import io.github.gjaku1031.kenblog.post.repository.PostRepository
 import io.github.gjaku1031.kenblog.post.repository.PostTagRepository
-import io.github.gjaku1031.kenblog.project.domain.ProjectConflictException
-import io.github.gjaku1031.kenblog.project.domain.ProjectEntity
-import io.github.gjaku1031.kenblog.project.dto.ProjectMetadataRequests
-import io.github.gjaku1031.kenblog.project.repository.ProjectRepository
-import io.github.gjaku1031.kenblog.stack.service.StackBadgeService
+import io.github.gjaku1031.kenblog.series.repository.SeriesRepository
+import io.github.gjaku1031.kenblog.series.domain.*
+import io.github.gjaku1031.kenblog.post.repository.PostQueries
 import java.sql.SQLIntegrityConstraintViolationException
 import java.time.Clock
 import java.time.LocalDateTime
@@ -50,9 +45,8 @@ class PostService(
     private val taxonomy: PostTaxonomyMetadata,
     private val attachmentLinks: AttachmentLinkService,
     private val wikiLinks: WikiLinkMetadata,
-    private val projects: ProjectRepository,
-    private val courses: CourseRepository,
-    private val stackBadges: StackBadgeService,
+    private val series: SeriesRepository,
+    private val queries: PostQueries,
     private val markdown: RepositoryMarkdown,
 ) {
     /** 본문 없이 등록한다. 출간은 별도 상태 변경이며 원고 파일은 Git에서 직접 만든다. */
@@ -63,70 +57,23 @@ class PostService(
         val summary = validSummary(request.summary)
         val normalizedTags = TagNames.displayAll(request.tags)
         if (request.categoryId != null) validCategory(request.categoryId)
-        if (request.techSeriesOrder != null && (request.techSeriesOrder <= 0 || request.categoryId == null ||
-                categories.findSharedById(request.categoryId)?.depth != 3))
+        if (request.order != null && (request.order <= 0 || request.seriesId == null && request.categoryId == null))
             throw InvalidPostRequestException()
-        if (request.relatedProjectId != null && request.relatedProjectId <= 0) throw InvalidPostRequestException()
+        request.seriesId?.let { if (it <= 0 || series.findLockedById(it) == null) throw SeriesNotFoundException() }
+        request.relatedSeriesId?.let {
+            if (it <= 0 || series.findLockedById(it)?.kind != SeriesKind.PROJECT) throw InvalidPostRequestException()
+        }
         val now = now()
         val post = PostEntity(title, slug, "", now)
-        post.replaceSummary(summary)
-        when (request.section) {
-            PostSection.TECH -> {
-                if (request.projectId != null || request.courseId != null || request.documentOrder != null ||
-                    request.chapterOrder != null || request.projectMetadata != null) throw InvalidPostRequestException()
-                request.relatedProjectId?.let { id ->
-                    if (!projects.existsById(id)) throw ProjectConflictException()
-                    post.relateProject(id, now)
-                }
-            }
-            PostSection.PROJECT_HOME -> {
-                if (request.projectId != null || request.courseId != null || request.relatedProjectId != null ||
-                    request.documentOrder != null || request.chapterOrder != null || request.categoryId != null ||
-                    normalizedTags.isNotEmpty() || request.techSeriesOrder != null) throw InvalidPostRequestException()
-                val metadata = request.projectMetadata ?: throw InvalidPostRequestException()
-                if (metadata.baseProjectUpdatedAt != null) throw InvalidPostRequestException()
-                val values = ProjectMetadataRequests.validate(metadata)
-                projects.lockCollection() ?: error("Missing content state row")
-                val minimum = projects.findAllLockedForOrder().firstOrNull()?.sortOrder ?: 1L
-                if (minimum == Long.MIN_VALUE) throw ProjectConflictException()
-                val project = projects.saveAndFlush(ProjectEntity(slug, title, values, now, minimum - 1))
-                val projectId = project.id ?: error("Persisted project has no ID")
-                stackBadges.replaceProjectStack(projectId, values.stackBadgeNames)
-                post.assignProject(PostSection.PROJECT_HOME, projectId, null)
-            }
-            PostSection.PROJECT_DOC -> {
-                if (request.projectMetadata != null || request.courseId != null || request.relatedProjectId != null ||
-                    request.chapterOrder != null || request.techSeriesOrder != null) throw InvalidPostRequestException()
-                val projectId = request.projectId ?: throw InvalidPostRequestException()
-                val order = request.documentOrder ?: throw InvalidPostRequestException()
-                if (projectId <= 0 || order <= 0 || projects.findLockedById(projectId) == null)
-                    throw ProjectConflictException()
-                post.assignProject(PostSection.PROJECT_DOC, projectId, order)
-            }
-            PostSection.NOTE_CHAPTER -> {
-                if (request.projectId != null || request.relatedProjectId != null || request.projectMetadata != null ||
-                    request.documentOrder != null || request.categoryId != null || normalizedTags.isNotEmpty() ||
-                    request.techSeriesOrder != null) throw InvalidPostRequestException()
-                val courseId = request.courseId ?: throw InvalidPostRequestException()
-                val order = request.chapterOrder ?: throw InvalidPostRequestException()
-                if (courseId <= 0 || order <= 0 || courses.findLockedById(courseId) == null)
-                    throw CourseConflictException()
-                post.assignCourse(courseId, order)
-            }
-        }
-        request.categoryId?.let { post.changeCategory(it, now) }
-        request.techSeriesOrder?.let { post.changeTechSeriesOrder(it, now) }
+        post.replaceMetadata(title, summary, now)
+        post.changeCategory(request.categoryId, now)
+        post.assignSeries(request.seriesId, request.order, request.relatedSeriesId, now)
         val saved = try { repository.saveAndFlush(post) }
         catch (ex: DataIntegrityViolationException) {
             if (ex.isDuplicateSlugConstraint()) throw DuplicatePostSlugException(slug, ex)
             throw ex
         }
         val id = saved.id ?: error("Persisted post has no ID")
-        if (request.section == PostSection.PROJECT_HOME) {
-            val project = projects.findLockedById(saved.projectId!!) ?: throw ProjectConflictException()
-            project.attachHome(id)
-            projects.saveAndFlush(project)
-        }
         if (normalizedTags.isNotEmpty())
             tags.saveAllAndFlush(normalizedTags.mapIndexed { index, name -> PostTagEntity(id, index, name) })
         attachmentLinks.replacePost(id, request.attachmentIds)
@@ -147,17 +94,15 @@ class PostService(
     @Transactional(readOnly = true)
     fun listDrafts(page: Int, size: Int): PostPageResponse {
         if (page < 0 || size !in 1..100 || page.toLong() * size > Int.MAX_VALUE) throw InvalidPostRequestException()
-        val result = repository.findAdminSummaries(PageRequest.of(page, size))
-        val metadata = taxonomy.batch(result.content.map { it.id }, result.content.map { it.categoryId })
-        val items = result.content.map { row ->
+        val result = queries.adminPage(page, size)
+        val metadata = taxonomy.batch(result.items.map { it.id }, result.items.map { it.categoryId })
+        val items = result.items.map { row ->
             val view = metadata.getValue(row.id)
             PostSummaryResponse(row.id, row.title, row.slug, row.createdAt, row.updatedAt,
                 row.status, row.visibility, row.publishedAt, view.category, view.tags,
-                row.section, row.projectId, null, row.courseId, row.summary,
-                row.techSeriesOrder, row.projectName, row.courseName, row.courseField,
-                row.documentOrder, row.chapterOrder)
+                row.series, row.seriesOrder, row.summary, row.relatedSeriesId)
         }
-        return PostPageResponse(items, page, size, result.totalElements, result.totalPages)
+        return PostPageResponse(items, page, size, result.total, result.pages)
     }
 
     /** 파일이 없는 글은 원본 경로를 포함한 404로 알린다. */
@@ -177,7 +122,6 @@ class PostService(
         val normalizedTags = TagNames.displayAll(rawTags)
         if (categoryId != null) validCategory(categoryId)
         val post = lockedPost(id)
-        if (post.section !in setOf(PostSection.TECH, PostSection.PROJECT_DOC)) throw ProjectConflictException()
         if (post.title != normalizedTitle || post.summary != normalizedSummary)
             post.replaceMetadata(normalizedTitle, normalizedSummary, now())
         if (post.categoryId != categoryId) post.changeCategory(categoryId, now())
@@ -194,41 +138,27 @@ class PostService(
     @Transactional
     fun setOrder(id: Long, order: Int?): PostDetailResponse {
         if (id <= 0 || (order != null && order <= 0)) throw InvalidPostRequestException()
-        val scope = repository.findOrderScope(id) ?: throw PostNotFoundException()
-        when (scope.section) {
-            PostSection.TECH -> {
-                if (order != null && (scope.categoryId == null ||
-                        categories.findSharedById(scope.categoryId)?.depth != 3)) throw InvalidPostRequestException()
-            }
-            PostSection.PROJECT_DOC -> {
-                projects.findLockedById(scope.projectId ?: throw ProjectConflictException())
-                    ?: throw ProjectConflictException()
-            }
-            PostSection.NOTE_CHAPTER -> {
-                courses.findLockedById(scope.courseId ?: throw CourseConflictException())
-                    ?: throw CourseConflictException()
-            }
-            PostSection.PROJECT_HOME -> throw InvalidPostRequestException()
-        }
         val post = lockedPost(id)
-        if (post.section != scope.section || post.categoryId != scope.categoryId ||
-            post.projectId != scope.projectId || post.courseId != scope.courseId) throw InvalidPostRequestException()
-        when (post.section) {
-            PostSection.TECH -> {
-                if (post.techSeriesOrder != order) post.changeTechSeriesOrder(order, now())
-            }
-            PostSection.PROJECT_DOC -> {
-                if (order == null) throw InvalidPostRequestException()
-                post.reorder(order)
-            }
-            PostSection.NOTE_CHAPTER -> {
-                if (order == null) throw InvalidPostRequestException()
-                post.reorderChapter(order)
-            }
-            PostSection.PROJECT_HOME -> throw InvalidPostRequestException()
-        }
+        if (order != null && post.seriesId == null && post.categoryId == null) throw InvalidPostRequestException()
+        post.reorder(order)
         repository.saveAndFlush(post)
         return post.adminDetail(includeBody = false)
+    }
+
+    /** 새 소속을 먼저 잠근 뒤 글 소속과 순서를 함께 바꾼다. */
+    @Transactional
+    fun setSeries(id: Long, seriesId: Long?, order: Int?, relatedId: Long?): PostDetailResponse {
+        if (id <= 0 || order != null && order <= 0) throw InvalidPostRequestException()
+        val parents = listOfNotNull(seriesId, relatedId).distinct().sorted().associateWith {
+            if (it <= 0) throw InvalidPostRequestException()
+            series.findLockedById(it) ?: throw SeriesNotFoundException()
+        }
+        if (relatedId != null && parents.getValue(relatedId).kind != SeriesKind.PROJECT) throw InvalidPostRequestException()
+        val post = lockedPost(id)
+        if (order != null && seriesId == null && post.categoryId == null) throw InvalidPostRequestException()
+        post.assignSeries(seriesId, order, relatedId, now())
+        repository.saveAndFlush(post)
+        return post.adminDetail(false)
     }
 
     /** 본문 해시를 확인한 후 위키 대상 선언만 교체한다. */
@@ -249,7 +179,7 @@ class PostService(
     }
 
     @Transactional(readOnly = true)
-    fun adminTags(): List<TagCountResponse> = tags.findAdminCounts()
+    fun adminTags(): List<TagCountResponse> = queries.tagCounts(false)
 
     @Transactional(readOnly = true)
     fun findById(id: Long): PostEntity? = if (id > 0) repository.findByIdOrNull(id) else null
@@ -273,18 +203,14 @@ class PostService(
     private fun PostEntity.adminDetail(includeBody: Boolean): PostDetailResponse {
         val postId = id ?: error("Persisted post has no ID")
         val view = taxonomy.one(postId, categoryId)
-        val project = projectId?.let(projects::findByIdOrNull)
-        val course = courseId?.let(courses::findByIdOrNull)
+        val ref = seriesId?.let(series::findByIdOrNull)?.let {
+            io.github.gjaku1031.kenblog.post.dto.SeriesRef(it.id!!, it.slug, it.name, it.kind)
+        }
         val fileBody = if (includeBody) markdown.readPost(this) else ""
         return PostDetailResponse(postId, title, slug, fileBody, createdAt, updatedAt,
             status, visibility, publishedAt, view.category, view.tags, attachmentLinks.postIds(postId),
-            wikiLinks.postTitles(postId), section, projectId, project?.slug, relatedProjectId, documentOrder,
-            if (section == PostSection.PROJECT_HOME && project != null)
-                io.github.gjaku1031.kenblog.project.domain.ProjectMetadata(project.status, project.startPeriod,
-                    project.endPeriod, project.overview, project.visibility, project.updatedAt,
-                    stackBadges.listForProject(project.id!!).map { it.name })
-            else null, courseId, course?.slug, chapterOrder, summary,
-            if (includeBody) PostBodyHash.sha256(fileBody) else "", techSeriesOrder)
+            wikiLinks.postTitles(postId), ref, seriesOrder, relatedSeriesId, summary,
+            if (includeBody) PostBodyHash.sha256(fileBody) else "")
     }
 
     private fun validTitle(value: String): String = value.trim().also {

@@ -37,13 +37,8 @@ private fun searchText(html: String): String {
         }
     }.replace(Regex("\\s+"), " ").trim()
 }
-private fun label(section: String): String = when (section) { "TECH" -> "Tech"; "NOTE_CHAPTER" -> "Notes"; else -> "Projects" }
-private fun postPath(post: Record): String = when (value(post, "section")) {
-    "PROJECT_HOME" -> route("project/${slug(value(post, "projectSlug"))}/")
-    "PROJECT_DOC" -> route("project/${slug(value(post, "projectSlug"))}/docs/${slug(value(post, "slug"))}/")
-    "NOTE_CHAPTER" -> route("course/${slug(value(post, "courseSlug"))}/chapters/${slug(value(post, "slug"))}/")
-    else -> route("post/${slug(value(post, "slug"))}/")
-}
+private fun label(section: String): String = if (section == "PROJECT") "Projects" else "Posts"
+private fun postPath(post: Record): String = route("post/${slug(value(post, "slug"))}/")
 private fun status(value: Any?): String = when (text(value)) { "PLAN" -> "기획 중"; "DEV" -> "개발 중"; "MAINT" -> "유지보수 중"; "DONE" -> "완료"; else -> text(value) }
 private fun period(project: Record): String {
     val start = value(project, "startPeriod"); val end = value(project, "endPeriod")
@@ -54,9 +49,7 @@ private fun enriched(row: Record, extra: Record = emptyMap()): Record = row + ex
 private fun card(item: Record): Record {
     val category = value(record(item["category"]), "path")
     val tags = (item["tags"] as? List<*>)?.map(::text) ?: emptyList()
-    val context = if (value(item, "section") == "NOTE_CHAPTER")
-        listOf(value(item, "courseField"), value(item, "courseName")).filter(String::isNotEmpty).joinToString(" › ")
-        else value(item, "projectName")
+    val context = value(record(item["series"]), "name")
     val title = value(item, "title").ifEmpty { value(item, "name").ifEmpty { "제목 없음" } }
     val summary = value(item, "summary").ifEmpty { value(item, "overview").ifEmpty { value(item, "description") } }
     return item + mapOf("href" to postPath(item), "title" to title, "summary" to summary, "categoryPath" to category,
@@ -80,18 +73,12 @@ class SiteGenerator(private val input: Path, private val output: Path) {
     private val snapshot = record(payload["snapshot"])
     private val assets = record(payload["assets"])
     private val pages = mutableListOf<String>()
-    private val allPosts: List<Record> by lazy {
-        list(snapshot["posts"]) + list(snapshot["projects"]).map { project ->
-            record(record(record(snapshot["projectDetails"])[value(project, "slug")])["home"]) +
-                mapOf("section" to "PROJECT_HOME", "projectSlug" to value(project, "slug"), "title" to value(project, "name"))
-        } + record(snapshot["projectDocuments"]).values.flatMap { record(it).values.map(::record) } +
-            record(snapshot["chapters"]).values.flatMap { record(it).values.map(::record) }
-    }
+    private val allPosts: List<Record> by lazy { list(snapshot["posts"]) }
     private val backlinks: Map<String, List<Record>> by lazy {
-        val targets = allPosts.groupBy { value(it, "title").lowercase() }.filterValues { it.size == 1 }
+        val targets = allPosts.sortedWith(compareBy<Record> { value(it, "publishedAt") }.thenBy { (it["id"] as Number).toLong() }).groupBy { value(it, "title").lowercase(java.util.Locale.ROOT) }
         val result = mutableMapOf<String, MutableList<Record>>()
         for (source in allPosts) for (title in (record(source["rendered"])["wikiTargets"] as? List<*> ?: emptyList<Any>())) {
-            val target = targets[text(title).lowercase()]?.singleOrNull() ?: continue
+            val target = targets[text(title).lowercase(java.util.Locale.ROOT)]?.firstOrNull() ?: continue
             if (postPath(target) != postPath(source)) result.getOrPut(postPath(target)) { mutableListOf() }
                 .add(mapOf("href" to postPath(source), "title" to value(source, "title"), "section" to label(value(source, "section"))))
         }
@@ -112,18 +99,18 @@ class SiteGenerator(private val input: Path, private val output: Path) {
 
     /** 공통 헤더·메타 태그와 지정한 본문 fragment를 결합한다. */
     private fun page(path: String, view: String, section: String, title: String, description: String, data: Record = emptyMap(), sitemap: Boolean = true) {
-        val canonicalPath = when (path) { "post" -> "tech/"; "project" -> "projects/"; "course" -> "notes/";
+        val canonicalPath = when (path) { "post" -> "posts/"; "project" -> "projects/";
             "404.html" -> "404.html"; "" -> ""; else -> "$path/" }
         val canonical = ORIGIN + route(canonicalPath)
-        val documentTitle = when (section) { "Home" -> "ken.blog | Tech·Projects·Notes"; "Search" -> "ken.blog"; else -> "$title | ken.blog" }
+        val documentTitle = when (section) { "Home" -> "ken.blog | Posts·Projects"; "Search" -> "ken.blog"; else -> "$title | ken.blog" }
         val summary = when (section) { "Home" -> "기술 글과 프로젝트, 학습 기록을 모아 둔 ken.blog";
-            "Search" -> "Tech 글과 프로젝트 기록을 읽는 ken.blog"; else -> description }
-        val socialTitle = if (section in setOf("Post", "Project", "Course") && path.isNotEmpty()) title else documentTitle
-        val active = when (section) { "Post" -> "Tech"; "Project" -> "Projects"; "Course" -> "Notes"; "Search" -> "Home"; else -> section }
-        val nav = listOf("" to "Home", "tech/" to "Tech", "projects/" to "Projects", "notes/" to "Notes")
+            "Search" -> "일반 글과 프로젝트 기록을 읽는 ken.blog"; else -> description }
+        val socialTitle = if (section in setOf("Post", "Project") && path.isNotEmpty()) title else documentTitle
+        val active = when (section) { "Post" -> "Posts"; "Project" -> "Projects"; "Search" -> "Home"; else -> section }
+        val nav = listOf("" to "Home", "posts/" to "Posts", "projects/" to "Projects")
             .map { (href, label) -> mapOf("href" to route(href), "label" to label, "active" to (label == active)) }
         val model = mapOf("view" to view, "section" to section, "documentTitle" to documentTitle, "socialTitle" to socialTitle,
-            "summary" to summary, "canonical" to canonical, "ogType" to if (section in setOf("Post", "Project", "Course") && path.isNotEmpty()) "article" else "website",
+            "summary" to summary, "canonical" to canonical, "ogType" to if (section in setOf("Post", "Project") && path.isNotEmpty()) "article" else "website",
             "base" to BASE, "assetsCss" to route("assets/${value(assets, "css")}"), "assetsJs" to route("assets/${value(assets, "js")}"),
             "adminHref" to value(payload, "adminHref"), "nav" to nav, "year" to Year.now(ZoneOffset.UTC).value,
             "github" to "https://github.com/gjaku1031/ken-blog") + data
@@ -140,103 +127,74 @@ class SiteGenerator(private val input: Path, private val output: Path) {
         val categories = cards.map { value(it, "categoryPath") }.filter(String::isNotEmpty).distinct().sorted()
         val tags = cards.flatMap { (it["tags"] as? List<*>)?.map(::text) ?: emptyList() }.distinct().sorted()
         page(path, "listing", section, title, "$title 공개 글 목록", mapOf("heading" to if (section == "Search") "최근 글" else title,
-            "cards" to cards, "categories" to categories, "tags" to tags, "searching" to (section == "Search")))
+            "cards" to cards, "categories" to categories, "tags" to tags, "searching" to (section == "Search"),
+            "groups" to if (section == "Posts") rows.map { record(it["series"]) }.filter { it.isNotEmpty() }
+                .distinctBy { value(it, "slug") }.map { mapOf("name" to value(it, "name"), "href" to postPath(list(it["items"]).first())) }
+                else emptyList<Record>()))
     }
 
-    /** 필요한 공개 경로를 모두 생성하고 sitemap·robots를 기록한다. */
+    /** 공통 글 경로와 첫 공개 글로 향하는 묶음 이동 경로를 생성한다. */
     fun generate() {
-        require((snapshot["version"] as? Number)?.toInt() == 1) { "공개 스냅샷 버전 오류" }
+        require((snapshot["version"] as? Number)?.toInt() == 2) { "공개 스냅샷 버전 오류" }
         manage()
-        val feed = list(snapshot["feed"])
-        val home = feed.sortedByDescending { value(it, "publishedDate") }.take(12)
+        val feed = allPosts.sortedWith(compareByDescending<Record> { value(it, "publishedAt") }.thenByDescending { (it["id"] as Number).toLong() })
+        val home = feed.take(12)
         val profile = record(snapshot["profile"])
         page("", "home", "Home", "Home", "Ken Blog", mapOf("cards" to home.map(::card), "profile" to profile,
             "hasProfile" to profile.values.any { text(it).isNotEmpty() },
             "profileEmailSafe" to EMAIL.matches(value(profile, "email")),
             "categories" to home.map { value(record(it["category"]), "path") }.filter(String::isNotEmpty).distinct().sorted(),
             "tags" to home.flatMap { (it["tags"] as? List<*>)?.map(::text) ?: emptyList() }.distinct().sorted()))
-        val tech = feed.filter { value(it, "section") == "TECH" }.sortedByDescending { value(it, "publishedDate") }
-        listing("tech", "Tech", "Tech", tech)
-        listing("post", "Post", "Tech", tech)
-        val projects = list(snapshot["projects"]).sortedWith(compareBy<Record> { (it["sortOrder"] as? Number)?.toLong() ?: 0L }.thenByDescending { (it["id"] as? Number)?.toLong() ?: 0L })
-            .map { it + mapOf("href" to route("project/${slug(value(it, "slug"))}/"), "statusLabel" to status(it["status"]),
-                "statusClass" to value(it, "status").lowercase(), "period" to period(it),
-                "relatedTechText" to if ((it["relatedTechCount"] as? Number)?.toInt()?.let { count -> count > 0 } == true)
-                    " · 관련 글 ${it["relatedTechCount"]}개" else "") }
-        page("projects", "projects", "Projects", "Projects", "Projects 공개 프로젝트 목록", mapOf("projects" to projects))
-        page("project", "projects", "Project", "Projects", "Projects 공개 프로젝트 목록", mapOf("projects" to projects), false)
-        val notes = list(snapshot["notes"])
-        val groups = notes.groupBy { value(it, "field").ifEmpty { "기타" } }.map { (field, courses) ->
-            mapOf("field" to field, "courses" to courses.map { it + mapOf("href" to route("course/${slug(value(it, "slug"))}/"),
-                "statusLabel" to if (value(it, "status") == "COMPLETED") "완결" else "진행 중", "displayDate" to date(it["latestPublishedDate"])) }) }
-        page("notes", "notes", "Notes", "Notes", "Notes 공개 과목 목록", mapOf("groups" to groups, "hasNotes" to notes.isNotEmpty()))
-        page("course", "notes", "Course", "Notes", "Notes 공개 과목 목록", mapOf("groups" to groups, "hasNotes" to notes.isNotEmpty()), false)
-        val feedById = feed.associateBy { text(it["id"]) }
-        val projectBySlug = projects.associateBy { value(it, "slug") }
-        val courseBySlug = notes.associateBy { value(it, "slug") }
-        val searchRows = allPosts.map { post ->
-            val project = projectBySlug[value(post, "projectSlug")] ?: emptyMap()
-            val course = courseBySlug[value(post, "courseSlug")] ?: emptyMap()
-            val bodyText = searchText(value(record(post["rendered"]), "html"))
-            enriched(feedById[text(post["id"])] ?: emptyMap(), post + mapOf("title" to if (value(post, "section") == "PROJECT_HOME") value(project, "name") else value(post, "title"),
-                "projectName" to value(project, "name"), "courseName" to value(course, "name"), "courseField" to value(course, "field"), "searchBody" to bodyText))
-        }.sortedByDescending { value(it, "publishedDate") }
-        listing("search", "Search", "Search", searchRows)
-        for (post in list(snapshot["posts"])) {
-            val rendered = record(post["rendered"])
-            val series = list(record(post["series"])["items"]).sortedBy { (it["order"] as? Number)?.toInt() ?: 0 }
-                .map { it + mapOf("href" to route("post/${slug(value(it, "slug"))}/"), "current" to (it["id"] == post["id"])) }
-            page("post/${slug(value(post, "slug"))}", "post", "Post", value(post, "title"), value(post, "summary").ifEmpty { value(post, "title") },
-                mapOf("post" to post + mapOf("displayDate" to date(post["publishedDate"])), "html" to value(rendered, "html"),
-                    "toc" to headings(post), "backlinks" to (backlinks[postPath(post)] ?: emptyList()), "series" to series,
-                    "seriesPosition" to (series.indexOfFirst { it["current"] == true } + 1)))
+        listing("posts", "Posts", "Posts", feed.filter { value(it, "section") == "TECH" })
+        val groups = list(snapshot["series"])
+        val projects = groups.filter { value(it, "kind") == "PROJECT" }
+            .sortedWith(compareBy<Record> { (it["sortOrder"] as Number).toLong() }.thenBy { (it["id"] as Number).toLong() })
+            .map { it + mapOf("href" to postPath(record(it["cover"])), "statusLabel" to status(it["projectStatus"]),
+                "statusClass" to value(it, "projectStatus").lowercase(), "period" to period(it + ("status" to it["projectStatus"]))) }
+        page("projects", "projects", "Projects", "Projects", "공개 프로젝트 목록", mapOf("projects" to projects))
+        listing("search", "Search", "Search", feed.map { it + ("searchBody" to searchText(value(record(it["rendered"]), "html"))) })
+        for (post in allPosts) {
+            val navigation = record(post["series"])
+            val items = list(navigation["items"]).map { it + mapOf("href" to postPath(it), "current" to (it["id"] == post["id"])) }
+            val project = projects.firstOrNull { it["id"] == navigation["id"] && it["slug"] == navigation["slug"] }
+            val related = projects.firstOrNull { it["id"] == record(post["relatedSeries"])["id"] }
+            page("post/${slug(value(post, "slug"))}", "post", if (value(post, "section") == "PROJECT") "Project" else "Post",
+                value(post, "title"), value(post, "summary"),
+                mapOf("post" to post + mapOf("displayDate" to date(post["publishedDate"]), "relatedProject" to related),
+                    "project" to project, "html" to value(record(post["rendered"]), "html"), "toc" to headings(post),
+                    "backlinks" to (backlinks[postPath(post)] ?: emptyList()), "series" to items,
+                    "seriesName" to value(navigation, "name"), "seriesPosition" to navigation["position"]))
         }
-        for (project in projects) {
-            val projectSlug = value(project, "slug")
-            val detail = record(record(snapshot["projectDetails"])[projectSlug]); val docsBySlug = record(record(snapshot["projectDocuments"])[projectSlug])
-            val docs = list(detail["documents"]).filter { doc -> record(docsBySlug[value(doc, "slug")])["id"] == doc["id"] && doc["locked"] != true && doc["visibility"] != "PRIVATE" }
-                .sortedBy { (it["order"] as? Number)?.toInt() ?: 0 }.mapIndexed { index, doc -> doc + mapOf("href" to route("project/$projectSlug/docs/${value(doc, "slug")}/"), "number" to index + 1) }
-            val related = (list(snapshot["posts"]).filter { value(record(it["relatedProject"]), "slug") == projectSlug } + list(detail["relatedTech"]))
-                .distinctBy { value(it, "slug") }.map { mapOf("href" to route("post/${slug(value(it, "slug"))}/"), "title" to value(it, "title")) }
-            val home = record(detail["home"]) + mapOf("section" to "PROJECT_HOME", "projectSlug" to projectSlug, "title" to value(project, "name"))
-            projectPage("project/$projectSlug", project, home, docs, related, true)
-            for (doc in docsBySlug.values.map(::record)) projectPage("project/$projectSlug/docs/${value(doc, "slug")}", project, doc, docs, related, false)
+        // 정확한 옛 주소만 허용하고 공개되지 않은 대상에는 호환 페이지를 만들지 않음.
+        val aliases = linkedMapOf("tech" to route("posts/"), "post" to route("posts/"),
+            "project" to route("projects/"), "notes" to route("posts/"), "course" to route("posts/"))
+        for (group in groups) {
+            val target = postPath(record(group["cover"]))
+            aliases["series/${slug(value(group, "slug"))}"] = target
+            if (value(group, "kind") == "PROJECT") aliases["project/${slug(value(group, "slug"))}"] = target
+            else aliases["course/${slug(value(group, "slug"))}"] = target
         }
-        for (course in notes) {
-            val courseSlug = value(course, "slug"); val detail = record(record(snapshot["courseDetails"])[courseSlug]); val bySlug = record(record(snapshot["chapters"])[courseSlug])
-            val chapters = list(detail["chapters"]).filter { chapter -> record(bySlug[value(chapter, "slug")])["id"] == chapter["id"] && chapter["locked"] != true && chapter["visibility"] != "PRIVATE" }
-                .sortedBy { (it["position"] as? Number)?.toInt() ?: 0 }.mapIndexed { index, item -> item + mapOf("href" to route("course/$courseSlug/chapters/${value(item, "slug")}/"),
-                    "number" to index + 1, "displayNumber" to (index + 1).toString().padStart(2, '0'), "displayDate" to date(item["publishedDate"])) }
-            coursePage("course/$courseSlug", course, null, chapters)
-            for (post in bySlug.values.map(::record)) coursePage("course/$courseSlug/chapters/${value(post, "slug")}", course, post, chapters)
+        for (post in allPosts) {
+            val old = value(post, "legacyPath").trim('/')
+            if (old.isNotEmpty()) {
+                require(Regex("(?:project/[a-z0-9-]+(?:/docs/[a-z0-9-]+)?|course/[a-z0-9-]+/chapters/[a-z0-9-]+)").matches(old))
+                // 프로젝트 루트는 현재 첫 글을 계속 가리키도록 유지.
+                aliases.putIfAbsent(old, postPath(post))
+            }
         }
+        for ((path, target) in aliases) redirect(path, target)
         page("404.html", "missing", "", "페이지 없음", "페이지를 찾을 수 없습니다.", sitemap = false)
         Files.writeString(output.resolve("robots.txt"), "User-agent: *\nAllow: /ken-blog/\nSitemap: $ORIGIN${route("sitemap.xml")}\n")
-        val publishedPages = pages.filterNot { it == "post" || it == "project" || it == "course" }
-        val sitemap = publishedPages.joinToString("") { "<url><loc>$ORIGIN${route(if (it.isEmpty()) "" else "$it/")}</loc></url>" }
+        val sitemap = pages.joinToString("") { "<url><loc>$ORIGIN${route(if (it.isEmpty()) "" else "$it/")}</loc></url>" }
         Files.writeString(output.resolve("sitemap.xml"), "<?xml version=\"1.0\" encoding=\"UTF-8\"?><urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">$sitemap</urlset>")
-        val paths = publishedPages.map { if (it.isEmpty()) "" else "$it/" }
-        Files.writeString(output.resolve("routes.json"), mapper.writeValueAsString(paths))
+        Files.writeString(output.resolve("routes.json"), mapper.writeValueAsString(pages.map { if (it.isEmpty()) "" else "$it/" }))
     }
 
-    /** 프로젝트 대문과 문서를 동일한 공개 탐색 틀에 넣는다. */
-    private fun projectPage(path: String, project: Record, post: Record, docs: List<Record>, related: List<Record>, home: Boolean) {
-        val index = docs.indexOfFirst { value(it, "slug") == value(post, "slug") }
-        page(path, "project", "Project", value(post, "title"), if (home) value(project, "overview") else value(post, "summary"),
-            mapOf("project" to project, "post" to post + mapOf("displayDate" to date(post["publishedDate"])), "docs" to docs,
-                "related" to related, "home" to home, "html" to value(record(post["rendered"]), "html"), "toc" to if (home) emptyList<Record>() else headings(post),
-                "backlinks" to (backlinks[postPath(post)] ?: emptyList()), "previous" to docs.getOrNull(index - 1), "next" to docs.getOrNull(index + 1)))
-    }
-
-    /** 과목 소개와 회차 문서를 같은 정적 경로 규칙으로 생성한다. */
-    private fun coursePage(path: String, course: Record, post: Record?, chapters: List<Record>) {
-        val index = chapters.indexOfFirst { value(it, "slug") == post?.let { row -> value(row, "slug") } }
-        page(path, "course", "Course", post?.let { value(it, "title") } ?: value(course, "name"),
-            post?.let { value(it, "summary") } ?: value(course, "description"),
-            mapOf("course" to course, "post" to post, "chapters" to chapters, "chapterPosition" to index + 1,
-                "html" to post?.let { value(record(it["rendered"]), "html") }, "toc" to post?.let(::headings),
-                "backlinks" to (post?.let { backlinks[postPath(it)] } ?: emptyList()), "previous" to chapters.getOrNull(index - 1), "next" to chapters.getOrNull(index + 1),
-                "courseStatus" to if (value(course, "status") == "COMPLETED") "완결" else "진행 중"))
+    private fun redirect(path: String, target: String) {
+        require(Regex("/ken-blog/(?:posts|projects|post/[a-z0-9-]+)/").matches(target))
+        val file = output.resolve(path).resolve("index.html")
+        Files.createDirectories(file.parent)
+        Files.writeString(file, "<!doctype html><html lang=\"ko\"><head><meta charset=\"utf-8\"><meta http-equiv=\"refresh\" content=\"0;url=$target\"><link rel=\"canonical\" href=\"$ORIGIN$target\"><title>페이지 이동</title></head><body><a href=\"$target\">글로 이동</a></body></html>")
     }
 }
 

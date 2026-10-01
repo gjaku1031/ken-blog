@@ -81,7 +81,7 @@ searchForm?.addEventListener("submit", (event) => {
   navigateSearch(true);
 });
 
-/** 제목 링크를 유지하며 원본 Projects·Notes 카드의 빈 영역 클릭도 연다. */
+/** 제목 링크를 유지하며 원본 Projects 카드의 빈 영역 클릭도 연다. */
 document.addEventListener("click", (event) => {
   if (event.button !== 0 || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
   if (!(event.target instanceof Element) || event.target.closest("a,button,input,textarea,select")) return;

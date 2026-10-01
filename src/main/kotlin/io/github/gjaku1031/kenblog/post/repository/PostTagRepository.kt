@@ -26,27 +26,4 @@ interface PostTagRepository : JpaRepository<PostTagEntity, Long> {
     @Query("delete from PostTagEntity t where t.postId = :postId")
     fun deleteByPostId(@Param("postId") postId: Long): Int
 
-    /** @return PROJECT_DOC의 출간 대문·공개 범위를 확인한 태그별 사용 글 수. */
-    @Query("select new io.github.gjaku1031.kenblog.post.dto.TagCountResponse(min(t.displayName), count(t)) " +
-        "from PostTagEntity t, PostEntity p left join ProjectEntity project on project.id = p.projectId " +
-        "left join PostEntity home on home.id = project.homePostId " +
-        "where t.postId = p.id and p.status = :published " +
-        "and (p.section = io.github.gjaku1031.kenblog.post.domain.PostSection.TECH or " +
-        "(p.section = io.github.gjaku1031.kenblog.post.domain.PostSection.PROJECT_DOC " +
-        "and home.status = :published and home.section = io.github.gjaku1031.kenblog.post.domain.PostSection.PROJECT_HOME " +
-        "and home.projectId = project.id)) " +
-        "and (:includePrivate = true or (p.visibility = :publicVisibility and " +
-        "(p.section = io.github.gjaku1031.kenblog.post.domain.PostSection.TECH or " +
-        "(project.visibility = :publicVisibility and home.visibility = :publicVisibility)))) " +
-        "group by t.name order by count(t) desc, t.name asc")
-    fun findPublicCounts(
-        @Param("published") published: PostStatus,
-        @Param("publicVisibility") publicVisibility: PostVisibility,
-        @Param("includePrivate") includePrivate: Boolean,
-    ): List<TagCountResponse>
-
-    /** @return 초안을 포함한 관리자 자동완성의 태그별 사용 글 수. */
-    @Query("select new io.github.gjaku1031.kenblog.post.dto.TagCountResponse(min(t.displayName), count(t)) " +
-        "from PostTagEntity t group by t.name order by count(t) desc, t.name asc")
-    fun findAdminCounts(): List<TagCountResponse>
 }

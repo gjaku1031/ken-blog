@@ -10,12 +10,7 @@ import io.github.gjaku1031.kenblog.post.domain.InvalidPostRequestException
 import io.github.gjaku1031.kenblog.post.domain.InvalidWikiLinkRequestException
 import io.github.gjaku1031.kenblog.post.domain.WikiLinkConflictException
 import io.github.gjaku1031.kenblog.post.domain.PostNotFoundException
-import io.github.gjaku1031.kenblog.project.domain.InvalidProjectRequestException
-import io.github.gjaku1031.kenblog.project.domain.ProjectConflictException
-import io.github.gjaku1031.kenblog.project.domain.ProjectNotFoundException
-import io.github.gjaku1031.kenblog.note.domain.InvalidCourseRequestException
-import io.github.gjaku1031.kenblog.note.domain.CourseConflictException
-import io.github.gjaku1031.kenblog.note.domain.CourseNotFoundException
+import io.github.gjaku1031.kenblog.series.domain.*
 import io.github.gjaku1031.kenblog.operations.domain.OperationFailure
 import org.springframework.dao.PessimisticLockingFailureException
 import org.springframework.http.HttpHeaders
@@ -47,17 +42,17 @@ class ApiErrorHandler : ResponseEntityExceptionHandler() {
     }
 
     /** @return 잘못된 프로젝트·과목 입력의 고정 400 본문. */
-    @ExceptionHandler(InvalidProjectRequestException::class, InvalidCourseRequestException::class)
+    @ExceptionHandler(InvalidSeriesRequestException::class)
     fun handleContentInput(ex: RuntimeException): ResponseEntity<ProblemDetail> =
         ResponseEntity.badRequest().body(ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "콘텐츠 입력을 확인하세요."))
 
     /** @return 찾을 수 없는 프로젝트·과목의 고정 404 본문. */
-    @ExceptionHandler(ProjectNotFoundException::class, CourseNotFoundException::class)
+    @ExceptionHandler(SeriesNotFoundException::class)
     fun handleContentNotFound(ex: RuntimeException): ResponseEntity<ProblemDetail> =
         ResponseEntity.status(HttpStatus.NOT_FOUND).body(ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, "콘텐츠를 찾을 수 없습니다."))
 
     /** @return 부모 삭제·순서 경합·공통 경로 우회의 고정 409 본문. */
-    @ExceptionHandler(ProjectConflictException::class, CourseConflictException::class)
+    @ExceptionHandler(SeriesConflictException::class)
     fun handleContentConflict(ex: RuntimeException): ResponseEntity<ProblemDetail> =
         ResponseEntity.status(HttpStatus.CONFLICT).body(ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, "콘텐츠 변경이 충돌했습니다."))
 

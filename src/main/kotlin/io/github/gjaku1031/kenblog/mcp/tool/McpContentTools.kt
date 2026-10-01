@@ -8,7 +8,6 @@ import io.github.gjaku1031.kenblog.post.dto.PostMetadataCreateRequest
 import io.github.gjaku1031.kenblog.post.service.ContentFeedService
 import io.github.gjaku1031.kenblog.post.service.PostService
 import io.github.gjaku1031.kenblog.post.service.WikiLinkService
-import io.github.gjaku1031.kenblog.project.domain.ProjectMetadata
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 import org.springframework.ai.mcp.annotation.McpTool
@@ -53,13 +52,8 @@ class McpContentTools(
 
     @McpTool(name = "blog_register_post", description = "본문 없이 글 메타데이터와 slug를 등록합니다. 반환한 content/posts/{slug}.md를 저장소에서 직접 작성하고 Git에 커밋하세요.",
         annotations = McpTool.McpAnnotations(destructiveHint = false, openWorldHint = false))
-    fun registerPost(@McpToolParam(description = "제목·slug·섹션·부모·첨부/위키 선언; body 필드 없음") input: McpPostMetadataInput) = calls.call {
-        val metadata = input.projectMetadata?.let { ProjectMetadata(it.status, it.startPeriod, it.endPeriod,
-            it.overview, PostVisibility.PUBLIC, null, it.stackBadgeNames) }
-        val created = posts.createMetadata(PostMetadataCreateRequest(input.title, input.slug, input.section,
-            input.summary, input.categoryId, input.tags, input.projectId, input.relatedProjectId,
-            input.courseId, input.documentOrder, input.chapterOrder, input.techSeriesOrder, metadata,
-            input.attachmentIds, input.wikiTargets))
+    fun registerPost(@McpToolParam(description = "제목·slug·시리즈·첨부/위키 선언; body 필드 없음") input: McpPostMetadataInput) = calls.call {
+        val created = posts.createMetadata(input)
         McpRegisteredPostResult(created, "content/posts/${created.slug}.md")
     }
 
@@ -71,6 +65,14 @@ class McpContentTools(
         @McpToolParam(description = "분류 ID 또는 null", required = false) categoryId: Long?,
         @McpToolParam(description = "태그 전체 목록") tags: List<String>) =
         calls.call { posts.updateMetadata(postId, title, summary, categoryId, tags) }
+
+    @McpTool(name = "blog_set_post_series", description = "글의 시리즈·문서 순서·관련 프로젝트를 지정합니다.",
+        annotations = McpTool.McpAnnotations(destructiveHint = false, openWorldHint = false))
+    fun setPostSeries(@McpToolParam(description = "글 ID") postId: Long,
+        @McpToolParam(description = "시리즈 ID 또는 null", required = false) seriesId: Long?,
+        @McpToolParam(description = "양수 순서 또는 null", required = false) order: Int?,
+        @McpToolParam(description = "관련 프로젝트 시리즈 ID 또는 null", required = false) relatedSeriesId: Long?) =
+        calls.call { posts.setSeries(postId, seriesId, order, relatedSeriesId) }
 
     @McpTool(name = "blog_set_post_attachments", description = "원고의 attachment:ID 이미지가 공개 전달되도록 연결 ID 전체를 지정합니다.",
         annotations = McpTool.McpAnnotations(destructiveHint = false, openWorldHint = false))

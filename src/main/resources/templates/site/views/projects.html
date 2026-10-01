@@ -10,12 +10,12 @@
       <h2>
         <a th:href="${project.href}" th:text="${project.name}">프로젝트</a>
       </h2>
-      <p th:text="${project.overview}">
+      <p th:text="${project.description}">
       </p>
       <div th:if="${!#lists.isEmpty(project.stackBadges)}" class="stack-badges" aria-label="기술 배지">
         <span th:each="badge : ${project.stackBadges}"><img th:src="${badge.imageUrl}" alt="" width="22" height="22"><th:block th:text="${badge.name}"></th:block></span>
       </div>
-      <div class="project-card-counts" th:text="|문서 ${project.documentCount}개${project.relatedTechText}|">문서</div>
+      <div class="project-card-counts" th:text="|문서 ${project.postCount}개|">문서</div>
     </article>
   </div>
   <p th:if="${#lists.isEmpty(projects)}" class="projects-empty">아직 출간된 프로젝트가 없습니다.</p>

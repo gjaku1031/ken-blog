@@ -1,6 +1,6 @@
 ---
 name: ken-blog-authoring
-description: Ken Blog의 Tech·Projects·Notes 원고를 저장소 Markdown으로 작성하고 DB 메타데이터를 연결할 때 사용한다.
+description: Ken Blog의 일반 글·프로젝트 원고를 저장소 Markdown으로 작성하고 DB 메타데이터를 연결할 때 사용한다.
 ---
 
 # Ken Blog 작성
@@ -11,7 +11,7 @@ description: Ken Blog의 Tech·Projects·Notes 원고를 저장소 Markdown으�
 
 ## 참조
 
-- [content-model.md](references/content-model.md): 섹션별 소속과 메타데이터
+- [content-model.md](references/content-model.md): 시리즈 소속과 메타데이터
 - [markdown.md](references/markdown.md): GFM, 위키, 주석, 코드, Mermaid, KaTeX, 접기, 이미지
 - [repository-workflow.md](references/repository-workflow.md): 파일 작성·Git 반영 순서
 
@@ -19,8 +19,8 @@ description: Ken Blog의 Tech·Projects·Notes 원고를 저장소 Markdown으�
 
 ## 작성 순서
 
-1. `blog_list_posts`, `blog_list_categories`, `blog_list_projects`, `blog_list_notes_courses` 등으로 기존 글과 부모 ID를 확인한다.
-2. 새 글은 `blog_register_post`에 제목, 명시적 slug, 섹션, 소속과 메타데이터만 보낸다. 반환된 `sourcePath`에 UTF-8 Markdown 파일을 작성한다. 기존 글은 `blog_get_post`로 메타데이터와 현재 원고를 확인한다. 서버에 파일이 없으면 원본 경로를 포함한 404를 반환하므로 저장소 파일을 확인한다.
+1. `blog_list_posts`, `blog_list_categories`, `blog_list_series` 등으로 기존 글과 부모 ID를 확인한다.
+2. 새 글은 `blog_register_post`에 제목, 명시적 slug, 시리즈 소속과 메타데이터만 보낸다. 반환된 `sourcePath`에 UTF-8 Markdown 파일을 작성한다. 기존 글은 `blog_get_post`로 메타데이터와 현재 원고를 확인한다. 서버에 파일이 없으면 원본 경로를 포함한 404를 반환하므로 저장소 파일을 확인한다.
 3. `attachment:ID` 이미지를 사용하면 READY 첨부 ID 전체를 `blog_set_post_attachments`에 연결한다. 위키 대상은 `blog_validate_document`로 확인하고 `blog_set_post_wiki_targets`에 현재 원고 SHA-256과 제목 전체를 보낸다. 복잡한 Markdown은 검사가 완전하지 않을 수 있으므로 실제 원고를 확인한다.
 4. 원고 파일을 Git에 커밋해 `main`에 push한다. 이 push가 Pages Actions를 자동 실행한다. 공개할 때 `blog_set_post_publication(published=true)`로 DB 상태를 바꾼다. 출간 상태 등 DB 메타데이터를 push 후 변경했다면 GitHub의 Pages Actions를 수동 실행해 새 snapshot을 반영한다. Actions는 snapshot과 Git 원고를 결합해 정적 HTML을 만든다. 파일이 없으면 빌드가 실패하므로 먼저 파일을 반영한다.
 

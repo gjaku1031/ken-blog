@@ -23,7 +23,7 @@ import org.springframework.transaction.annotation.Transactional
 /** 경로 생성·형제 순서·하위 글 이동 삭제·권한별 분류 트리 집계를 담당하는 구체 서비스. */
 @Service
 class CategoryService(private val categories: CategoryRepository, private val posts: PostRepository,
-    private val state: ContentStateRepository) {
+    private val state: ContentStateRepository, private val queries: io.github.gjaku1031.kenblog.post.repository.PostQueries) {
     /**
      * 경로의 기존 중간 폴더를 잠가 재사용하고 없는 단계를 한 트랜잭션에서 생성.
      *
@@ -118,7 +118,7 @@ class CategoryService(private val categories: CategoryRepository, private val po
     @Transactional(readOnly = true)
     fun tree(admin: Boolean, authentication: Authentication?): List<CategoryTreeResponse> {
         val all = categories.findAllByOrderByDepthAscSortOrderAscIdAsc()
-        val direct = posts.countByCategoryForRole(admin, PostStatus.PUBLISHED, PostVisibility.PUBLIC, false)
+        val direct = queries.categoryCounts(admin)
             .associate { it.categoryId to it.count }
         val children = all.groupBy { it.parentId }
         /** 현재 폴더와 모든 자손의 권한별 글 수를 합산한 트리 노드를 구성. */

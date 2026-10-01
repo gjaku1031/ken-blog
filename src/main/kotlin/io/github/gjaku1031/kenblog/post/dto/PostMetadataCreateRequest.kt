@@ -2,75 +2,44 @@ package io.github.gjaku1031.kenblog.post.dto
 
 import io.github.gjaku1031.kenblog.attachment.dto.AttachmentIds
 import io.github.gjaku1031.kenblog.post.domain.InvalidPostRequestException
-import io.github.gjaku1031.kenblog.post.domain.PostSection
-import io.github.gjaku1031.kenblog.post.domain.PostVisibility
-import io.github.gjaku1031.kenblog.project.domain.ProjectMetadata
-import io.github.gjaku1031.kenblog.project.dto.ProjectMetadataRequests
 import tools.jackson.databind.JsonNode
 
-/** 본문 없이 글 주소·소속·선언을 등록하는 입력. 원고는 별도 Markdown 파일이다. */
+/** 본문 없이 글 주소·시리즈·분류·첨부 선언만 등록. 구획은 시리즈에서 결정. */
 data class PostMetadataCreateRequest(
-    val title: String,
-    val slug: String,
-    val section: PostSection,
-    val summary: String = "",
-    val categoryId: Long? = null,
-    val tags: List<String> = emptyList(),
-    val projectId: Long? = null,
-    val relatedProjectId: Long? = null,
-    val courseId: Long? = null,
-    val documentOrder: Int? = null,
-    val chapterOrder: Int? = null,
-    val techSeriesOrder: Int? = null,
-    val projectMetadata: ProjectMetadata? = null,
-    val attachmentIds: List<Long> = emptyList(),
-    val wikiTargets: List<String> = emptyList(),
+    val title: String, val slug: String, val summary: String = "",
+    val categoryId: Long? = null, val tags: List<String> = emptyList(),
+    val seriesId: Long? = null, val order: Int? = null, val relatedSeriesId: Long? = null,
+    val attachmentIds: List<Long> = emptyList(), val wikiTargets: List<String> = emptyList(),
 ) {
     companion object {
-        /** JSON 스칼라 타입과 본문 필드 부재를 확인한다. */
+        /** 본문·이전 대문/회차 필드와 알 수 없는 입력을 거부. */
         fun fromJson(node: JsonNode): PostMetadataCreateRequest {
-            if (!node.isObject || node.has("body") || node.has("bodySha256") || node.has("status") ||
-                node.has("visibility")) throw InvalidPostRequestException()
-            val section = try { PostSection.valueOf(string(node, "section")) }
-                catch (_: IllegalArgumentException) { throw InvalidPostRequestException() }
-            val tagsNode = node.get("tags")
-            val tags = if (tagsNode == null) emptyList() else {
-                if (!tagsNode.isArray || tagsNode.size() > 100) throw InvalidPostRequestException()
-                (0 until tagsNode.size()).map { index ->
-                    val item = tagsNode.get(index)
-                    if (!item.isTextual) throw InvalidPostRequestException()
-                    item.textValue()
+            val allowed = setOf("title", "slug", "summary", "categoryId", "tags", "seriesId", "order",
+                "relatedSeriesId", "attachmentIds", "wikiTargets")
+            if (!node.isObject || node.properties().any { it.key !in allowed }) throw InvalidPostRequestException()
+            val tags = node.get("tags")?.let {
+                if (!it.isArray || it.size() > 100) throw InvalidPostRequestException()
+                (0 until it.size()).map { index ->
+                    if (!it[index].isTextual) throw InvalidPostRequestException()
+                    it[index].textValue()
                 }
-            }
-            val project = node.get("projectMetadata")?.let {
-                if (it.isNull) null else ProjectMetadataRequests.parse(it, PostVisibility.PUBLIC)
-            }
-            return PostMetadataCreateRequest(
-                string(node, "title"), string(node, "slug"), section,
+            } ?: emptyList()
+            return PostMetadataCreateRequest(requiredString(node, "title"), requiredString(node, "slug"),
                 optionalString(node, "summary") ?: "", optionalLong(node, "categoryId"), tags,
-                optionalLong(node, "projectId"), optionalLong(node, "relatedProjectId"),
-                optionalLong(node, "courseId"), optionalInt(node, "documentOrder"),
-                optionalInt(node, "chapterOrder"), optionalInt(node, "techSeriesOrder"), project,
+                optionalLong(node, "seriesId"), optionalInt(node, "order"), optionalLong(node, "relatedSeriesId"),
                 AttachmentIds.parse(node.get("attachmentIds")) ?: emptyList(),
-                WikiDeclarations.parse(node.get("wikiTargets")) ?: emptyList(),
-            )
+                WikiDeclarations.parse(node.get("wikiTargets")) ?: emptyList())
         }
-
-        private fun string(node: JsonNode, name: String): String = node.get(name)?.let {
-            if (!it.isTextual) throw InvalidPostRequestException()
-            it.textValue()
-        } ?: throw InvalidPostRequestException()
-
+        private fun requiredString(node: JsonNode, name: String): String = node.get(name)?.takeIf { it.isTextual }
+            ?.textValue() ?: throw InvalidPostRequestException()
         private fun optionalString(node: JsonNode, name: String): String? = node.get(name)?.let {
             if (it.isNull) null else if (it.isTextual) it.textValue() else throw InvalidPostRequestException()
         }
-
-        private fun optionalLong(node: JsonNode, name: String): Long? = node.get(name)?.let {
+        fun optionalLong(node: JsonNode, name: String): Long? = node.get(name)?.let {
             if (it.isNull) null else if (it.isIntegralNumber && it.canConvertToLong()) it.longValue()
             else throw InvalidPostRequestException()
         }
-
-        private fun optionalInt(node: JsonNode, name: String): Int? = node.get(name)?.let {
+        fun optionalInt(node: JsonNode, name: String): Int? = node.get(name)?.let {
             if (it.isNull) null else if (it.isIntegralNumber && it.canConvertToInt()) it.intValue()
             else throw InvalidPostRequestException()
         }

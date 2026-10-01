@@ -49,7 +49,7 @@ jobs:
         run: |
           mkdir -p "$RUNNER_TEMP/ken-blog-fixture"
           cat > "$RUNNER_TEMP/ken-blog-fixture/empty.json" <<'JSON'
-          {"version":1,"profile":null,"feed":[],"projects":[],"notes":[],"posts":[],"projectDetails":{},"projectDocuments":{},"courseDetails":{},"chapters":{}}
+          {"version":2,"profile":null,"posts":[],"series":[]}
           JSON
           SITE_BASE_PATH=/ken-blog npm run build:site -- --fixture="$RUNNER_TEMP/ken-blog-fixture/empty.json"
           test -s build/site/index.html

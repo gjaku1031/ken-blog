@@ -5,18 +5,16 @@ import io.github.gjaku1031.kenblog.account.domain.UserRole
 import io.github.gjaku1031.kenblog.auth.controller.AuthController
 
 /**
- * 단일 관리자 로그인 요청의 원문 비밀번호·일회용 검증 코드.
+ * 단일 관리자 로그인 요청의 원문 비밀번호.
  *
  * [password]는 인증 직후 세션에 저장하지 않으며 로그용 문자열에서도 숨김.
  *
  * @property password 공백을 포함한 원문 비밀번호
- * @property verificationCode 6자리 TOTP 또는 32자리 복구 코드; 누락은 인증 실패
  * @property rememberMe 30일 비활동 만료와 30일 브라우저 쿠키 사용 여부; 생략하면 일반 로그인
  */
 @JsonIgnoreProperties(value = ["username"])
 class LoginRequest(
     val password: String,
-    val verificationCode: String? = null,
     val rememberMe: Boolean = false,
 ) {
     /**

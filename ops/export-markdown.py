@@ -55,6 +55,16 @@ def columns(defaults: Path, database: str, table: str) -> list[str]:
 
 def visible_slugs(defaults: Path, database: str) -> set[str]:
     """Pages snapshot과 같은 부모 공개 조건으로 Git에 놓을 slug만 선별한다."""
+    has_series = "series_id" in columns(defaults, database, "posts") and bool(columns(defaults, database, "series"))
+    # 앱의 스키마 준비만 끝난 상태와 실제 이관 완료 상태를 구분한다.
+    has_legacy = bool(columns(defaults, database, "projects")) or bool(columns(defaults, database, "courses"))
+    migrated = bool(columns(defaults, database, "content_model_migrations")) and bool(list(query(
+        defaults, database, "select name from content_model_migrations where name='post-series-v1'")))
+    if has_series and (not has_legacy or migrated):
+        return set(query(defaults, database,
+            "select p.slug from posts p left join series s on s.id=p.series_id "
+            "where p.section='TECH' and p.status='PUBLISHED' and p.visibility='PUBLIC' "
+            "and (p.series_id is null or s.visibility='PUBLIC')"))
     project_exists = bool(columns(defaults, database, "projects"))
     course_exists = bool(columns(defaults, database, "courses"))
     joins = []

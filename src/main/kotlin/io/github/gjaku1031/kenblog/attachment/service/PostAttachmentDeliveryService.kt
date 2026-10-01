@@ -17,7 +17,7 @@ data class PostAttachmentContent(val contentType: String, val byteSize: Long, va
 /** 본문을 읽지 않고 출간 상태와 첨부 연결을 확인한 뒤 DB 트랜잭션 밖에서 파일을 여는 서비스. */
 @Service
 class PostAttachmentDeliveryService(
-    private val links: PostAttachmentRepository,
+    private val queries: io.github.gjaku1031.kenblog.post.repository.PostQueries,
     private val storage: LocalAssetStorage,
 ) {
     /**
@@ -27,8 +27,7 @@ class PostAttachmentDeliveryService(
      */
     fun open(postId: Long, attachmentId: Long, authentication: Authentication?): PostAttachmentContent {
         if (postId <= 0 || attachmentId <= 0) throw notFound()
-        val row = links.findReadable(postId, attachmentId, PostStatus.PUBLISHED, PostVisibility.PUBLIC,
-            false, AttachmentStatus.READY) ?: throw notFound()
+        val row = queries.readableAttachment(postId, attachmentId) ?: throw notFound()
         storage.requireConfigured()
         return PostAttachmentContent(row.contentType, row.byteSize, storage.open(row.objectKey))
     }

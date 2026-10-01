@@ -1,5 +1,5 @@
 import { build as bundle } from "esbuild";
-import { capture, confirmRevision } from "./capture.mjs";
+import { capture, confirmRevision, normalizeSnapshot } from "./capture.mjs";
 import { buildWebAssets } from "../../src/main/resources/web/build.mjs";
 import { readFile, writeFile, mkdir, rm, cp, readdir, stat, rename, open } from "node:fs/promises";
 import { constants } from "node:fs";
@@ -16,9 +16,7 @@ const basePath = "/ken-blog/";
 const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const route = (path = "") => `${basePath}${path}`;
 const checkedSlug = (value) => { if (typeof value !== "string" || value.length > 160 || !slugPattern.test(value)) throw new Error("공개 slug 형식 오류"); return value; };
-const postPath = (post) => post.section === "PROJECT_HOME" ? route(`project/${checkedSlug(post.projectSlug)}/`) :
-  post.section === "PROJECT_DOC" ? route(`project/${checkedSlug(post.projectSlug)}/docs/${checkedSlug(post.slug)}/`) :
-  post.section === "NOTE_CHAPTER" ? route(`course/${checkedSlug(post.courseSlug)}/chapters/${checkedSlug(post.slug)}/`) : route(`post/${checkedSlug(post.slug)}/`);
+const postPath = post => route(`post/${checkedSlug(post.slug)}/`);
 const wikiKey = (title) => title.toLocaleLowerCase("und");
 
 /** 공개 API의 같은 출처만 이미지 다운로드 원본으로 허용한다. */
@@ -69,64 +67,41 @@ async function download(url, name) {
 }
 
 /** 캡처의 공개 목록·상세와 라우트 관계를 검사한다. */
-function validate(snapshot) {
-  if (!snapshot || snapshot.version !== 1 || !Array.isArray(snapshot.posts) || !Array.isArray(snapshot.projects) || !Array.isArray(snapshot.notes) ||
-    !Array.isArray(snapshot.feed) || !snapshot.projectDetails || !snapshot.projectDocuments || !snapshot.courseDetails || !snapshot.chapters)
-    throw new Error("공개 스냅샷 형식 오류");
-  const ids = new Set(); const paths = new Set(); const routeToId = new Map();
-  const post = (item, section) => {
-    if (!item || !Number.isSafeInteger(item.id) || item.id <= 0 || typeof item.body !== "string" || item.locked !== false ||
-      item.section !== section || typeof item.publishedDate !== "string" || (item.visibility && item.visibility !== "PUBLIC"))
-      throw new Error("공개 글 상세 형식 오류");
-    checkedSlug(item.slug);
-    const path = postPath(item);
-    if (ids.has(item.id) || paths.has(path)) throw new Error("공개 글 ID/경로 중복");
-    ids.add(item.id); paths.add(path); routeToId.set(path, item.id);
-  };
-  snapshot.posts.forEach((item) => post(item, "TECH"));
-  const projectSlugs = new Set();
-  for (const item of snapshot.projects) {
-    checkedSlug(item.slug);
-    if (projectSlugs.has(item.slug) || item.visibility !== "PUBLIC" || (item.sortOrder != null && !Number.isSafeInteger(item.sortOrder)))
-      throw new Error("프로젝트 경로 또는 공개 범위 오류");
-    projectSlugs.add(item.slug);
-    const detail = snapshot.projectDetails[item.slug];
-    if (!detail || detail.locked !== false || !detail.home || typeof detail.home.body !== "string" ||
-      !Number.isSafeInteger(detail.home.id) || detail.home.id <= 0 || typeof detail.home.publishedDate !== "string" ||
-      detail.project?.id !== item.id || ids.has(detail.home.id))
-      throw new Error("프로젝트 대문 형식 오류");
-    ids.add(detail.home.id); paths.add(route(`project/${item.slug}/`)); routeToId.set(route(`project/${item.slug}/`), detail.home.id);
-    if (!snapshot.projectDocuments[item.slug]) throw new Error("프로젝트 문서 누락");
-    for (const [slug, doc] of Object.entries(snapshot.projectDocuments[item.slug])) {
-      if (doc.slug !== slug || doc.projectSlug !== item.slug) throw new Error("프로젝트 문서 경로 오류");
-      post(doc, "PROJECT_DOC");
-    }
+function validate(snapshot, fixture) {
+  snapshot = normalizeSnapshot(snapshot, fixture);
+  const ids = new Map(), slugs = new Set();
+  for (const post of snapshot.posts) {
+    if (ids.has(post.id) || slugs.has(post.slug)) throw new Error("공개 글 ID/slug 중복");
+    ids.set(post.id, post); slugs.add(post.slug);
   }
-  if (Object.keys(snapshot.projectDetails).some((slug) => !projectSlugs.has(slug)) || Object.keys(snapshot.projectDocuments).some((slug) => !projectSlugs.has(slug)))
-    throw new Error("미공개 프로젝트 상세 혼입");
-  const courseSlugs = new Set();
-  for (const item of snapshot.notes) {
-    checkedSlug(item.slug);
-    if (courseSlugs.has(item.slug)) throw new Error("과목 경로 중복");
-    courseSlugs.add(item.slug);
-    const detail = snapshot.courseDetails[item.slug];
-    if (!detail || detail.course?.id !== item.id || !snapshot.chapters[item.slug]) throw new Error("과목 상세 누락");
-    for (const [slug, chapter] of Object.entries(snapshot.chapters[item.slug])) {
-      if (chapter.slug !== slug || chapter.courseSlug !== item.slug) throw new Error("회차 경로 오류");
-      post(chapter, "NOTE_CHAPTER");
-    }
+  const seriesIds = new Set(), seriesSlugs = new Set();
+  for (const group of snapshot.series) {
+    if (seriesIds.has(group.id) || seriesSlugs.has(group.slug)) throw new Error("시리즈 중복");
+    seriesIds.add(group.id); seriesSlugs.add(group.slug);
+    const cover = ids.get(group.cover.id);
+    if (!cover || cover.slug !== group.cover.slug || cover.series?.id !== group.id || cover.series?.slug !== group.slug ||
+        cover.series?.items[0]?.id !== cover.id || cover.series.kind !== group.kind || cover.series.items.length !== group.postCount)
+      throw new Error("시리즈 대문 불일치");
+    if (group.kind !== "PROJECT" && (group.stackBadges.length || group.projectStatus || group.startPeriod || group.endPeriod))
+      throw new Error("일반 시리즈에 프로젝트 속성 혼입");
   }
-  if (Object.keys(snapshot.courseDetails).some((slug) => !courseSlugs.has(slug)) || Object.keys(snapshot.chapters).some((slug) => !courseSlugs.has(slug)))
-    throw new Error("미공개 과목 상세 혼입");
-  if (snapshot.feed.some((item) => item.visibility !== "PUBLIC" || routeToId.get(postPath(item)) !== item.id))
-    throw new Error("공개 목록과 상세 불일치");
+  for (const post of snapshot.posts) {
+    if (post.series) {
+      const items = post.series.items;
+      if (new Set(items.map(i => i.id)).size !== items.length || items[post.series.position - 1]?.id !== post.id ||
+          items.some((item, index) => ids.get(item.id)?.slug !== item.slug || item.order !== index + 1))
+        throw new Error("공개 시리즈 문서 불일치");
+    }
+    if (post.section === "PROJECT" && !snapshot.series.some(s => s.kind === "PROJECT" && s.id === post.series?.id && s.slug === post.series?.slug))
+      throw new Error("프로젝트 시리즈 누락");
+  }
   return snapshot;
 }
 
 /** 생성된 Pages 트리에서 의도하지 않은 파일과 크기 초과를 거부한다. */
 async function checkArtifact() {
   const allowed = new Set(["assets", "licenses", "index.html", "404.html", "robots.txt", "sitemap.xml", "routes.json",
-    "tech", "post", "projects", "project", "notes", "course", "search", "manage"]);
+    "posts", "tech", "post", "projects", "project", "notes", "course", "series", "search", "manage"]);
   for (const name of await readdir(staging)) if (!allowed.has(name)) throw new Error(`허용되지 않은 Pages 산출물: ${name}`);
   let bytes = 0; let files = 0;
   const visit = async (folder) => {
@@ -183,10 +158,10 @@ async function main() {
   if (!fixture && !base) throw new Error("운영 빌드에는 PUBLIC_API_BASE_URL이 필요합니다.");
   let snapshot;
   if (["--fixture=empty", "--fixture", "--empty"].includes(fixtureArg))
-    snapshot = { version: 1, profile: null, feed: [], projects: [], notes: [], posts: [], projectDetails: {}, projectDocuments: {}, courseDetails: {}, chapters: {} };
+    snapshot = { version: 2, profile: null, posts: [], series: [] };
   else if (fixtureArg?.startsWith("--fixture=")) snapshot = JSON.parse(await readFile(resolve(fixtureArg.slice(10)), "utf8"));
   else snapshot = await capture(base);
-  snapshot = validate(snapshot);
+  snapshot = validate(snapshot, fixture);
   await rm(staging, { recursive: true, force: true });
   const { public: assets, admin } = await buildWebAssets();
   await mkdir(join(staging, "assets"), { recursive: true });
@@ -197,12 +172,7 @@ async function main() {
   await bundle({ entryPoints: [join(root, "src/main/resources/web/shared/markdown.ts")], outfile: rendererFile,
     bundle: true, packages: "external", platform: "node", format: "esm", target: "node24", logLevel: "silent" });
   const { renderMarkdown } = await import(pathToFileURL(rendererFile).href);
-  const allPosts = [...snapshot.posts, ...snapshot.projects.map((project) => {
-    const home = snapshot.projectDetails[project.slug].home;
-    home.section = "PROJECT_HOME"; home.projectSlug = project.slug; home.slug = checkedSlug(home.slug ?? project.slug);
-    return home;
-  }), ...Object.values(snapshot.projectDocuments).flatMap((docs) => Object.values(docs)),
-  ...Object.values(snapshot.chapters).flatMap((docs) => Object.values(docs))];
+  const allPosts = snapshot.posts;
   const contentArg = process.argv.find((arg) => arg.startsWith("--content-dir="));
   const contentDir = resolve(contentArg ? contentArg.slice("--content-dir=".length) : join(root, "content/posts"));
   const usedSlugs = new Set();
@@ -225,12 +195,13 @@ async function main() {
   }
   if (snapshot.profile?.photoUrl) snapshot.profile.photoUrl = await download(imagePath(snapshot.profile.photoUrl, base, "/api/v1/profile/photo"), "profile");
   const badges = new Map();
-  for (const project of snapshot.projects) for (const badge of project.stackBadges ?? []) if (!badges.has(badge.id)) badges.set(badge.id, badge);
+  for (const project of snapshot.series) for (const badge of project.stackBadges ?? []) if (!badges.has(badge.id)) badges.set(badge.id, badge);
   for (const badge of badges.values()) badge.imageUrl = await download(imagePath(badge.imageUrl, base, `/api/v1/stack-badges/${badge.id}/image`), `stack-${badge.id}`);
-  for (const project of snapshot.projects) for (const badge of project.stackBadges ?? []) badge.imageUrl = badges.get(badge.id).imageUrl;
-  const links = new Map(); const duplicateTitles = new Set();
-  for (const post of allPosts) { const key = wikiKey(post.title); if (links.has(key)) duplicateTitles.add(key); else links.set(key, postPath(post)); }
-  for (const key of duplicateTitles) links.delete(key);
+  for (const project of snapshot.series) for (const badge of project.stackBadges ?? []) badge.imageUrl = badges.get(badge.id).imageUrl;
+  const links = new Map();
+  for (const post of [...allPosts].sort((a, b) => a.publishedAt.localeCompare(b.publishedAt) || a.id - b.id)) {
+    const key = wikiKey(post.title); if (!links.has(key)) links.set(key, postPath(post));
+  }
   for (const post of allPosts) {
     const rendered = await renderMarkdown(post.body, { attachmentUrl: (id) => attachmentUrls.get(id) ?? null,
       wikiUrl: (title) => links.get(wikiKey(title)) ?? null, sourceMap: true });

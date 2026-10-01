@@ -29,7 +29,6 @@ import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.time.Duration
 import java.util.Base64
-import java.security.MessageDigest
 
 /**
  * 실제 서버·MySQL에서 브라우저 쿠키, CSRF, 로그인과 역할 경계를 검증.
@@ -95,7 +94,7 @@ class AuthHttpIntegrationTest {
         val (client, cookies) = newClient()
         val token = csrfToken(client)
         val before = sessionCookie(cookies)
-        val body = loginBody(TEST_PASSWORD, FIRST_RECOVERY_CODE, "missing")
+        val body = loginBody(TEST_PASSWORD, "missing")
 
         assertProblem(send(client, "POST", "/api/v1/auth/login", body = body), 403)
         assertProblem(send(client, "POST", "/api/v1/auth/login", body = body, csrf = "wrong-token"), 403)
@@ -124,7 +123,7 @@ class AuthHttpIntegrationTest {
         assertProblem(send(newClient().first, "GET", "/api/v1/auth/me", headers = mapOf("Cookie" to "KENBLOGSESSION=$after")), 401)
     }
 
-    /** 빠진 검증 코드, 잘못된 비밀번호, BCrypt 바이트 초과 입력이 같은 401 설명인지 검증. */
+    /** 빈 비밀번호, 잘못된 비밀번호, BCrypt 바이트 초과 입력이 같은 401 설명인지 검증. */
     @Test
     @Order(3)
     fun badCredentialsAreIndistinguishable() {
@@ -132,7 +131,7 @@ class AuthHttpIntegrationTest {
         val token = csrfToken(client)
         val wrong = send(client, "POST", "/api/v1/auth/login", csrf = token, body = loginBody("wrong"))
         val missing = send(client, "POST", "/api/v1/auth/login", csrf = token,
-            body = mapper.writeValueAsString(mapOf("password" to TEST_PASSWORD)))
+            body = mapper.writeValueAsString(mapOf("password" to "")))
         val tooLong = send(client, "POST", "/api/v1/auth/login", csrf = token, body = loginBody("가".repeat(25)))
         listOf(wrong, missing, tooLong).forEach { assertProblem(it, 401) }
         assertEquals(mapper.readTree(wrong.body()).path("detail").asText(), mapper.readTree(missing.body()).path("detail").asText())
@@ -148,7 +147,7 @@ class AuthHttpIntegrationTest {
             val (client, _) = newClient()
             val token = csrfToken(client)
             assertEquals(200, send(client, "POST", "/api/v1/auth/login", csrf = token,
-                body = loginBody(TEST_PASSWORD, THIRD_RECOVERY_CODE, "testuser")).statusCode())
+                body = loginBody(TEST_PASSWORD, "testuser")).statusCode())
             val principal = mapper.readTree(send(client, "GET", "/api/v1/auth/me").body())
             assertEquals("testadmin", principal.path("username").asText())
             assertEquals("ADMIN", principal.path("role").asText())
@@ -164,7 +163,7 @@ class AuthHttpIntegrationTest {
     fun expiredSessionCannotBeReused() {
         val (client, cookies) = newClient()
         val token = csrfToken(client)
-        assertEquals(200, send(client, "POST", "/api/v1/auth/login", csrf = token, body = loginBody(TEST_PASSWORD, SECOND_RECOVERY_CODE)).statusCode())
+        assertEquals(200, send(client, "POST", "/api/v1/auth/login", csrf = token, body = loginBody(TEST_PASSWORD)).statusCode())
         val sessionId = decodeSessionId(sessionCookie(cookies))
         assertEquals(1, sessionCount(sessionId))
         jdbc.update("UPDATE SPRING_SESSION SET LAST_ACCESS_TIME = 0, EXPIRY_TIME = 0 WHERE SESSION_ID = ?", sessionId)
@@ -198,8 +197,8 @@ class AuthHttpIntegrationTest {
     }
 
     /** 테스트 전용 로그인 JSON을 직렬화함. */
-    private fun loginBody(password: String, verificationCode: String = "000000", legacyUsername: String? = null): String =
-        mapper.writeValueAsString(mutableMapOf("password" to password, "verificationCode" to verificationCode).apply {
+    private fun loginBody(password: String, legacyUsername: String? = null): String =
+        mapper.writeValueAsString(mutableMapOf("password" to password).apply {
             if (legacyUsername != null) put("username", legacyUsername)
         })
 
@@ -232,9 +231,6 @@ class AuthHttpIntegrationTest {
 
     private companion object {
         const val TEST_PASSWORD = "sample-secret"
-        const val FIRST_RECOVERY_CODE = "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
-        const val SECOND_RECOVERY_CODE = "BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB"
-        const val THIRD_RECOVERY_CODE = "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC"
         val TEST_HASH = "{bcrypt}" + BCryptPasswordEncoder(10).encode(TEST_PASSWORD)
 
         /** 테스트 전용 관리자만 외부 설정으로 준비함. */
@@ -244,12 +240,6 @@ class AuthHttpIntegrationTest {
             registry.add("app.bootstrap.admin.username") { "testadmin" }
             registry.add("app.bootstrap.admin.password-hash") { TEST_HASH }
             registry.add("app.auth.admin.username") { "testadmin" }
-            registry.add("app.auth.admin.totp-secret") { "JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP" }
-            registry.add("app.auth.admin.recovery-code-hashes") {
-                listOf(FIRST_RECOVERY_CODE, SECOND_RECOVERY_CODE, THIRD_RECOVERY_CODE).joinToString(",") { code ->
-                    MessageDigest.getInstance("SHA-256").digest(code.toByteArray()).joinToString("") { "%02x".format(it.toInt() and 0xff) }
-                }
-            }
         }
     }
 }

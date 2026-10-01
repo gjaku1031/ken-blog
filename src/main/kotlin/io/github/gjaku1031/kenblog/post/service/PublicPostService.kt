@@ -1,114 +1,62 @@
 package io.github.gjaku1031.kenblog.post.service
 
 import io.github.gjaku1031.kenblog.category.repository.CategoryRepository
-import io.github.gjaku1031.kenblog.note.repository.CoursePostRepository
-import io.github.gjaku1031.kenblog.note.repository.CourseRepository
-import io.github.gjaku1031.kenblog.post.domain.InvalidPostRequestException
-import io.github.gjaku1031.kenblog.post.domain.PostEntity
-import io.github.gjaku1031.kenblog.post.domain.PostNotFoundException
-import io.github.gjaku1031.kenblog.post.domain.PostSection
-import io.github.gjaku1031.kenblog.post.domain.PostStatus
-import io.github.gjaku1031.kenblog.post.domain.PostVisibility
-import io.github.gjaku1031.kenblog.post.domain.TagNames
-import io.github.gjaku1031.kenblog.post.dto.PostSeriesItem
-import io.github.gjaku1031.kenblog.post.dto.PostSeriesResponse
-import io.github.gjaku1031.kenblog.post.dto.PublicPostDetailResponse
-import io.github.gjaku1031.kenblog.post.dto.PublicPostPageResponse
-import io.github.gjaku1031.kenblog.post.dto.PublicPostSummaryResponse
-import io.github.gjaku1031.kenblog.post.dto.PublishedPostRow
-import io.github.gjaku1031.kenblog.post.repository.PostRepository
-import io.github.gjaku1031.kenblog.project.repository.ProjectRepository
-import java.time.LocalDate
-import java.time.LocalDateTime
+import io.github.gjaku1031.kenblog.post.domain.*
+import io.github.gjaku1031.kenblog.post.dto.*
+import io.github.gjaku1031.kenblog.post.repository.PostQueries
+import io.github.gjaku1031.kenblog.post.repository.PostRow
+import io.github.gjaku1031.kenblog.series.domain.SeriesKind
+import io.github.gjaku1031.kenblog.series.repository.SeriesRepository
+import org.springframework.stereotype.Service
+import org.springframework.transaction.annotation.Transactional
+import org.springframework.security.core.Authentication
+import org.springframework.data.repository.findByIdOrNull
 import java.time.ZoneId
 import java.time.ZoneOffset
 import java.util.Locale
-import org.springframework.data.domain.PageRequest
-import org.springframework.data.repository.findByIdOrNull
-import org.springframework.security.core.Authentication
-import org.springframework.stereotype.Service
-import org.springframework.transaction.annotation.Transactional
 
-/** 출간된 PUBLIC 글의 메타데이터를 정적 사이트 snapshot에 제공. */
+/** 공통 공개 글 목록과 시리즈 우선 문서 탐색. 본문은 Git에서 주입. */
 @Service
-class PublicPostService(
-    private val repository: PostRepository,
-    private val categories: CategoryRepository,
-    private val taxonomy: PostTaxonomyMetadata,
-    private val projects: ProjectRepository,
-    private val courses: CourseRepository,
-    private val coursePosts: CoursePostRepository,
-) {
+class PublicPostService(private val queries: PostQueries, private val categories: CategoryRepository,
+    private val taxonomy: PostTaxonomyMetadata, private val series: SeriesRepository) {
     @Transactional(readOnly = true)
-    fun list(page: Int, size: Int, authentication: Authentication?, categoryId: Long?, tag: String?): PublicPostPageResponse {
-        if (page < 0 || size !in 1..100 || page.toLong() * size > Int.MAX_VALUE || categoryId != null && categoryId <= 0)
-            throw InvalidPostRequestException()
+    fun list(page: Int, size: Int, authentication: Authentication?, categoryId: Long?, tag: String?,
+        kind: SeriesKind? = SeriesKind.TECH): PublicPostPageResponse {
+        validatePage(page, size)
+        if (categoryId != null && categoryId <= 0) throw InvalidPostRequestException()
         val category = categoryId?.let { categories.findByIdOrNull(it)
             ?: return PublicPostPageResponse(emptyList(), page, size, 0, 0) }
-        val path = category?.path
-        val result = repository.findPublishedSummaries(PostStatus.PUBLISHED, PostVisibility.PUBLIC, false,
-            category?.depth == 3, path, path?.let { "$it/%" }, tag?.let(TagNames::normalize), PageRequest.of(page, size))
-        val views = taxonomy.batch(result.content.map { it.id }, result.content.map { it.categoryId })
-        return PublicPostPageResponse(result.content.map { it.summary(views.getValue(it.id)) }, page, size,
-            result.totalElements, result.totalPages)
+        val result = queries.publicPage(page, size, kind, category?.path, tag?.takeIf { it.isNotBlank() }?.let(TagNames::normalize))
+        return PublicPostPageResponse(summaries(result.items), page, size, result.total, result.pages)
     }
-
-    /** Pages snapshot용 공개 글 메타데이터. 본문은 Git checkout에서 주입한다. */
+    fun summaries(rows: List<PostRow>): List<PublicPostSummaryResponse> {
+        val views = taxonomy.batch(rows.map { it.id }, rows.map { it.categoryId })
+        return rows.map { row -> val view = views.getValue(row.id)
+            PublicPostSummaryResponse(row.id, row.title, row.slug, row.summary, row.publishedDate(),
+                row.series?.kind ?: SeriesKind.TECH, view.category, view.tags, row.series, row.seriesOrder)
+        }
+    }
     @Transactional(readOnly = true)
     fun detailMetadata(slug: String): PublicPostDetailResponse {
-        val normalized = slug.trim().lowercase(Locale.ROOT)
-        if (normalized.length > 160 || !SLUG_PATTERN.matches(normalized)) throw PostNotFoundException()
-        val post = repository.findBySlugAndStatusAndVisibility(normalized, PostStatus.PUBLISHED,
-            PostVisibility.PUBLIC, PostSection.TECH, PostSection.NOTE_CHAPTER, PostSection.PROJECT_HOME)
-            ?: throw PostNotFoundException()
-        return post.publicMetadata()
+        val row = queries.publicBySlug(slug.trim().lowercase(Locale.ROOT)) ?: throw PostNotFoundException()
+        val view = taxonomy.one(row.id, row.categoryId)
+        val navigation = row.series?.let { ref ->
+            val siblings = queries.seriesPosts(ref.id, true)
+            PostSeriesResponse(ref.id, ref.slug, ref.name, ref.kind, siblings.mapIndexed { i, p ->
+                PostSeriesItem(p.id, p.slug, p.title, i + 1) }, siblings.indexOfFirst { it.id == row.id } + 1)
+        } ?: row.categoryId?.let { id -> categories.findByIdOrNull(id)?.takeIf { it.depth == 3 }?.let { category ->
+            val siblings = queries.categoryPosts(id)
+            PostSeriesResponse(id, category.path, category.name, SeriesKind.TECH, siblings.mapIndexed { i, p ->
+                PostSeriesItem(p.id, p.slug, p.title, i + 1) }, siblings.indexOfFirst { it.id == row.id } + 1)
+        } }
+        val related = row.relatedSeriesId?.let { id -> series.findByIdOrNull(id)?.takeIf {
+            it.kind == SeriesKind.PROJECT && it.visibility == PostVisibility.PUBLIC && queries.seriesPosts(id, true).isNotEmpty()
+        }?.let { SeriesRef(it.id!!, it.slug, it.name, it.kind) } }
+        return PublicPostDetailResponse(row.id, row.title, row.slug, row.summary, row.publishedDate(),
+            row.series?.kind ?: SeriesKind.TECH, view.category, view.tags, navigation, related, row.legacyPath, publishedAt = row.publishedAt)
     }
-
-    private fun PostEntity.publicMetadata(): PublicPostDetailResponse {
-        val postId = id ?: error("Published post has no ID")
-        val view = taxonomy.one(postId, categoryId)
-        val project = projectId?.let(projects::findByIdOrNull)
-        val course = courseId?.let(courses::findByIdOrNull)
-        val related = relatedProjectId?.let { repository.findReadableProject(it, PostSection.PROJECT_HOME,
-            PostStatus.PUBLISHED, PostVisibility.PUBLIC, false) }
-        return PublicPostDetailResponse(postId, title, slug, publishedAt.kstDate(), false, "",
-            view.category, view.tags, section, project?.slug, related, course?.slug, "",
-            series(postId, section, categoryId, courseId), summary = summary, techSeriesOrder = techSeriesOrder)
+    fun validatePage(page: Int, size: Int) {
+        if (page < 0 || size !in 1..100 || page.toLong() * size > Int.MAX_VALUE) throw InvalidPostRequestException()
     }
-
-    private fun PublishedPostRow.summary(view: PostTaxonomyView): PublicPostSummaryResponse =
-        PublicPostSummaryResponse(id, title, slug, publishedAt.kstDate(), view.category, view.tags)
-
-    private fun series(postId: Long, section: PostSection, categoryId: Long?, courseId: Long?): PostSeriesResponse? {
-        val items = when (section) {
-            PostSection.TECH -> {
-                val category = categoryId?.let(categories::findByIdOrNull)
-                if (category?.depth != 3) return null
-                repository.findTechSeries(categoryId, PostSection.TECH, PostStatus.PUBLISHED,
-                    false, PostVisibility.PUBLIC).mapIndexed { index, row ->
-                    PostSeriesItem(row.id, row.slug, row.title, index + 1)
-                }
-            }
-            PostSection.NOTE_CHAPTER -> {
-                if (courseId == null) return null
-                coursePosts.findVisibleChapters(courseId, PostSection.NOTE_CHAPTER, PostStatus.PUBLISHED,
-                    false, PostVisibility.PUBLIC).mapIndexed { index, row ->
-                    PostSeriesItem(row.id, row.slug, row.title, index + 1)
-                }
-            }
-            else -> return null
-        }
-        if (items.size < 2) return null
-        val position = items.indexOfFirst { it.id == postId } + 1
-        return if (position > 0) PostSeriesResponse(items, position) else null
-    }
-
-    private fun LocalDateTime?.kstDate(): LocalDate =
-        (this ?: error("Published post has no publication time"))
-            .atZone(ZoneOffset.UTC).withZoneSameInstant(SEOUL).toLocalDate()
-
-    private companion object {
-        val SLUG_PATTERN = Regex("[a-z0-9]+(?:-[a-z0-9]+)*")
-        val SEOUL: ZoneId = ZoneId.of("Asia/Seoul")
-    }
+    private fun PostRow.publishedDate() = publishedAt!!.atZone(ZoneOffset.UTC).withZoneSameInstant(ZoneId.of("Asia/Seoul")).toLocalDate()
 }
