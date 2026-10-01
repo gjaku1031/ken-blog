@@ -1,7 +1,6 @@
 FROM node:24.21.0-bookworm-slim AS assets
 WORKDIR /build
 COPY package.json package-lock.json tsconfig.json ./
-COPY scripts scripts
 COPY src/main/resources/web src/main/resources/web
 RUN npm ci && npm run build:assets
 

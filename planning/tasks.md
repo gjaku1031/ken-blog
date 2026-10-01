@@ -1,5 +1,11 @@
 # 현재 작업
 
+## 2026-10-01 빌드 코드 위치 정리
+
+- 사용자 승인으로 Pages 수집/생성 코드는 .github/pages, 공통 TS 자산 빌드는 src/main/resources/web/build.mjs로 이동. 루트 scripts 제거.
+- npm·Gradle·Docker 참조와 상대 경로를 함께 수정, workflow는 기존 npm 명령 사용. 기존 기능과 보안 검사·산출물 경로 보존.
+- Gradle offline clean build/writeSiteClasspath·기존35개 검사, 네 섹션·빈 Pages 생성과 Docker 자산 단계 검증 성공. 로컬 커밋·앱 폴더 동기화, 운영 데이터 이관 전 push/배포 보류 유지.
+
 ## 2026-10-01 수동 도면 자료 정리
 
 - 사용자 명시 승인으로 artifacts의 수동 도면 코드·아이콘·출처 자료10개 제거. 앱/빌드/Actions 외부 참조 없음 확인.

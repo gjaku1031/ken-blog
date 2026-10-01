@@ -4,7 +4,7 @@ import { basename, join, resolve } from "node:path";
 import { existsSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
-const root = resolve(import.meta.dirname, "..");
+const root = resolve(import.meta.dirname, "../../../..");
 const source = join(root, "src/main/resources/web");
 const generated = join(root, "build/generated-resources");
 const adminOutput = join(generated, "static/assets");

@@ -2,6 +2,7 @@
 
 ## 현재 후보 — 2026-10-01
 
+- 사용자 승인으로 루트 scripts 제거. Pages 수집·생성 코드는 .github/pages, 공통 TS 자산 빌드는 resources/web로 이관. Gradle·기존35개 검사·Pages·Docker 자산 단계 검증 성공.
 - 미사용 런타임 ZIP 내보내기와 전용 CommonMark 제거, 기존 DB 원고 이관·DB 백업/복원 도구 유지. 기존35개 검사와 Pages 생성 재검증 성공.
 
 - 배포 관리의 GitHub Actions 이관과 미사용 코드 정리 구현·격리 검증 완료. Spring 배포 상태·콜백·전역 변경 차단과 서버 편집본 관리 제거, 읽기 전용 공개 스냅샷·Markdown 직접 편집 흐름으로 단순화. [변경·검증 기록](issues/ACTIONS-CLEANUP-2026-10-01.md) 참조.

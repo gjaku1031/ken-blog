@@ -3,10 +3,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build:site": "node scripts/site/build.mjs",
+    "build:site": "node .github/pages/build.mjs",
     "typecheck": "tsc --noEmit",
     "test": "npm run typecheck && ./gradlew --no-daemon -PskipWeb=true writeSiteClasspath && npm run build:site -- --fixture=empty",
-    "build:assets": "node scripts/build-web.mjs"
+    "build:assets": "node src/main/resources/web/build.mjs"
   },
   "dependencies": {
     "@fontsource-variable/noto-sans-kr": "5.3.0",

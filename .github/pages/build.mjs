@@ -1,6 +1,6 @@
 import { build as bundle } from "esbuild";
 import { capture, confirmRevision } from "./capture.mjs";
-import { buildWebAssets } from "../build-web.mjs";
+import { buildWebAssets } from "../../src/main/resources/web/build.mjs";
 import { readFile, writeFile, mkdir, rm, cp, readdir, stat, rename, open } from "node:fs/promises";
 import { constants } from "node:fs";
 import { createHash } from "node:crypto";

@@ -47,3 +47,13 @@
 - 사용자 명시 승인으로 artifacts 전체10개 파일 제거. 도면 Python·아이콘·출처/이용조건만 포함, 서비스·빌드·CI/Pages가 참조하지 않음 확인. 과거 검증 기록의 도면 언급은 당시 이력으로 유지.
 - scripts/build-web.mjs는 TS·CSS 자산 빌드, scripts/site/capture.mjs는 공개 DB snapshot 수집과 revision 대조, scripts/site/build.mjs는 Markdown·이미지·Thymeleaf 정적사이트 생성에서 현재 사용. package.json·Gradle·Docker·Actions 연결 확인, scripts 유지.
 - 앱 코드·빌드 설정·데이터 변경 없음. diff/잔여 참조와 scripts 원본 일치 확인만 수행, 기존 빌드/테스트 재실행 없음. 로컬 커밋과 앱 폴더 동기화, push/운영 배포 보류 유지.
+
+## 빌드 코드 위치 추가 정리
+
+- 사용자 후속 승인으로 루트 scripts 제거. 공개 snapshot 수집·revision 대조는 .github/pages/capture.mjs, Markdown·이미지·Thymeleaf 생성은 .github/pages/build.mjs, 공통 TS·CSS 컴파일은 src/main/resources/web/build.mjs로 이관.
+- npm 명령·Gradle 입력 경로·Docker COPY 수정. Actions는 기존 npm 명령 유지. capture 파일은 이전 원본과 동일, 생성기와 자산 빌드는 import·루트 상대 경로만 변경 확인. 삭제된 artifacts의 .dockerignore 항목 정리.
+- 캐시된 격리 Java25·Node24.21 환경에서 Gradle offline clean build/writeSiteClasspath 성공. 기존35개 검사 failures/errors/skipped0, 타입·자산·JAR 생성 성공. JAR에 원본 web 빌드 스크립트와 Actions 코드가 포함되지 않으며 컴파일된 관리자 자산 포함 확인.
+- 새 npm build:site 경로로 네 섹션의 저장소 Markdown을14개 HTML로 생성하고 본문4개·라우트 확인. CI 빈 fixture 생성도 성공. 내부·관리자 소스 제외와 content 원본 변경 없음 확인.
+- Dockerfile의 assets 단계를 별도 npm 캐시 bind·offline 설치로 검증. COPY에 scripts 없이 새 경로의 npm build:assets 성공, Gradle 자산 manifest와 일치 확인. 최종 Java/JRE 이미지 전체 빌드는 이번 위치 변경의 검증 범위에 포함하지 않음.
+- 활성 코드·npm·Gradle·Docker·Actions의 구 scripts 경로 참조0건, 루트 scripts·artifacts 실제 부재 확인. 기존 운영 데이터·별도 PORT/CLEANUP/migrations 변경 없음, 신규 저장소 테스트 없음. 소스 로컬 커밋과 앱 폴더 동기화, 운영 이관 전 push/배포 보류 유지.
+- 후속 사용처 질문은 읽기 전용 점검. planning은 개발 계획·규칙·검증 기록으로 앱/빌드/Actions 입력 아님. ops는 systemd 인증서 갱신·수동 DB 백업/복원·로컬 저장소 준비·미완료 원고/OCI 이관과 환경 예시로 유지. EditorConfig·Compose3개·planning·ops 삭제/병합 없음.

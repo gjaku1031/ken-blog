@@ -76,7 +76,7 @@ val buildWeb by tasks.registering(Exec::class) {
     description = "관리자와 공개 화면 자산을 컴파일합니다."
     dependsOn(checkWeb)
     commandLine(npm, "run", "build:assets")
-    inputs.files("package.json", "package-lock.json", "tsconfig.json", "scripts/build-web.mjs")
+    inputs.files("package.json", "package-lock.json", "tsconfig.json", "src/main/resources/web/build.mjs")
     inputs.dir("src/main/resources/web")
     outputs.dirs(layout.buildDirectory.dir("generated-resources"), layout.buildDirectory.dir("public-assets"))
     onlyIf { !skipWeb.get() }

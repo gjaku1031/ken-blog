@@ -12,7 +12,7 @@ Kotlin 사용. Java 소스 추가 없음. 생성자 주입과 `val` 우선. Serv
 
 ## 웹 자산과 정적 배포
 
-루트 Gradle Kotlin DSL Spring Boot 프로젝트 안의 `src/main/resources/web`에 TypeScript·CSS 자산 관리. HTML은 `resources/templates`의 Thymeleaf 템플릿 사용. 관리자는 Spring `/manage/`에서 렌더링하고 공개 사이트는 빌드 시 HTML을 생성해 GitHub Pages에 배포. npm은 컴파일·Markdown 렌더링·정적사이트 생성 전용이며 Next/React/Node 운영 서버 없음. 웹 본문 편집기 없음. Wrapper는 `gradlew`, 빌드 산출물은 `build/`, 독립 Pages 생성기의 클래스패스는 `writeSiteClasspath` 작업으로 준비.
+루트 Gradle Kotlin DSL Spring Boot 프로젝트 안의 `src/main/resources/web`에 TypeScript·CSS 자산 관리. HTML은 `resources/templates`의 Thymeleaf 템플릿 사용. 관리자는 Spring `/manage/`에서 렌더링하고 공개 사이트는 빌드 시 HTML을 생성해 GitHub Pages에 배포. npm은 컴파일·Markdown 렌더링·정적사이트 생성 전용이며 Next/React/Node 운영 서버 없음. 웹 본문 편집기 없음. Wrapper는 `gradlew`, 빌드 산출물은 `build/`, 독립 Pages 생성기의 클래스패스는 `writeSiteClasspath` 작업으로 준비. 공통 자산 빌드는 `src/main/resources/web/build.mjs`, Actions의 Pages 수집·생성 코드는 `.github/pages`에 위치. npm·Gradle·Docker는 같은 자산 빌드 사용, 루트 `scripts` 폴더 없음.
 
 본문 원본은 `content/posts/{slug}.md`, 미발행·기존 편집본 자료는 Git에서 제외한 로컬 파일로 보존. 본문 작성은 MCP/코드 도구로 저장소 파일을 직접 수정하며 서버의 초안·revision·본문 발행 서비스 없음. MySQL은 메타데이터·세션과 이전 본문의 복구용 호환 열 유지. 첨부 원본은 명시한 영속 로컬 디렉터리 사용. 본문을 받지 않는 메타데이터 등록과 공개 상태 변경은 허용하며 파일 본문을 자동 생성·교체·삭제하지 않음.
 
