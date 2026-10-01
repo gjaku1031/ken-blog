@@ -37,7 +37,7 @@ class McpCatalogTools(
         calls.call { categories.setOrder(categoryId, order) }
 
     /** @return 초안과 HOME 메타를 포함한 [ProjectService.adminList] 페이지. */
-    @McpTool(name = "blog_list_projects", description = "프로젝트 목록을 본문 없이 조회합니다. 새 프로젝트는 PROJECT_HOME 편집본을 발행해 생성합니다.", annotations = McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false, openWorldHint = false))
+    @McpTool(name = "blog_list_projects", description = "프로젝트 목록을 본문 없이 조회합니다. 새 프로젝트는 blog_register_post의 PROJECT_HOME 메타데이터로 등록합니다.", annotations = McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false, openWorldHint = false))
     fun listProjects(@McpToolParam(description = "0부터 시작하는 페이지") page: Int,
         @McpToolParam(description = "1~100개의 페이지 크기") size: Int) =
         calls.call { projects.adminList(page, size) }
@@ -48,7 +48,7 @@ class McpCatalogTools(
         calls.call { projects.adminDetail(projectId) }
 
     /** @return 초안 회차 수를 포함한 [CourseService.adminList]. */
-    @McpTool(name = "blog_list_notes_courses", description = "Notes 과목과 출간 회차 수를 조회합니다. 회차 본문은 NOTE_CHAPTER 편집본으로 작성합니다.", annotations = McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false, openWorldHint = false))
+    @McpTool(name = "blog_list_notes_courses", description = "Notes 과목과 출간 회차 수를 조회합니다. 회차는 blog_register_post의 NOTE_CHAPTER 메타데이터로 등록하고 Markdown은 Git에 작성합니다.", annotations = McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false, openWorldHint = false))
     fun listNotesCourses() = calls.call { courses.adminList() }
 
     /** @return 과목 메타와 전체 회차를 포함한 [CourseService.adminDetail]. */
@@ -57,7 +57,7 @@ class McpCatalogTools(
         calls.call { courses.adminDetail(courseId) }
 
     /** 입력 경계 검증 후 [CourseService.create]로 과목을 생성. */
-    @McpTool(name = "blog_create_notes_course", description = "Notes 과목을 만들고 새 ID를 반환합니다. 회차는 blog_create_draft에서 section=NOTE_CHAPTER, courseId를 지정합니다.", annotations = McpTool.McpAnnotations(destructiveHint = false, openWorldHint = false))
+    @McpTool(name = "blog_create_notes_course", description = "Notes 과목을 만들고 새 ID를 반환합니다. 회차는 blog_register_post에서 section=NOTE_CHAPTER, courseId를 지정합니다.", annotations = McpTool.McpAnnotations(destructiveHint = false, openWorldHint = false))
     fun createNotesCourse(@McpToolParam(description = "분야·과목 이름·소개·IN_PROGRESS 또는 COMPLETED 상태") input: McpCourseInput) =
         calls.call { courses.create(input.validated()) }
 

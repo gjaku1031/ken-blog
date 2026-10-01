@@ -9,7 +9,7 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody
 
-/** 관리자 세션으로 모든 글·편집본 또는 지정 원본 글을 ZIP으로 내려받음. */
+/** 관리자 세션으로 공개·미출간 원본 글 또는 지정 원본 글을 ZIP으로 내려받음. */
 @RestController
 class ContentExportController(private val service: ContentExportService) {
     @GetMapping("/api/v1/admin/export", produces = ["application/zip"])

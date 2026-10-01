@@ -31,7 +31,6 @@ jobs:
       DB_URL: jdbc:mysql://127.0.0.1:13307/ken_blog_ci
       DB_USERNAME: ci_api
       DB_PASSWORD: ci_ephemeral_only
-      APP_DEPLOY_ENABLED: 'false'
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: actions/setup-java@v6.0.1
@@ -52,5 +51,5 @@ jobs:
           cat > "$RUNNER_TEMP/ken-blog-fixture/empty.json" <<'JSON'
           {"version":1,"profile":null,"feed":[],"projects":[],"notes":[],"posts":[],"projectDetails":{},"projectDocuments":{},"courseDetails":{},"chapters":{}}
           JSON
-          SITE_INPUT="$RUNNER_TEMP/ken-blog-fixture/empty.json" SITE_BASE_PATH=/ken-blog npm run build:site -- --fixture="$RUNNER_TEMP/ken-blog-fixture/empty.json"
+          SITE_BASE_PATH=/ken-blog npm run build:site -- --fixture="$RUNNER_TEMP/ken-blog-fixture/empty.json"
           test -s build/site/index.html

@@ -1,14 +1,8 @@
-import { createHash } from "node:crypto";
-
 const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const operationId = process.env.SITE_DEPLOYMENT_ID;
-const runId = process.env.GITHUB_RUN_ID;
-const runAttempt = process.env.GITHUB_RUN_ATTEMPT;
-const deployToken = process.env.BLOG_DEPLOY_TOKEN;
-const empty = () => ({ version: 1, profile: null, feed: [], projects: [], notes: [], posts: [],
-  projectDetails: {}, projectDocuments: {}, courseDetails: {}, chapters: {} });
+const revisionPattern = /^[a-f0-9]{64}$/;
+const snapshotPath = "/api/v1/pages/snapshot";
 
-/** 공개 API 응답 계약이 깨지면 부분 스냅샷으로 조용히 배포하지 않도록 실패. */
+/** 공개 스냅샷 계약이 깨지면 부분 사이트를 생성하지 않도록 실패. */
 function requireValue(condition, context) {
   if (!condition) throw new Error(`Invalid public API response: ${context}`);
 }
@@ -39,107 +33,29 @@ const array = (value, context) => {
   return value;
 };
 
-/** 서버의 durable gate가 이 runner에 귀속된 RUNNING 상태인지 확인한다. */
-export async function assertCaptureOwner(base) {
-  requireValue(/^[0-9a-f-]{36}$/i.test(operationId ?? "") && /^[1-9]\d*$/.test(runId ?? "") &&
-    /^[1-9]\d*$/.test(runAttempt ?? "") && typeof deployToken === "string" && deployToken.length > 0,
-  "deployment capture configuration");
-  const stateUrl = new URL("/api/v1/deployments/capture-state", base);
-  stateUrl.searchParams.set("id", operationId);
-  stateUrl.searchParams.set("runId", runId);
-  stateUrl.searchParams.set("runAttempt", runAttempt);
-  const response = await fetch(stateUrl, {
-    method: "GET", headers: { Accept: "application/json", Authorization: `Bearer ${deployToken}` },
-    credentials: "omit", redirect: "error", cache: "no-store", signal: AbortSignal.timeout(20_000),
-  });
-  if (!response.ok) throw new Error(`Deployment capture owner check failed: HTTP ${response.status}`);
-  const state = object(await response.json(), "deployment capture state");
-  requireValue(state.id === operationId && state.status === "RUNNING" && state.runId === runId &&
-    String(state.runAttempt) === runAttempt, "deployment capture owner changed");
-}
-
-/** 잠금 소유자를 재확인한 뒤 checkout의 전체 공개 본문을 서버 파일 원본에 맞춘다. */
-export async function synchronizeSources(base, bodies) {
-  await assertCaptureOwner(base);
-  const sourceUrl = new URL("/api/v1/deployments/source", base);
-  sourceUrl.searchParams.set("id", operationId);
-  sourceUrl.searchParams.set("runId", runId);
-  sourceUrl.searchParams.set("runAttempt", runAttempt);
-  const pendingResponse = await fetch(sourceUrl, {
-    method: "GET", headers: { Accept: "application/json", Authorization: `Bearer ${deployToken}` },
-    credentials: "omit", redirect: "error", cache: "no-store", signal: AbortSignal.timeout(20_000),
-  });
-  if (!pendingResponse.ok) throw new Error(`공개 Markdown 동기화 조회 실패: HTTP ${pendingResponse.status}`);
-  const pending = object(await pendingResponse.json(), "pending Markdown sources");
-  for (const [name, expected] of Object.entries(pending)) {
-    const slugName = slug(name, "pending Markdown slug");
-    requireValue(typeof expected === "string" && /^[a-f0-9]{64}$/.test(expected), "pending Markdown hash");
-    const body = Object.hasOwn(bodies, slugName) ? bodies[slugName] : null;
-    requireValue(typeof body === "string", `checkout Markdown missing: ${slugName}`);
-    const actual = createHash("sha256").update(body, "utf8").digest("hex");
-    requireValue(actual === expected, `checkout Markdown hash mismatch: ${slugName}`);
-  }
-  await assertCaptureOwner(base);
-  const response = await fetch(new URL("/api/v1/deployments/source", base), {
-    method: "POST", headers: { Accept: "application/json", "Content-Type": "application/json", Authorization: `Bearer ${deployToken}` },
-    body: JSON.stringify({ id: operationId, runId, runAttempt, bodies }),
-    credentials: "omit", redirect: "error", cache: "no-store", signal: AbortSignal.timeout(60_000),
-  });
-  if (!response.ok) throw new Error(`공개 Markdown 동기화 실패: HTTP ${response.status}`);
-  const result = object(await response.json(), "Markdown synchronization result");
-  requireValue(Number.isSafeInteger(result.synchronized) && result.synchronized >= 0 && result.synchronized <= Object.keys(bodies).length,
-    "Markdown synchronization count");
-  await assertCaptureOwner(base);
-  return result.synchronized;
-}
-
-/** 쿠키·인증 헤더 없이 정해진 공개 GET만 호출하고 오류·과도한 본문을 거부. */
-async function apiGet(base, path) {
-  requireValue(path.startsWith("/api/v1/") && !path.includes("/admin/"), "public endpoint");
-  await assertCaptureOwner(base);
-  const response = await fetch(new URL(path, base), {
+/** 인증 없이 단일 읽기 전용 JSON을 수집하고 MIME·크기·리다이렉션을 검증. */
+async function readSnapshot(base) {
+  const url = new URL(snapshotPath, base);
+  requireValue(url.origin === base.origin, "snapshot origin");
+  const response = await fetch(url, {
     method: "GET", headers: { Accept: "application/json" }, credentials: "omit", redirect: "error",
-    signal: AbortSignal.timeout(20_000), cache: "no-store",
+    signal: AbortSignal.timeout(30_000), cache: "no-store",
   });
-  if (!response.ok) throw new Error(`Public API GET ${path.split("?")[0]} failed: HTTP ${response.status}`);
+  if (!response.ok) throw new Error(`Public snapshot failed: HTTP ${response.status}`);
+  requireValue(response.headers.get("content-type")?.split(";", 1)[0]?.trim().toLowerCase() === "application/json", "snapshot MIME");
   const limit = 8_000_000;
-  requireValue(Number(response.headers.get("content-length")) <= limit && response.body, "response size");
+  const announced = Number(response.headers.get("content-length"));
+  requireValue(Number.isFinite(announced) && announced <= limit && response.body, "snapshot size");
   const chunks = [];
   let length = 0;
   for await (const chunk of response.body) {
     length += chunk.byteLength;
-    requireValue(length <= limit, "response size");
+    requireValue(length <= limit, "snapshot size");
     chunks.push(chunk);
   }
   try {
     return JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(Buffer.concat(chunks, length)));
-  } catch { throw new Error(`Public API returned invalid JSON: ${path.split("?")[0]}`); }
-}
-
-/** 페이지 번호·합계·중복을 검증해 공개 목록의 모든 페이지를 수집. */
-async function pages(base, prefix, size) {
-  const items = [];
-  const seen = new Set();
-  let totalPages = 1;
-  let totalElements = 0;
-  for (let page = 0; page < totalPages; page += 1) {
-    requireValue(page < 10_000, `${prefix} page limit`);
-    const separator = prefix.includes("?") ? "&" : "?";
-    const response = object(await apiGet(base, `${prefix}${separator}page=${page}&size=${size}`), prefix);
-    requireValue(response.page === page && response.size === size, `${prefix} page`);
-    integer(response.totalPages, `${prefix} totalPages`);
-    integer(response.totalElements, `${prefix} totalElements`);
-    if (page === 0) { totalPages = response.totalPages; totalElements = response.totalElements; }
-    requireValue(response.totalPages === totalPages && response.totalElements === totalElements,
-      `${prefix} changed during capture`);
-    for (const item of array(response.items, `${prefix} items`)) {
-      const id = integer(object(item, `${prefix} item`).id, `${prefix} item id`, 1);
-      requireValue(!seen.has(id), `${prefix} duplicate item`);
-      seen.add(id); items.push(item);
-    }
-  }
-  requireValue(items.length === totalElements, `${prefix} incomplete pages`);
-  return items;
+  } catch { throw new Error("Public snapshot returned invalid JSON"); }
 }
 
 /** 공개 목록 필드만 저장하며 열람 집계는 스냅샷 변화에서 제외. */
@@ -170,7 +86,7 @@ function feedItem(raw) {
 /** 공개 상세의 본문과 표시 필드만 저장하고 잠금·내부 해시는 배제. */
 function postDetail(raw, section, parentSlug = null) {
   const item = object(raw, "post detail");
-  requireValue(item.locked === false && typeof item.body === "string", "post must be readable");
+  requireValue(item.locked === false && item.body === "", "post must be readable");
   requireValue(item.section === section, "post section");
   const postSlug = slug(item.slug, "post slug");
   const projectSlug = section.startsWith("PROJECT") ? slug(item.projectSlug, "post project slug") : null;
@@ -237,133 +153,98 @@ function chapterSummary(raw) {
     summary: nullableString(item.summary, "chapter summary") };
 }
 
-/** 익명 공개 상세를 모두 캡처하고 부모·목록·본문의 공개 범위를 교차 확인. */
+/** 단일 응답의 모든 공개 데이터와 부모·상세 계약을 검증한다. */
 export async function capture(base) {
-  await assertCaptureOwner(base);
-  const snapshot = empty();
-  const profile = object(await apiGet(base, "/api/v1/profile"), "profile");
-  snapshot.profile = { name: string(profile.name, "profile name", true), tagline: string(profile.tagline, "profile tagline", true),
-    intro: string(profile.intro, "profile intro", true), github: string(profile.github, "profile github", true),
-    email: string(profile.email ?? "", "profile email", true), photoUrl: nullableString(profile.photoUrl, "profile photo") };
-
-  const feedRows = (await pages(base, "/api/v1/feed?section=all&sort=new", 100))
-    .filter((row) => object(row, "feed row").visibility === "PUBLIC").map(feedItem);
-  // 공개 /posts 목록은 TECH 전용이며 요약 DTO에 section 필드가 없다.
-  const postRows = await pages(base, "/api/v1/posts", 100);
-  for (const row of postRows) {
-    const summary = object(row, "TECH row");
-    const postSlug = slug(summary.slug, "TECH slug");
-    const detail = postDetail(await apiGet(base, `/api/v1/posts/${postSlug}`), "TECH");
-    requireValue(detail.id === summary.id && detail.slug === postSlug && detail.title === string(summary.title, "TECH title"),
-      "TECH detail identity");
-    snapshot.posts.push(detail);
-  }
-
-  const projectRows = (await pages(base, "/api/v1/projects", 100))
-    .filter((row) => object(row, "project row").visibility === "PUBLIC");
-  for (const row of projectRows) {
-    const summary = projectSummary(row);
-    const raw = object(await apiGet(base, `/api/v1/projects/${summary.slug}`), "project detail");
-    requireValue(raw.locked === false, "project must be public");
-    const info = projectSummary(raw.project, summary);
-    requireValue(info.id === summary.id && info.slug === summary.slug, "project detail identity");
-    const home = object(raw.home, "project home");
-    const documents = [];
-    const documentBodies = {};
-    for (const entry of array(raw.documents, "project documents")) {
-      const doc = object(entry, "project document");
-      if (doc.visibility !== "PUBLIC" || doc.locked !== false) continue;
-      const docSlug = slug(doc.slug, "document slug");
-      const detail = postDetail(await apiGet(base, `/api/v1/posts/${docSlug}`), "PROJECT_DOC", summary.slug);
-      requireValue(detail.id === doc.id, "document identity");
-      documents.push({ id: detail.id, title: string(doc.title, "document title"), slug: docSlug,
-        order: integer(doc.order, "document order"), publishedDate: string(doc.publishedDate, "document date"),
-        visibility: "PUBLIC", locked: false });
-      documentBodies[docSlug] = detail;
-    }
-    snapshot.projects.push(summary);
-    snapshot.projectDocuments[summary.slug] = documentBodies;
-    snapshot.projectDetails[summary.slug] = { locked: false,
-      project: { ...info, homePostId: integer(home.id, "home id", 1) },
-      home: { id: integer(home.id, "home id", 1), title: string(home.title, "home title"),
-        slug: slug(home.slug, "home slug"), body: string(home.body, "home body", true),
-        publishedDate: string(home.publishedDate, "home date") },
-      documents, relatedTech: array(raw.relatedTech, "related Tech").map((tech) => ({
-        id: integer(tech.id, "related Tech id", 1), title: string(tech.title, "related Tech title"),
-        slug: slug(tech.slug, "related Tech slug"), publishedDate: string(tech.publishedDate, "related Tech date") })),
-      relatedTechCount: integer(raw.relatedTechCount, "related Tech count") };
-  }
-
-  const noteList = object(await apiGet(base, "/api/v1/notes"), "notes list");
-  for (const entry of array(noteList.items, "notes items")) {
-    const summary = courseSummary(entry);
-    const raw = object(await apiGet(base, `/api/v1/notes/${summary.slug}`), "course detail");
-    const course = courseSummary(raw.course);
-    requireValue(course.id === summary.id && course.slug === summary.slug, "course detail identity");
-    const chapters = [];
-    const chapterBodies = {};
-    for (const entry of array(raw.chapters, "course chapters")) {
-      const item = object(entry, "course chapter");
-      if (item.visibility !== "PUBLIC" || item.locked !== false) continue;
-      const chapter = chapterSummary(item);
-      const response = object(await apiGet(base,
-        `/api/v1/notes/${summary.slug}/chapters/${chapter.slug}`), "chapter detail");
-      const detail = postDetail(response.chapter, "NOTE_CHAPTER", summary.slug);
-      requireValue(detail.id === chapter.id, "chapter identity");
-      chapters.push(chapter); chapterBodies[chapter.slug] = detail;
-    }
-    snapshot.notes.push(summary);
-    snapshot.courseDetails[summary.slug] = { course, chapters };
-    snapshot.chapters[summary.slug] = chapterBodies;
-  }
-
-  const publicIds = new Set([...snapshot.posts.map((post) => post.id),
-    ...Object.values(snapshot.projectDocuments).flatMap((docs) => Object.values(docs).map((post) => post.id)),
-    ...Object.values(snapshot.chapters).flatMap((docs) => Object.values(docs).map((post) => post.id))]);
-  const publicProjects = new Set(snapshot.projects.map((project) => project.slug));
-  const publicCourses = new Set(snapshot.notes.map((course) => course.slug));
-  const projectsBySlug = new Map(snapshot.projects.map((project) => [project.slug, project]));
-  const techById = new Map(snapshot.posts.map((post) => [post.id, post]));
-  const postsById = new Map([...snapshot.posts,
-    ...Object.values(snapshot.projectDocuments).flatMap((docs) => Object.values(docs)),
-    ...Object.values(snapshot.chapters).flatMap((docs) => Object.values(docs))].map((post) => [post.id, post]));
-  const cleanPost = (post) => {
-    if (post.relatedProject) {
-      const project = projectsBySlug.get(post.relatedProject.slug);
-      post.relatedProject = project?.id === post.relatedProject.id ?
-        { id: project.id, slug: project.slug, name: project.name } : null;
-    }
-    if (post.series) {
-      const items = post.series.items.flatMap((item) => {
-        const published = postsById.get(item.id);
-        return published?.slug === item.slug ? [{ id: published.id, slug: published.slug,
-          title: published.title, order: item.order }] : [];
-      });
-      const position = items.findIndex((item) => item.id === post.id) + 1;
-      post.series = items.length > 1 && position > 0 ? { items, position } : null;
-    }
-  };
-  snapshot.posts.forEach(cleanPost);
-  for (const documents of Object.values(snapshot.projectDocuments)) Object.values(documents).forEach(cleanPost);
-  for (const chapters of Object.values(snapshot.chapters)) Object.values(chapters).forEach(cleanPost);
-  for (const detail of Object.values(snapshot.projectDetails)) {
-    detail.relatedTech = detail.relatedTech.flatMap((post) => {
-      const tech = techById.get(post.id);
-      return tech?.slug === post.slug ? [{ id: tech.id, title: tech.title, slug: tech.slug,
-        publishedDate: tech.publishedDate }] : [];
+  const raw = object(await readSnapshot(base), "snapshot");
+  requireValue(raw.version === 1 && revisionPattern.test(raw.revision ?? ""), "snapshot version/revision");
+  const sourceProfile = object(raw.profile, "profile");
+  const profile = { name: string(sourceProfile.name, "profile name", true),
+    tagline: string(sourceProfile.tagline, "profile tagline", true),
+    intro: string(sourceProfile.intro, "profile intro", true),
+    github: string(sourceProfile.github, "profile github", true),
+    email: string(sourceProfile.email ?? "", "profile email", true),
+    photoUrl: nullableString(sourceProfile.photoUrl, "profile photo") };
+  const feed = array(raw.feed, "feed").map(feedItem);
+  const posts = array(raw.posts, "posts").map((row) => postDetail(row, "TECH"));
+  const projects = array(raw.projects, "projects").map((row) => projectSummary(row));
+  const notes = array(raw.notes, "notes").map(courseSummary);
+  const sourceProjectDetails = object(raw.projectDetails, "project details");
+  const sourceProjectDocuments = object(raw.projectDocuments, "project documents");
+  const sourceCourseDetails = object(raw.courseDetails, "course details");
+  const sourceChapters = object(raw.chapters, "chapters");
+  const projectDetails = Object.create(null);
+  const projectDocuments = Object.create(null);
+  const courseDetails = Object.create(null);
+  const chapters = Object.create(null);
+  for (const project of projects) {
+    const name = project.slug;
+    const detail = object(sourceProjectDetails[name], `project detail ${name}`);
+    requireValue(detail.locked === false, `project visibility ${name}`);
+    const info = projectSummary(detail.project, project);
+    requireValue(info.id === project.id && info.slug === name, `project identity ${name}`);
+    const home = object(detail.home, `project home ${name}`);
+    requireValue(home.body === "", `project home body ${name}`);
+    const homeId = integer(home.id, `project home id ${name}`, 1);
+    requireValue(integer(detail.project.homePostId, `project home reference ${name}`, 1) === homeId,
+      `project home reference ${name}`);
+    const documents = array(detail.documents, `project document list ${name}`).map((entry) => {
+      const row = object(entry, `project document ${name}`);
+      requireValue(row.visibility === "PUBLIC" && row.locked === false, `project document visibility ${name}`);
+      return { id: integer(row.id, "document id", 1), title: string(row.title, "document title"),
+        slug: slug(row.slug, "document slug"), order: integer(row.order, "document order"),
+        publishedDate: string(row.publishedDate, "document date"), visibility: "PUBLIC", locked: false };
     });
-  }
-  snapshot.feed = feedRows.filter((item) => item.section === "TECH" ? publicIds.has(item.id) :
-    item.section === "NOTE_CHAPTER" ? publicCourses.has(item.courseSlug) && publicIds.has(item.id) :
-    item.section === "PROJECT_DOC" ? publicProjects.has(item.projectSlug) && publicIds.has(item.id) :
-    publicProjects.has(item.projectSlug));
-  for (const item of snapshot.feed) {
-    if (item.section === "TECH" && item.projectSlug && !publicProjects.has(item.projectSlug)) {
-      item.projectSlug = null; item.projectName = null;
-    } else if (item.section === "TECH" && item.projectSlug) {
-      item.projectName = projectsBySlug.get(item.projectSlug).name;
+    const rawDocuments = object(sourceProjectDocuments[name], `project documents ${name}`);
+    const normalizedDocuments = Object.create(null);
+    for (const [docSlug, row] of Object.entries(rawDocuments)) {
+      slug(docSlug, "document key");
+      const doc = postDetail(row, "PROJECT_DOC", name);
+      requireValue(doc.slug === docSlug, `document key ${docSlug}`);
+      normalizedDocuments[docSlug] = doc;
     }
+    requireValue(documents.length === Object.keys(normalizedDocuments).length && documents.every((doc) =>
+      normalizedDocuments[doc.slug]?.id === doc.id), `project document identities ${name}`);
+    projectDetails[name] = { locked: false, project: { ...info, homePostId: homeId },
+      home: { id: homeId, title: string(home.title, "home title"), slug: slug(home.slug, "home slug"),
+        body: "", publishedDate: string(home.publishedDate, "home date") }, documents,
+      relatedTech: array(detail.relatedTech, `related Tech ${name}`).map((row) => {
+        const item = object(row, "related Tech");
+        return { id: integer(item.id, "related Tech id", 1), title: string(item.title, "related Tech title"),
+          slug: slug(item.slug, "related Tech slug"), publishedDate: string(item.publishedDate, "related Tech date") };
+      }), relatedTechCount: integer(detail.relatedTechCount, `related Tech count ${name}`) };
+    projectDocuments[name] = normalizedDocuments;
   }
-  await assertCaptureOwner(base);
-  return snapshot;
+  for (const course of notes) {
+    const name = course.slug;
+    const detail = object(sourceCourseDetails[name], `course detail ${name}`);
+    const info = courseSummary(detail.course);
+    requireValue(info.id === course.id && info.slug === name, `course identity ${name}`);
+    const summaries = array(detail.chapters, `chapter list ${name}`).map(chapterSummary);
+    const rawChapters = object(sourceChapters[name], `chapters ${name}`);
+    const normalizedChapters = Object.create(null);
+    for (const [chapterSlug, row] of Object.entries(rawChapters)) {
+      slug(chapterSlug, "chapter key");
+      const chapter = postDetail(row, "NOTE_CHAPTER", name);
+      requireValue(chapter.slug === chapterSlug, `chapter key ${chapterSlug}`);
+      normalizedChapters[chapterSlug] = chapter;
+    }
+    requireValue(summaries.length === Object.keys(normalizedChapters).length && summaries.every((item) =>
+      normalizedChapters[item.slug]?.id === item.id), `chapter identities ${name}`);
+    courseDetails[name] = { course: info, chapters: summaries };
+    chapters[name] = normalizedChapters;
+  }
+  requireValue(Object.keys(sourceProjectDetails).length === projects.length &&
+    Object.keys(sourceProjectDocuments).length === projects.length &&
+    Object.keys(sourceCourseDetails).length === notes.length &&
+    Object.keys(sourceChapters).length === notes.length, "unexpected parent details");
+  return { version: 1, revision: raw.revision, profile, feed, posts, projects, notes,
+    projectDetails, projectDocuments, courseDetails, chapters };
+}
+
+/** 생성 완료 직전에 다시 읽어 DB·이미지 revision 변경을 거부한다. */
+export async function confirmRevision(base, expected) {
+  requireValue(revisionPattern.test(expected ?? ""), "expected revision");
+  const current = object(await readSnapshot(base), "final snapshot");
+  requireValue(current.version === 1 && revisionPattern.test(current.revision ?? ""), "final revision");
+  if (current.revision !== expected) throw new Error("공개 메타데이터 또는 이미지가 생성 중 변경되었습니다. Pages 빌드를 다시 실행하세요.");
 }

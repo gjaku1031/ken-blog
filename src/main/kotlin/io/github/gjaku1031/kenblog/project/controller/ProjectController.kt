@@ -19,28 +19,6 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
-/** [ProjectService]의 부모 권한 판정을 공개 프로젝트 주소에 연결. */
-@RestController
-@RequestMapping("/api/v1/projects")
-class ProjectController(private val service: ProjectService) {
-    /** @return 현재 역할로 읽을 수 있는 출간 대문 목록. */
-    @GetMapping
-    fun list(@RequestParam(defaultValue = "0") page: Int, @RequestParam(defaultValue = "12") size: Int,
-        authentication: Authentication?): ResponseEntity<ProjectPageResponse> = ResponseEntity.ok()
-        .cacheControl(CacheControl.noStore()).body(service.list(page, size, authentication))
-
-    /** @return 부모와 대문을 확인한 뒤 노출한 대문·문서·관련 글. */
-    @GetMapping("/{slug}")
-    fun detail(@PathVariable slug: String, authentication: Authentication?): ResponseEntity<ProjectDetailResponse> =
-        ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.detail(slug, authentication))
-
-    /** @return 현재 역할에 보이는 관련 TECH 글 페이지. */
-    @GetMapping("/{slug}/related-posts")
-    fun related(@PathVariable slug: String, @RequestParam(defaultValue = "0") page: Int,
-        @RequestParam(defaultValue = "5") size: Int, authentication: Authentication?): ResponseEntity<ProjectRelatedPageResponse> =
-        ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.related(slug, page, size, authentication))
-}
-
 /** 프로젝트 삭제와 문서 순서를 [ProjectService]의 부모 잠금 아래 처리. */
 @RestController
 @RequestMapping("/api/v1/admin/projects")

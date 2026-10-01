@@ -33,7 +33,7 @@ enum class PostSection { TECH, PROJECT_HOME, PROJECT_DOC, NOTE_CHAPTER }
  * `posts` 행에 대응하는 초안·출간 게시글 저장 모델.
  *
  * 시간은 UTC의 [LocalDateTime]으로 저장하며 생성 시 [updatedAt]은 [createdAt]과 같음.
- * [replaceDraft]는 출간 상태와 공개 주소를 건드리지 않고 검증된 내용만 교체함.
+ * 본문 호환 열은 기존 데이터 복구를 위해 유지하고 새 글은 빈 값으로 등록함.
  * 최초 [publishedAt]은 철회·재출간에도 유지함.
  */
 @Entity
@@ -152,11 +152,11 @@ class PostEntity protected constructor() {
     /**
      * 검증된 초안과 UTC 시각으로 새 영속 객체를 생성.
      *
-     * 호출자는 [PostService.createDraft]를 통해 입력을 먼저 검증해야 함.
+     * 호출자는 [PostService.createMetadata]에서 입력을 먼저 검증해야 함.
      *
      * @param title 앞뒤 공백을 제거한 제목
      * @param slug 정규화한 고유 주소
-     * @param body UTF-8로 1 MiB 이하인 초안 본문
+     * @param body 기존 DB 호환 열에 기록할 초기 본문(신규 등록은 빈 문자열)
      * @param createdAt 생성 및 최초 수정 시각
      */
     internal constructor(title: String, slug: String, body: String, createdAt: LocalDateTime) : this() {
@@ -166,20 +166,6 @@ class PostEntity protected constructor() {
         this.bodySha256 = PostBodyHash.sha256(body)
         this.createdAt = createdAt
         this.updatedAt = createdAt
-    }
-
-    /**
-     * [PostService.updateDraft]에서 검증한 전체 초안 내용을 한 트랜잭션에서 교체.
-     *
-     * @param title 정규화한 제목
-     * @param body 원문 그대로 저장할 본문
-     * @param updatedAt UTC 수정 시각
-     */
-    internal fun replaceDraft(title: String, body: String, updatedAt: LocalDateTime) {
-        this.title = title
-        this.body = body
-        this.bodySha256 = PostBodyHash.sha256(body)
-        this.updatedAt = updatedAt
     }
 
     /** 저장소 Markdown을 읽거나 수정하지 않고 제목·요약만 갱신. */
@@ -253,7 +239,7 @@ class PostEntity protected constructor() {
     /** 과목 잠금 아래 순서만 변경해 공개 본문의 수정 기준 시각을 보존. */
     internal fun reorderChapter(order: Int) { chapterOrder = order }
 
-    /** 편집본 출간의 명시 요약 또는 자동 추출 문장을 저장. */
+    /** 등록한 글의 명시 요약을 저장. */
     internal fun replaceSummary(value: String) { summary = value }
 
     /** TECH 글의 관련 프로젝트를 저장하거나 해제. */
@@ -262,7 +248,7 @@ class PostEntity protected constructor() {
         updatedAt = now
     }
 
-    /** 부모 프로젝트 잠금 아래 문서 순서만 변경해 본문 편집본 기준 시각을 보존. */
+    /** 부모 프로젝트 잠금 아래 문서 순서만 변경해 원고 수정 기준 시각을 보존. */
     internal fun reorder(order: Int) {
         documentOrder = order
     }

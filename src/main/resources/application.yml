@@ -10,8 +10,8 @@ spring:
         version: 1.0.0
         type: SYNC
         instructions: 글을 작성하기 전에 kenblog://authoring/skill 리소스 또는 get_authoring_guide 도구를 읽으세요. TECH, PROJECT_HOME,
-          PROJECT_DOC, NOTE_CHAPTER 중 섹션을 선택하고 본문에 쓰인 attachmentIds와 wikiTargets 전체 배열을 명시하세요. 수정 전 최신 글·편집본 상세와
-          revision을 확인하고, 사용자가 요청한 범위에서만 발행하세요.
+          PROJECT_DOC, NOTE_CHAPTER 중 섹션을 선택하고 본문은 저장소 content/posts/{slug}.md에서 수정하세요. 첨부와 위키 참조의 전체 목록은
+          메타데이터 도구로 명시하고, 최신 글 상세를 확인한 뒤 사용자가 요청한 범위에서만 발행하세요.
         streamable-http:
           mcp-endpoint: /mcp
   servlet:
@@ -74,12 +74,3 @@ app:
       password-hash: ${BOOTSTRAP_ADMIN_PASSWORD_HASH:}
   cors:
     allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:}
-  deployment:
-    enabled: ${APP_DEPLOY_ENABLED:false}
-    github-token: ${APP_DEPLOY_GITHUB_TOKEN:}
-    callback-token: ${APP_DEPLOY_CALLBACK_TOKEN:}
-    repository: ${APP_DEPLOY_REPOSITORY:gjaku1031/ken-blog}
-    workflow: ${APP_DEPLOY_WORKFLOW:pages.yml}
-    ref: ${APP_DEPLOY_REF:main}
-    pages-marker-url: ${APP_DEPLOY_PAGES_MARKER_URL:https://gjaku1031.github.io/ken-blog/deployment.json}
-    github-api-base: ${APP_DEPLOY_GITHUB_API_BASE:https://api.github.com}

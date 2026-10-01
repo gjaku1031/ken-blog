@@ -1,6 +1,5 @@
 package io.github.gjaku1031.kenblog.attachment.service
 
-import io.github.gjaku1031.kenblog.deployment.ContentMutation
 
 import io.github.gjaku1031.kenblog.account.repository.AccountRepository
 import io.github.gjaku1031.kenblog.attachment.domain.AttachmentEntity
@@ -41,7 +40,6 @@ class AttachmentMetadataService(
      * @throws AttachmentFailure 세션 계정이 DB에 없을 때
      */
     @Transactional
-    @ContentMutation(atomic = false)
     fun createPending(username: String, key: String, image: ValidatedImage): AttachmentSnapshot {
         val account = accounts.findByUsername(username)
             ?: throw AttachmentFailure(HttpStatus.SERVICE_UNAVAILABLE, "업로드 계정을 확인할 수 없습니다.")
@@ -58,7 +56,6 @@ class AttachmentMetadataService(
      * @throws AttachmentFailure 삭제와 경쟁했거나 추적 행이 없어졌을 때
      */
     @Transactional
-    @ContentMutation(atomic = false)
     fun markReady(id: Long): AttachmentSnapshot {
         val entity = attachments.findLockedById(id) ?: throw conflict()
         if (entity.status != AttachmentStatus.PENDING) throw conflict()
@@ -80,7 +77,7 @@ class AttachmentMetadataService(
     /**
      * READY 또는 오래된 PENDING 행을 DELETING으로 변경하고 파일 key를 반환.
      *
-     * 글·편집본에 연결된 첨부는 동일 행 잠금 안에서 409로 거부함.
+     * 글에 연결된 첨부는 동일 행 잠금 안에서 409로 거부함.
      * 활성 PENDING은 파일 저장과 경쟁하지 않도록 2분 동안 삭제를 거부함.
      * 오래된 PENDING의 행은 기존 지연 쓰기 상태도 추적하도록 삭제 후 유예함.
      *
@@ -89,11 +86,10 @@ class AttachmentMetadataService(
      * @throws AttachmentFailure 행이 없거나 업로드 중일 때
      */
     @Transactional
-    @ContentMutation(atomic = false)
     fun beginDelete(id: Long): AttachmentSnapshot {
         val entity = if (id > 0) attachments.findLockedById(id) else null
         entity ?: throw notFound()
-        if (links.isReferenced(id)) throw AttachmentFailure(HttpStatus.CONFLICT, "글이나 편집본에서 사용 중인 첨부입니다.")
+        if (links.isReferenced(id)) throw AttachmentFailure(HttpStatus.CONFLICT, "글에서 사용 중인 첨부입니다.")
         if (entity.status == AttachmentStatus.PENDING) {
             if (entity.createdAt.isAfter(now().minusMinutes(PENDING_GRACE_MINUTES))) throw conflict()
             entity.markDeleting(now(), retainForUncertainWrite = true)
@@ -113,7 +109,6 @@ class AttachmentMetadataService(
      * @return 삭제해도 되는 상태 또는 이미 사라진 행이면 `true`, READY면 `false`
      */
     @Transactional
-    @ContentMutation(atomic = false)
     fun claimFailedUpload(id: Long, uncertainWrite: Boolean): Boolean {
         val entity = attachments.findLockedById(id) ?: return true
         if (entity.status == AttachmentStatus.READY) return false
@@ -133,7 +128,6 @@ class AttachmentMetadataService(
      * @return 행이 제거되었거나 이미 없으면 `true`, 유예 중이면 `false`
      */
     @Transactional
-    @ContentMutation(atomic = false)
     fun finishDelete(id: Long): Boolean {
         val entity = attachments.findLockedById(id) ?: return true
         if (entity.status != AttachmentStatus.DELETING) throw conflict()

@@ -1,14 +1,8 @@
 package io.github.gjaku1031.kenblog.project.service
 
-import io.github.gjaku1031.kenblog.content.service.RepositoryMarkdown
-import io.github.gjaku1031.kenblog.post.domain.PostBodyHash
 
-import io.github.gjaku1031.kenblog.deployment.ContentMutation
-import io.github.gjaku1031.kenblog.deployment.PublicationChange
 
 import io.github.gjaku1031.kenblog.post.domain.PostEntity
-import io.github.gjaku1031.kenblog.post.domain.ContentAddress
-import io.github.gjaku1031.kenblog.draft.domain.EditorDraftEntity
 import io.github.gjaku1031.kenblog.post.domain.PostSection
 import io.github.gjaku1031.kenblog.post.domain.PostStatus
 import io.github.gjaku1031.kenblog.post.domain.PostVisibility
@@ -17,7 +11,6 @@ import io.github.gjaku1031.kenblog.post.service.PostService
 import io.github.gjaku1031.kenblog.project.domain.InvalidProjectRequestException
 import io.github.gjaku1031.kenblog.project.domain.ProjectConflictException
 import io.github.gjaku1031.kenblog.project.domain.ProjectEntity
-import io.github.gjaku1031.kenblog.project.domain.ProjectMetadata
 import io.github.gjaku1031.kenblog.project.domain.ProjectNotFoundException
 import io.github.gjaku1031.kenblog.project.dto.ProjectAdminDetailResponse
 import io.github.gjaku1031.kenblog.project.dto.ProjectAdminDocumentResponse
@@ -29,16 +22,13 @@ import io.github.gjaku1031.kenblog.project.dto.ProjectPublicInfo
 import io.github.gjaku1031.kenblog.project.dto.ProjectRelatedPageResponse
 import io.github.gjaku1031.kenblog.project.dto.ProjectSummaryResponse
 import io.github.gjaku1031.kenblog.project.dto.adminInfo
-import io.github.gjaku1031.kenblog.project.dto.ProjectMetadataRequests
 import io.github.gjaku1031.kenblog.project.repository.ProjectPostRepository
 import io.github.gjaku1031.kenblog.project.repository.ProjectRepository
 import io.github.gjaku1031.kenblog.stack.service.StackBadgeService
-import java.time.Clock
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZoneOffset
-import java.time.temporal.ChronoUnit
 import java.util.Locale
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.data.domain.PageRequest
@@ -60,7 +50,6 @@ class ProjectService(
     private val posts: PostRepository,
     private val postService: PostService,
     private val stackBadges: StackBadgeService,
-    private val markdown: RepositoryMarkdown,
 ) {
     /** @return HOME이 출간됐고 현재 역할이 읽을 수 있는 프로젝트의 12개 기본 페이지. */
     @Transactional(readOnly = true)
@@ -73,11 +62,9 @@ class ProjectService(
             result.totalElements, result.totalPages)
     }
 
-    /**
-     * PUBLIC 대문과 프로젝트 상세만 조회.
-     */
+    /** Pages snapshot용 공개 프로젝트 메타데이터. 본문은 Git checkout에서 주입한다. */
     @Transactional(readOnly = true)
-    fun detail(rawSlug: String, authentication: Authentication?): ProjectDetailResponse {
+    fun detailMetadata(rawSlug: String): ProjectDetailResponse {
         val project = visibleBase(rawSlug)
         val home = home(project)
         val privateAllowed = false
@@ -91,27 +78,10 @@ class ProjectService(
         val info = ProjectPublicInfo(id, project.slug, project.name, project.status, project.startPeriod,
             project.endPeriod, project.overview, project.visibility, documents.size.toLong(), related.totalElements,
             stackBadges.listForProject(id), project.sortOrder)
-        val homeBody = markdown.readPost(home)
         return ProjectDetailResponse(false, info,
             ProjectHomeResponse(home.id ?: error("Persisted home has no ID"), home.title, home.slug,
-                homeBody, home.publishedAt.kstDate(), PostBodyHash.sha256(homeBody)),
+                "", home.publishedAt.kstDate(), ""),
             documents, related.content.map { it.response() }, related.totalElements)
-    }
-
-    /** @return 현재 읽을 수 있는 프로젝트의 관련 TECH 글만 5개 기본 페이지로 조회. */
-    @Transactional(readOnly = true)
-    fun related(rawSlug: String, page: Int, size: Int, authentication: Authentication?): ProjectRelatedPageResponse {
-        pageArguments(page, size, 20)
-        val project = visibleBase(rawSlug)
-        val home = home(project)
-        val privateAllowed = false
-        if (project.visibility != PostVisibility.PUBLIC || home.visibility != PostVisibility.PUBLIC) {
-            throw ProjectNotFoundException()
-        }
-        val result = projectPosts.findRelatedTech(project.id ?: error("Persisted project has no ID"),
-            PostSection.TECH, PostStatus.PUBLISHED, privateAllowed, PostVisibility.PUBLIC, PageRequest.of(page, size))
-        return ProjectRelatedPageResponse(result.content.map { it.response() }, page, size,
-            result.totalElements, result.totalPages)
     }
 
     /** @return 초안을 포함한 관리자 프로젝트 목록; 본문 열을 선택하지 않음. */
@@ -131,90 +101,30 @@ class ProjectService(
         val documents = projectPosts.findAdminDocuments(id, PostSection.PROJECT_DOC)
         val related = projectPosts.findRelatedTech(id, PostSection.TECH, PostStatus.PUBLISHED, false,
             PostVisibility.PUBLIC, PageRequest.of(0, 5)).content.map { it.response() }
-        return ProjectAdminDetailResponse(project.adminInfo().copy(stackBadges = stackBadges.listForProject(id)), project.homePostId?.let(postService::adminDetail),
+        return ProjectAdminDetailResponse(project.adminInfo().copy(stackBadges = stackBadges.listForProject(id)), project.homePostId?.let(postService::adminMetadata),
             documents, related)
     }
 
-    /** @return 출간에 사용할 현재 부모 행의 공유 잠금. 없으면 404. */
-    @Transactional
-    fun sharedParent(id: Long): ProjectEntity {
-        if (id <= 0) throw InvalidProjectRequestException()
-        return projects.findSharedById(id) ?: throw ProjectNotFoundException()
-    }
-
-    /** @return 편집본 출간·프로젝트 순서 변경에 사용할 부모 배타 잠금. */
+    /** @return 문서 메타데이터·프로젝트 순서 변경에 사용할 부모 배타 잠금. */
     @Transactional
     fun lockedParent(id: Long): ProjectEntity {
         if (id <= 0) throw InvalidProjectRequestException()
         return projects.findLockedById(id) ?: throw ProjectNotFoundException()
     }
 
-    /** @return 새 HOME 출간에서 부모 행을 먼저 만들고 글 생성 후 연결할 객체. */
-    @Transactional
-    @ContentMutation(publication = PublicationChange.ALWAYS)
-    fun createProject(draft: EditorDraftEntity, metadata: ProjectMetadata): ProjectEntity = conflicts {
-        val normalized = ProjectMetadataRequests.validate(metadata)
-        val normalizedName = draft.title.trim()
-        val normalizedSlug = ContentAddress.publishDraft(draft.slug, PostSection.PROJECT_HOME)
-        if (normalizedName.isBlank() || normalizedName.codePointCount(0, normalizedName.length) > 200)
-            throw InvalidProjectRequestException()
-        lockCollection()
-        val minimum = projects.findAllLockedForOrder().firstOrNull()?.sortOrder ?: 1L
-        if (minimum == Long.MIN_VALUE) throw ProjectConflictException()
-        projects.saveAndFlush(ProjectEntity(normalizedSlug, normalizedName, normalized, now(), minimum - 1)).also {
-            stackBadges.replaceProjectStack(it.id!!, normalized.stackBadgeNames)
-        }
-    }
-
-    /** 새 HOME 글 저장 후 동일 트랜잭션에서 순환 FK를 완성. */
-    @Transactional
-    @ContentMutation(publication = PublicationChange.ALWAYS)
-    fun attachHome(project: ProjectEntity, postId: Long) {
-        if (project.homePostId != null || postId <= 0) throw ProjectConflictException()
-        project.attachHome(postId)
-        projects.saveAndFlush(project)
-    }
-
-    /** 기존 HOME 출간의 프로젝트 기준 시각을 확인하고 메타·이름을 교체하며 주소는 유지. */
-    @Transactional
-    @ContentMutation(publication = PublicationChange.ALWAYS)
-    fun updateHome(project: ProjectEntity, post: PostEntity, metadata: ProjectMetadata) = conflicts {
-        val projectId = project.id ?: error("Persisted project has no ID")
-        if (project.homePostId != post.id || post.projectId != projectId ||
-            project.updatedAt != metadata.baseProjectUpdatedAt) throw ProjectConflictException()
-        val normalized = ProjectMetadataRequests.validate(metadata)
-        project.rename(post.title, now())
-        project.replace(normalized, now())
-        projects.saveAndFlush(project)
-        stackBadges.replaceProjectStack(projectId, normalized.stackBadgeNames)
-    }
-
-    /** @return 유효한 기존 부모의 다음 문서 순서; HOME 미출간 부모는 409. */
-    @Transactional
-    fun nextDocumentOrder(project: ProjectEntity): Int {
-        home(project)
-        val maximum = projectPosts.maxDocumentOrder(project.id ?: error("Persisted project has no ID"),
-            PostSection.PROJECT_DOC) ?: 0
-        if (maximum == Int.MAX_VALUE) throw ProjectConflictException()
-        return maximum + 1
-    }
-
     /** 프로젝트의 DOC 한 건을 부모→글 순서로 잠근 뒤 첨부·위키 DB 연결과 함께 삭제. */
     @Transactional
-    @ContentMutation(publication = PublicationChange.ALWAYS)
     fun deleteDocument(projectId: Long, postId: Long) = conflicts {
         lockedParent(projectId)
         if (postId <= 0) throw InvalidProjectRequestException()
         val post = projectPosts.findLockedProjectPost(postId, projectId) ?: throw ProjectNotFoundException()
         if (post.section != PostSection.PROJECT_DOC) throw ProjectConflictException()
-        markdown.deletePost(post)
         projectPosts.delete(post)
         projectPosts.flush()
     }
 
     /** 카드 정렬값 하나만 직접 지정하며 기존 대문 원문과 수정 기준 시각은 유지. */
     @Transactional
-    @ContentMutation(publication = PublicationChange.ALWAYS)
     fun setOrder(id: Long, order: Long): io.github.gjaku1031.kenblog.project.dto.ProjectAdminInfo = conflicts {
         if (id <= 0 || order !in -9_007_199_254_740_991L..9_007_199_254_740_991L)
             throw InvalidProjectRequestException()
@@ -226,28 +136,18 @@ class ProjectService(
 
     /**
      * 부모를 잠그고 HOME 순환 FK를 해제한 후 모든 소속 글을 삭제.
-     * 연결된 첨부·위키·편집본 행은 FK CASCADE, 로컬 원본 파일는 그대로 추적 가능하게 둠.
+     * 연결된 첨부·위키 행은 FK CASCADE, 로컬 원본 파일는 그대로 추적 가능하게 둠.
      */
     @Transactional
-    @ContentMutation(publication = PublicationChange.ALWAYS)
     fun deleteProject(id: Long) = conflicts {
         lockCollection()
         val project = lockedParent(id)
         project.detachHome()
         projects.saveAndFlush(project)
         val postIds = projectPosts.findProjectPostIds(id)
-        projectPosts.findAllById(postIds).forEach(markdown::deletePost)
         projectPosts.deleteAllByIdInBatch(postIds)
         projects.delete(project)
         projects.flush()
-    }
-
-    /** @return 프로젝트와 HOME이 모두 현재 출간된 경우의 부모, 아니면 409. */
-    @Transactional(readOnly = true)
-    fun requirePublishedParent(id: Long): ProjectEntity {
-        val project = projects.findByIdOrNull(id) ?: throw ProjectNotFoundException()
-        home(project)
-        return project
     }
 
     /** @return 출간된 HOME 글, 없으면 공개 탐색에서 숨김. */
@@ -288,10 +188,6 @@ class ProjectService(
     /** @return MySQL 중복 이름/주소·FK 삭제 경합을 공개 가능한 409로 변환. */
     private inline fun <T> conflicts(action: () -> T): T = try { action() }
         catch (ex: DataIntegrityViolationException) { throw ProjectConflictException() }
-
-    /** @return DB DATETIME(6) 정밀도의 현재 UTC 시각. */
-    private fun now(): LocalDateTime =
-        LocalDateTime.ofInstant(Clock.systemUTC().instant().truncatedTo(ChronoUnit.MICROS), ZoneOffset.UTC)
 
     /** @return 최초 UTC 출간 시각을 KST 날짜로 바꾼 값. */
     private fun LocalDateTime?.kstDate(): LocalDate = (this ?: error("Published home has no time"))

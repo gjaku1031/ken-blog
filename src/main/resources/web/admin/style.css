@@ -44,11 +44,9 @@ nav a{font-size:14px;color:var(--muted)}
 .field-grid textarea{resize:vertical}
 .field-grid .wide,.field-grid .form-actions{grid-column:1/-1}
 .form-actions{display:flex;justify-content:flex-end}
-.button-row{display:flex;gap:10px;flex-wrap:wrap}
 .button{display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:7px;padding:8px 14px;background:var(--card);color:var(--text);font-weight:600;min-height:39px}
 .button.primary{background:var(--accent-dark);border-color:var(--accent-dark);color:#fff}
 .button.ghost{background:transparent}
-.button:disabled{opacity:.45;cursor:not-allowed}
 .notice{padding:12px 16px;border-radius:8px;border:1px solid var(--accent);background:color-mix(in srgb,var(--accent) 10%,var(--card));margin:16px 0}
 .notice.error{color:var(--danger);border-color:var(--danger);background:var(--card)}
 .empty{padding:24px 0;color:var(--muted)}
@@ -58,9 +56,6 @@ nav a{font-size:14px;color:var(--muted)}
 .badge-list legend{font-size:13px;color:var(--muted)}
 .field-grid .badge-list .check,.check{display:inline-flex;align-items:center;flex-direction:row;gap:6px;font-size:13px;color:var(--text);font-weight:400}
 .check input{width:auto}
-.deployment-details{display:grid;grid-template-columns:100px minmax(0,1fr);gap:8px 14px;margin:20px 0;overflow-wrap:anywhere}
-.deployment-details dt{color:var(--muted)}
-.deployment-details dd{margin:0;font-family:'IBM Plex Mono',monospace;font-size:13px}
 .login-page{min-height:100vh;display:grid;place-items:center;padding:20px}
 .login-card{width:min(100%,410px);padding:32px}
 .login-card h1{margin:6px 0;font-size:27px}

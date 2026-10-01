@@ -37,7 +37,7 @@ private const val PUBLISHED_OLDER_PROJECT_PARENT =
 /**
  * [PostEntity]의 기본 저장·ID 조회를 [JpaRepository]에 맡기는 게시글 저장소.
  *
- * [PostService.createDraft]는 새 엔티티의 null ID를 유지한 채
+ * [PostService.createMetadata]는 새 엔티티의 null ID를 유지한 채
  * [JpaRepository.saveAndFlush]를 호출하여 제약 오류를 트랜잭션 안에서 확인함.
  * ID 조회는 [JpaRepository.findById]를 사용함.
  */

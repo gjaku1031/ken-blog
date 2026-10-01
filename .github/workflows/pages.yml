@@ -1,15 +1,10 @@
 name: Pages
-run-name: Pages ${{ inputs.deploymentId || github.sha }}
+run-name: Pages ${{ github.sha }}
 
 on:
   push:
     branches: [main]
   workflow_dispatch:
-    inputs:
-      deploymentId:
-        description: Existing deployment operation ID (server dispatch only)
-        required: false
-        type: string
 
 concurrency:
   group: github-pages
@@ -42,40 +37,18 @@ jobs:
           distribution: temurin
           java-version: '25'
       - uses: gradle/actions/setup-gradle@v4
-      - name: Claim durable content gate
-        id: claim
-        env:
-          BLOG_API_BASE_URL: ${{ vars.BLOG_API_BASE_URL }}
-          BLOG_DEPLOY_TOKEN: ${{ secrets.BLOG_DEPLOY_TOKEN }}
-          DEPLOYMENT_ID: ${{ inputs.deploymentId }}
-        run: node scripts/deployment/client.mjs claim
       - name: Install static build dependencies
-        if: steps.claim.outputs.claimed == 'true'
         run: npm ci
       - name: Build Spring and public assets
-        if: steps.claim.outputs.claimed == 'true'
         run: npm run build:assets
       - name: Compile standalone Thymeleaf generator
-        if: steps.claim.outputs.claimed == 'true'
         run: ./gradlew --no-daemon -PskipWeb=true writeSiteClasspath
       - name: Capture public content and build Pages site
-        if: steps.claim.outputs.claimed == 'true'
         env:
           PUBLIC_API_BASE_URL: ${{ vars.BLOG_API_BASE_URL }}
-          BLOG_API_BASE_URL: ${{ vars.BLOG_API_BASE_URL }}
-          BLOG_DEPLOY_TOKEN: ${{ secrets.BLOG_DEPLOY_TOKEN }}
           SITE_BASE_PATH: /ken-blog
-          SITE_DEPLOYMENT_ID: ${{ steps.claim.outputs.deployment_id }}
         run: npm run build:site
-      - name: Record exact deployment marker
-        if: steps.claim.outputs.claimed == 'true'
-        env:
-          BLOG_API_BASE_URL: ${{ vars.BLOG_API_BASE_URL }}
-          BLOG_DEPLOY_TOKEN: ${{ secrets.BLOG_DEPLOY_TOKEN }}
-          DEPLOYMENT_ID: ${{ steps.claim.outputs.deployment_id }}
-        run: node scripts/deployment/client.mjs marker
       - name: Verify public site artifact
-        if: steps.claim.outputs.claimed == 'true'
         run: |
           test -s build/site/index.html
           if find build/site -type f | grep -E '/(AGENTS\.md|\.env[^/]*|build\.gradle\.kts|settings\.gradle\.kts|gradlew)$'; then
@@ -83,22 +56,11 @@ jobs:
             exit 1
           fi
       - name: Configure Pages
-        if: steps.claim.outputs.claimed == 'true'
         uses: actions/configure-pages@v6.0.0
       - name: Upload static site
-        if: steps.claim.outputs.claimed == 'true'
         uses: actions/upload-pages-artifact@v5.0.0
         with:
           path: build/site
       - name: Deploy completed artifact
         id: deploy
-        if: steps.claim.outputs.claimed == 'true'
         uses: actions/deploy-pages@v5.0.1
-      - name: Finalize gate after Pages deployment result
-        if: always() && steps.claim.outputs.claimed == 'true'
-        env:
-          BLOG_API_BASE_URL: ${{ vars.BLOG_API_BASE_URL }}
-          BLOG_DEPLOY_TOKEN: ${{ secrets.BLOG_DEPLOY_TOKEN }}
-          DEPLOYMENT_ID: ${{ steps.claim.outputs.deployment_id }}
-          DEPLOYMENT_STATUS: ${{ steps.deploy.outcome == 'success' && 'SUCCEEDED' || 'FAILED' }}
-        run: node scripts/deployment/client.mjs complete

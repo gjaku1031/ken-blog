@@ -22,7 +22,7 @@ class McpAssetTools(
     @Value("\${app.auth.admin.username:}") private val adminUsername: String,
 ) {
     /** @return READY 첨부 ID와 파일 메타데이터를 가진 [AttachmentService.upload] 결과. */
-    @McpTool(name = "blog_upload_image", description = "PNG/JPEG 이미지를 Base64로 로컬 저장소에 업로드하고 READY attachmentId를 반환합니다. 최대 10 MiB. 서버 파일 경로나 URL을 받지 않습니다. 본문 이미지 참조 뒤 편집본 attachmentIds 배열에도 ID를 지정하세요.", annotations = McpTool.McpAnnotations(destructiveHint = false, openWorldHint = false))
+    @McpTool(name = "blog_upload_image", description = "PNG/JPEG 이미지를 Base64로 로컬 저장소에 업로드하고 READY attachmentId를 반환합니다. 최대 10 MiB. 서버 파일 경로나 URL을 받지 않습니다. 본문 이미지 참조 뒤 blog_set_post_attachments 도구로 게시글 메타데이터에도 ID를 연결하세요.", annotations = McpTool.McpAnnotations(destructiveHint = false, openWorldHint = false))
     fun uploadImage(@McpToolParam(description = "파일명, image/png 또는 image/jpeg MIME, 순수 Base64 문자열") image: McpImageInput) = calls.call {
         if (adminUsername.isBlank()) throw OperationFailure(HttpStatus.SERVICE_UNAVAILABLE, "업로드 계정을 확인할 수 없습니다.")
         attachments.upload(McpImagePayload.decode(image), adminUsername)

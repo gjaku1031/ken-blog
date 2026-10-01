@@ -34,24 +34,6 @@
       "useCondition": "Devicon MIT asset; preserve included copyright/license notice. GitHub Actions mark remains a product trademark."
     },
     {
-      "file": "icons/nextjs.svg",
-      "name": "Next.js",
-      "sha256": "d9435c4ede7133b376c0173a80226bb3856729366707cd96e9a66e39448d0288",
-      "sourceUrl": "https://raw.githubusercontent.com/devicons/devicon/7330accdbc47e2dc0c19789a48533c4a3c50fe58/icons/nextjs/nextjs-original.svg",
-      "sourceVersion": "Devicon commit 7330accdbc47e2dc0c19789a48533c4a3c50fe58",
-      "licenseNotice": "icons/DEVICON-LICENSE",
-      "useCondition": "Devicon MIT asset; preserve included copyright/license notice. Next.js mark remains a product trademark."
-    },
-    {
-      "file": "icons/nginx.svg",
-      "name": "Nginx",
-      "sha256": "a28c7002fda6748bb018fa5f89ba3d38c622db720d65aa88668208a3cc839900",
-      "sourceUrl": "https://raw.githubusercontent.com/devicons/devicon/7330accdbc47e2dc0c19789a48533c4a3c50fe58/icons/nginx/nginx-original.svg",
-      "sourceVersion": "Devicon commit 7330accdbc47e2dc0c19789a48533c4a3c50fe58",
-      "licenseNotice": "icons/DEVICON-LICENSE",
-      "useCondition": "Devicon MIT asset; preserve included copyright/license notice. Nginx mark remains a product trademark."
-    },
-    {
       "file": "icons/spring.svg",
       "name": "Spring Boot",
       "sha256": "8f9ccd66abde74dd74fde03541f4295bf5e55242b502167b38deeb6bee69c145",

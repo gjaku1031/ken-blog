@@ -4,15 +4,11 @@ import io.github.gjaku1031.kenblog.attachment.domain.AttachmentFailure
 import io.github.gjaku1031.kenblog.category.domain.CategoryConflictException
 import io.github.gjaku1031.kenblog.category.domain.CategoryNotFoundException
 import io.github.gjaku1031.kenblog.category.domain.InvalidCategoryRequestException
-import io.github.gjaku1031.kenblog.draft.domain.EditorDraftConflictException
-import io.github.gjaku1031.kenblog.draft.domain.EditorDraftNotFoundException
-import io.github.gjaku1031.kenblog.draft.domain.InvalidEditorDraftRequestException
 import io.github.gjaku1031.kenblog.note.domain.CourseConflictException
 import io.github.gjaku1031.kenblog.note.domain.CourseNotFoundException
 import io.github.gjaku1031.kenblog.note.domain.InvalidCourseRequestException
 import io.github.gjaku1031.kenblog.operations.domain.OperationFailure
 import io.github.gjaku1031.kenblog.post.domain.DuplicatePostSlugException
-import io.github.gjaku1031.kenblog.post.domain.InvalidPostDraftException
 import io.github.gjaku1031.kenblog.post.domain.InvalidPostRequestException
 import io.github.gjaku1031.kenblog.post.domain.InvalidWikiLinkRequestException
 import io.github.gjaku1031.kenblog.post.domain.PostNotFoundException
@@ -45,14 +41,14 @@ class McpToolCalls(private val mapper: ObjectMapper) {
         is OperationFailure -> if (ex.code != null) error(ex.code, ex.publicDetail)
             else fromStatus(ex.status, ex.publicDetail)
         is AttachmentFailure -> fromStatus(ex.status, ex.publicDetail)
-        is InvalidEditorDraftRequestException, is InvalidPostDraftException, is InvalidPostRequestException,
+        is InvalidPostRequestException,
         is InvalidWikiLinkRequestException, is InvalidCategoryRequestException,
         is InvalidProjectRequestException, is InvalidCourseRequestException ->
             error("validation", "입력값과 본문 선언을 확인하세요.")
-        is EditorDraftNotFoundException, is PostNotFoundException, is CategoryNotFoundException,
+        is PostNotFoundException, is CategoryNotFoundException,
         is ProjectNotFoundException, is CourseNotFoundException ->
             error("not_found", "요청한 콘텐츠를 찾을 수 없습니다.")
-        is EditorDraftConflictException, is DuplicatePostSlugException, is CategoryConflictException,
+        is DuplicatePostSlugException, is CategoryConflictException,
         is ProjectConflictException, is CourseConflictException, is WikiLinkConflictException ->
             error("conflict", "콘텐츠가 변경됐습니다. 최신 내용을 다시 조회하세요.")
         is DataAccessException -> error("unavailable", "데이터 저장소에 연결할 수 없습니다.")

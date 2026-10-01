@@ -1,5 +1,5 @@
 # KEN_BLOG_PRODUCTION_ENV_FILE에 저장소 밖 0600 환경 파일을 지정.
-# 기존 운영 DB_URL과 Flyway 이력을 보존하고 새 migration만 순차 적용.
+# 운영 DB와 기존 데이터를 보존하고, 새 배포는 GitHub Actions에서 수동 실행.
 services:
   api:
     build:

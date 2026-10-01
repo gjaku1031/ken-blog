@@ -17,7 +17,7 @@ interface CourseRepository : JpaRepository<CourseEntity, Long> {
     @Query("select c from CourseEntity c where c.id = :id")
     fun findLockedById(@Param("id") id: Long): CourseEntity?
 
-    /** @return 회차 편집본 생성 중 삭제를 막는 공유 잠금 과목. */
+    /** @return 회차 메타데이터 등록 중 삭제를 막는 공유 잠금 과목. */
     @Lock(LockModeType.PESSIMISTIC_READ)
     @Query("select c from CourseEntity c where c.id = :id")
     fun findSharedById(@Param("id") id: Long): CourseEntity?

@@ -5,7 +5,7 @@
   "scripts": {
     "build:site": "node scripts/site/build.mjs",
     "typecheck": "tsc --noEmit",
-    "test": "npm run typecheck && npm run build:site -- --fixture=empty",
+    "test": "npm run typecheck && ./gradlew --no-daemon -PskipWeb=true writeSiteClasspath && npm run build:site -- --fixture=empty",
     "build:assets": "node scripts/build-web.mjs"
   },
   "dependencies": {

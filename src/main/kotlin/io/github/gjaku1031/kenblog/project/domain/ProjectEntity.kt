@@ -117,7 +117,7 @@ class ProjectEntity protected constructor() {
     internal fun detachHome() { homePostId = null }
 }
 
-/** 대문 편집본에 보관하는 검증된 프로젝트 메타데이터. */
+/** 프로젝트 대문 등록·수정에 사용하는 검증된 메타데이터. */
 data class ProjectMetadata(
     val status: ProjectStatus,
     val startPeriod: String,

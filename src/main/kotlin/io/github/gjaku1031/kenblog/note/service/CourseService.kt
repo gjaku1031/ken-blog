@@ -1,10 +1,6 @@
 package io.github.gjaku1031.kenblog.note.service
 
-import io.github.gjaku1031.kenblog.content.service.RepositoryMarkdown
-import io.github.gjaku1031.kenblog.post.domain.PostBodyHash
 
-import io.github.gjaku1031.kenblog.deployment.ContentMutation
-import io.github.gjaku1031.kenblog.deployment.PublicationChange
 
 import io.github.gjaku1031.kenblog.note.domain.CourseConflictException
 import io.github.gjaku1031.kenblog.note.domain.CourseEntity
@@ -23,12 +19,10 @@ import io.github.gjaku1031.kenblog.note.dto.NotesListResponse
 import io.github.gjaku1031.kenblog.note.dto.adminResponse
 import io.github.gjaku1031.kenblog.note.repository.CoursePostRepository
 import io.github.gjaku1031.kenblog.note.repository.CourseRepository
-import io.github.gjaku1031.kenblog.post.domain.PostEntity
 import io.github.gjaku1031.kenblog.post.domain.ContentAddress
 import io.github.gjaku1031.kenblog.post.domain.PostSection
 import io.github.gjaku1031.kenblog.post.domain.PostStatus
 import io.github.gjaku1031.kenblog.post.domain.PostVisibility
-import io.github.gjaku1031.kenblog.post.service.PostService
 import java.time.Clock
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -44,8 +38,7 @@ import org.springframework.transaction.annotation.Transactional
 
 /** Notes 과목·회차의 저장 순서와 권한별 표시 번호를 일치시키는 서비스. */
 @Service
-class CourseService(private val courses: CourseRepository, private val chapters: CoursePostRepository,
-    private val posts: PostService, private val markdown: RepositoryMarkdown) {
+class CourseService(private val courses: CourseRepository, private val chapters: CoursePostRepository) {
     /** @return 분야 생성 순서와 권한별 회차 수를 가진 과목 카드 전체. */
     @Transactional(readOnly = true)
     fun list(authentication: Authentication?): NotesListResponse = NotesListResponse(
@@ -56,36 +49,31 @@ class CourseService(private val courses: CourseRepository, private val chapters:
     fun adminList(): NotesListResponse = NotesListResponse(
         courses.findAllByOrderByCreatedAtAscIdAsc().map { it.summary(false) })
 
-    /** @return 출간 회차만 포함하는 과목 소개. */
+    /** Pages snapshot용 과목·공개 회차 메타데이터. */
     @Transactional(readOnly = true)
-    fun detail(rawSlug: String, authentication: Authentication?): CourseDetailResponse {
-        val course = bySlug(rawSlug)
+    fun detailMetadata(slug: String): CourseDetailResponse {
+        val course = bySlug(slug)
         val visible = visible(course.id!!, false)
         return CourseDetailResponse(course.summary(visible), visible.mapIndexed { index, post -> post.summary(index + 1) })
     }
 
-    /** @return 직접 주소로 연 회차의 현재 권한 표시 번호와 탐색 목록. */
+    /** Pages snapshot용 회차 메타데이터. 본문은 Git checkout에서 주입한다. */
     @Transactional(readOnly = true)
-    fun chapter(rawSlug: String, chapterSlug: String, authentication: Authentication?): CourseChapterResponse {
-        val course = bySlug(rawSlug)
-        val includePrivate = false
-        val visible = visible(course.id!!, includePrivate)
+    fun chapterMetadata(courseSlug: String, chapterSlug: String): CourseChapterResponse {
+        val course = bySlug(courseSlug)
+        val visible = visible(course.id!!, false)
         val post = chapters.findPublishedBySlug(course.id!!, chapterSlug, PostSection.NOTE_CHAPTER,
-            PostStatus.PUBLISHED)
-            ?: throw CourseNotFoundException()
+            PostStatus.PUBLISHED) ?: throw CourseNotFoundException()
         val position = visible.indexOfFirst { it.id == post.id }
         if (position < 0) throw CourseNotFoundException()
-        val readable = chapters.findByIdOrNull(post.id) ?: throw CourseNotFoundException()
-        val body = markdown.readPost(readable)
-        val response = ChapterDetailResponse(post.id, post.title, post.slug, body,
-            post.publishedAt.kstDate(), false, courseSlug = course.slug, bodySha256 = PostBodyHash.sha256(body))
+        val response = ChapterDetailResponse(post.id, post.title, post.slug, "",
+            post.publishedAt.kstDate(), false, courseSlug = course.slug, bodySha256 = "")
         return CourseChapterResponse(course.summary(visible), response,
             visible.mapIndexed { index, item -> item.summary(index + 1) }, position + 1, visible.size)
     }
 
     /** @return 과목 생성과 DB 고유 주소 확인을 마친 관리자 값. */
     @Transactional
-    @ContentMutation(publication = PublicationChange.ALWAYS)
     fun create(request: CourseWriteRequest): io.github.gjaku1031.kenblog.note.dto.CourseAdminResponse = conflicts {
         courses.saveAndFlush(CourseEntity(ContentAddress.createCourse(), request.field, request.name,
             request.description, request.status, now())).adminResponse()
@@ -93,7 +81,6 @@ class CourseService(private val courses: CourseRepository, private val chapters:
 
     /** @return 과목 행을 잠그고 소개 값을 교체한 관리자 값. */
     @Transactional
-    @ContentMutation(publication = PublicationChange.ALWAYS)
     fun update(id: Long, request: CourseWriteRequest): io.github.gjaku1031.kenblog.note.dto.CourseAdminResponse = conflicts {
         val course = lockedParent(id)
         course.replace(request.field, request.name, request.description, request.status, now())
@@ -115,45 +102,22 @@ class CourseService(private val courses: CourseRepository, private val chapters:
         return courses.findLockedById(id) ?: throw CourseNotFoundException()
     }
 
-    /** @return 회차 편집본 생성 중 삭제를 막는 공유 잠금 과목. */
-    @Transactional
-    fun sharedParent(id: Long): CourseEntity {
-        if (id <= 0) throw InvalidCourseRequestException()
-        return courses.findSharedById(id) ?: throw CourseNotFoundException()
-    }
-
-    /** @return 삭제된 과목을 출간하지 않도록 재검사한 부모. */
-    @Transactional(readOnly = true)
-    fun requireParent(id: Long): CourseEntity = courses.findByIdOrNull(id) ?: throw CourseNotFoundException()
-
-    /** @return 과목 잠금 아래 다음 회차의 저장 순서. */
-    @Transactional
-    fun nextChapterOrder(id: Long): Int {
-        val max = chapters.maxChapterOrder(id) ?: 0
-        if (max == Int.MAX_VALUE) throw CourseConflictException()
-        return max + 1
-    }
-
     /** 과목 잠금 뒤 회차 한 건과 그 DB 연결을 삭제. */
     @Transactional
-    @ContentMutation(publication = PublicationChange.ALWAYS)
     fun deleteChapter(id: Long, postId: Long) = conflicts {
         lockedParent(id)
         if (postId <= 0) throw InvalidCourseRequestException()
         val post = chapters.findLockedChapter(postId, id) ?: throw CourseNotFoundException()
         if (post.section != PostSection.NOTE_CHAPTER) throw CourseConflictException()
-        markdown.deletePost(post)
         chapters.delete(post)
         chapters.flush()
     }
 
     /** 과목과 회차를 함께 삭제하며 로컬 원본 파일는 보존. */
     @Transactional
-    @ContentMutation(publication = PublicationChange.ALWAYS)
     fun delete(id: Long) = conflicts {
         val course = lockedParent(id)
         val chapterIds = chapters.findAdminChapters(id).map { it.id }
-        chapters.findAllById(chapterIds).forEach(markdown::deletePost)
         chapters.deleteAllByIdInBatch(chapterIds)
         courses.delete(course)
         courses.flush()

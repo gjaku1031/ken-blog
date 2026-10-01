@@ -20,10 +20,6 @@ import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBo
 /** 공개 뱃지 목록·아이콘과 관리자 등록·변경·삭제를 [StackBadgeService]에 연결. */
 @RestController
 class StackBadgeController(private val service: StackBadgeService) {
-    /** @return 전체 등록 뱃지와 사용 수. */
-    @GetMapping("/api/v1/stack-badges")
-    fun list(): List<StackBadgeResponse> = service.list()
-
     /** @return 비공개 프로젝트까지 포함한 관리자용 뱃지 사용 수. */
     @GetMapping("/api/v1/admin/stack-badges")
     fun listAdmin(): List<StackBadgeResponse> = service.listAdmin()

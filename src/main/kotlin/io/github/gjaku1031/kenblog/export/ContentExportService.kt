@@ -4,11 +4,8 @@ import io.github.gjaku1031.kenblog.attachment.domain.AttachmentStatus
 import io.github.gjaku1031.kenblog.content.service.RepositoryMarkdown
 import io.github.gjaku1031.kenblog.post.domain.PostBodyHash
 import io.github.gjaku1031.kenblog.attachment.repository.AttachmentRepository
-import io.github.gjaku1031.kenblog.attachment.repository.EditorDraftAttachmentRepository
 import io.github.gjaku1031.kenblog.attachment.repository.PostAttachmentRepository
 import io.github.gjaku1031.kenblog.attachment.storage.LocalAssetStorage
-import io.github.gjaku1031.kenblog.draft.repository.EditorDraftRepository
-import io.github.gjaku1031.kenblog.draft.repository.EditorDraftWikiLinkRepository
 import io.github.gjaku1031.kenblog.post.domain.InvalidPostRequestException
 import io.github.gjaku1031.kenblog.post.domain.PostNotFoundException
 import io.github.gjaku1031.kenblog.post.repository.PostRepository
@@ -42,12 +39,9 @@ class ContentExportService(
     private val posts: PostRepository,
     private val projects: ProjectRepository,
     private val courses: CourseRepository,
-    private val drafts: EditorDraftRepository,
     private val postAttachments: PostAttachmentRepository,
-    private val draftAttachments: EditorDraftAttachmentRepository,
     private val postTags: PostTagRepository,
     private val postWikiLinks: PostWikiLinkRepository,
-    private val draftWikiLinks: EditorDraftWikiLinkRepository,
     private val attachments: AttachmentRepository,
     private val storage: LocalAssetStorage,
     private val mapper: ObjectMapper,
@@ -94,29 +88,6 @@ class ContentExportService(
                     "project" to post.projectId?.let(::projectMetadata),
                     "course" to post.courseId?.let(::courseMetadata)),
                 assets(postAttachments.findIdsByPostId(id)))
-        }.toMutableList()
-        val selectedDrafts = if (!includeDrafts) emptyList() else when {
-            postId != null -> listOfNotNull(drafts.findByPostId(postId))
-            projectId != null -> drafts.findAll().filter { it.projectId == projectId }
-            courseId != null -> drafts.findAll().filter { it.courseId == courseId }
-            else -> drafts.findAll()
-        }
-        result += selectedDrafts.map { draft ->
-            val id = draft.id ?: error("Persisted editor draft has no ID")
-            ExportDocument("drafts", id, draft.slug, markdown.readDraft(id),
-                mapOf("id" to id, "postId" to draft.postId, "title" to draft.title,
-                    "slug" to draft.slug, "section" to draft.section.name, "revision" to draft.revision,
-                    "visibility" to draft.visibility.name, "baseUpdatedAt" to draft.baseUpdatedAt?.toString(),
-                    "createdAt" to draft.createdAt.toString(), "updatedAt" to draft.updatedAt.toString(),
-                    "categoryId" to draft.categoryId, "projectId" to draft.projectId,
-                    "relatedProjectId" to draft.relatedProjectId, "documentOrder" to draft.documentOrder,
-                    "courseId" to draft.courseId, "chapterOrder" to draft.chapterOrder,
-                    "techSeriesOrder" to draft.techSeriesOrder, "summary" to draft.summary,
-                    "tags" to draft.tags(), "wikiTargets" to draftWikiLinks.findTitles(id),
-                    "projectMetadata" to draft.projectMetadata(),
-                    "project" to draft.projectId?.let(::projectMetadata),
-                    "course" to draft.courseId?.let(::courseMetadata)),
-                assets(draftAttachments.findIdsByDraftId(id)))
         }
         if (result.any { it.assets.isNotEmpty() }) storage.requireConfigured()
         if (result.size > 2000 || result.sumOf { it.body.toByteArray(Charsets.UTF_8).size.toLong() +

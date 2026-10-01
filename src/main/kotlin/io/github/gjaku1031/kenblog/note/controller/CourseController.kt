@@ -21,27 +21,6 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 import tools.jackson.databind.JsonNode
 
-/** [CourseService]의 분야·과목·회차 읽기를 공개 Notes 주소로 제공. */
-@RestController
-@RequestMapping("/api/v1/notes")
-class CourseController(private val service: CourseService) {
-    /** @return 현재 역할의 회차 수를 가진 모든 과목. */
-    @GetMapping
-    fun list(authentication: Authentication?): ResponseEntity<NotesListResponse> = ResponseEntity.ok()
-        .cacheControl(CacheControl.noStore()).body(service.list(authentication))
-
-    /** @return 과목 소개와 현재 역할의 회차 탐색 목록. */
-    @GetMapping("/{slug}")
-    fun detail(@PathVariable slug: String, authentication: Authentication?): ResponseEntity<CourseDetailResponse> =
-        ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.detail(slug, authentication))
-
-    /** @return 과목 소속과 현재 역할을 다시 확인한 본문·표시 번호. */
-    @GetMapping("/{slug}/chapters/{chapterSlug}")
-    fun chapter(@PathVariable slug: String, @PathVariable chapterSlug: String,
-        authentication: Authentication?): ResponseEntity<CourseChapterResponse> = ResponseEntity.ok()
-        .cacheControl(CacheControl.noStore()).body(service.chapter(slug, chapterSlug, authentication))
-}
-
 /** 과목 속성·회차 삭제와 순서를 ADMIN 세션에서만 조작. */
 @RestController
 @RequestMapping("/api/v1/admin/courses")

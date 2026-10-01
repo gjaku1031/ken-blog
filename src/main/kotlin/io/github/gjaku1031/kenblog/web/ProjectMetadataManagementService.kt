@@ -1,7 +1,5 @@
 package io.github.gjaku1031.kenblog.web
 
-import io.github.gjaku1031.kenblog.deployment.ContentMutation
-import io.github.gjaku1031.kenblog.deployment.PublicationChange
 import io.github.gjaku1031.kenblog.post.domain.PostVisibility
 import io.github.gjaku1031.kenblog.project.domain.InvalidProjectRequestException
 import io.github.gjaku1031.kenblog.project.domain.ProjectConflictException
@@ -24,7 +22,6 @@ class ProjectMetadataManagementService(private val projects: ProjectRepository,
     private val badges: StackBadgeService) {
     /** 기준 수정 시각을 확인한 뒤 이름·기간·상태·개요·뱃지를 같은 트랜잭션에 저장. */
     @Transactional
-    @ContentMutation(publication = PublicationChange.ALWAYS)
     fun update(id: Long, name: String, status: ProjectStatus, startPeriod: String, endPeriod: String?,
         overview: String, stackBadgeNames: List<String>, baseUpdatedAt: LocalDateTime) {
         if (id <= 0 || name.isBlank() || name.codePointCount(0, name.length) > 200 ||

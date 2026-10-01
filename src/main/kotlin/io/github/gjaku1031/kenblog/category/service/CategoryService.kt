@@ -1,7 +1,5 @@
 package io.github.gjaku1031.kenblog.category.service
 
-import io.github.gjaku1031.kenblog.deployment.ContentMutation
-import io.github.gjaku1031.kenblog.deployment.PublicationChange
 
 import io.github.gjaku1031.kenblog.category.domain.CategoryConflictException
 import io.github.gjaku1031.kenblog.category.domain.CategoryEntity
@@ -35,7 +33,6 @@ class CategoryService(private val categories: CategoryRepository, private val po
      * @throws CategoryConflictException 마지막 경로 중복 또는 동시 FK·잠금 충돌일 때
      */
     @Transactional
-    @ContentMutation(publication = PublicationChange.ALWAYS)
     fun create(path: String): CategoryRefResponse {
         val segments = normalizePath(path)
         return try {
@@ -75,7 +72,6 @@ class CategoryService(private val categories: CategoryRepository, private val po
      * @throws CategoryConflictException 새 자손·참조의 FK 또는 잠금 경합일 때
      */
     @Transactional
-    @ContentMutation(publication = PublicationChange.ALWAYS)
     fun delete(id: Long) {
         if (id <= 0) throw InvalidCategoryRequestException()
         try {
@@ -97,7 +93,6 @@ class CategoryService(private val categories: CategoryRepository, private val po
 
     /** 한 분류의 형제 내 숫자 순서만 저장; 동률은 기존 ID 오름차순으로 정렬. */
     @Transactional
-    @ContentMutation(publication = PublicationChange.ALWAYS)
     fun setOrder(id: Long, order: Long): CategoryRefResponse {
         if (id <= 0 || order !in Int.MIN_VALUE.toLong()..Int.MAX_VALUE.toLong())
             throw InvalidCategoryRequestException()

@@ -4,12 +4,8 @@ import io.github.gjaku1031.kenblog.attachment.domain.AttachmentFailure
 import io.github.gjaku1031.kenblog.category.domain.CategoryConflictException
 import io.github.gjaku1031.kenblog.category.domain.CategoryNotFoundException
 import io.github.gjaku1031.kenblog.category.domain.InvalidCategoryRequestException
-import io.github.gjaku1031.kenblog.draft.domain.EditorDraftConflictException
-import io.github.gjaku1031.kenblog.draft.domain.EditorDraftNotFoundException
-import io.github.gjaku1031.kenblog.draft.domain.InvalidEditorDraftRequestException
 import io.github.gjaku1031.kenblog.global.security.isDatabaseConnectionFailure
 import io.github.gjaku1031.kenblog.post.domain.DuplicatePostSlugException
-import io.github.gjaku1031.kenblog.post.domain.InvalidPostDraftException
 import io.github.gjaku1031.kenblog.post.domain.InvalidPostRequestException
 import io.github.gjaku1031.kenblog.post.domain.InvalidWikiLinkRequestException
 import io.github.gjaku1031.kenblog.post.domain.WikiLinkConflictException
@@ -76,23 +72,6 @@ class ApiErrorHandler : ResponseEntityExceptionHandler() {
     fun handleWikiLinkInput(ex: InvalidWikiLinkRequestException): ResponseEntity<ProblemDetail> =
         ResponseEntity.badRequest().body(ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "위키 링크 제목 입력을 확인하세요."))
 
-    /** @return 편집본 JSON·ID·revision 오류의 고정 HTTP 400 본문. */
-    @ExceptionHandler(InvalidEditorDraftRequestException::class)
-    fun handleEditorDraftInput(ex: InvalidEditorDraftRequestException): ResponseEntity<ProblemDetail> =
-        ResponseEntity.badRequest().body(ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "편집본 입력을 확인하세요."))
-
-    /** @return 삭제되거나 존재하지 않는 편집본의 고정 HTTP 404 본문. */
-    @ExceptionHandler(EditorDraftNotFoundException::class)
-    fun handleEditorDraftNotFound(ex: EditorDraftNotFoundException): ResponseEntity<ProblemDetail> =
-        ResponseEntity.status(HttpStatus.NOT_FOUND)
-            .body(ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, "편집본을 찾을 수 없습니다."))
-
-    /** @return 오래된 revision·원본 또는 동시 저장 충돌의 고정 HTTP 409 본문. */
-    @ExceptionHandler(EditorDraftConflictException::class)
-    fun handleEditorDraftConflict(ex: EditorDraftConflictException): ResponseEntity<ProblemDetail> =
-        ResponseEntity.status(HttpStatus.CONFLICT)
-            .body(ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, "편집본 변경이 충돌했습니다."))
-
     /**
      * 분류 경로·ID의 잘못된 입력을 원문 없이 400으로 변환.
      *
@@ -134,12 +113,12 @@ class ApiErrorHandler : ResponseEntityExceptionHandler() {
         ResponseEntity.status(HttpStatus.CONFLICT).body(ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, "동시 변경이 충돌했습니다."))
 
     /**
-     * 초안·ID·페이지 입력 오류를 원문 없이 HTTP 400으로 변환.
+     * 게시글 ID·페이지 입력 오류를 원문 없이 HTTP 400으로 변환.
      *
      * @param ex 공개 응답에 메시지를 싣지 않을 게시글 입력 오류
      * @return 고정 [ProblemDetail] 설명
      */
-    @ExceptionHandler(InvalidPostDraftException::class, InvalidPostRequestException::class)
+    @ExceptionHandler(InvalidPostRequestException::class)
     fun handlePostInput(ex: RuntimeException): ResponseEntity<ProblemDetail> =
         ResponseEntity.badRequest().body(ProblemDetail.forStatusAndDetail(HttpStatus.BAD_REQUEST, "게시글 입력을 확인하세요."))
 

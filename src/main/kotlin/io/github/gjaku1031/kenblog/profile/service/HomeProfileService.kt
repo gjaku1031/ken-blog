@@ -1,7 +1,5 @@
 package io.github.gjaku1031.kenblog.profile.service
 
-import io.github.gjaku1031.kenblog.deployment.ContentMutation
-import io.github.gjaku1031.kenblog.deployment.PublicationChange
 
 import io.github.gjaku1031.kenblog.attachment.service.ManagedImageNormalizer
 import io.github.gjaku1031.kenblog.attachment.storage.LocalAssetStorage
@@ -39,7 +37,6 @@ class HomeProfileService(
 
     /** @return 검증·저장된 홈 카드. 저장 전 브라우저 편집 상태에는 영향 없음. */
     @Transactional
-    @ContentMutation(publication = PublicationChange.ALWAYS)
     fun update(request: HomeProfileRequest): HomeProfileResponse {
         val clean = validate(request)
         val profile = profiles.findByIdOrNull(1) ?: HomeProfileEntity(now())
@@ -48,7 +45,6 @@ class HomeProfileService(
     }
 
     /** 텍스트와 선택 사진을 단일 DB 트랜잭션에 확정하고 실패 시 새 파일을 제거. */
-    @ContentMutation(publication = PublicationChange.ALWAYS, externalIoArgument = 1)
     fun save(request: HomeProfileRequest, file: MultipartFile?, removePhoto: Boolean): HomeProfileResponse {
         val clean = validate(request)
         if (file != null && removePhoto) badInput()
@@ -71,7 +67,6 @@ class HomeProfileService(
     }
 
     /** 새 사진을 256×256 PNG로 저장해 텍스트와 독립적으로 교체. */
-    @ContentMutation(publication = PublicationChange.ALWAYS, externalIo = true)
     fun uploadPhoto(file: MultipartFile): HomeProfileResponse {
         val png = images.normalize(file, 256)
         storage.requireConfigured()
@@ -89,7 +84,6 @@ class HomeProfileService(
 
     /** 사진 참조를 먼저 없애고 커밋 뒤 로컬 파일을 제거. */
     @Transactional
-    @ContentMutation(publication = PublicationChange.ALWAYS)
     fun removePhoto(): HomeProfileResponse {
         val profile = profiles.findByIdOrNull(1) ?: return get()
         val previous = profile.replacePhoto(null, now())

@@ -26,7 +26,7 @@ class McpAuthoringGuide(private val declarations: McpBodyDeclarations) {
         description = "Ken Blog MCP 글 작성 순서와 참조 문서 안내", mimeType = "text/markdown")
     fun skill(): String = read("SKILL.md")
 
-    /** @return Tech·Projects·Notes와 편집본 데이터 관계. */
+    /** @return Tech·Projects·Notes의 메타데이터 관계. */
     @McpResource(uri = "kenblog://authoring/content-model", name = "Ken Blog content model",
         description = "섹션, 프로젝트, Notes, 뱃지의 저장 계약", mimeType = "text/markdown")
     fun contentModel(): String = read("references/content-model.md")
@@ -37,25 +37,25 @@ class McpAuthoringGuide(private val declarations: McpBodyDeclarations) {
     fun markdown(): String = read("references/markdown.md")
 
     /** @return 저장소 Markdown의 작성·반영 절차. */
-    @McpResource(uri = "kenblog://authoring/editor-shortcuts", name = "Ken Blog Markdown authoring",
+    @McpResource(uri = "kenblog://authoring/repository-workflow", name = "Ken Blog repository workflow",
         description = "Markdown 원문 작성과 Git 반영", mimeType = "text/markdown")
-    fun shortcuts(): String = read("references/editor-shortcuts.md")
+    fun repositoryWorkflow(): String = read("references/repository-workflow.md")
 
     /** resource 조회를 지원하지 않는 MCP 클라이언트에도 같은 파일을 제공. */
     @McpTool(name = "get_authoring_guide",
         description = "Ken Blog 글 작성 스킬과 섹션·Markdown·Git 반영 참조 문서를 읽습니다. 실제 저장 문법과 도구 호출 순서를 확인할 때 사용하세요.",
         annotations = McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false, openWorldHint = false))
-    fun getAuthoringGuide(): String = listOf(skill(), contentModel(), markdown(), shortcuts()).joinToString("\n\n")
+    fun getAuthoringGuide(): String = listOf(skill(), contentModel(), markdown(), repositoryWorkflow()).joinToString("\n\n")
 
     /**
      * 단순 Markdown의 선언 일치와 복잡 문법의 검사 한계를 반환.
      * 전체 추출 불가일 때 [McpDocumentValidation.declarationsMatch]는 null.
      */
     @McpTool(name = "blog_validate_document",
-        description = "본문과 명시 attachmentIds/wikiTargets를 저장 전에 점검합니다. complete=false의 후보 목록은 부분 목록이며 선언 자동 추출에 사용하면 안 됩니다.",
+        description = "본문과 명시 attachmentIds/wikiTargets를 Git 반영 전에 점검합니다. complete=false의 후보 목록은 부분 목록이며 선언 자동 추출에 사용하면 안 됩니다.",
         annotations = McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false, openWorldHint = false))
     fun validateDocument(
-        @McpToolParam(description = "저장할 Markdown 본문") body: String,
+        @McpToolParam(description = "Git 원고에 반영할 Markdown 본문") body: String,
         @McpToolParam(description = "실제로 표시되는 READY 첨부 ID의 전체 배열") attachmentIds: List<Long>,
         @McpToolParam(description = "실제로 표시되는 위키 제목의 전체 배열") wikiTargets: List<String>,
     ): McpDocumentValidation {

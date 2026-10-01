@@ -5,14 +5,12 @@ import io.github.gjaku1031.kenblog.auth.service.AuthService
 import io.github.gjaku1031.kenblog.category.domain.CategoryNotFoundException
 import io.github.gjaku1031.kenblog.category.dto.CategoryTreeResponse
 import io.github.gjaku1031.kenblog.category.service.CategoryService
-import io.github.gjaku1031.kenblog.deployment.DeploymentLifecycle
 import io.github.gjaku1031.kenblog.note.domain.CourseConflictException
 import io.github.gjaku1031.kenblog.note.domain.CourseNotFoundException
 import io.github.gjaku1031.kenblog.note.domain.InvalidCourseRequestException
 import io.github.gjaku1031.kenblog.note.dto.CourseRequests
 import io.github.gjaku1031.kenblog.note.service.CourseService
 import io.github.gjaku1031.kenblog.operations.domain.OperationFailure
-import io.github.gjaku1031.kenblog.post.domain.InvalidPostDraftException
 import io.github.gjaku1031.kenblog.post.domain.InvalidPostRequestException
 import io.github.gjaku1031.kenblog.post.domain.PostNotFoundException
 import io.github.gjaku1031.kenblog.post.service.PostService
@@ -45,7 +43,7 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes
 import org.springframework.web.server.ResponseStatusException
 import tools.jackson.databind.ObjectMapper
 
-/** 본문 없이 관리자 메타데이터·배포 상태를 렌더링하고 폼 변경을 기존 서비스에 전달. */
+/** 본문 없이 관리자 메타데이터를 렌더링하고 폼 변경을 기존 서비스에 전달. */
 @Controller
 class ManagementPageController(
     private val auth: AuthService,
@@ -56,7 +54,6 @@ class ManagementPageController(
     private val categories: CategoryService,
     private val profile: HomeProfileService,
     private val badges: StackBadgeService,
-    private val deployments: DeploymentLifecycle,
     private val assets: ManagementAssetManifest,
     private val mapper: ObjectMapper,
     csrfRepository: CsrfTokenRepository,
@@ -97,7 +94,7 @@ class ManagementPageController(
         return "redirect:/manage/login"
     }
 
-    /** 본문 없는 페이지 목록과 현재 메타데이터·배포 상태를 렌더링. */
+    /** 본문 없는 페이지 목록과 현재 메타데이터를 렌더링. */
     @GetMapping("/manage", "/manage/")
     fun dashboard(@RequestParam(defaultValue = "0") page: Int, model: Model, csrfToken: CsrfToken): String {
         val safePage = page.coerceAtLeast(0)
@@ -114,7 +111,6 @@ class ManagementPageController(
         model.addAttribute("profile", profile.get())
         model.addAttribute("badges", badges.list())
         model.addAttribute("projectStatuses", ProjectStatus.entries)
-        model.addAttribute("deployment", deployments.current())
         model.addAttribute("page", safePage)
         model.addAttribute("hasPrevious", safePage > 0)
         model.addAttribute("hasNext", safePage + 1 < postPage.totalPages)
@@ -166,30 +162,18 @@ class ManagementPageController(
         profile.update(HomeProfileRequest(name, tagline, intro, github, email))
     }
 
-    /** 수동 Pages 생성은 기존 배포 게이트를 사용. */
-    @PostMapping("/manage/deployments/start")
-    fun startDeployment(flash: RedirectAttributes): String = changed(flash, "/manage/#deployment") {
-        deployments.startManual()
-    }
-
-    /** 실행 상태를 원격에서 확인한 뒤 완료 콜백 누락을 복구. */
-    @PostMapping("/manage/deployments/recover")
-    fun recoverDeployment(flash: RedirectAttributes): String = changed(flash, "/manage/#deployment") {
-        deployments.recover()
-    }
-
-    /** 기존 검증·배포 충돌을 사용자에게 표시하고 성공시에만 완료 메시지를 남김. */
+    /** 검증 오류를 사용자에게 표시하고 성공시에만 완료 메시지를 남김. */
     private fun changed(flash: RedirectAttributes, path: String, action: () -> Unit): String {
         var destination = path
         try {
             action()
-            flash.addFlashAttribute("notice", "변경사항을 저장했습니다.")
+            flash.addFlashAttribute("notice", "메타데이터를 저장했습니다. 공개 사이트 반영은 GitHub Actions의 Pages 워크플로를 수동 실행하세요.")
         } catch (ex: RuntimeException) {
             val message = when (ex) {
                 is OperationFailure -> ex.publicDetail
                 is ProjectConflictException, is CourseConflictException -> "다른 변경과 충돌했습니다. 새로고침 후 다시 확인하세요."
                 is InvalidProjectRequestException, is InvalidCourseRequestException,
-                is InvalidPostRequestException, is InvalidPostDraftException,
+                is InvalidPostRequestException,
                 is CategoryNotFoundException -> "입력값을 확인하세요."
                 is ProjectNotFoundException, is CourseNotFoundException, is PostNotFoundException -> "대상을 찾을 수 없습니다."
                 else -> throw ex

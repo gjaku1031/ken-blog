@@ -39,7 +39,7 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource
  */
 @Configuration
 class SecurityConfig {
-    /** 세션 검증 필터를 관리자 Security chain에서만 실행해 workflow bearer 세션을 보호. */
+    /** 세션 검증 필터를 Security chain에서만 실행. */
     @Bean
     fun accountSessionValidationRegistration(filter: AccountSessionValidationFilter): FilterRegistrationBean<AccountSessionValidationFilter> =
         FilterRegistrationBean(filter).apply { isEnabled = false }
@@ -107,7 +107,7 @@ class SecurityConfig {
         )
 
     /**
-     * 공개 읽기는 지정 origin의 GET, 관리자 변경은 인증 origin의 credential 요청으로 분리.
+     * 공개 스냅샷·이미지는 지정 origin의 GET, 관리자 변경은 인증 origin의 credential 요청으로 분리.
      * 관리자 경로의 GET·POST·PUT·PATCH·DELETE와 CSRF 헤더를 허용.
      *
      * @param publicOriginsCsv 공개 상태 조회 허용 origin
@@ -162,20 +162,16 @@ class SecurityConfig {
         return CorsConfigurationSource { request ->
             val path = request.servletPath
             if (path.startsWith("/api/v1/admin/") || path == "/api/v1/admin") adminCors
-            else if (path == "/api/v1/posts" || path.startsWith("/api/v1/posts/") ||
-                path == "/api/v1/categories" || path == "/api/v1/tags" || path == "/api/v1/wiki-links/resolve" ||
-                path == "/api/v1/projects" || path.startsWith("/api/v1/projects/") ||
-                path == "/api/v1/notes" || path.startsWith("/api/v1/notes/") ||
-                (path == "/api/v1/profile" || path == "/api/v1/profile/photo") || path == "/api/v1/stack-badges" ||
-                path.startsWith("/api/v1/stack-badges/") || path == "/api/v1/feed" ||
-                path == "/api/v1/search") {
+            else if (path == "/api/v1/pages/snapshot" || path == "/api/v1/profile/photo" ||
+                path.matches(Regex("/api/v1/stack-badges/[0-9]+/image")) ||
+                path.matches(Regex("/api/v1/posts/[0-9]+/attachments/[0-9]+/content"))) {
                 if (request.getHeader("Origin") in authOrigins) authenticatedPosts else publicPosts
             } else source.getCorsConfiguration(request)
         }
     }
 
     /**
-     * API의 공개 게시글·위키 경로와 세션 기반 접근 제어 및 [SecurityProblemWriter]를 연결.
+     * 공개 Pages 스냅샷·이미지와 세션 기반 접근 제어 및 [SecurityProblemWriter]를 연결.
      *
      * @param http Spring Security 설정 빌더
      * @param writer 인증·권한 오류 응답기
@@ -208,15 +204,9 @@ class SecurityConfig {
         }
         .addFilterBefore(accountSessionValidationFilter, AuthorizationFilter::class.java)
         .authorizeHttpRequests {
-            it.requestMatchers(HttpMethod.GET, "/api/v1/status", "/actuator/health").permitAll()
-            it.requestMatchers(HttpMethod.GET, "/api/v1/posts", "/api/v1/posts/*").permitAll()
-            it.requestMatchers(HttpMethod.GET, "/api/v1/posts/*/backlinks").permitAll()
+            it.requestMatchers(HttpMethod.GET, "/api/v1/status", "/actuator/health", "/api/v1/pages/snapshot").permitAll()
             it.requestMatchers(HttpMethod.GET, "/api/v1/posts/*/attachments/*/content").permitAll()
-            it.requestMatchers(HttpMethod.GET, "/api/v1/categories", "/api/v1/tags").permitAll()
-            it.requestMatchers(HttpMethod.GET, "/api/v1/projects", "/api/v1/projects/**", "/api/v1/notes", "/api/v1/notes/**").permitAll()
-            it.requestMatchers(HttpMethod.GET, "/api/v1/profile", "/api/v1/profile/photo", "/api/v1/stack-badges", "/api/v1/stack-badges/**").permitAll()
-            it.requestMatchers(HttpMethod.GET, "/api/v1/feed", "/api/v1/search").permitAll()
-            it.requestMatchers(HttpMethod.GET, "/api/v1/wiki-links/resolve").permitAll()
+            it.requestMatchers(HttpMethod.GET, "/api/v1/profile/photo", "/api/v1/stack-badges/*/image").permitAll()
             it.requestMatchers(HttpMethod.GET, "/api/v1/auth/csrf").permitAll()
             it.requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
             it.requestMatchers(HttpMethod.GET, "/api/v1/auth/me").authenticated()

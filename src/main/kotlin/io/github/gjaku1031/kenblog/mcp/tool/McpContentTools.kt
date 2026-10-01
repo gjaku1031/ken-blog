@@ -1,163 +1,93 @@
 package io.github.gjaku1031.kenblog.mcp.tool
 
-import io.github.gjaku1031.kenblog.draft.domain.InvalidEditorDraftRequestException
-import io.github.gjaku1031.kenblog.draft.dto.EditorDraftCreateRequest
-import io.github.gjaku1031.kenblog.draft.dto.EditorDraftUpdateRequest
-import io.github.gjaku1031.kenblog.draft.service.EditorDraftService
-import io.github.gjaku1031.kenblog.deployment.DeploymentState
-import io.github.gjaku1031.kenblog.mcp.authoring.McpBodyDeclarations
-import io.github.gjaku1031.kenblog.mcp.dto.McpDraftInput
-import io.github.gjaku1031.kenblog.mcp.dto.McpDraftUpdateInput
-import io.github.gjaku1031.kenblog.mcp.dto.McpDraftWriteResult
+import io.github.gjaku1031.kenblog.mcp.dto.McpPostMetadataInput
 import io.github.gjaku1031.kenblog.mcp.service.McpToolCalls
-import io.github.gjaku1031.kenblog.post.domain.InvalidPostRequestException
-import io.github.gjaku1031.kenblog.post.domain.TagNames
+import io.github.gjaku1031.kenblog.post.domain.PostVisibility
 import io.github.gjaku1031.kenblog.post.dto.PostDetailResponse
-import io.github.gjaku1031.kenblog.post.dto.WikiDeclarations
+import io.github.gjaku1031.kenblog.post.dto.PostMetadataCreateRequest
 import io.github.gjaku1031.kenblog.post.service.ContentFeedService
 import io.github.gjaku1031.kenblog.post.service.PostService
 import io.github.gjaku1031.kenblog.post.service.WikiLinkService
 import io.github.gjaku1031.kenblog.project.domain.ProjectMetadata
-import io.github.gjaku1031.kenblog.project.dto.ProjectMetadataRequests
 import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
-import java.time.LocalDateTime
-import java.time.format.DateTimeParseException
 import org.springframework.ai.mcp.annotation.McpTool
 import org.springframework.ai.mcp.annotation.McpToolParam
 import org.springframework.stereotype.Component
 
-/** 원고 확정 뒤 저장소 커밋과 Pages push 배포가 남아 있음을 명시. */
-data class McpPublishedResult(val post: PostDetailResponse, val sourcePath: String,
-    val sourceCommitPending: Boolean = true, val deployment: DeploymentState? = null)
+/** Git 원고 경로를 반환하는 본문 없는 등록 결과. */
+data class McpRegisteredPostResult(val post: PostDetailResponse, val sourcePath: String)
 
-/** VM 내부 MCP의 글·편집본 도구를 기존 트랜잭션 서비스에 연결. */
+/** VM 내부 MCP의 글 조회와 DB 메타데이터 도구. Markdown 내용은 파일에서 직접 작성한다. */
 @Component
 class McpContentTools(
     private val posts: PostService,
-    private val drafts: EditorDraftService,
     private val feed: ContentFeedService,
     private val wikiLinks: WikiLinkService,
-    private val declarations: McpBodyDeclarations,
     private val calls: McpToolCalls,
 ) {
-    /** @return 비출간 글을 포함한 관리자 목록 [PostService.listDrafts]. */
-    @McpTool(name = "blog_list_posts", description = "Tech, Projects, Notes의 출간/비출간 원본 글을 본문 없이 페이지로 조회합니다. page는 0부터, size는 1~100입니다.", annotations = McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false, openWorldHint = false))
+    @McpTool(name = "blog_list_posts", description = "출간·미출간 글의 본문 없는 메타데이터를 조회합니다.",
+        annotations = McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false, openWorldHint = false))
     fun listPosts(@McpToolParam(description = "0부터 시작하는 페이지") page: Int,
         @McpToolParam(description = "1~100개의 페이지 크기") size: Int) =
         calls.call { posts.listDrafts(page, size) }
 
-    /** @return 본문·분류·태그·첨부·위키 선언을 포함한 [PostService.adminDetail] 결과. */
-    @McpTool(name = "blog_get_post", description = "저장소 Markdown 원본과 DB 메타데이터·첨부/위키 선언을 조회합니다. 공개 파일은 content/posts/{slug}.md입니다. 기존 글 편집본 생성 전에 호출하세요.", annotations = McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false, openWorldHint = false))
-    fun getPost(@McpToolParam(description = "양수 원본 글 ID") postId: Long) =
+    @McpTool(name = "blog_get_post", description = "DB 메타데이터와 저장소 Markdown을 조회합니다. 파일이 없으면 원본 경로를 포함한 오류를 반환합니다.",
+        annotations = McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false, openWorldHint = false))
+    fun getPost(@McpToolParam(description = "양수 게시글 ID") postId: Long) =
         calls.call { posts.adminDetail(postId) }
 
-    /** @return PUBLIC 출간 콘텐츠 검색 [ContentFeedService.search] 결과. */
-    @McpTool(name = "blog_search_posts", description = "출간 글의 제목·본문·태그·분류를 검색합니다. PUBLIC 출간 글만 검색합니다.", annotations = McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false, openWorldHint = false))
+    @McpTool(name = "blog_search_posts", description = "공개 출간 글의 제목·원고·태그·분류를 검색합니다.",
+        annotations = McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false, openWorldHint = false))
     fun searchPosts(@McpToolParam(description = "1~100자의 검색어") query: String,
         @McpToolParam(description = "0부터 시작하는 페이지") page: Int,
         @McpToolParam(description = "1~100개의 페이지 크기") size: Int) =
         calls.call { feed.search(query, page, size, null) }
 
-    /** [WikiLinkService.resolve]로 대상 제목이 어느 출간 글을 가리키는지 확인. */
-    @McpTool(name = "blog_resolve_wiki_targets", description = "최대 20개의 위키 대상 제목을 현재 출간 글과 대조합니다. 작성 전 제목 충돌·없는 대상을 확인하세요.", annotations = McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false, openWorldHint = false))
-    fun resolveWikiTargets(@McpToolParam(description = "본문 [[제목]]에서 참조할 제목 1~20개") titles: List<String>) = calls.call {
+    @McpTool(name = "blog_resolve_wiki_targets", description = "위키 대상 제목이 현재 공개 글을 가리키는지 확인합니다.",
+        annotations = McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false, openWorldHint = false))
+    fun resolveWikiTargets(@McpToolParam(description = "확인할 제목 1~20개") titles: List<String>) = calls.call {
         val query = titles.joinToString("&") { "title=" + URLEncoder.encode(it, StandardCharsets.UTF_8) }
         wikiLinks.resolve(titles, query, null)
     }
 
-    /** @return 저장 중인 편집본과 revision을 본문 없이 조회한 [EditorDraftService.list] 결과. */
-    @McpTool(name = "blog_list_drafts", description = "편집본을 수정 시각 역순으로 조회합니다. postId를 주면 해당 원본의 편집본만 조회합니다.", annotations = McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false, openWorldHint = false))
-    fun listDrafts(@McpToolParam(description = "0부터 시작하는 페이지") page: Int,
-        @McpToolParam(description = "1~100개의 페이지 크기") size: Int,
-        @McpToolParam(description = "선택적 원본 글 ID", required = false) postId: Long?) =
-        calls.call { drafts.list(page, size, postId) }
-
-    /** @return 현재 revision과 본문·선언을 포함한 [EditorDraftService.detail] 결과. */
-    @McpTool(name = "blog_get_draft", description = "편집본 ID로 현재 revision과 전체 원고, 별도 첨부/위키 선언을 조회합니다. 수정이나 발행 전에 호출하세요.", annotations = McpTool.McpAnnotations(readOnlyHint = true, destructiveHint = false, openWorldHint = false))
-    fun getDraft(@McpToolParam(description = "양수 편집본 ID") draftId: Long) =
-        calls.call { drafts.detail(draftId) }
-
-    /**
-     * 모든 섹션의 새 원고 또는 기존 글 편집본을 [EditorDraftService.create]로 저장.
-     * 기존 글은 [McpDraftInput.postId]와 원본 updatedAt을 함께 지정해야 함.
-     */
-    @McpTool(name = "blog_create_draft", description = "TECH/PROJECT_HOME/PROJECT_DOC/NOTE_CHAPTER 편집본을 비추적 Markdown 파일에 만듭니다. attachmentIds와 wikiTargets는 본문에 쓴 참조의 전체 배열입니다. 기존 글 수정은 blog_get_post의 postId와 baseUpdatedAt 및 기존 소속을 지정하세요. 발행은 별도 blog_publish_draft입니다.", annotations = McpTool.McpAnnotations(destructiveHint = false, openWorldHint = false))
-    fun createDraft(@McpToolParam(description = "전체 원고, 섹션, 소속, 명시적 본문 선언 및 선택적 원본 기준 시각") input: McpDraftInput) = calls.call {
-        val inspection = declarations.validate(input.body, input.attachmentIds, input.wikiTargets)
-        val prepared = prepare(input)
-        val saved = drafts.create(EditorDraftCreateRequest(input.postId, parseTime(input.baseUpdatedAt),
-            input.title, input.body, input.categoryId, prepared.tags, input.visibility.stored(),
-            prepared.attachmentIds, prepared.wikiTargets, input.section, input.projectId,
-            input.relatedProjectId, input.documentOrder, prepared.metadata, input.courseId, input.chapterOrder,
-            input.summary, input.techSeriesOrder))
-        McpDraftWriteResult(saved, inspection.diagnostics)
+    @McpTool(name = "blog_register_post", description = "본문 없이 글 메타데이터와 slug를 등록합니다. 반환한 content/posts/{slug}.md를 저장소에서 직접 작성하고 Git에 커밋하세요.",
+        annotations = McpTool.McpAnnotations(destructiveHint = false, openWorldHint = false))
+    fun registerPost(@McpToolParam(description = "제목·slug·섹션·부모·첨부/위키 선언; body 필드 없음") input: McpPostMetadataInput) = calls.call {
+        val metadata = input.projectMetadata?.let { ProjectMetadata(it.status, it.startPeriod, it.endPeriod,
+            it.overview, PostVisibility.PUBLIC, null, it.stackBadgeNames) }
+        val created = posts.createMetadata(PostMetadataCreateRequest(input.title, input.slug, input.section,
+            input.summary, input.categoryId, input.tags, input.projectId, input.relatedProjectId,
+            input.courseId, input.documentOrder, input.chapterOrder, input.techSeriesOrder, metadata,
+            input.attachmentIds, input.wikiTargets))
+        McpRegisteredPostResult(created, "content/posts/${created.slug}.md")
     }
 
-    /** [EditorDraftService.update]의 revision 충돌 검사를 유지하며 전체 내용을 교체. */
-    @McpTool(name = "blog_update_draft", description = "현재 revision의 편집본 원고 전체를 교체합니다. blog_get_draft의 섹션·소속과 attachmentIds/wikiTargets 전체 배열을 다시 보내세요. 원본 글은 발행 전까지 바뀌지 않습니다. content의 postId/baseUpdatedAt은 생략하세요.", annotations = McpTool.McpAnnotations(openWorldHint = false))
-    fun updateDraft(@McpToolParam(description = "양수 편집본 ID") draftId: Long,
-        @McpToolParam(description = "현재 revision과 전체 원고") input: McpDraftUpdateInput) = calls.call {
-        val content = input.content
-        if (content.postId != null || content.baseUpdatedAt != null) throw InvalidEditorDraftRequestException()
-        val inspection = declarations.validate(content.body, content.attachmentIds, content.wikiTargets)
-        val prepared = prepare(content)
-        val saved = drafts.update(draftId, EditorDraftUpdateRequest(input.revision, content.title,
-            content.body, content.categoryId, prepared.tags, content.visibility.stored(), prepared.attachmentIds,
-            prepared.wikiTargets, content.section, content.projectId, content.relatedProjectId,
-            content.documentOrder, prepared.metadata, content.courseId, content.chapterOrder,
-            content.summary, content.techSeriesOrder))
-        McpDraftWriteResult(saved, inspection.diagnostics)
-    }
+    @McpTool(name = "blog_update_post_metadata", description = "원고를 바꾸지 않고 글의 제목·요약·분류·태그를 갱신합니다.",
+        annotations = McpTool.McpAnnotations(destructiveHint = false, openWorldHint = false))
+    fun updatePostMetadata(@McpToolParam(description = "양수 게시글 ID") postId: Long,
+        @McpToolParam(description = "제목") title: String,
+        @McpToolParam(description = "120자 이하 요약") summary: String,
+        @McpToolParam(description = "분류 ID 또는 null", required = false) categoryId: Long?,
+        @McpToolParam(description = "태그 전체 목록") tags: List<String>) =
+        calls.call { posts.updateMetadata(postId, title, summary, categoryId, tags) }
 
-    /** 현재 revision의 편집본과 배포 대기 상태를 구분해 반환. */
-    @McpTool(name = "blog_publish_draft", description = "편집본 ID와 현재 revision이 일치할 때 원본 글과 저장소 Markdown을 확정합니다. Pages 배포는 이 도구가 요청하지 않습니다. 반환된 sourcePath를 커밋·push한 뒤 Pages 성공을 확인하세요.", annotations = McpTool.McpAnnotations(openWorldHint = false))
-    fun publishDraft(@McpToolParam(description = "양수 편집본 ID") draftId: Long,
-        @McpToolParam(description = "조회한 현재 revision") revision: Long) =
-        calls.call {
-            val post = drafts.publish(draftId, revision)
-            McpPublishedResult(post, "content/posts/${post.slug}.md")
-        }
+    @McpTool(name = "blog_set_post_attachments", description = "원고의 attachment:ID 이미지가 공개 전달되도록 연결 ID 전체를 지정합니다.",
+        annotations = McpTool.McpAnnotations(destructiveHint = false, openWorldHint = false))
+    fun setPostAttachments(@McpToolParam(description = "양수 게시글 ID") postId: Long,
+        @McpToolParam(description = "READY 첨부 ID 전체 목록") attachmentIds: List<Long>) =
+        calls.call { posts.replaceAttachments(postId, attachmentIds) }
 
-    /** 원본 글은 유지하고 명시 revision의 편집본만 [EditorDraftService.delete]로 삭제. */
-    @McpTool(name = "blog_delete_draft", description = "지정한 편집본만 삭제합니다. 원본 출간 글은 유지됩니다. ID와 현재 revision을 명시해야 합니다.", annotations = McpTool.McpAnnotations(openWorldHint = false))
-    fun deleteDraft(@McpToolParam(description = "삭제할 양수 편집본 ID") draftId: Long,
-        @McpToolParam(description = "조회한 현재 revision") revision: Long) = calls.call {
-        drafts.delete(draftId, revision)
-        mapOf("deletedDraftId" to draftId)
-    }
+    @McpTool(name = "blog_set_post_wiki_targets", description = "현재 원고 SHA-256을 확인하고 위키 대상 제목 선언 전체를 교체합니다.",
+        annotations = McpTool.McpAnnotations(destructiveHint = false, openWorldHint = false))
+    fun setPostWikiTargets(@McpToolParam(description = "양수 게시글 ID") postId: Long,
+        @McpToolParam(description = "blog_get_post의 bodySha256") expectedBodySha256: String,
+        @McpToolParam(description = "위키 대상 제목 전체 목록") wikiTargets: List<String>) =
+        calls.call { posts.replaceWikiLinks(postId, expectedBodySha256, wikiTargets) }
 
-    /** 기존 관리자 JSON 입력의 길이·ID·태그 검증을 MCP 입력에도 적용. */
-    private fun prepare(input: McpDraftInput): Prepared {
-        if (input.title.codePointCount(0, input.title.length) > 200 ||
-            input.body.toByteArray(Charsets.UTF_8).size > 1024 * 1024 ||
-            input.summary.codePointCount(0, input.summary.length) > 120 ||
-            listOf(input.categoryId, input.projectId, input.relatedProjectId, input.courseId, input.postId)
-                .any { it != null && it <= 0 } ||
-            input.techSeriesOrder?.let { it <= 0 } == true ||
-            input.documentOrder?.let { it <= 0 } == true ||
-            input.chapterOrder?.let { it <= 0 } == true ||
-            (input.postId == null) != (input.baseUpdatedAt == null) ||
-            input.attachmentIds.size > 100 || input.attachmentIds.any { it <= 0 })
-            throw InvalidEditorDraftRequestException()
-        val tags = try { TagNames.displayAll(input.tags) }
-            catch (_: InvalidPostRequestException) { throw InvalidEditorDraftRequestException() }
-        val wiki = WikiDeclarations.normalized(input.wikiTargets)
-        val metadata = input.projectMetadata?.let { value ->
-            ProjectMetadataRequests.validate(ProjectMetadata(value.status, value.startPeriod, value.endPeriod,
-                value.overview, input.visibility.stored(), parseTime(value.baseProjectUpdatedAt), value.stackBadgeNames))
-        }
-        return Prepared(tags, input.attachmentIds.distinct().sorted(), wiki, metadata)
-    }
-
-    /** @return 비어 있는 선택 시각 또는 엄격한 ISO-8601 UTC DB 시각. */
-    private fun parseTime(raw: String?): LocalDateTime? = raw?.let {
-        try { LocalDateTime.parse(it) } catch (_: DateTimeParseException) { throw InvalidEditorDraftRequestException() }
-    }
-
-    /** 검증된 태그·선언·프로젝트 메타를 기존 서비스 DTO에 공급. */
-    private data class Prepared(val tags: List<String>, val attachmentIds: List<Long>,
-        val wikiTargets: List<String>, val metadata: ProjectMetadata?)
-
-
+    @McpTool(name = "blog_set_post_publication", description = "원고 파일을 수정하지 않고 게시글의 공개 출간 상태만 명시적으로 바꿉니다. Git 원고가 먼저 있어야 Pages 빌드가 성공합니다.",
+        annotations = McpTool.McpAnnotations(destructiveHint = false, openWorldHint = false))
+    fun setPostPublication(@McpToolParam(description = "양수 게시글 ID") postId: Long,
+        @McpToolParam(description = "true=공개 출간, false=미출간") published: Boolean) =
+        calls.call { posts.setPublished(postId, published) }
 }

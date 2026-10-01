@@ -100,7 +100,7 @@ def draw(output, icons, kind, theme):
             with region("GitHub · 독립된 두 워크플로", (28, 690, 990, 950)):
                 source = card("GitHub main", "push · 수동 실행", "github", 145, 825)
                 ci = card("CI", "API Gradle build · 임시 MySQL/HTTP\n웹 typecheck · test · 정적 검사", "actions", 445, 825)
-                pages_job = card("Pages 빌드", "공개 API·저장소 Markdown 수집\nThymeleaf 정적 생성·내용 재검증", "actions", 785, 825)
+                pages_job = card("Pages 빌드", "읽기 전용 스냅샷·저장소 Markdown 수집\nThymeleaf 생성·revision 재확인", "actions", 785, 825)
 
             operator = card("운영자", "VM에서 Docker 이미지 빌드\nCompose 교체 · health 확인", "user", 1230, 825)
             browser = card("독자·관리자 브라우저", "읽기 · 로그인 · 메타데이터 관리", "user", 145, 505)
@@ -112,7 +112,7 @@ def draw(output, icons, kind, theme):
                 deploy_port = port(1100, 625)
             with region("데이터 저장소", (1170, 345, 1530, 630), "cloud"):
                 mysql = card("MySQL HeatWave", "글 메타데이터 · 계정 · JDBC 세션", "mysql", 1350, 535)
-                objects = card("로컬 파일 저장소", "동기화 Markdown · 영속 첨부", None, 1350, 405)
+                objects = card("로컬 파일 저장소", "읽기 전용 저장소 원고 · 영속 첨부", None, 1350, 405)
 
             notes = [
                 ("main push → CI", 300, 870, "muted"),
@@ -139,7 +139,7 @@ def draw(output, icons, kind, theme):
             ]
         else:
             reader = card("독자", "공개 글 · 검색 · 첨부 조회", "user", 145, 740)
-            editor = card("관리자 화면", "메타데이터 · 출간 · 배포", None, 145, 545)
+            editor = card("관리자 화면", "메타데이터 · Pages 실행 안내", None, 145, 545)
             agent = card("작성 에이전트", "VM 내부 또는 SSH 터널", "user", 145, 320)
             with region("하나의 Spring Boot · Kotlin API", (370, 120, 1185, 850), "vm"):
                 rest = card("REST · Security", "Spring Session JDBC · 권한 · CSRF", "spring", 500, 650)
@@ -151,7 +151,7 @@ def draw(output, icons, kind, theme):
                 repo = card("JPA Repository", "글 메타데이터 · 첨부 · 참조 · 소속", None, 1060, 510)
             with region("데이터 저장소", (1230, 245, 1530, 830), "cloud"):
                 mysql = card("MySQL HeatWave", "글 메타데이터·참조·세션", "mysql", 1380, 510)
-                objects = card("로컬 파일 저장소", "Markdown 동기화본 · 영속 첨부", None, 1380, 320)
+                objects = card("로컬 파일 저장소", "읽기 전용 저장소 원고 · 영속 첨부", None, 1380, 320)
             notes = [
                 ("작성 경로 중심 · MCP 조회·첨부 세부선 생략", 805, 805, "muted"),
                 ("같은 작성 서비스 호출", 610, 455, "muted"),

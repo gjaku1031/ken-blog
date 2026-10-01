@@ -1,12 +1,10 @@
 package io.github.gjaku1031.kenblog.post.service
 
 import io.github.gjaku1031.kenblog.category.repository.CategoryRepository
-import io.github.gjaku1031.kenblog.content.service.RepositoryMarkdown
 import io.github.gjaku1031.kenblog.note.repository.CoursePostRepository
 import io.github.gjaku1031.kenblog.note.repository.CourseRepository
 import io.github.gjaku1031.kenblog.post.domain.InvalidPostRequestException
 import io.github.gjaku1031.kenblog.post.domain.PostEntity
-import io.github.gjaku1031.kenblog.post.domain.PostBodyHash
 import io.github.gjaku1031.kenblog.post.domain.PostNotFoundException
 import io.github.gjaku1031.kenblog.post.domain.PostSection
 import io.github.gjaku1031.kenblog.post.domain.PostStatus
@@ -18,9 +16,7 @@ import io.github.gjaku1031.kenblog.post.dto.PublicPostDetailResponse
 import io.github.gjaku1031.kenblog.post.dto.PublicPostPageResponse
 import io.github.gjaku1031.kenblog.post.dto.PublicPostSummaryResponse
 import io.github.gjaku1031.kenblog.post.dto.PublishedPostRow
-import io.github.gjaku1031.kenblog.post.dto.TagCountResponse
 import io.github.gjaku1031.kenblog.post.repository.PostRepository
-import io.github.gjaku1031.kenblog.post.repository.PostTagRepository
 import io.github.gjaku1031.kenblog.project.repository.ProjectRepository
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -33,17 +29,15 @@ import org.springframework.security.core.Authentication
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
-/** 출간된 PUBLIC 원문만 DB에서 읽어 정적 사이트 생성에 제공. */
+/** 출간된 PUBLIC 글의 메타데이터를 정적 사이트 snapshot에 제공. */
 @Service
 class PublicPostService(
     private val repository: PostRepository,
     private val categories: CategoryRepository,
     private val taxonomy: PostTaxonomyMetadata,
-    private val tags: PostTagRepository,
     private val projects: ProjectRepository,
     private val courses: CourseRepository,
     private val coursePosts: CoursePostRepository,
-    private val markdown: RepositoryMarkdown,
 ) {
     @Transactional(readOnly = true)
     fun list(page: Int, size: Int, authentication: Authentication?, categoryId: Long?, tag: String?): PublicPostPageResponse {
@@ -59,30 +53,26 @@ class PublicPostService(
             result.totalElements, result.totalPages)
     }
 
+    /** Pages snapshot용 공개 글 메타데이터. 본문은 Git checkout에서 주입한다. */
     @Transactional(readOnly = true)
-    fun detail(slug: String, authentication: Authentication?): PublicPostDetailResponse {
+    fun detailMetadata(slug: String): PublicPostDetailResponse {
         val normalized = slug.trim().lowercase(Locale.ROOT)
         if (normalized.length > 160 || !SLUG_PATTERN.matches(normalized)) throw PostNotFoundException()
         val post = repository.findBySlugAndStatusAndVisibility(normalized, PostStatus.PUBLISHED,
             PostVisibility.PUBLIC, PostSection.TECH, PostSection.NOTE_CHAPTER, PostSection.PROJECT_HOME)
             ?: throw PostNotFoundException()
-        return post.publicDetail()
+        return post.publicMetadata()
     }
 
-    @Transactional(readOnly = true)
-    fun tags(authentication: Authentication?): List<TagCountResponse> =
-        tags.findPublicCounts(PostStatus.PUBLISHED, PostVisibility.PUBLIC, false)
-
-    private fun PostEntity.publicDetail(): PublicPostDetailResponse {
+    private fun PostEntity.publicMetadata(): PublicPostDetailResponse {
         val postId = id ?: error("Published post has no ID")
         val view = taxonomy.one(postId, categoryId)
         val project = projectId?.let(projects::findByIdOrNull)
         val course = courseId?.let(courses::findByIdOrNull)
         val related = relatedProjectId?.let { repository.findReadableProject(it, PostSection.PROJECT_HOME,
             PostStatus.PUBLISHED, PostVisibility.PUBLIC, false) }
-        val fileBody = markdown.readPost(this)
-        return PublicPostDetailResponse(postId, title, slug, publishedAt.kstDate(), false, fileBody,
-            view.category, view.tags, section, project?.slug, related, course?.slug, PostBodyHash.sha256(fileBody),
+        return PublicPostDetailResponse(postId, title, slug, publishedAt.kstDate(), false, "",
+            view.category, view.tags, section, project?.slug, related, course?.slug, "",
             series(postId, section, categoryId, courseId), summary = summary, techSeriesOrder = techSeriesOrder)
     }
 

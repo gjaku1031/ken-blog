@@ -20,10 +20,6 @@ import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBo
 /** 공개 홈 카드 조회와 관리자 소개·사진 편집을 [HomeProfileService]에 연결. */
 @RestController
 class HomeProfileController(private val service: HomeProfileService) {
-    /** @return 저장된 소개나 빈 카드. */
-    @GetMapping("/api/v1/profile")
-    fun get(): HomeProfileResponse = service.get()
-
     /** @return 공개 PNG 사진 스트림. */
     @GetMapping("/api/v1/profile/photo", produces = [MediaType.IMAGE_PNG_VALUE])
     fun photo(): ResponseEntity<StreamingResponseBody> {

@@ -1,7 +1,8 @@
 import { build as bundle } from "esbuild";
-import { capture, assertCaptureOwner, synchronizeSources } from "./capture.mjs";
+import { capture, confirmRevision } from "./capture.mjs";
 import { buildWebAssets } from "../build-web.mjs";
-import { readFile, writeFile, mkdir, rm, cp, readdir, stat, rename } from "node:fs/promises";
+import { readFile, writeFile, mkdir, rm, cp, readdir, stat, rename, open } from "node:fs/promises";
+import { constants } from "node:fs";
 import { createHash } from "node:crypto";
 import { spawn } from "node:child_process";
 import { resolve, join } from "node:path";
@@ -14,7 +15,7 @@ const input = join(root, "build/site-input/rendered.json");
 const basePath = "/ken-blog/";
 const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const route = (path = "") => `${basePath}${path}`;
-const checkedSlug = (value) => { if (!slugPattern.test(value ?? "")) throw new Error("공개 slug 형식 오류"); return value; };
+const checkedSlug = (value) => { if (typeof value !== "string" || value.length > 160 || !slugPattern.test(value)) throw new Error("공개 slug 형식 오류"); return value; };
 const postPath = (post) => post.section === "PROJECT_HOME" ? route(`project/${checkedSlug(post.projectSlug)}/`) :
   post.section === "PROJECT_DOC" ? route(`project/${checkedSlug(post.projectSlug)}/docs/${checkedSlug(post.slug)}/`) :
   post.section === "NOTE_CHAPTER" ? route(`course/${checkedSlug(post.courseSlug)}/chapters/${checkedSlug(post.slug)}/`) : route(`post/${checkedSlug(post.slug)}/`);
@@ -43,8 +44,7 @@ function imagePath(value, base, expected) {
 }
 
 /** 이미지 크기·MIME·매직 바이트를 검사한 뒤 내용 해시 이름으로 저장한다. */
-async function download(url, name, verifyOwner) {
-  if (verifyOwner) await assertCaptureOwner(url.origin);
+async function download(url, name) {
   const response = await fetch(url, { headers: { Accept: "image/png,image/jpeg" }, redirect: "error", cache: "no-store", signal: AbortSignal.timeout(25_000) });
   if (!response.ok) throw new Error(`공개 이미지 HTTP ${response.status}: ${url.pathname}`);
   const type = response.headers.get("content-type")?.split(";", 1)[0]?.trim().toLowerCase();
@@ -65,7 +65,6 @@ async function download(url, name, verifyOwner) {
   const digest = createHash("sha256").update(bytes).digest("hex");
   const filename = `${name}-${digest}.${png ? "png" : "jpg"}`;
   await writeFile(join(staging, "assets", filename), bytes);
-  if (verifyOwner) await assertCaptureOwner(url.origin);
   return route(`assets/${filename}`);
 }
 
@@ -158,15 +157,31 @@ async function runGenerator(args) {
   if (code !== 0) throw new Error(`Kotlin Pages 생성 실패: ${code}`);
 }
 
+/** checkout 원본만 읽고 링크·과도한 파일·잘못된 UTF-8을 거부한다. */
+async function markdownSource(file, fixture) {
+  let handle;
+  try { handle = await open(file, constants.O_RDONLY | constants.O_NOFOLLOW); }
+  catch (error) {
+    if (error.code === "ENOENT" && fixture) return null;
+    if (error.code === "ENOENT") throw new Error(`공개 Markdown 원본 누락: ${file}`);
+    throw error;
+  }
+  try {
+    const info = await handle.stat();
+    if (!info.isFile() || info.size > 1_048_576) throw new Error(`공개 Markdown 파일 형식·크기 오류: ${file}`);
+    const bytes = await handle.readFile();
+    if (bytes.length > 1_048_576) throw new Error(`공개 Markdown 파일 크기 오류: ${file}`);
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } finally { await handle.close(); }
+}
+
 /** 캡처·저장소 Markdown·첨부를 검증하고 Kotlin 템플릿 생성기에 넘긴다. */
 async function main() {
   if (process.env.SITE_BASE_PATH && process.env.SITE_BASE_PATH !== "/ken-blog") throw new Error("SITE_BASE_PATH는 /ken-blog여야 합니다.");
-  const fixtureArg = process.argv.find((arg) => arg.startsWith("--fixture") || arg === "--empty");
+  const fixtureArg = process.argv.find((arg) => arg === "--fixture" || arg.startsWith("--fixture=") || arg === "--empty");
   const fixture = !!fixtureArg;
   const base = apiBase();
-  if (!fixture && !process.env.SITE_DEPLOYMENT_ID) throw new Error("운영 빌드에는 SITE_DEPLOYMENT_ID가 필요합니다.");
   if (!fixture && !base) throw new Error("운영 빌드에는 PUBLIC_API_BASE_URL이 필요합니다.");
-  if (!fixture && process.env.SITE_INPUT) throw new Error("운영 SITE_INPUT은 허용하지 않습니다.");
   let snapshot;
   if (["--fixture=empty", "--fixture", "--empty"].includes(fixtureArg))
     snapshot = { version: 1, profile: null, feed: [], projects: [], notes: [], posts: [], projectDetails: {}, projectDocuments: {}, courseDetails: {}, chapters: {} };
@@ -191,17 +206,13 @@ async function main() {
   const contentArg = process.argv.find((arg) => arg.startsWith("--content-dir="));
   const contentDir = resolve(contentArg ? contentArg.slice("--content-dir=".length) : join(root, "content/posts"));
   const usedSlugs = new Set();
-  const bodies = Object.create(null);
   for (const post of allPosts) {
     const postSlug = checkedSlug(post.slug);
     if (usedSlugs.has(postSlug)) throw new Error(`공개 Markdown slug 중복: ${postSlug}`);
     usedSlugs.add(postSlug);
     const file = join(contentDir, `${postSlug}.md`);
-    try { post.body = await readFile(file, "utf8"); }
-    catch (error) { if (error.code === "ENOENT" && !fixture) throw new Error(`공개 Markdown 원본 누락: ${file}`); if (error.code !== "ENOENT") throw error; }
-    bodies[postSlug] = post.body;
+    post.body = await markdownSource(file, fixture) ?? post.body;
   }
-  if (!fixture) await synchronizeSources(base, bodies);
   const owners = new Map();
   for (const post of allPosts) {
     const parsed = await renderMarkdown(post.body);
@@ -210,12 +221,12 @@ async function main() {
   const attachmentUrls = new Map();
   for (const id of [...owners.keys()].sort((a, b) => a - b)) {
     const postId = owners.get(id); const path = `/api/v1/posts/${postId}/attachments/${id}/content`;
-    attachmentUrls.set(id, await download(imagePath(path, base, path), `attachment-${id}`, !fixture));
+    attachmentUrls.set(id, await download(imagePath(path, base, path), `attachment-${id}`));
   }
-  if (snapshot.profile?.photoUrl) snapshot.profile.photoUrl = await download(imagePath(snapshot.profile.photoUrl, base, "/api/v1/profile/photo"), "profile", !fixture);
+  if (snapshot.profile?.photoUrl) snapshot.profile.photoUrl = await download(imagePath(snapshot.profile.photoUrl, base, "/api/v1/profile/photo"), "profile");
   const badges = new Map();
   for (const project of snapshot.projects) for (const badge of project.stackBadges ?? []) if (!badges.has(badge.id)) badges.set(badge.id, badge);
-  for (const badge of badges.values()) badge.imageUrl = await download(imagePath(badge.imageUrl, base, `/api/v1/stack-badges/${badge.id}/image`), `stack-${badge.id}`, !fixture);
+  for (const badge of badges.values()) badge.imageUrl = await download(imagePath(badge.imageUrl, base, `/api/v1/stack-badges/${badge.id}/image`), `stack-${badge.id}`);
   for (const project of snapshot.projects) for (const badge of project.stackBadges ?? []) badge.imageUrl = badges.get(badge.id).imageUrl;
   const links = new Map(); const duplicateTitles = new Set();
   for (const post of allPosts) { const key = wikiKey(post.title); if (links.has(key)) duplicateTitles.add(key); else links.set(key, postPath(post)); }
@@ -227,10 +238,9 @@ async function main() {
   }
   await mkdir(join(root, "build/site-input"), { recursive: true });
   await writeFile(input, JSON.stringify({ snapshot, assets, adminHref: base ? `${base.origin}/manage/` : "" }));
-  if (!fixture) await assertCaptureOwner(base);
   await runGenerator([`--input=${input}`, `--output=${staging}`, ...(fixture ? ["--fixture"] : [])]);
-  if (!fixture) await assertCaptureOwner(base);
   await checkArtifact();
+  if (!fixture) await confirmRevision(base, snapshot.revision);
   await rm(output, { recursive: true, force: true });
   await rename(staging, output);
   console.log(`정적 Pages 생성 완료: ${output}`);

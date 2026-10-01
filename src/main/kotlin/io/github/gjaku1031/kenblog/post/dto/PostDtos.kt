@@ -1,8 +1,6 @@
 package io.github.gjaku1031.kenblog.post.dto
 
-import io.github.gjaku1031.kenblog.attachment.dto.AttachmentIds
 import io.github.gjaku1031.kenblog.category.dto.CategoryRefResponse
-import io.github.gjaku1031.kenblog.post.domain.InvalidPostRequestException
 import io.github.gjaku1031.kenblog.post.domain.PostEntity
 import io.github.gjaku1031.kenblog.post.domain.PostStatus
 import io.github.gjaku1031.kenblog.post.domain.PostVisibility
@@ -10,59 +8,6 @@ import io.github.gjaku1031.kenblog.post.domain.PostSection
 import io.github.gjaku1031.kenblog.project.domain.ProjectMetadata
 import java.time.LocalDate
 import java.time.LocalDateTime
-import tools.jackson.databind.JsonNode
-
-/**
- * 관리자 POST·PUT의 전체 교체 입력. 필수 문자열 누락과 JSON null은 역직렬화에서 400으로 판정함.
- *
- * @property title 앞뒤 공백을 제거해 검증할 제목
- * @property body 빈 문자열도 허용하는 원문 본문
- * @property attachmentIds 생략·null이면 기존 연결 유지, 명시적 배열이면 전체 교체
- * @property wikiTargets 명시적 위키 대상 제목; 생략·null은 본문 변경 여부에 따라 유지 또는 해제
- */
-data class PostWriteRequest(
-    val title: String,
-    val body: String,
-    val attachmentIds: List<Long>? = null,
-    val wikiTargets: List<String>? = null,
-)
-
-/** 관리자 게시글 JSON의 문자열과 선택적 첨부 목록을 강제 변환 없이 파싱. */
-object PostWriteRequests {
-    /** @return 제목·본문과 첨부 ID 선언; 이전 클라이언트의 slug는 읽지 않음. */
-    fun fromJson(node: JsonNode): PostWriteRequest {
-        if (!node.isObject) throw InvalidPostRequestException()
-        return PostWriteRequest(string(node, "title"), string(node, "body"),
-            AttachmentIds.parse(node.get("attachmentIds")), WikiDeclarations.parse(node.get("wikiTargets")))
-    }
-
-    /** @return 누락·null·숫자 강제 변환을 거부한 필수 문자열. */
-    private fun string(node: JsonNode, name: String): String = node.get(name)?.let {
-        if (!it.isTextual) throw InvalidPostRequestException()
-        it.textValue()
-    } ?: throw InvalidPostRequestException()
-}
-
-/**
- * 관리자 출간·공개 범위 변경의 필수 입력. 누락·null은 역직렬화에서 400이 됨.
- * 숫자·불리언이 문자열로 변환되어도 [selectedVisibility]가 허용 값만 통과시킴.
- *
- * @property visibility 공개 또는 로그인 열람 범위
- */
-data class PostVisibilityRequest(
-    val visibility: String = "PUBLIC",
-) {
-    /**
-     * JSON 스칼라 입력을 정확한 대문자 공개 범위로 변환.
-     *
-     * @return 지원하는 [PostVisibility]
-     * @throws InvalidPostRequestException 숫자·불리언·지원하지 않는 문자열일 때
-     */
-    fun selectedVisibility(): PostVisibility = when (visibility) {
-        "PUBLIC" -> PostVisibility.PUBLIC
-        else -> throw InvalidPostRequestException()
-    }
-}
 
 /**
  * 관리자 상세 조회의 초안 또는 출간 내용. [PostEntity] 자체를 JSON으로 노출하지 않음.

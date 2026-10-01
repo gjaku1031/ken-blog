@@ -3,16 +3,9 @@ package io.github.gjaku1031.kenblog.post.domain
 import io.github.gjaku1031.kenblog.post.service.PostService
 
 /**
- * [PostService.createDraft]에 전달한 제목·본문이 저장 계약을 충족하지 않을 때 발생.
+ * 등록한 주소가 이미 [PostEntity]에 저장되었을 때 발생.
  *
- * 관리자 HTTP 경계에서는 입력 원문을 숨긴 400 [org.springframework.http.ProblemDetail]로 변환함.
- */
-class InvalidPostDraftException(message: String) : RuntimeException(message)
-
-/**
- * 자동 발급 주소가 이미 [PostEntity]에 저장되었을 때 발생.
- *
- * [PostService.createDraft]의 트랜잭션을 롤백하며
+ * [PostService.createMetadata]의 트랜잭션을 롤백하며
  * 관리자 HTTP 경계에서는 slug를 숨긴 409 [org.springframework.http.ProblemDetail]로 변환함.
  */
 class DuplicatePostSlugException(slug: String, cause: Throwable? = null) :

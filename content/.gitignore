@@ -1,5 +1,6 @@
 /local-posts/
 /local-drafts/
+/legacy-metadata/
 /.pending/
 /.initialized
 **/.markdown-*.tmp
