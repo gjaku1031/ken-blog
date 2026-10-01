@@ -2,6 +2,8 @@
 
 ## 현재 후보 — 2026-10-01
 
+- 미사용 런타임 ZIP 내보내기와 전용 CommonMark 제거, 기존 DB 원고 이관·DB 백업/복원 도구 유지. 기존35개 검사와 Pages 생성 재검증 성공.
+
 - 배포 관리의 GitHub Actions 이관과 미사용 코드 정리 구현·격리 검증 완료. Spring 배포 상태·콜백·전역 변경 차단과 서버 편집본 관리 제거, 읽기 전용 공개 스냅샷·Markdown 직접 편집 흐름으로 단순화. [변경·검증 기록](issues/ACTIONS-CLEANUP-2026-10-01.md) 참조.
 - 누락된 별도 작업의 Gradle·Swagger/Api·Flyway 제거를 TS·Thymeleaf 후보와 통합 완료. Gradle 빌드·검사35개와 실제 격리 API→Pages 생성·재기동 보존 검증 성공. [통합·검증 기록](issues/INTEGRATION-2026-10-01.md) 참조.
 - TS·Thymeleaf, 저장소 Markdown 원본, 영속 로컬 첨부 구조 구현·격리 검증 완료.

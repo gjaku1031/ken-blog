@@ -1,5 +1,11 @@
 # 현재 작업
 
+## 2026-10-01 미사용 ZIP 내보내기 추가 정리
+
+- 사용자 지적 후 export 전역 참조 확인. 관리자 화면·MCP·Actions 호출이 없는 ZIP API와 서비스·보조 함수·CommonMark 전용 의존성 제거.
+- 기존 운영 DB 원고의 파일 이관용 ops/export-markdown.py와 DB 백업·복원 도구 유지. 실제 데이터 변경 없음.
+- Gradle offline clean build/writeSiteClasspath와 기존35개 검사, 네 섹션·빈 Pages 생성 검증 성공. 최종 JAR·생성기 classpath에서 ZIP 계층·CommonMark 부재 확인. 운영 배포·push 없이 로컬 커밋과 앱 폴더 동기화.
+
 ## 2026-10-01 Actions 배포와 미사용 코드 정리
 
 - 사용자 승인: GitHub Actions에 배포 관리 이관, Spring 배포 상태·콜백·복구·전역 변경 차단과 현재 미사용 코드 정리.

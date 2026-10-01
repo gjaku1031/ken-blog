@@ -24,4 +24,4 @@ description: Ken Blog의 Tech·Projects·Notes 원고를 저장소 Markdown으�
 3. `attachment:ID` 이미지를 사용하면 READY 첨부 ID 전체를 `blog_set_post_attachments`에 연결한다. 위키 대상은 `blog_validate_document`로 확인하고 `blog_set_post_wiki_targets`에 현재 원고 SHA-256과 제목 전체를 보낸다. 복잡한 Markdown은 검사가 완전하지 않을 수 있으므로 실제 원고를 확인한다.
 4. 원고 파일을 Git에 커밋해 `main`에 push한다. 이 push가 Pages Actions를 자동 실행한다. 공개할 때 `blog_set_post_publication(published=true)`로 DB 상태를 바꾼다. 출간 상태 등 DB 메타데이터를 push 후 변경했다면 GitHub의 Pages Actions를 수동 실행해 새 snapshot을 반영한다. Actions는 snapshot과 Git 원고를 결합해 정적 HTML을 만든다. 파일이 없으면 빌드가 실패하므로 먼저 파일을 반영한다.
 
-기존 PRIVATE 또는 `local-posts` 원고를 공개하려면 내용을 검토하고 `content/posts/{slug}.md`로 명시적으로 옮긴 뒤 상태를 변경한다. 관리자 ZIP export의 `includeDrafts=true`는 미발행 **원본 글**을 포함하며, 삭제된 편집본 기능의 데이터는 일회성 이관 추출로 보존한다.
+기존 PRIVATE 또는 `local-posts` 원고를 공개하려면 내용을 검토하고 `content/posts/{slug}.md`로 명시적으로 옮긴 뒤 상태를 변경한다. 기존 DB 원고와 옛 편집본 데이터는 운영 이관 전에 `ops/export-markdown.py`로 일회성 추출해 보존한다.

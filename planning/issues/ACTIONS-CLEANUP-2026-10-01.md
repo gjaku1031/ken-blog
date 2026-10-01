@@ -33,3 +33,11 @@
 - 소스 구현과 격리 검증 완료. 실제 GitHub Actions/Pages 실행, 운영 DB/원고/객체 이관과 운영 Spring 배포 미수행.
 - 운영 연결 및 기존 데이터 보존 이행 전 push 보류. 공개 원고 content/posts는 아직 .gitkeep만 존재. 운영이 새 snapshot API를 제공하고 공개 원고가 Git에 반영된 뒤 push/Pages 실행 필요.
 - 시험 자료와 build/site는 운영 콘텐츠가 아니며 배포 대상에서 제외. 운영 이행은 DB/OCI 백업 → 원고·편집본 추출 → OCI 객체 로컬 이관 → 권한 준비 → 새 런타임과 보존 확인 → 공개 원고 Git 반영 → push/Actions 검증 순서.
+
+## 미사용 ZIP 내보내기 추가 정리
+
+- 사용자 후속 지적으로 데이터 내보내기 전체 참조 점검. 관리자 웹·MCP·Actions가 호출하지 않는 GET /api/v1/admin/export와 ContentExportController/Service·ZIP DTO·휴대용 Markdown 보조 함수를 제거. 약400줄의 런타임 계층과 전용 org.commonmark:commonmark 의존성 제거.
+- MCP 작성 가이드의 ZIP/includeDrafts 안내 제거. ops/export-markdown.py는 실제 운영 DB 원고·편집본 이관이 남아 있어 유지, DB 백업/복원 도구와 실제 기존 파일/데이터 변경 없음. 과거 ZIP 검증 기록은 당시 이력으로 유지.
+- Gradle offline clean build/writeSiteClasspath 성공, 기존35개 검사 failures/errors/skipped0. TypeScript·브라우저 자산 생성 성공. 새 JAR·Pages classpath에서 ZIP 클래스와 CommonMark 부재, 가이드의 구 ZIP 안내 부재 확인.
+- 삭제 후 네 섹션의 저장소 Markdown을 Thymeleaf HTML로 생성하고 CI 빈 Pages fixture도 성공. 신규 저장소 테스트 추가 없음. git diff --check와 활성 코드의 export API·DTO·파서 잔여 참조0건 확인.
+- 로컬 소스 정리이며 원격 Actions·운영 이관·push 미수행. 운영 원고/첨부 이관 전 push 보류 유지.
