@@ -3,7 +3,7 @@
     <section class="feed-column">
       <div class="section-heading">
         <h1>{{ heading }}</h1>
-        <span id="filter-count" class="mono feed-total"></span>
+        <div class="listing-actions"><span id="filter-count" class="mono feed-total"></span>{% if section == "Posts" %}<a class="write-button" data-admin-write href="{{ base }}posts/new/" hidden>글쓰기</a>{% endif %}</div>
       </div>
       {% if searching %}<p id="search-filter" class="active-filters">
       </p>{% endif %}

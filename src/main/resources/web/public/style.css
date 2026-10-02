@@ -647,3 +647,9 @@ button:disabled { cursor: not-allowed; opacity: .6; }
   .project-document-neighbors { grid-template-columns: 1fr; }
   .project-document-neighbors a:last-child { grid-column: 1; }
 }
+
+.listing-actions { display:flex; align-items:center; gap:18px; }
+.write-button { display:inline-flex; align-items:center; justify-content:center; padding:8px 16px; border-radius:6px; background:var(--button-bg); color:var(--on-accent); font-size:13px; font-weight:600; }
+.write-button:hover { background:var(--button-hover); color:var(--on-accent); }
+.write-button[hidden] { display:none; }
+.projects-heading { display:flex; align-items:center; justify-content:space-between; gap:16px; }

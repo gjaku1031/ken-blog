@@ -150,3 +150,14 @@ if (route === "search") {
 }
 
 for (const root of document.querySelectorAll<HTMLElement>(".markdown-body")) void enhanceMarkdown(root, { theme: document.documentElement.dataset.theme === "dark" ? "dark" : "light" });
+
+/** 글쓰기 진입은 실제 관리자 세션을 확인한 뒤에만 표시한다. */
+const writeButtons = document.querySelectorAll<HTMLElement>('[data-admin-write]');
+const adminApiBase = document.body.dataset.apiBase;
+if (writeButtons.length && adminApiBase) {
+  void fetch(new URL('/api/v1/auth/me', adminApiBase), {
+    credentials: 'include', cache: 'no-store', redirect: 'error', headers: { Accept: 'application/json' },
+  }).then(async response => {
+    if (response.ok && (await response.json()).role === 'ADMIN') writeButtons.forEach(button => { button.hidden = false; });
+  }).catch(() => undefined);
+}

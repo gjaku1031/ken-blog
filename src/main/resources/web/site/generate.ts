@@ -74,7 +74,9 @@ export async function generateSite(payload: Input, output: string) {
     await writeFile(file, content, "utf8");
   };
   // 관리자 데이터는 포함하지 않고 로그인 화면과 API·자산 주소만 전달.
-  await write("manage/index.html", engine.render("manage.njk", { apiBase: admin.apiBase, adminCss: admin.css, adminJs: admin.js }));
+  await write("manage/index.html", engine.render("manage.njk", { apiBase: admin.apiBase, adminCss: admin.css, adminJs: admin.js, editor: "" }));
+  for (const [path, editor] of [["posts", "post"], ["projects", "project"]])
+    await write(`${path}/new/index.html`, engine.render("manage.njk", { apiBase: admin.apiBase, adminCss: admin.css, adminJs: admin.js, editor }));
   async function page(path: string, view: string, section: string, title: string, description: string,
     data: Record<string, unknown> = {}, sitemap = true) {
     const canonical = ORIGIN + route(path === "404.html" ? path : path ? `${path}/` : "");
@@ -88,7 +90,7 @@ export async function generateSite(payload: Input, output: string) {
     await write(path === "404.html" ? path : join(path, "index.html"), engine.render("page.njk", {
       view, section, documentTitle, socialTitle: article ? title : documentTitle, summary, canonical,
       ogType: article ? "article" : "website", base: BASE, assetsCss: route(`assets/${assets.css}`), assetsJs: route(`assets/${assets.js}`),
-      adminHref: payload.adminHref, nav, year: new Date().getUTCFullYear(), github: "https://github.com/gjaku1031/ken-blog", ...data,
+      adminHref: payload.adminHref, apiBase: admin.apiBase, nav, year: new Date().getUTCFullYear(), github: "https://github.com/gjaku1031/ken-blog", ...data,
     }));
     if (sitemap) pages.push(path);
   }

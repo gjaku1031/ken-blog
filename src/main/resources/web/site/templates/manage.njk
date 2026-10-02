@@ -4,73 +4,46 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex,nofollow">
-  <title>관리 · ken.blog</title>
+  <title>{{ '글쓰기' if editor else '관리' }} · ken.blog</title>
   <link rel="stylesheet" href="{{ adminCss }}">
   <script type="module" src="{{ adminJs }}"></script>
 </head>
-<body data-api-base="{{ apiBase }}">
+<body data-api-base="{{ apiBase }}" data-editor="{{ editor }}">
   <a class="skip-link" href="#content">본문으로 이동</a>
-  <main id="content" class="page-container">
-    <div id="boot" class="card panel" role="status">관리자 연결을 확인하는 중입니다.</div>
-
-    <section id="login" class="login-card card" hidden>
-      <p class="eyebrow">KEN BLOG / MANAGE</p>
-      <h1>관리자 로그인</h1>
-      <p class="muted">관리자 비밀번호를 입력하세요.</p>
-      <p id="login-message" class="notice error" role="alert" hidden></p>
-      <form id="login-form" autocomplete="on">
-        <label for="password">비밀번호</label>
-        <input id="password" name="password" type="password" autocomplete="current-password" required>
-        <label class="check"><input name="rememberMe" type="checkbox"> 30일 동안 로그인 유지</label>
-        <button class="button primary" type="submit">로그인</button>
-      </form>
-      <a class="text-link" href="../">블로그로 돌아가기</a>
-    </section>
-
-    <div id="dashboard" hidden>
-      <header class="site-header">
-        <div class="header-inner">
-          <a class="brand" href="./">ken<span class="brand-dot">.</span>blog <small>관리</small></a>
-          <nav aria-label="관리 메뉴">
-            <a href="#posts">글</a><a href="#categories">분류</a><a href="#series">시리즈·프로젝트</a><a href="#deployment">배포</a>
-          </nav>
-          <button class="button ghost" type="button" data-theme-toggle aria-label="테마 변경">테마</button>
-          <button class="button ghost" id="logout" type="button">로그아웃</button>
-        </div>
-      </header>
-      <div class="page-heading">
-        <div>
-          <p class="eyebrow">CONTENT CONTROL</p>
-          <h1>관리</h1>
-          <p class="muted">본문은 Git 저장소에서 수정합니다. 여기서는 글의 메타데이터·출간 상태·첨부와 위키 연결을 관리합니다.</p>
-        </div>
-        <a class="button ghost" href="../">공개 블로그</a>
-      </div>
-      <p id="dashboard-message" class="notice" role="status" hidden></p>
-      <section id="posts" class="panel card">
-        <div class="section-heading"><div>
-          <p class="eyebrow">POSTS</p><h2>글</h2>
-          <p class="muted">글을 만든 뒤 저장소의 content/posts/{slug}.md 파일을 작성하세요.</p>
-        </div></div>
-        <div id="post-create"></div><div id="post-list"></div><div id="post-pages" class="pagination"></div>
-      </section>
-      <section id="categories" class="panel card">
-        <div class="section-heading"><div><p class="eyebrow">CATEGORIES</p><h2>분류</h2></div></div>
-        <div id="category-create"></div><div id="category-list"></div>
-      </section>
-      <section id="series" class="panel card">
-        <div class="section-heading"><div><p class="eyebrow">SERIES</p><h2>시리즈·프로젝트</h2>
-          <p class="muted">지정 순서의 첫 공개 글이 대문입니다. 기술 스택과 기간은 프로젝트에만 지정합니다.</p></div></div>
-        <div id="series-create"></div><div id="series-list"></div>
-      </section>
-      <section id="deployment" class="panel card">
-        <div class="section-heading"><div>
-          <p class="eyebrow">GITHUB PAGES</p><h2>공개 사이트 생성</h2>
-          <p class="muted">메타데이터 저장 후 GitHub Actions에서 Pages 워크플로를 수동 실행하세요. 저장소 Markdown을 main에 반영하면 Pages가 자동 실행됩니다.</p>
-        </div></div>
-        <a class="button primary" href="https://github.com/gjaku1031/ken-blog/actions/workflows/pages.yml" target="_blank" rel="noopener noreferrer">GitHub Actions에서 Pages 실행</a>
-      </section>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="/ken-blog/"><svg width="30" height="30" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><g transform="rotate(-45 24 24)"><path d="M8 12.5 L45 24 L8 35.5 Z"></path><path d="M14 14.4 Q17.5 24 14 33.6 M22 16.9 Q24.8 24 22 31.1 M30 19.4 Q32 24 30 28.6 M37 21.6 Q38.2 24 37 26.4"></path></g></svg><span>ken<span class="brand-dot">.</span>blog</span></a>
+      <nav class="main-nav" aria-label="주 메뉴"><a href="/ken-blog/">Home</a><a href="/ken-blog/posts/">Posts</a><a href="/ken-blog/projects/">Projects</a></nav>
+      <div class="header-actions"><button class="text-button" type="button" data-theme-toggle aria-label="다크 모드" aria-pressed="false">◐</button><a class="text-button" href="/ken-blog/manage/"{% if not editor %} aria-current="page"{% endif %}>관리</a><button class="text-button" id="logout" type="button" hidden>로그아웃</button></div>
     </div>
-  </main>
+  </header>
+  <div id="boot" class="boot" role="status">관리자 연결을 확인하는 중입니다.</div>
+  <section id="login" class="login-card card" hidden aria-labelledby="login-title">
+    <h1 id="login-title">관리자 로그인</h1>
+    <p id="login-message" class="notice error" role="alert" hidden></p>
+    <form id="login-form" autocomplete="on"><label for="password">비밀번호</label><input id="password" name="password" type="password" autocomplete="current-password" required><label class="check"><input name="rememberMe" type="checkbox"> 30일 동안 로그인 유지</label><button class="button primary" type="submit">로그인</button></form>
+    <a class="text-link" href="/ken-blog/">블로그로 돌아가기</a>
+  </section>
+  <div id="dashboard" class="{{ 'editor-layout' if editor else 'admin-layout' }}" hidden>
+    {% if not editor %}<aside class="admin-sidebar"><p>관리</p><nav aria-label="관리 메뉴"><a href="#posts" data-panel-link="posts">글 관리</a><a href="#categories" data-panel-link="categories">분류 관리</a><a href="#series" data-panel-link="series">시리즈·프로젝트</a><a href="#deployment" data-panel-link="deployment">배포</a></nav></aside>{% endif %}
+    <main id="content" tabindex="-1">
+      <p id="dashboard-message" class="notice" role="status" hidden></p>
+      {% if editor %}
+      <a class="back-link" href="/ken-blog/{{ 'projects' if editor == 'project' else 'posts' }}/">← {{ 'Projects' if editor == 'project' else 'Posts' }}</a>
+      <div class="page-heading"><h1>{{ 'Projects' if editor == 'project' else 'Posts' }} 글쓰기</h1></div>
+      <div id="editor-content" class="card editor-card"></div>
+      {% else %}
+      <section id="posts" data-panel>
+        <div class="page-heading"><h1>글 관리</h1><span id="post-count" class="muted mono"></span></div>
+        <div class="card list-card"><div id="post-list"></div><div id="post-pages" class="pagination"></div></div>
+      </section>
+      <section id="categories" data-panel hidden><div class="page-heading"><h1>분류 관리</h1></div><div class="card panel"><div id="category-create"></div><div id="category-list"></div></div></section>
+      <section id="series" data-panel hidden><div class="page-heading"><h1>시리즈·프로젝트</h1></div><div class="card panel"><div id="series-create"></div><div id="series-list"></div></div></section>
+      <section id="deployment" data-panel hidden><div class="page-heading"><h1>배포</h1></div><div class="card panel"><h2>공개 사이트 생성</h2><p class="muted">변경한 메타데이터를 공개 사이트에 반영합니다.</p><a class="button primary" href="https://github.com/gjaku1031/ken-blog/actions/workflows/pages.yml" target="_blank" rel="noopener noreferrer">GitHub Pages 배포 ↗</a></div></section>
+      {% endif %}
+    </main>
+  </div>
+  <dialog id="edit-dialog" class="edit-dialog" aria-labelledby="dialog-title"><div class="dialog-heading"><h2 id="dialog-title"></h2><button id="dialog-close" class="text-button" type="button" aria-label="닫기">×</button></div><p id="dialog-message" class="notice" role="status" hidden></p><div id="dialog-content"></div></dialog>
+  <footer class="site-footer"><span>© ken.blog</span><a href="https://github.com/gjaku1031/ken-blog">GitHub</a></footer>
 </body>
 </html>
