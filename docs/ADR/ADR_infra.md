@@ -2,7 +2,7 @@
 
 기준일: 2026-10-02. 인프라 변경 시 구현과 함께 갱신하는 결정 원본 문서.
 
-**코드의 구성과 실제 운영 적용 상태를 구분하는 원칙.** 코드의 기본 런타임은 일반 JVM이며 새 서버의 별도 테스트 DB로 API·Caddy 검증 수행. 기존 운영 DB·원고·OCI 첨부 이관 및 실제 GitHub Pages 전환·push는 미완료. 아래 과거 검증 기록은 당시 상태이며 최신 배포·용량 결과는 문서 후반 참조. 애플리케이션 및 영속성 결정은 [ADR 목록](README.md)에서 연결.
+**코드의 구성과 실제 운영 적용 상태를 구분하는 원칙.** 기존 운영 DB·원고·OCI 첨부 이관 후 새 서버의 일반 JVM API·Caddy와 GitHub Pages로 운영 전환·push 완료. 아래 과거 검증 기록은 당시 상태이며 최신 배포·용량 결과는 문서 후반 참조. 애플리케이션 및 영속성 결정은 [ADR 목록](README.md)에서 연결.
 
 ## 서비스 배치
 
@@ -20,13 +20,13 @@ flowchart LR
 
 | 결정 | 이유·효과 | 실제 적용 상태 |
 | --- | --- | --- |
-| 공개·관리자 화면 모두 GitHub Pages | 정적 파일 배포 유지, 서버의 HTML 렌더링 제거 | 소스 및 격리 브라우저 검증 완료, 운영 반영 전 |
+| 공개·관리자 화면 모두 GitHub Pages | 정적 파일 배포 유지, 서버의 HTML 렌더링 제거 | 운영 Pages 발행·공개 브라우저 확인 완료 |
 | Node·TypeScript·Nunjucks는 빌드 시 HTML 생성, 브라우저 TypeScript는 상호작용 | 사이트 생성과 Spring 빌드의 분리 | 아래 Node 전환 검증 기록 참조 |
-| Caddy가 공개 HTTPS 종료·인증서 갱신 | 별도 Certbot·systemd·Spring 직접 TLS 관리 제거 | 새 서버에서 공개 인증서·HTTPS 검증 완료, 실제 운영 데이터 전환 전 |
+| Caddy가 공개 HTTPS 종료·인증서 갱신 | 별도 Certbot·systemd·Spring 직접 TLS 관리 제거 | 기존 인증서 보존·운영 데이터 HTTPS 전환 완료 |
 | 공개 IPv4 + Let’s Encrypt ACME `shortlived` | 도메인 구매 없이 지원되는 브라우저의 공개 신뢰 사용 | 새 서버 공인 IP의 실제 발급·CA 검증 완료 |
 | Caddy `default_sni`에 공인 IP 지정 | IP 접속의 SNI 부재와 OCI NAT 환경에서 올바른 인증서 선택 | IP URL의 TLS·주소 검증 완료 |
 | MySQL/JDBC 세션, 단일 관리자 비밀번호, CSRF 유지 | 사용자 승인에 따라 MFA 제거, 로그인 실패 제한과 계정 변경 시 세션 해제 유지 | Post·Series 통합 브랜치 JVM 검증 완료; 아래 병합 검증 기록 참조 |
-| 원고는 저장소 Markdown, 이미지는 영속 로컬 파일 | 본문 웹 편집·S3/Redis 의존 제거 | 소스 구현 완료, 기존 자료 이관 전 |
+| 원고는 저장소 Markdown, 이미지는 영속 로컬 파일 | 본문 웹 편집·S3/Redis 의존 제거 | 기존 DB 원고 추출·로컬 이미지 이관 완료 |
 | Dockerfile 대신 CI의 `bootBuildImage` | 이미지 빌드 정의를 Gradle·Cloud Native Buildpacks로 통합 | 로컬 ARM64 이미지 빌드·CI 동일 검사 완료 |
 | 일반 JVM·Linux ARM64 | OCI ARM 서버 호환과 동적 기능의 유지보수 단순화 | 아래 JVM 전환 검증 기록 참조 |
 
@@ -285,4 +285,4 @@ OCI API 키 인증 복구 후 기존 외부 MySQL의 ACTIVE 상태 확인. 이�
 
 기존 DB 백업·원고 추출·Post/Series 이관 후 OCI 이미지 78개를 로컬 디스크로 복사하고 길이·제공된 MD5·SHA-256 대조. 공개 원고만 Git 반영, 기존 객체·DB 본문·편집본·백업 삭제 없음. 검증한 ARM64 JVM 이미지를 새 운영 Compose로 기동하고 기존 Caddy 인증서 볼륨의 복사본으로 HTTPS 전환. 이전 시험 스택은 컨테이너와 볼륨을 보존한 채 중지. 새 API에는 이미지 읽기 전용 마운트만 있으며 원고 마운트 없음.
 
-공개 API 주소는 `https://158.101.158.194`, GitHub Pages의 `BLOG_API_BASE_URL`도 같은 주소로 변경. 외부 TLS 검증·Actuator UP·공개 snapshot의 글 7개/시리즈 6개 및 실제 API를 사용한 Node 사이트 생성 확인. 기존 계정·원고·첨부·기술의 데이터 해시 보존, 인증 상태 행은 새 로그인 정책에 따라 갱신. 원격 push·CI·Pages 결과는 후속 검증으로 기록.
+공개 API 주소는 `https://158.101.158.194`, GitHub Pages의 `BLOG_API_BASE_URL`도 같은 주소로 변경. 외부 TLS 검증·Actuator UP·공개 snapshot의 글 7개/시리즈 6개 및 실제 API를 사용한 Node 사이트 생성 확인. 기존 계정·원고·첨부·기술의 데이터 해시 보존, 인증 상태 행은 새 로그인 정책에 따라 갱신. main push 및 [Pages 37007598432](https://github.com/gjaku1031/ken-blog/actions/runs/37007598432) 성공. 공개 홈·프로젝트 6개·이미지·새 API로 연결된 관리자 로그인 화면을 Chromium에서 확인. 운영 비밀번호 입력을 사용한 로그인/쓰기 검사는 수행하지 않고 기존 계정/해시 보존과 격리 인증 검증으로 구분. 운영 snapshot 2개 동시 요청 60회 오류 0, 외부 왕복 포함 p95 약 344ms. 측정 직후 API 약 393MiB·Caddy 약 15MiB, 4GB 호스트 가용 약 2.7GiB. 장기/최대 부하 보장은 아닌 시점 측정. [CI 37007598395](https://github.com/gjaku1031/ken-blog/actions/runs/37007598395)의 기존 백엔드 검사와 ARM64 Buildpacks 이미지 생성·실행·HTTP 검증 모두 성공. 프로젝트 ID 보정 후 [최종 Pages 37008106440](https://github.com/gjaku1031/ken-blog/actions/runs/37008106440) 재발행 성공. 운영 코드·원고 반영과 공개 접속 확인 완료.
