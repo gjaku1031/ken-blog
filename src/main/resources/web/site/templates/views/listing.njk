@@ -1,0 +1,18 @@
+<main id="main-content" class="page-container {{ 'search-page' if searching else 'tech-page' }}">
+  <div class="content-grid">
+    <section class="feed-column">
+      <div class="section-heading">
+        <h1>{{ heading }}</h1>
+        <span id="filter-count" class="mono feed-total"></span>
+      </div>
+      {% if searching %}<p id="search-filter" class="active-filters">
+      </p>{% endif %}
+      {% if groups | length %}<nav class="tag-list" aria-label="시리즈와 소분류 대문">
+        {% for group in groups %}<a href="{{ group.href }}">{{ group.name }}</a>{% endfor %}
+      </nav>{% endif %}
+      <div class="post-list">{% include "views/cards.njk" %}</div>
+      <p id="filter-empty" class="message-card card" hidden>검색 결과가 없습니다.</p>
+    </section>
+    {% include "views/sidebar.njk" %}
+  </div>
+</main>

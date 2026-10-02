@@ -3,6 +3,16 @@ name: CI
 on:
   push:
     branches: [main]
+    paths:
+      - 'src/main/kotlin/**'
+      - 'src/main/resources/**'
+      - '!src/main/resources/web/**'
+      - 'src/test/**'
+      - '*.gradle.kts'
+      - 'gradle.properties'
+      - 'gradle/**'
+      - 'gradlew'
+      - '.github/workflows/ci.yml'
   workflow_dispatch:
 
 permissions:
@@ -38,22 +48,8 @@ jobs:
           distribution: temurin
           java-version: '25'
       - uses: gradle/actions/setup-gradle@v4
-      - uses: actions/setup-node@v7.0.0
-        with:
-          node-version: '24.21.0'
-          cache: npm
-          cache-dependency-path: package-lock.json
-      - name: Verify root Gradle application and prepare Pages generator
-        run: ./gradlew --no-daemon clean build writeSiteClasspath
-      - name: Build explicit empty site fixture
-        run: |
-          mkdir -p "$RUNNER_TEMP/ken-blog-fixture"
-          cat > "$RUNNER_TEMP/ken-blog-fixture/empty.json" <<'JSON'
-          {"version":2,"profile":null,"posts":[],"series":[]}
-          JSON
-          SITE_BASE_PATH=/ken-blog npm run build:site -- --fixture="$RUNNER_TEMP/ken-blog-fixture/empty.json"
-          test -s build/site/index.html
-          test -s build/site/manage/index.html
+      - name: Verify Spring application
+        run: ./gradlew --no-daemon clean build
 
   jvm-image:
     needs: verify
@@ -86,7 +82,7 @@ jobs:
       - name: Build Linux ARM64 JVM image with Cloud Native Buildpacks
         run: |
           test "$(uname -m)" = aarch64
-          ./gradlew --no-daemon -PskipWeb=true bootBuildImage \
+          ./gradlew --no-daemon bootBuildImage \
             --imageName="$IMAGE_NAME" \
             --environment BP_JVM_VERSION=25
       - name: Verify and archive JVM image

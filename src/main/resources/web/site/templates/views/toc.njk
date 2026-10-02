@@ -1,0 +1,8 @@
+{% if toc | length %}<nav class="post-toc" aria-label="목차">
+  <h2>목차</h2>
+  <ol>
+    {% for heading in toc %}<li class="{{ 'toc-depth-three' if heading.depth == 3 else '' }}">
+      <a href="{{ '#' + heading.id }}">{{ heading.label }}</a>
+    </li>{% endfor %}
+  </ol>
+</nav>{% endif %}

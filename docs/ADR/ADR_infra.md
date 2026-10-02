@@ -14,14 +14,14 @@ flowchart LR
     api --> db["기존 외부 MySQL"]
     api --> disk["영속 로컬 이미지"]
     source["Git 저장소 Markdown"] --> actions["GitHub Actions"]
-    actions -->|"Thymeleaf·TS 정적 생성"| pages
+    actions -->|"Node·TS·Nunjucks 정적 생성"| pages
     actions -->|"bootBuildImage · ARM64 이미지 산출물"| image["이미지 + SHA-256<br/>검증 후 별도 운영 반영"]
 ```
 
 | 결정 | 이유·효과 | 실제 적용 상태 |
 | --- | --- | --- |
 | 공개·관리자 화면 모두 GitHub Pages | 정적 파일 배포 유지, 서버의 HTML 렌더링 제거 | 소스 및 격리 브라우저 검증 완료, 운영 반영 전 |
-| Thymeleaf는 빌드 시 HTML 생성, TypeScript는 브라우저 동작 | Spring 중심 소스 구조와 정적 Pages의 역할 분리 | 기존 생성·로그인 검증 완료 |
+| Node·TypeScript·Nunjucks는 빌드 시 HTML 생성, 브라우저 TypeScript는 상호작용 | 사이트 생성과 Spring 빌드의 분리 | 아래 Node 전환 검증 기록 참조 |
 | Caddy가 공개 HTTPS 종료·인증서 갱신 | 별도 Certbot·systemd·Spring 직접 TLS 관리 제거 | 새 서버에서 공개 인증서·HTTPS 검증 완료, 실제 운영 데이터 전환 전 |
 | 공개 IPv4 + Let’s Encrypt ACME `shortlived` | 도메인 구매 없이 지원되는 브라우저의 공개 신뢰 사용 | 새 서버 공인 IP의 실제 발급·CA 검증 완료 |
 | Caddy `default_sni`에 공인 IP 지정 | IP 접속의 SNI 부재와 OCI NAT 환경에서 올바른 인증서 선택 | IP URL의 TLS·주소 검증 완료 |
@@ -31,6 +31,30 @@ flowchart LR
 | 일반 JVM·Linux ARM64 | OCI ARM 서버 호환과 동적 기능의 유지보수 단순화 | 아래 JVM 전환 검증 기록 참조 |
 
 Caddy는 운영 Compose에서 `caddy run`으로 직접 실행하는 선택. 고정 IP의 단일 VM에서 중간 실행 스크립트의 필요성이 낮아 `deploy/start-caddy.sh`와 연결 마운트·entrypoint 제거. 공인 IP와 사설 NIC bind IP는 Compose 필수 입력이며, 실제 값의 적합성은 운영 준비 단계에서 확인하는 계약. 인증서 발급·갱신은 Caddy 자체 기능으로 유지.
+
+## 정적 페이지 생성의 Node 통합 — 2026-10-02 결정
+
+Post의 메타데이터와 저장소 Markdown을 빌드 시 결합해 완성 HTML을 제공하는 방식 유지. 글 변경 시 Spring·프론트 컴파일을 분리하려는 목적만으로 SPA를 도입하지 않는 결정. 공통 화면 유지나 실시간 메타데이터 반영은 이번 요구에서 제외. 공통 레이아웃 변경 시 전체 페이지 재조립 필요.
+
+기존 Kotlin SiteGenerator와 Thymeleaf 템플릿·의존성 제거. `src/main/resources/web/site/generate.ts`와 같은 폴더의 Nunjucks 템플릿으로 홈·목록·프로젝트·검색·상세·관리자 화면·목차·시리즈·백링크·이전 주소·사이트맵 생성 역할 이전. Nunjucks는 빌드 전용 의존성으로 자동 HTML 이스케이프 사용. 기존 공용 Markdown 렌더러가 처리한 본문만 `safe` 출력. 템플릿은 저장소 코드이며 DB·원고 문자열을 템플릿 소스로 실행하지 않는 경계. [Nunjucks API](https://mozilla.github.io/nunjucks/api.html)
+
+`pages`의 공개 snapshot v2·revision 및 일관 읽기 계약 유지. `content/posts/{slug}.md` 경로 규칙 유지. 공개 목록에 있는 글만 생성하고, 원고 누락·비공개 데이터 혼입·생성 중 revision 변경 시 최종 출력 교체 전 실패. 공개 페이지와 다운로드 이미지는 빈 staging에서 전체 재생성하여 삭제·공개 해제된 자료가 과거 출력에서 남지 않는 구성. 글별 증분 생성·의존성 그래프·본문 캐시 미도입.
+
+### 빌드·배포 경계
+
+- 사이트 명령은 `npm ci`, `npm test`, `PUBLIC_API_BASE_URL=… npm run build:site`. Node 24.21.0 사용. Java·Gradle·Spring 실행 없는 생성 경로. `npm test`는 기존 타입 검사와 빈 사이트 생성 검사.
+- API 명령은 `./gradlew build`와 `bootBuildImage`. npm 태스크·`skipWeb`·`writeSiteClasspath` 제거. API JAR에서 웹 소스·템플릿 제외 유지.
+- `pages.yml`은 공개 원고·웹 소스·npm 설정·사이트 빌드 코드 변경 시 실행. `ci.yml`은 Kotlin·런타임 리소스·기존 검사·Gradle 변경 시 실행하고 웹 리소스 제외. 변경 파일 경로 기준이며 커밋 메시지 규칙 없음. DB 메타데이터 변경은 기존 `workflow_dispatch`로 발행. 백엔드 공개 데이터 계약 변경 시 API 반영 후 사이트 수동 발행 필요.
+- 프론트 번들의 입력 키는 브라우저 소스·공용 코드·빌더·package/lockfile·tsconfig·Node 버전·플랫폼의 내용 해시. 페이지 템플릿과 원고는 번들 키에서 제외. 자산 manifest의 모든 파일 해시와 JS/CSS 진입 파일을 검사한 뒤 재사용. 캐시 미존재·손상·입력 변경 시 소스에서 재생성. Actions 캐시 만료가 발행 실패 조건이 아니며, 프론트 컴파일의 영구 생략 보장은 없음. 별도 산출물 Git 브랜치 미도입.
+- Pages 발행 workflow 하나에서 전체 사이트 artifact 구성·배포. workflow 전체 concurrency 유지, 시작 시 main checkout 및 배포 전 현재 main과 사이트 입력 경로 차이 검사. Git 소스·snapshot revision·자산 키를 실행 요약에 기록. 마지막 확인 이후의 변경이나 브라우저 캐시까지 원자적으로 묶는 보장은 없으며 메타데이터 저장과 공개 반영은 별도 단계. [Pages Actions 배포](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)
+
+### 검증과 적용 상태
+
+Java 없는 Node 컨테이너에서 타입 검사·빈 사이트·일반 글·프로젝트·시리즈·이미지 포함 사이트 생성 통과. 저장소 밖 fixture를 사용하여 기존 Thymeleaf 생성 결과와 22개 HTML의 DOM 의미 및 routes·sitemap·robots 일치 확인. 빈 속성 표기·공백·동등한 URL 인코딩은 비교 시 정규화. XSS 문자열 이스케이프, 공개 대상 외 원고 제외, revision 변경·원고 누락 시 기존 산출물 보존, 공개 해제 후 글·이미지 파일 제거 검증 통과. 캐시 적중·미존재·손상 및 원고/템플릿과 CSS 입력 분리 검증 완료.
+
+Chromium에서 홈·상세·위키 링크·목차·시리즈·본문 검색·이전 프로젝트 주소·다크 모드·모바일 프로젝트 화면 및 모의 API 기반 관리자 로그인 화면 검증. JavaScript 오류 없음. 기존 JVM 검사 35개 실패·오류·건너뜀 없이 통과. 최초 격리 JVM 실행의 Docker socket 누락으로 인한 Testcontainers 실패는 실행 환경 수정 후 해소. 최종 API JAR의 Thymeleaf·SiteGenerator·템플릿 부재 확인.
+
+소스 및 로컬 검증 완료. GitHub Actions 원격 실행·실제 Pages 배포·운영 API 재배포는 미수행. 기존 운영 자료 이관 전 fixture 배포 금지 상태 유지.
 
 ## JVM 이미지 빌드와 배포 — 2026-10-02 결정
 

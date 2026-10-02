@@ -14,7 +14,7 @@
 
 웹 본문 작성·수정 화면과 본문 쓰기 API는 제거. 원고는 저장소에서 수정하고 웹/MCP는 지원하는 조회·메타데이터·로컬 이미지 기능 제공. 첨부는 영속 로컬 디스크로 관리하며 기존 OCI 객체는 해시를 대조해 이관할 때까지 보존.
 
-공개·관리자 화면은 Thymeleaf·TypeScript로 빌드한 GitHub Pages 정적 파일. API는 Spring Boot, Node는 빌드 용도. 배포 실행과 이력은 GitHub Actions 담당. 상세 배치와 운영 상태는 [인프라 ADR](ADR_infra.md) 참조.
+공개·관리자 화면은 Node/TypeScript·Nunjucks로 빌드한 GitHub Pages 정적 파일. 본문 렌더링과 완성 HTML 조립을 Node로 통일하고 Kotlin SiteGenerator·Thymeleaf 제거. API는 Spring Boot, Node는 빌드 용도. `pages`의 공개 snapshot·revision 계약 유지. 독자용 공개 Post API·SPA 라우터·htmx 추가 없음. 배포 실행과 이력은 GitHub Actions 담당. 상세 배치와 운영 상태는 [인프라 ADR](ADR_infra.md) 참조.
 
 ## 인증과 제거한 기능
 

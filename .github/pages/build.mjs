@@ -4,14 +4,13 @@ import { buildWebAssets } from "../../src/main/resources/web/build.mjs";
 import { readFile, writeFile, mkdir, rm, cp, readdir, stat, rename, open } from "node:fs/promises";
 import { constants } from "node:fs";
 import { createHash } from "node:crypto";
-import { spawn } from "node:child_process";
+import { generateSite } from "../../src/main/resources/web/site/generate.ts";
 import { resolve, join } from "node:path";
 import { pathToFileURL } from "node:url";
 
 const root = resolve(import.meta.dirname, "../..");
 const staging = join(root, "build/site-staging");
 const output = join(root, "build/site");
-const input = join(root, "build/site-input/rendered.json");
 const basePath = "/ken-blog/";
 const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const route = (path = "") => `${basePath}${path}`;
@@ -119,18 +118,6 @@ async function checkArtifact() {
   await visit(staging);
 }
 
-/** 실행 중인 JVM과 결과 코드를 그대로 전달한다. */
-async function runGenerator(args) {
-  const classpathFile = join(root, "build/site-runtime-classpath.txt");
-  const classpath = process.env.SITE_JAVA_CLASSPATH || await readFile(classpathFile, "utf8").then((value) => value.trim()).catch(() => {
-    throw new Error("Pages 생성기 클래스패스가 없습니다. ./gradlew -PskipWeb=true writeSiteClasspath를 먼저 실행하세요.");
-  });
-  if (!classpath) throw new Error("Pages 생성기 클래스패스가 비어 있습니다.");
-  const child = spawn(process.env.JAVA_BINARY || "java", ["-cp", classpath, "io.github.gjaku1031.kenblog.site.SiteGeneratorKt", ...args], { cwd: root, stdio: "inherit" });
-  const code = await new Promise((accept, reject) => { child.once("error", reject); child.once("close", accept); });
-  if (code !== 0) throw new Error(`Kotlin Pages 생성 실패: ${code}`);
-}
-
 /** checkout 원본만 읽고 링크·과도한 파일·잘못된 UTF-8을 거부한다. */
 async function markdownSource(file, fixture) {
   let handle;
@@ -149,7 +136,7 @@ async function markdownSource(file, fixture) {
   } finally { await handle.close(); }
 }
 
-/** 캡처·저장소 Markdown·첨부를 검증하고 Kotlin 템플릿 생성기에 넘긴다. */
+/** 캡처·저장소 Markdown·첨부를 검증하고 Node 템플릿으로 완성 페이지를 생성한다. */
 async function main() {
   if (process.env.SITE_BASE_PATH && process.env.SITE_BASE_PATH !== "/ken-blog") throw new Error("SITE_BASE_PATH는 /ken-blog여야 합니다.");
   const fixtureArg = process.argv.find((arg) => arg === "--fixture" || arg.startsWith("--fixture=") || arg === "--empty");
@@ -207,12 +194,14 @@ async function main() {
       wikiUrl: (title) => links.get(wikiKey(title)) ?? null, sourceMap: true });
     post.rendered = { html: rendered.html, headings: rendered.headings, wikiTargets: rendered.wikiTargets };
   }
-  await mkdir(join(root, "build/site-input"), { recursive: true });
-  await writeFile(input, JSON.stringify({ snapshot, assets, adminHref: route("manage/"),
-    admin: { apiBase: base?.origin ?? "", css: route(`assets/${admin.css}`), js: route(`assets/${admin.js}`) } }));
-  await runGenerator([`--input=${input}`, `--output=${staging}`, ...(fixture ? ["--fixture"] : [])]);
+  await generateSite({ snapshot, assets, adminHref: route("manage/"),
+    admin: { apiBase: base?.origin ?? "", css: route(`assets/${admin.css}`), js: route(`assets/${admin.js}`) } }, staging);
   await checkArtifact();
-  if (!fixture) await confirmRevision(base, snapshot.revision);
+  if (!fixture) {
+    await confirmRevision(base, snapshot.revision);
+    console.log(`공개 데이터 revision: ${snapshot.revision}`);
+    if (process.env.GITHUB_STEP_SUMMARY) await writeFile(process.env.GITHUB_STEP_SUMMARY, `revision=${snapshot.revision}\n`, { flag: "a" });
+  }
   await rm(output, { recursive: true, force: true });
   await rename(staging, output);
   console.log(`정적 Pages 생성 완료: ${output}`);

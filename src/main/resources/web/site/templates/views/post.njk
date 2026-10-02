@@ -1,0 +1,41 @@
+<main id="main-content" class="post-page page-container">
+  <a class="back-link" href="{{ base + ('projects/' if project else 'posts/') }}">{{ '← Projects' if project else '← Posts' }}</a>
+  <article>
+    <div class="post-overline">
+      <a href="{{ base + ('projects/' if project else 'posts/') }}">{{ 'Projects' if project else 'Posts' }}</a>{% if post.category %}<span> · </span>{% endif %}{% if post.category %}<span>{{ post.category.path }}</span>{% endif %}
+    </div>
+    {% if project %}<div class="project-overview">
+      <a href="{{ base + 'projects/' }}">Projects</a>
+      <span>{{ project.name }}</span> · <span>{{ project.statusLabel }}</span> · <span>{{ project.period }}</span>
+      <div class="stack-badges">{% for badge in project.stackBadges %}<span><img alt="" width="22" height="22" src="{{ badge.imageUrl }}">{{ badge.name }}</span>{% endfor %}</div>
+    </div>{% endif %}
+    <h1>{{ post.title }}</h1>
+    {% if post.relatedProject %}<p class="post-related-project">
+      <span>[연관 프로젝트]</span><a href="{{ post.relatedProject.href }}">{{ post.relatedProject.name }}</a>
+    </p>{% endif %}
+    <div class="detail-meta">
+      <time class="mono" datetime="{{ post.publishedDate }}">{{ post.displayDate }}</time>
+    </div>
+    {% if post.tags | length %}<div class="tag-list detail-tags">
+      {% for tag in post.tags %}<a href="{{ base + 'posts/?tag=' + (tag | query) }}">#{{ tag }}</a>{% endfor %}
+    </div>{% endif %}
+    <div class="post-reading-layout {{ 'has-toc' if (toc | length) or (series | length) else '' }}">
+      <div class="post-main-content">
+        <div class="markdown-body">{{ html | safe }}</div>
+        {% include "views/backlinks.njk" %}
+      </div>
+      {% if toc | length or series | length %}<aside class="post-side-rail can-stick">
+        {% include "views/toc.njk" %}
+        {% if series | length %}<nav class="series-nav" aria-label="시리즈 글 목록">
+          <h2>{{ seriesName }} <span>{{ seriesPosition }}/{{ series | length }}</span>
+          </h2>
+          <ol>
+            {% for item in series %}<li>
+              <a href="{{ item.href }}"{% if item.current %} aria-current="page"{% endif %}><span class="series-number">{{ item.order }}</span><span>{{ item.title }}</span></a>
+            </li>{% endfor %}
+          </ol>
+        </nav>{% endif %}
+      </aside>{% endif %}
+    </div>
+  </article>
+</main>

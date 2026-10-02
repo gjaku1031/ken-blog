@@ -1,0 +1,21 @@
+{% for card in cards %}<article class="post-card card" data-search-card data-search-text="{{ card.searchText }}" data-category="{{ card.categoryPath }}" data-tags="{{ card.tagText }}">
+    <div class="card-meta">
+      <strong>{{ card.label }}</strong>{% if card.categoryPath %}<span>· {{ card.categoryPath }}</span>{% endif %}{% if card.context %}<span>· {{ card.context }}</span>{% endif %}
+    </div>
+    {% if card.section == 'TECH' and card['relatedSeries'] %}<div class="card-related-project">
+      <span>[연관 프로젝트]</span>{{ card.relatedSeries.name }}
+    </div>{% endif %}
+    <div class="card-title-row">
+      <h2>
+        <a href="{{ card.href }}">{{ card.title }}</a>
+      </h2>
+    </div>
+    {% if card.summary %}<p class="post-summary">{{ card.summary }}</p>{% endif %}
+    <div class="card-bottom">
+      <div class="tag-list">
+        {% for tag in card.tags %}<a href="{{ '?tag=' + (tag | query) }}">#{{ tag }}</a>{% endfor %}
+      </div>
+      <time class="mono" datetime="{{ card.publishedDate }}">{{ card.displayDate }}</time>
+    </div>
+  </article>{% endfor %}
+  {% if not cards | length %}<p class="message-card card">아직 공개된 글이 없습니다.</p>{% endif %}

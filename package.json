@@ -5,7 +5,7 @@
   "scripts": {
     "build:site": "node .github/pages/build.mjs",
     "typecheck": "tsc --noEmit",
-    "test": "npm run typecheck && ./gradlew --no-daemon -PskipWeb=true writeSiteClasspath && npm run build:site -- --fixture=empty",
+    "test": "npm run typecheck && npm run build:site -- --fixture=empty",
     "build:assets": "node src/main/resources/web/build.mjs"
   },
   "dependencies": {
@@ -27,7 +27,9 @@
     "@types/hast": "3.0.5",
     "@types/mdast": "4.0.4",
     "@types/node": "24.13.6",
+    "@types/nunjucks": "3.2.6",
     "esbuild": "0.25.12",
+    "nunjucks": "3.2.4",
     "typescript": "5.9.3"
   },
   "overrides": {

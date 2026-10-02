@@ -1,9 +1,17 @@
 name: Pages
-run-name: Pages ${{ github.sha }}
+run-name: Pages main
 
 on:
   push:
     branches: [main]
+    paths:
+      - 'content/posts/**'
+      - 'src/main/resources/web/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'tsconfig.json'
+      - '.github/pages/**'
+      - '.github/workflows/pages.yml'
   workflow_dispatch:
 
 concurrency:
@@ -25,22 +33,29 @@ jobs:
     steps:
       - name: Check out source
         uses: actions/checkout@v7.0.1
+        with:
+          ref: main
       - name: Set up Node.js
         uses: actions/setup-node@v7.0.0
         with:
           node-version: '24.21.0'
           cache: npm
           cache-dependency-path: package-lock.json
-      - name: Set up Java for Thymeleaf generation
-        uses: actions/setup-java@v6.0.1
-        with:
-          distribution: temurin
-          java-version: '25'
-      - uses: gradle/actions/setup-gradle@v4
       - name: Install static build dependencies
         run: npm ci
-      - name: Compile standalone Thymeleaf generator
-        run: ./gradlew --no-daemon -PskipWeb=true writeSiteClasspath
+      - name: Compute browser bundle input version
+        id: assets
+        run: echo "key=$(node src/main/resources/web/build.mjs --cache-key)" >> "$GITHUB_OUTPUT"
+      - name: Reuse browser bundles when inputs match
+        uses: actions/cache@v5
+        with:
+          key: web-assets-${{ steps.assets.outputs.key }}
+          path: |
+            build/web-assets.json
+            build/public-assets
+            build/admin-assets
+      - name: Check types and generate empty site
+        run: npm test
       - name: Capture public content and build Pages site
         env:
           PUBLIC_API_BASE_URL: ${{ vars.BLOG_API_BASE_URL }}
@@ -54,6 +69,15 @@ jobs:
             echo 'Unexpected internal file in Pages artifact.' >&2
             exit 1
           fi
+      - name: Reject superseded site inputs before publishing
+        run: |
+          current=$(git rev-parse HEAD)
+          git fetch --depth=1 origin main
+          git diff --quiet "$current" FETCH_HEAD -- \
+            content/posts src/main/resources/web package.json package-lock.json tsconfig.json \
+            .github/pages .github/workflows/pages.yml
+          printf 'source=%s\n' "$current" >> "$GITHUB_STEP_SUMMARY"
+          node -e 'console.log("assets=" + JSON.parse(require("node:fs").readFileSync("build/web-assets.json")).key)' >> "$GITHUB_STEP_SUMMARY"
       - name: Configure Pages
         uses: actions/configure-pages@v6.0.0
       - name: Upload static site

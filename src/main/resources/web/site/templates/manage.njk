@@ -1,13 +1,14 @@
-<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<!doctype html>
+<html lang="ko">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noindex,nofollow">
   <title>관리 · ken.blog</title>
-  <link rel="stylesheet" th:href="${adminCss}">
-  <script type="module" th:src="${adminJs}"></script>
+  <link rel="stylesheet" href="{{ adminCss }}">
+  <script type="module" src="{{ adminJs }}"></script>
 </head>
-<body th:attr="data-api-base=${apiBase}">
+<body data-api-base="{{ apiBase }}">
   <a class="skip-link" href="#content">본문으로 이동</a>
   <main id="content" class="page-container">
     <div id="boot" class="card panel" role="status">관리자 연결을 확인하는 중입니다.</div>

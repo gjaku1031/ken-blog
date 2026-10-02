@@ -1,0 +1,8 @@
+{% if backlinks | length %}<section class="post-backlinks" aria-label="이 글을 가리키는 글">
+  <h2>이 글을 가리키는 글</h2>
+  <ul>
+    {% for item in backlinks %}<li>
+      <a href="{{ item.href }}">{{ item.title }}</a><span>{{ item.section }}</span>
+    </li>{% endfor %}
+  </ul>
+</section>{% endif %}
