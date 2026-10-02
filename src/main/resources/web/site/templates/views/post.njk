@@ -1,5 +1,11 @@
 <main id="main-content" class="post-page page-container">
-  <a class="back-link" href="{{ base + ('projects/' if project else 'posts/') }}">{{ '← Projects' if project else '← Posts' }}</a>
+  <div class="post-toolbar">
+    <a class="back-link" href="{{ base + ('projects/' if project else 'posts/') }}">{{ '← Projects' if project else '← Posts' }}</a>
+    <div class="post-edit-actions" data-admin-write hidden>
+      <a class="write-button" href="{{ adminHref }}?post={{ post.id }}#posts">글 수정</a>
+      {% if project %}<a class="write-button" href="{{ adminHref }}?project={{ project.id }}#series">프로젝트 수정</a>{% endif %}
+    </div>
+  </div>
   <article>
     <div class="post-overline">
       <a href="{{ base + ('projects/' if project else 'posts/') }}">{{ 'Projects' if project else 'Posts' }}</a>{% if post.category %}<span> · </span>{% endif %}{% if post.category %}<span class="category-breadcrumb">{% for part in post.categoryTrail %}{% if not loop.first %}<span aria-hidden="true">›</span>{% endif %}<a href="{{ base + 'posts/?category=' + (part.path | query) }}">{{ part.name }}</a>{% endfor %}</span>{% endif %}

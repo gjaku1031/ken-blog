@@ -255,6 +255,8 @@ button:disabled { cursor: not-allowed; opacity: .6; }
   padding: 12px 18px; border: 1px solid var(--line); border-radius: 10px; background: var(--card);
   box-shadow: var(--shadow); color: var(--muted); font-size: 12.5px; }
 .back-link { color: var(--muted); font-size: 14px; }
+.post-toolbar { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+.post-edit-actions { display:flex; flex-wrap:wrap; gap:8px; margin-left:auto; }
 .post-overline { color: var(--muted); display: flex; gap: 7px; align-items: center; margin-top: 22px; font-size: 13px; }
 .post-page > article > h1, .post-page > h1 { margin: 13px 0 11px; font-size: var(--article-title-size);
   line-height: 1.3; letter-spacing: -.025em; }

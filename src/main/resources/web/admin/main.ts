@@ -29,6 +29,7 @@ const editorMode = document.body.dataset.editor ?? '';
 const dialog = get('edit-dialog') as HTMLDialogElement;
 let latestData: AdminData;
 let selectedProject: number | null = null;
+let linkedEditorPending = true;
 get('dialog-close').addEventListener('click', () => dialog.close());
 function openDialog(title: string, content: HTMLElement) {
   get('dialog-title').textContent = title;
@@ -134,6 +135,42 @@ async function loadDashboard() {
   if (!sessionReady) return;
   render({ posts: data[0], series: data[1], categories: data[2], badges: data[3], tags: data[4] });
   showDashboard();
+  await openLinkedEditor(latestData);
+}
+
+/** 상세 페이지에서 지정한 항목을 목록 페이지와 관계없이 최신 메타데이터로 연다. */
+async function openLinkedEditor(data: AdminData): Promise<void> {
+  if (editorMode || !linkedEditorPending || !sessionReady) return;
+  linkedEditorPending = false;
+  const url = new URL(location.href);
+  const keys = ['post', 'project'].filter(key => url.searchParams.has(key));
+  if (!keys.length) return;
+  try {
+    const key = keys[0];
+    const values = url.searchParams.getAll(key);
+    const id = values[0];
+    if (keys.length !== 1 || values.length !== 1 || !/^[1-9][0-9]*$/.test(id) || !Number.isSafeInteger(Number(id)))
+      throw new Error('수정할 항목의 주소가 올바르지 않습니다.');
+    if (key === 'post') {
+      const post = await request<PostDetail>(`/admin/posts/${id}`);
+      if (!sessionReady) return;
+      editPost(post, data);
+    } else {
+      const { series } = await request<{ series: Series }>(`/admin/series/${id}`);
+      if (!sessionReady) return;
+      if (series.kind !== 'PROJECT') throw new Error('프로젝트를 찾을 수 없습니다.');
+      openDialog('프로젝트 수정', createSeriesForm(data, true, series));
+    }
+    url.searchParams.delete(key);
+    url.hash = key === 'post' ? 'posts' : 'series';
+    history.replaceState(history.state, '', url);
+    selectPanel();
+  } catch (error) {
+    if (error instanceof HttpError && error.status === 401) {
+      linkedEditorPending = true;
+      showLogin(error.message);
+    } else setMessage(dashboardMessage, error instanceof Error ? error.message : '수정할 항목을 불러오지 못했습니다.', true);
+  }
 }
 function render(data: AdminData) {
   latestData = data;
