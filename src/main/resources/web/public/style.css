@@ -34,6 +34,9 @@
 .markdown-body .ken-annotation-popup { position:absolute; bottom:100%; left:0; z-index:10; width:max-content; max-width:min(360px,80vw); padding:9px 12px; border:1px solid var(--line2); border-radius:6px; background:var(--card); box-shadow:var(--shadow2); color:var(--text); font-size:13px; font-weight:400; }
 .markdown-body .ken-annotations { border-top:1px solid var(--line2); margin-top:40px; font-size:13px; }
 .markdown-body .ken-annotations h2 { font-size:17px; }
+.markdown-body .ken-annotations > ol { list-style:none; padding-left:0; }
+.markdown-body .ken-annotations > ol > li { margin:6px 0; }
+.markdown-body .ken-annotations [data-annotation-return] { margin-right:4px; }
 .ken-image-zoom { border:0; border-radius:8px; background:var(--card); color:var(--text); max-width:95vw; max-height:95vh; }
 .ken-image-zoom::backdrop { background:rgb(0 0 0 / 80%); }
 .ken-image-zoom img { max-width:90vw; max-height:85vh; object-fit:contain; display:block; }

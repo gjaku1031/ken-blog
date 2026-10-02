@@ -222,7 +222,7 @@ export async function renderMarkdown(source: string, options: RenderOptions = {}
       const first = item.refs[0];
       return `<li id="annotation-${item.index}"><a href="#annotation-ref-${first}" data-annotation-return="1" aria-label="주석 ${escapeHtml(item.label)} 본문으로 돌아가기">${escapeHtml(item.label)}</a> ${content} ${item.refs.map((ref) => `<a href="#annotation-ref-${ref}" aria-label="본문으로 돌아가기">↩</a>`).join(" ")}</li>`;
     }));
-    html += `<section class="ken-annotations"><h2>주석</h2><ol>${notes.join("")}</ol></section>`;
+    html += `<section class="ken-annotations"><h2>주석</h2><ol role="list">${notes.join("")}</ol></section>`;
   }
   return { html, headings, attachmentIds: collectAttachmentIds(source), wikiTargets: [...wikiTargets] };
 }
