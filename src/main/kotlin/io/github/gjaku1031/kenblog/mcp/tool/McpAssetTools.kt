@@ -5,7 +5,7 @@ import io.github.gjaku1031.kenblog.mcp.dto.McpImageInput
 import io.github.gjaku1031.kenblog.mcp.dto.McpStackBadgeInput
 import io.github.gjaku1031.kenblog.mcp.service.McpImagePayload
 import io.github.gjaku1031.kenblog.mcp.service.McpToolCalls
-import io.github.gjaku1031.kenblog.operations.domain.OperationFailure
+import io.github.gjaku1031.kenblog.global.error.BusinessException
 import io.github.gjaku1031.kenblog.stack.service.StackBadgeService
 import org.springframework.ai.mcp.annotation.McpTool
 import org.springframework.ai.mcp.annotation.McpToolParam
@@ -24,7 +24,7 @@ class McpAssetTools(
     /** @return READY 첨부 ID와 파일 메타데이터를 가진 [AttachmentService.upload] 결과. */
     @McpTool(name = "blog_upload_image", description = "PNG/JPEG 이미지를 Base64로 로컬 저장소에 업로드하고 READY attachmentId를 반환합니다. 최대 10 MiB. 서버 파일 경로나 URL을 받지 않습니다. 본문 이미지 참조 뒤 blog_set_post_attachments 도구로 게시글 메타데이터에도 ID를 연결하세요.", annotations = McpTool.McpAnnotations(destructiveHint = false, openWorldHint = false))
     fun uploadImage(@McpToolParam(description = "파일명, image/png 또는 image/jpeg MIME, 순수 Base64 문자열") image: McpImageInput) = calls.call {
-        if (adminUsername.isBlank()) throw OperationFailure(HttpStatus.SERVICE_UNAVAILABLE, "업로드 계정을 확인할 수 없습니다.")
+        if (adminUsername.isBlank()) throw BusinessException(HttpStatus.SERVICE_UNAVAILABLE, "업로드 계정을 확인할 수 없습니다.")
         attachments.upload(McpImagePayload.decode(image), adminUsername)
     }
 

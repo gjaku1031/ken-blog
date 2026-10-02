@@ -1,6 +1,6 @@
 package io.github.gjaku1031.kenblog.content.service
 
-import io.github.gjaku1031.kenblog.operations.domain.OperationFailure
+import io.github.gjaku1031.kenblog.global.error.BusinessException
 import io.github.gjaku1031.kenblog.post.domain.PostEntity
 import io.github.gjaku1031.kenblog.post.domain.PostStatus
 import io.github.gjaku1031.kenblog.post.domain.PostVisibility
@@ -25,17 +25,17 @@ class RepositoryMarkdown(@Value("\${app.content.directory:content}") directory: 
     fun readPost(post: PostEntity): String {
         val path = pathFor(post)
         if (Files.isSymbolicLink(root) || Files.isSymbolicLink(path.parent) || Files.isSymbolicLink(path))
-            throw OperationFailure(HttpStatus.CONFLICT, "Markdown 원본 경로가 심볼릭 링크입니다: ${sourcePath(post)}")
+            throw BusinessException(HttpStatus.CONFLICT, "Markdown 원본 경로가 심볼릭 링크입니다: ${sourcePath(post)}")
         try {
             val bytes = Files.readAllBytes(path)
             if (bytes.size > MAX_BYTES)
-                throw OperationFailure(HttpStatus.CONFLICT, "Markdown 원본이 1 MiB를 초과합니다: ${sourcePath(post)}")
+                throw BusinessException(HttpStatus.CONFLICT, "Markdown 원본이 1 MiB를 초과합니다: ${sourcePath(post)}")
             return StandardCharsets.UTF_8.newDecoder()
                 .onMalformedInput(CodingErrorAction.REPORT)
                 .onUnmappableCharacter(CodingErrorAction.REPORT)
                 .decode(ByteBuffer.wrap(bytes)).toString()
         } catch (_: NoSuchFileException) {
-            throw OperationFailure(HttpStatus.NOT_FOUND, "Markdown 원본 파일이 없습니다: ${sourcePath(post)}")
+            throw BusinessException(HttpStatus.NOT_FOUND, "Markdown 원본 파일이 없습니다: ${sourcePath(post)}")
         }
     }
 
@@ -56,7 +56,7 @@ class RepositoryMarkdown(@Value("\${app.content.directory:content}") directory: 
         }
         check(path.startsWith(root)) { "Markdown path escapes content root" }
         if (!Files.isDirectory(path.parent, LinkOption.NOFOLLOW_LINKS))
-            throw OperationFailure(HttpStatus.NOT_FOUND,
+            throw BusinessException(HttpStatus.NOT_FOUND,
                 "Markdown 원본 디렉터리가 없습니다: content/${root.relativize(path)}")
         return path
     }

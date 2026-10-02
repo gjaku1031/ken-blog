@@ -1,15 +1,12 @@
 package io.github.gjaku1031.kenblog.global.security
 
+import io.github.gjaku1031.kenblog.global.error.isDatabaseConnectionFailure
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
-import java.sql.SQLException
-import java.sql.SQLTransientConnectionException
 import org.springframework.core.Ordered
 import org.springframework.core.annotation.Order
-import org.springframework.dao.DataAccessResourceFailureException
 import org.springframework.http.HttpStatus
-import org.springframework.jdbc.CannotGetJdbcConnectionException
 import org.springframework.stereotype.Component
 import org.springframework.web.filter.OncePerRequestFilter
 
@@ -42,17 +39,4 @@ class JdbcSessionFailureFilter(private val writer: SecurityProblemWriter) : Once
             writer.write(response, HttpStatus.SERVICE_UNAVAILABLE)
         }
     }
-}
-
-/**
- * 예외 원인 체인에서 JDBC 연결·자원 접근 장애만 식별.
- *
- * 제약 위반과 SQL 문법 오류 등은 503으로 잘못 분류하지 않음.
- *
- * @return MySQL 연결을 얻거나 유지하지 못한 경우 `true`
- */
-internal fun Throwable.isDatabaseConnectionFailure(): Boolean = generateSequence(this) { it.cause }.any {
-    it is CannotGetJdbcConnectionException || it is DataAccessResourceFailureException ||
-        it is SQLTransientConnectionException ||
-        (it is SQLException && it.sqlState?.startsWith("08") == true)
 }

@@ -1,6 +1,6 @@
 package io.github.gjaku1031.kenblog.mcp.authoring
 
-import io.github.gjaku1031.kenblog.operations.domain.OperationFailure
+import io.github.gjaku1031.kenblog.global.error.BusinessException
 import io.github.gjaku1031.kenblog.post.dto.WikiDeclarations
 import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
@@ -107,7 +107,7 @@ class McpBodyDeclarations {
     /**
      * 명시 선언의 형식과 완전 분석 가능한 본문의 일치를 검증.
      *
-     * @throws OperationFailure 잘못된 선언 또는 단순 본문의 불일치를 나타내는 안전한 400
+     * @throws BusinessException 잘못된 선언 또는 단순 본문의 불일치를 나타내는 안전한 400
      */
     fun validate(body: String, attachmentIds: List<Long>, wikiTargets: List<String>): McpBodyInspection {
         if (declarationDiagnostics(attachmentIds, wikiTargets).isNotEmpty()) invalid()
@@ -127,7 +127,7 @@ class McpBodyDeclarations {
     }
 
     /** 선언 오류의 입력 원문을 응답에 싣지 않는 400. */
-    private fun invalid(): Nothing = throw OperationFailure(HttpStatus.BAD_REQUEST,
+    private fun invalid(): Nothing = throw BusinessException(HttpStatus.BAD_REQUEST,
         "본문과 첨부·위키 선언을 확인하세요.")
 
     /** 웹의 `Number.isSafeInteger`와 같은 양수 첨부 ID 범위만 수용. */

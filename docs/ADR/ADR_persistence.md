@@ -13,7 +13,7 @@ JPA는 저장·단일 조회·잠금, jOOQ는 목록·검색·집계·위키·�
   → build/generated/jooq/schema.sql → jooqCodegen → compileKotlin
 ```
 
-빌드 전용 `jpaModel` 소스셋에서 `src/main/kotlin`의 원본 도메인 클래스만 먼저 컴파일. 생성 로직은 `build.gradle.kts`의 `generateJpaSchema` 태스크에 통합하고 별도 `src/jooq/kotlin` 생성기 파일은 제거. Gradle의 빌드용 Hibernate 의존성도 앱과 같은 Spring Boot BOM으로 관리. 앱과 동일한 Hibernate 버전·MySQL dialect·snake_case 물리 이름 정책으로 JPA 매핑을 읽어 DDL 출력. JDBC 메타데이터 접근과 DB schema action은 비활성화. jOOQ `DDLDatabase`가 생성된 DDL을 읽고 Kotlin 테이블 타입 생성.
+빌드 전용 `jpaModel` 소스셋에서 `src/main/kotlin`의 원본 도메인 클래스와 도메인 예외의 공통 부모 `global/error/BusinessException`만 먼저 컴파일. HTTP·MCP 응답 변환기와 서비스는 제외. 생성 로직은 `build.gradle.kts`의 `generateJpaSchema` 태스크에 통합하고 별도 `src/jooq/kotlin` 생성기 파일은 제거. Gradle의 빌드용 Hibernate 의존성도 앱과 같은 Spring Boot BOM으로 관리. 앱과 동일한 Hibernate 버전·MySQL dialect·snake_case 물리 이름 정책으로 JPA 매핑을 읽어 DDL 출력. JDBC 메타데이터 접근과 DB schema action은 비활성화. jOOQ `DDLDatabase`가 생성된 DDL을 읽고 Kotlin 테이블 타입 생성.
 
 `build/`의 DDL과 테이블 코드는 재생성 가능한 Git 제외 산출물. 엔티티를 수정하면 Gradle 의존 관계에 따라 재생성하며 개발·CI에서 실제 DB 접속 불필요. 도메인을 별도 저장소나 모듈로 옮기지 않고 먼저 컴파일하여 앱 컴파일과 jOOQ 생성 간 순환 의존을 해소. 태스크는 전용 클래스 로더로 엔티티를 읽고 종료 시 레지스트리·로더 정리. Spring 앱을 기동하지 않으며 빌드 전용 클래스 출력은 API JAR에 포함하지 않음.
 

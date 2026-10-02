@@ -70,7 +70,7 @@ class PostService(
         post.assignSeries(request.seriesId, request.order, request.relatedSeriesId, now)
         val saved = try { repository.saveAndFlush(post) }
         catch (ex: DataIntegrityViolationException) {
-            if (ex.isDuplicateSlugConstraint()) throw DuplicatePostSlugException(slug, ex)
+            if (ex.isDuplicateSlugConstraint()) throw DuplicatePostSlugException(ex)
             throw ex
         }
         val id = saved.id ?: error("Persisted post has no ID")

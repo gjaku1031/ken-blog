@@ -33,3 +33,29 @@
 잔디·조회수 통계·Google Analytics 수집 및 대시보드 기능 제거. Next.js/React·웹 편집기·Redis·런타임 OCI Object Storage·Flyway·Swagger 의존도 제거. 기능 제거를 이유로 기존 DB·원고·첨부·계정·백업의 실제 자료를 삭제하지 않는 기준.
 
 검증 이력: Post·Series 통합 시 기존 JVM 검사 35개, Pages 생성, Native API의 비밀번호 로그인·jOOQ 조회·MCP·이미지 기능 검증 완료. 배포 및 성능 검증의 데이터 범위와 제한은 인프라 ADR에 별도 기록.
+
+## 예외와 공개 오류 응답
+
+### 조사와 분류 기준
+
+기존 `operations/domain/OperationFailure`는 Markdown 조회·기술 배지·이미지 검증·MCP 입력 검증이 공유하는 실패로, 운영 기능 전용 패키지와 실제 역할의 불일치. HTTP의 기능별 핸들러와 MCP의 타입 분기가 별도로 상태·설명을 정의하여 같은 실패의 의미가 달라지는 구조. 선택적 `code`는 값을 지정한 사용처가 없고 HTTP 확장 필드도 실제 생성되지 않는 상태.
+
+- 입력·업무 규칙·알려진 자원 장애: `global/error/BusinessException`의 HTTP 상태와 안전한 공개 설명으로 표현. 별도 기능 타입이 필요 없는 Markdown·배지·이미지·MCP 검증은 직접 사용.
+- 기능별 의미나 타입 분기가 필요한 실패: Post·Category·Series·Wiki 예외와 `AttachmentFailure`를 공통 예외의 하위 타입으로 유지. 없는 글·중복 slug·원고 SHA 충돌 등의 의미 보존. 첨부 실패 타입은 업로드 보상 정리와 이미지 검증의 catch 경계에서 사용하므로 제거 금지.
+- 예상하지 못한 결함: 일반 예외를 입력 오류로 감싸지 않고 공통 경계에서 안전한 서버 오류로 처리. 내부 메시지·SQL·파일 경로·비밀값을 응답에 복사하지 않는 기준. Markdown 안내의 기존 검증된 저장소 상대 경로만 유지.
+
+기능별 예외 자체는 모두 사용 중이므로 삭제 대상이 아니며 서로 다른 의미를 하나로 합치지 않는 결정. 상태·설명은 각 예외에 한 번 선언하고 `AttachmentFailure`의 중복 필드, `OperationFailure`와 미사용 `code`, 양쪽 경계의 기능별 중복 매핑 제거. 중복 slug 예외의 미사용 원문 인자는 제거하되 원인 예외 보존. DB 본문을 전제로 한 Wiki 충돌 주석은 실제 Markdown 원본 기준으로 수정.
+
+### HTTP·MCP 변환과 호환성
+
+`PublicError`에서 공통 공개 상태·설명을 결정하고 `ApiErrorHandler`와 `McpToolCalls`는 각 프로토콜의 응답으로 변환. 알려진 업무 예외 우선, 잠금 충돌 409, 원인 체인에서 확인한 DB 연결 장애 503, 인증 실패 401, 프레임워크 지정 상태, 나머지 500 순서. 예상하지 못한 서버 오류는 메시지나 원인 대신 예외 클래스명만 로그에 기록. 새로운 오류 코드 enum이나 예외별 매핑 계층 추가 없음.
+
+HTTP는 기존 상태·ProblemDetail의 title/status/detail/instance 형태와 Allow·Accept 등 프로토콜 헤더 유지. Spring MVC의 구체적 예외는 `ResponseEntityExceptionHandler` 경계에서 처리하고 확정된 응답의 null 결과 보존. MVC 밖 인증·권한·JDBC 세션 오류는 기존 Security 필터 경계 유지하며 DB 연결 판별 함수만 `global/error`에서 공유.
+
+MCP는 기존 `isError`, `{ok:false,error:{code,message}}`, 구조화 본문과 JSON 텍스트의 동시 반환 계약 유지. 업무 오류의 validation/not_found/conflict/unavailable 코드도 유지하며 메시지만 HTTP의 구체적인 안전한 설명으로 통일. 상태→MCP 코드 변환은 숫자로 비교하여 Spring의 413 상태 별칭 차이로 동일 상태가 다른 코드가 되는 문제 방지. 실제 첨부 크기 초과의 기존 validation 계약 유지.
+
+기존 MCP의 모든 `DataAccessException` → unavailable 규칙과 그 밖의 비업무 예외 → internal 규칙은 클라이언트 호환성 때문에 유지. 따라서 직접 전달된 잠금·SQL 문법·무결성 오류의 코드는 unavailable, 다른 예외에 감싸진 DB 연결 장애의 코드는 internal인 기존 한계 존속. 다만 잠금 충돌은 충돌 설명, 예상하지 못한 SQL 오류는 서버 오류 설명으로 구분하여 모든 DB 실패를 연결 장애라고 잘못 설명하던 동작 제거. 코드까지 재분류하는 변경은 별도 외부 계약 변경 대상으로 분리.
+
+공통 예외에서 HttpStatus를 유지하는 선택은 기존 HTTP 중심 계약과 일치하며, 별도 상태 enum과 변환 계층을 만들지 않기 위한 기준. 도메인 선행 컴파일에는 이 부모 클래스만 포함하며 JPA 스키마 생성의 독립성 유지.
+
+검증: clean build와 기존 MySQL·인증·HTTP·첨부 검사 35개 통과. 저장소 밖 격리 검사 44개 통과: 기능별 예외·공통/첨부 상태·실제 Markdown/이미지/본문 선언 오류·연결/잠금/SQL 오류·인증/프레임워크 오류의 HTTP 상태와 MCP 코드, 공개 설명 일치, 내부 문자열 비노출, 성공 응답, 원인 보존, 응답 확정 후 처리 및 JDBC 세션 필터 경계 확인. 413의 기존·새 상태 별칭 모두 validation 확인. 최종 API JAR에 옛 예외·격리 검증 코드 없음. 신규 저장소 테스트·원격 push·운영 배포 없음.

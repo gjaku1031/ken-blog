@@ -75,7 +75,8 @@ dependencies {
 val jpaModel = sourceSets.create("jpaModel")
 kotlin.sourceSets.named("jpaModel") {
     kotlin.srcDir("src/main/kotlin")
-    kotlin.include("**/domain/**")
+    // 도메인 예외의 공통 부모만 추가하며 서비스·응답 변환기는 포함하지 않는다.
+    kotlin.include("**/domain/**", "**/global/error/BusinessException.kt")
 }
 configurations[jpaModel.implementationConfigurationName].extendsFrom(configurations.implementation.get())
 

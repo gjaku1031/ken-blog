@@ -3,7 +3,7 @@ package io.github.gjaku1031.kenblog.stack.service
 
 import io.github.gjaku1031.kenblog.attachment.service.ManagedImageNormalizer
 import io.github.gjaku1031.kenblog.attachment.storage.LocalAssetStorage
-import io.github.gjaku1031.kenblog.operations.domain.OperationFailure
+import io.github.gjaku1031.kenblog.global.error.BusinessException
 import io.github.gjaku1031.kenblog.series.repository.SeriesRepository
 import io.github.gjaku1031.kenblog.stack.domain.SeriesStackBadgeEntity
 import io.github.gjaku1031.kenblog.stack.domain.StackBadgeEntity
@@ -53,7 +53,7 @@ class StackBadgeService(
     /**
      * 프로젝트 대문의 이름 배열을 등록된 ID 연결로 교체.
      *
-     * @throws OperationFailure 없는 프로젝트나 등록되지 않은 이름·중복 입력일 때
+     * @throws BusinessException 없는 프로젝트나 등록되지 않은 이름·중복 입력일 때
      */
     @Transactional
     fun replaceSeriesStack(seriesId: Long, names: List<String>) {
@@ -148,7 +148,7 @@ class StackBadgeService(
     /** @return 존재하는 뱃지 또는 고정 404. */
     private fun badge(id: Long): StackBadgeEntity =
         (if (id > 0) badges.findByIdOrNull(id) else null)
-            ?: throw OperationFailure(HttpStatus.NOT_FOUND, "기술 뱃지를 찾을 수 없습니다.")
+            ?: throw BusinessException(HttpStatus.NOT_FOUND, "기술 뱃지를 찾을 수 없습니다.")
 
     /** @return 길이와 제어문자를 검증한 표시 이름. */
     private fun displayName(value: String): String = value.trim().also {
@@ -180,8 +180,8 @@ class StackBadgeService(
     }
 
     /** @return 입력 실패의 안전한 400. */
-    private fun badInput(): Nothing = throw OperationFailure(HttpStatus.BAD_REQUEST, "기술 뱃지 입력을 확인하세요.")
+    private fun badInput(): Nothing = throw BusinessException(HttpStatus.BAD_REQUEST, "기술 뱃지 입력을 확인하세요.")
 
     /** @return 중복 이름의 안전한 409. */
-    private fun duplicate(): Nothing = throw OperationFailure(HttpStatus.CONFLICT, "이미 등록된 이름입니다.")
+    private fun duplicate(): Nothing = throw BusinessException(HttpStatus.CONFLICT, "이미 등록된 이름입니다.")
 }

@@ -1,7 +1,7 @@
 package io.github.gjaku1031.kenblog.mcp.service
 
 import io.github.gjaku1031.kenblog.mcp.dto.McpImageInput
-import io.github.gjaku1031.kenblog.operations.domain.OperationFailure
+import io.github.gjaku1031.kenblog.global.error.BusinessException
 import java.io.ByteArrayInputStream
 import java.io.File
 import java.io.InputStream
@@ -42,7 +42,7 @@ class McpImagePayload private constructor(
             return McpImagePayload(input.filename, input.mimeType, bytes)
         }
 
-        /** @throws OperationFailure 원문을 제외한 안전한 이미지 입력 오류. */
-        private fun badInput(): Nothing = throw OperationFailure(HttpStatus.BAD_REQUEST, "이미지 파일명·MIME·Base64·크기를 확인하세요.")
+        /** @throws BusinessException 원문을 제외한 안전한 이미지 입력 오류. */
+        private fun badInput(): Nothing = throw BusinessException(HttpStatus.BAD_REQUEST, "이미지 파일명·MIME·Base64·크기를 확인하세요.")
     }
 }

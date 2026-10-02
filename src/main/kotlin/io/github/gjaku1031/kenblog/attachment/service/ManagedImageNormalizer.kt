@@ -1,6 +1,6 @@
 package io.github.gjaku1031.kenblog.attachment.service
 
-import io.github.gjaku1031.kenblog.operations.domain.OperationFailure
+import io.github.gjaku1031.kenblog.global.error.BusinessException
 import java.awt.AlphaComposite
 import java.awt.RenderingHints
 import java.awt.image.BufferedImage
@@ -19,7 +19,7 @@ class ManagedImageNormalizer {
      *
      * @param file 브라우저에서 보낸 단일 이미지
      * @return 원본 메타데이터와 분리된 PNG 바이트
-     * @throws OperationFailure 형식·크기·디코딩 실패일 때
+     * @throws BusinessException 형식·크기·디코딩 실패일 때
      */
     fun normalize(file: MultipartFile): ByteArray {
         val size = 64
@@ -71,5 +71,5 @@ class ManagedImageNormalizer {
         bytes[0] == 0xff.toByte() && bytes[1] == 0xd8.toByte() && bytes[2] == 0xff.toByte()
 
     /** @return 이미지 검증 실패를 안전한 HTTP 415로 전환. */
-    private fun badImage(): Nothing = throw OperationFailure(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "JPEG 또는 PNG 이미지를 확인하세요.")
+    private fun badImage(): Nothing = throw BusinessException(HttpStatus.UNSUPPORTED_MEDIA_TYPE, "JPEG 또는 PNG 이미지를 확인하세요.")
 }
