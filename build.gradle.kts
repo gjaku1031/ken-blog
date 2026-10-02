@@ -2,6 +2,22 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import org.springframework.boot.gradle.tasks.aot.ProcessAot
 import org.springframework.boot.gradle.tasks.bundling.BootJar
 import org.springframework.boot.gradle.tasks.bundling.BootBuildImage
+import jakarta.persistence.Entity
+import org.hibernate.boot.MetadataSources
+import org.hibernate.boot.registry.BootstrapServiceRegistryBuilder
+import org.hibernate.boot.registry.StandardServiceRegistryBuilder
+import org.hibernate.tool.schema.spi.DelayedDropRegistryNotAvailableImpl
+import org.hibernate.tool.schema.spi.SchemaManagementToolCoordinator
+import java.net.URLClassLoader
+
+buildscript {
+    repositories { mavenCentral() }
+    dependencies {
+        // 앱과 같은 Boot BOM으로 빌드용 Hibernate 버전도 맞춘다.
+        classpath(platform("org.springframework.boot:spring-boot-dependencies:4.1.1"))
+        classpath("org.hibernate.orm:hibernate-core")
+    }
+}
 
 plugins {
     kotlin("jvm") version "2.3.21"
@@ -61,21 +77,54 @@ dependencies {
 // 원본 엔티티를 그대로 읽으며 이 소스셋의 클래스는 API JAR에 별도로 넣지 않는다.
 val jpaModel = sourceSets.create("jpaModel")
 kotlin.sourceSets.named("jpaModel") {
-    kotlin.srcDirs("src/main/kotlin", "src/jooq/kotlin")
-    kotlin.include("**/domain/**", "**/GenerateJpaSchema.kt")
+    kotlin.srcDir("src/main/kotlin")
+    kotlin.include("**/domain/**")
 }
 configurations[jpaModel.implementationConfigurationName].extendsFrom(configurations.implementation.get())
 
 val jpaSchema = layout.buildDirectory.file("generated/jooq/schema.sql")
-val generateJpaSchema by tasks.registering(JavaExec::class) {
+val generateJpaSchema by tasks.registering {
     group = "jooq"
     description = "JPA 엔티티에서 jOOQ 코드 생성용 MySQL DDL을 만든다. DB에는 접속하지 않는다."
     dependsOn(jpaModel.classesTaskName)
-    classpath = jpaModel.runtimeClasspath
-    mainClass.set("io.github.gjaku1031.kenblog.codegen.GenerateJpaSchemaKt")
-    inputs.files(jpaModel.output)
+    inputs.files(jpaModel.runtimeClasspath).withPropertyName("jpaModelClasspath")
+        .withNormalizer(ClasspathNormalizer::class)
     outputs.file(jpaSchema)
-    args(jpaSchema.get().asFile.absolutePath)
+    doLast {
+        val output = jpaSchema.get().asFile
+        output.parentFile.mkdirs()
+        output.delete()
+        val settings = mapOf<String, Any>(
+            "hibernate.dialect" to "org.hibernate.dialect.MySQLDialect",
+            "hibernate.boot.allow_jdbc_metadata_access" to false,
+            "hibernate.physical_naming_strategy" to "org.hibernate.boot.model.naming.PhysicalNamingStrategySnakeCaseImpl",
+            "jakarta.persistence.schema-generation.database.action" to "none",
+            "jakarta.persistence.schema-generation.scripts.action" to "create",
+            "jakarta.persistence.schema-generation.scripts.create-target" to output.absolutePath,
+            "hibernate.hbm2ddl.schema-generation.script.append" to false,
+        )
+        // 빌드 전용 클래스 로더에서 컴파일된 엔티티만 읽는다. Spring 앱은 기동하지 않는다.
+        URLClassLoader(jpaModel.runtimeClasspath.map { it.toURI().toURL() }.toTypedArray(),
+            Entity::class.java.classLoader).use { loader ->
+            val bootstrap = BootstrapServiceRegistryBuilder().applyClassLoader(loader).build()
+            val registry = StandardServiceRegistryBuilder(bootstrap).applySettings(settings).build()
+            try {
+                val sources = MetadataSources(registry)
+                val entities = jpaModel.output.classesDirs.flatMap { directory ->
+                    fileTree(directory).matching { include("**/*.class") }.map { file ->
+                        file.relativeTo(directory).invariantSeparatorsPath.removeSuffix(".class").replace('/', '.')
+                    }
+                }.sorted().map { loader.loadClass(it) }.filter { it.isAnnotationPresent(Entity::class.java) }
+                check(entities.isNotEmpty()) { "jOOQ 스키마 생성에 사용할 JPA 엔티티가 없습니다." }
+                entities.forEach(sources::addAnnotatedClass)
+                SchemaManagementToolCoordinator.process(sources.buildMetadata(), registry, settings,
+                    DelayedDropRegistryNotAvailableImpl.INSTANCE)
+                check(output.length() > 0) { "Hibernate가 스키마를 생성하지 않았습니다." }
+            } finally {
+                StandardServiceRegistryBuilder.destroy(registry)
+            }
+        }
+    }
 }
 
 // Hibernate가 빌드 중 생성한 DDL을 사용한다. 수동 스키마나 운영 DB 연결은 필요 없다.

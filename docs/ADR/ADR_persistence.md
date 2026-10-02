@@ -13,9 +13,9 @@ JPA는 저장·단일 조회·잠금, jOOQ는 목록·검색·집계·위키·�
   → build/generated/jooq/schema.sql → jooqCodegen → compileKotlin
 ```
 
-빌드 전용 `jpaModel` 소스셋에서 원본 도메인 클래스와 `src/jooq/kotlin`의 생성기를 먼저 컴파일. 앱과 동일한 Hibernate 버전·MySQL dialect·snake_case 물리 이름 정책으로 JPA 매핑을 읽어 DDL 출력. JDBC 메타데이터 접근과 DB schema action은 비활성화. jOOQ `DDLDatabase`가 생성된 DDL을 읽고 Kotlin 테이블 타입 생성.
+빌드 전용 `jpaModel` 소스셋에서 `src/main/kotlin`의 원본 도메인 클래스만 먼저 컴파일. 생성 로직은 `build.gradle.kts`의 `generateJpaSchema` 태스크에 통합하고 별도 `src/jooq/kotlin` 생성기 파일은 제거. Gradle의 빌드용 Hibernate 의존성도 앱과 같은 Spring Boot BOM으로 관리. 앱과 동일한 Hibernate 버전·MySQL dialect·snake_case 물리 이름 정책으로 JPA 매핑을 읽어 DDL 출력. JDBC 메타데이터 접근과 DB schema action은 비활성화. jOOQ `DDLDatabase`가 생성된 DDL을 읽고 Kotlin 테이블 타입 생성.
 
-`build/`의 DDL과 테이블 코드는 재생성 가능한 Git 제외 산출물. 엔티티를 수정하면 Gradle 의존 관계에 따라 재생성하며 개발·CI에서 실제 DB 접속 불필요. 도메인을 별도 저장소나 모듈로 옮기지 않고 먼저 컴파일하여 앱 컴파일과 jOOQ 생성 간 순환 의존을 해소. 생성기와 빌드 전용 클래스 출력은 API JAR에 포함하지 않음.
+`build/`의 DDL과 테이블 코드는 재생성 가능한 Git 제외 산출물. 엔티티를 수정하면 Gradle 의존 관계에 따라 재생성하며 개발·CI에서 실제 DB 접속 불필요. 도메인을 별도 저장소나 모듈로 옮기지 않고 먼저 컴파일하여 앱 컴파일과 jOOQ 생성 간 순환 의존을 해소. 태스크는 전용 클래스 로더로 엔티티를 읽고 종료 시 레지스트리·로더 정리. Spring 앱을 기동하지 않으며 빌드 전용 클래스 출력은 API JAR에 포함하지 않음.
 
 MySQL enum 열은 jOOQ 조회 경계에서 문자열 타입으로 매핑하여 JPA의 `EnumType.STRING` 저장 계약 유지. JOIN은 쿼리에 명시하며 자동 관계 경로 생성은 비활성화. 전체 엔티티에서 생성된 테이블에는 옛 본문 열도 있으므로, 글 조회는 필요한 메타데이터 열을 명시적으로 선택하고 본문을 읽지 않는 계약 유지.
 
@@ -25,12 +25,13 @@ MySQL enum 열은 jOOQ 조회 경계에서 문자열 타입으로 매핑하여 J
 - 실제 DB 역공학: 현재 운영 상태를 반영할 수 있으나 빌드에 접속 정보·네트워크·DB 준비 순서가 필요하므로 제외.
 - jOOQ `JPADatabase`: 엔티티 기반 생성 방향은 같으나 현재 3.21.8 확장의 Hibernate 5 계열과 앱의 Hibernate 7.4, MySQL 전용 columnDefinition의 호환 비용을 피하기 위해 앱의 Hibernate로 직접 DDL 출력. [jOOQ JPA 코드 생성 안내](https://www.jooq.org/doc/latest/manual/code-generation/codegen-meta-sources/codegen-jpa/)
 
-비용은 도메인의 빌드 전용 컴파일 단계 추가. 도메인 코드가 서비스·컨트롤러·생성된 jOOQ 타입을 참조하면 이 단계가 깨지므로 독립성 유지. 엔티티 배치가 `domain` 밖으로 바뀌거나 Hibernate 이름 정책·dialect가 바뀌면 빌드 소스셋과 생성기 설정도 함께 갱신. 이 방식은 엔티티 매핑에서 생성하므로 실제 DB와의 차이는 DB 통합 검증에서 확인.
+비용은 도메인의 빌드 전용 컴파일 단계와 Gradle 태스크 유지. jOOQ의 필수 폴더 구조가 아니라 JPA 엔티티를 원본으로 삼고 DB 없이 빌드하기 위한 프로젝트 선택. 도메인 코드가 서비스·컨트롤러·생성된 jOOQ 타입을 참조하면 이 단계가 깨지므로 독립성 유지. 엔티티 배치가 `domain` 밖으로 바뀌거나 Hibernate 이름 정책·dialect가 바뀌면 빌드 설정도 함께 갱신. Spring Boot 버전을 바꾸면 플러그인과 buildscript BOM 버전을 함께 변경. 생성 태스크가 Gradle JVM에서 도메인 클래스를 읽으므로 Gradle도 프로젝트 기준인 JDK 25로 실행. 이 방식은 엔티티 매핑에서 생성하므로 실제 DB와의 차이는 DB 통합 검증에서 확인.
 
 런타임 `src/main/resources/schema.sql`은 JDBC 세션·인증 상태 등 JPA 외 테이블 초기화용이므로 유지. 앱의 기존 `ddl-auto` 정책과 운영 자료 이관 절차도 별도 책임이며, 코드 생성 DDL을 운영 DB에 실행하지 않음.
 
 ## 검증과 적용 범위
 
+- 생성 로직을 `build.gradle.kts`로 옮긴 뒤 생성 DDL의 SHA-256이 이전 독립 생성기 결과와 동일함을 확인. 저장소에 별도 생성기 소스나 수동 DDL 없음.
 - `clean` 이후 엔티티 컴파일·오프라인 DDL·jOOQ 코드 생성·앱 컴파일·Spring AOT·bootJar 생성 성공. 재실행 시 생성 단계의 Gradle up-to-date 동작 확인.
 - 기존 MySQL 통합 검사를 포함한 35개 검사 통과, 실패·오류·건너뜀 0. 로컬 파일 저장소의 권한 계약에 맞게 검증 프로세스에 `umask 0077` 적용.
 - 별도 빈 MySQL의 JVM API에서 CI 기능 시나리오 통과: 비밀번호 로그인·로그아웃, MCP, Series/Post 등록·목록·검색·공개 대문·스냅샷 v2, PNG/JPEG·배지 및 enum 조건을 포함한 공개 첨부 JOIN.
