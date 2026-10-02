@@ -3,7 +3,7 @@ import './style.css';
 type Csrf = { headerName: string; token: string };
 type Page<T> = { items: T[]; page: number; totalElements: number; totalPages: number };
 type CategoryRef = { id: number; path: string; name: string; depth: number; sortOrder: number };
-type Category = CategoryRef & { directCount: number; children: Category[] };
+type Category = CategoryRef & { totalCount?: number; directCount: number; children: Category[] };
 type SeriesRef = { id: number; name: string; slug: string; kind: 'TECH' | 'PROJECT' };
 type Badge = { id: number; name: string; imageUrl: string };
 type Series = { id: number; name: string; slug: string; kind: 'TECH' | 'PROJECT'; description: string; projectStatus: string | null; startPeriod: string | null; endPeriod: string | null; updatedAt: string; sortOrder: number; stackBadges: Badge[] };
@@ -402,7 +402,7 @@ function renderEditor(data: AdminData) {
   }
   const create = form(async input => {
     const post = await mutate<Post>('/admin/posts', 'POST', {
-      title: value(input, 'title'), slug: value(input, 'slug'), summary: value(input, 'summary'),
+      title: value(input, 'title'), summary: value(input, 'summary'),
       categoryId: optionalNumber(input, 'categoryId'), tags: tags(input),
       seriesId: optionalNumber(input, 'seriesId'), relatedSeriesId: optionalNumber(input, 'relatedSeriesId'), order: optionalNumber(input, 'order'),
     });
@@ -413,7 +413,6 @@ function renderEditor(data: AdminData) {
     container.replaceChildren(done);
   }, '미발행 글로 저장했습니다.');
   field(create, '제목', 'title', '', { required: true, max: 200, wide: true });
-  const slug = field(create, '주소 slug', 'slug', '', { required: true, max: 160, wide: true }); slug.pattern = '[a-z0-9]+(?:-[a-z0-9]+)*';
   area(create, '요약', 'summary', '', 120);
   choice(create, '분류', 'categoryId', categoryOptions(data.categories));
   field(create, '태그 (쉼표 구분)', 'tags');
@@ -473,24 +472,72 @@ function postDeclarations(post: Post): HTMLDetailsElement {
   panel.addEventListener('toggle', () => { void load(); });
   return panel;
 }
+const collapsedCategories = new Set<number>();
 function renderCategories(data: AdminData) {
-  const create = form(input => mutate('/admin/categories', 'POST', { path: value(input, 'path') }), '분류를 만들었습니다.');
-  field(create, '분류 경로', 'path', '', { required: true, placeholder: '상위/하위' });
-  submit(create, '분류 만들기'); get('category-create').replaceChildren(create);
+  get('category-create').replaceChildren();
   const list = get('category-list'); list.replaceChildren();
-  const categories = flatten(data.categories);
-  if (!categories.length) list.append(el('p', 'empty', '등록된 분류가 없습니다.'));
-  for (const category of categories) {
-    const article = el('details', 'item category-row');
-    const heading = el('summary'); heading.append(itemHeading(category.path, `${category.directCount}개 글`)); article.append(heading);
+  const addCategory = (parent: Category | null) => {
+    const create = form(input => mutate('/admin/categories', 'POST', {
+      path: [parent?.path, value(input, 'name')].filter(Boolean).join('/'),
+    }), '분류를 만들었습니다.');
+    if (parent) create.append(el('p', 'wide category-parent', parent.path.replaceAll('/', ' › ')));
+    const name = field(create, '분류 이름', 'name', '', { required: true, wide: true });
+    name.pattern = '[^/]+?';
+    submit(create, '추가'); openDialog(parent ? '하위 분류 추가' : '새 대분류', create);
+  };
+  const editCategory = (category: Category) => {
+    const content = el('div');
+    content.append(el('p', 'category-parent', category.path.replaceAll('/', ' › ')));
     const order = form(input => mutate(`/admin/categories/${category.id}/order`, 'PUT', { order: Number(value(input, 'order')) }), '분류 순서를 저장했습니다.');
-    field(order, '순서', 'order', String(category.sortOrder), { type: 'number' });
-    submit(order, '순서 저장'); article.append(order);
-    smallAction(article, '분류 삭제', () => mutate(`/admin/categories/${category.id}`, 'DELETE'), '분류를 삭제했습니다.',
+    field(order, '순서', 'order', String(category.sortOrder), { type: 'number', required: true });
+    submit(order, '순서 저장'); content.append(order);
+    const actions = el('div', 'category-dialog-actions');
+    smallAction(actions, '분류 삭제', () => mutate(`/admin/categories/${category.id}`, 'DELETE'), '분류를 삭제했습니다.',
       `${category.path} 분류를 삭제할까요? 글은 상위 분류로 이동합니다.`);
-    list.append(article);
-  }
+    content.append(actions); openDialog('분류 관리', content);
+  };
+  const count = (category: Category): number => category.totalCount ?? category.directCount + category.children.reduce((sum, child) => sum + count(child), 0);
+  const addButton = (parent: Category | null) => {
+    const depth = parent?.depth ?? 0;
+    const button = el('button', 'category-add', `＋ 새 ${['대', '중', '소'][depth]}분류`); button.type = 'button';
+    button.addEventListener('click', () => addCategory(parent)); return button;
+  };
+  const tree = (categories: Category[], parent: Category | null): HTMLUListElement => {
+    const ul = el('ul', 'admin-category-tree');
+    for (const category of categories) {
+      const li = el('li');
+      const row = el('div', 'admin-category-line');
+      const children = category.depth < 3 ? tree(category.children, category) : null;
+      const toggle = el('button', 'category-expand'); toggle.type = 'button';
+      if (children) {
+        children.id = `category-children-${category.id}`;
+        children.hidden = collapsedCategories.has(category.id);
+        toggle.textContent = '›';
+        toggle.setAttribute('aria-controls', children.id);
+        toggle.setAttribute('aria-expanded', String(!children.hidden));
+        toggle.setAttribute('aria-label', `${category.name} 하위 분류`);
+        toggle.addEventListener('click', () => {
+          children.hidden = !children.hidden;
+          if (children.hidden) collapsedCategories.add(category.id); else collapsedCategories.delete(category.id);
+          toggle.setAttribute('aria-expanded', String(!children.hidden));
+        });
+        row.append(toggle);
+      } else row.append(el('span', 'category-expand-spacer'));
+      const name = el('button', 'category-name'); name.type = 'button';
+      name.setAttribute('aria-label', `${category.path} 분류 관리`);
+      const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+      icon.setAttribute('viewBox', '0 0 20 20'); icon.setAttribute('width', '15'); icon.setAttribute('height', '15'); icon.setAttribute('aria-hidden', 'true');
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', 'M3 5h5l2 2h7v9H3Z'); path.setAttribute('fill', 'none'); path.setAttribute('stroke', 'currentColor'); path.setAttribute('stroke-linejoin', 'round'); icon.append(path);
+      name.append(icon, document.createTextNode(category.name)); name.addEventListener('click', () => editCategory(category));
+      const total = el('span', 'category-total mono', String(count(category))); total.setAttribute('aria-label', `${count(category)}개 글`);
+      row.append(name, total); li.append(row); if (children) li.append(children); ul.append(li);
+    }
+    const add = el('li', 'category-add-row'); add.append(addButton(parent)); ul.append(add); return ul;
+  };
+  list.append(tree(data.categories, null));
 }
+
 function seriesFields(parent: HTMLElement, data: AdminData, selected: number | null, order: number | null, related: number | null) {
   choice(parent, '시리즈', 'seriesId', [['', '없음'], ...data.series.map(item => [String(item.id), `${item.kind === 'PROJECT' ? '프로젝트' : '일반'} · ${item.name}`] as [string, string])], String(selected ?? ''));
   field(parent, '문서 순서 (비우면 마지막)', 'order', String(order ?? ''), { type: 'number' }).min = '1';
@@ -512,12 +559,11 @@ function projectFields(parent: HTMLElement, badges: Badge[], item?: Series) {
 function createSeriesForm(data: AdminData, project: boolean) {
   const create = form(async input => {
     const created = await mutate<Series>('/admin/series', 'POST', {
-      slug: value(input, 'slug'), kind: project ? 'PROJECT' : 'TECH', metadata: seriesMetadata(input, project),
+      kind: project ? 'PROJECT' : 'TECH', metadata: seriesMetadata(input, project),
     });
     if (project) selectedProject = created.id;
   }, project ? '프로젝트를 만들었습니다.' : '시리즈를 만들었습니다.');
-  field(create, '이름', 'name', '', { required: true, max: 200 });
-  const slug = field(create, '주소 slug', 'slug', '', { required: true, max: 160 }); slug.pattern = '[a-z0-9]+(?:-[a-z0-9]+)*';
+  field(create, '이름', 'name', '', { required: true, max: 200, wide: true });
   area(create, '개요', 'description', '', 1000);
   if (project) projectFields(create, data.badges);
   submit(create, project ? '프로젝트 만들기' : '시리즈 만들기'); return create;

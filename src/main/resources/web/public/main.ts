@@ -3,6 +3,7 @@ import "@fontsource/ibm-plex-mono/400.css";
 import "katex/dist/katex.min.css";
 import "./style.css";
 import { enhanceMarkdown } from "../shared/enhance";
+import { connectTableOfContents } from "./toc";
 
 /** 공개 HTML의 테마를 로컬 상태에 맞춰 적용한다. */
 function setTheme(theme: "light" | "dark"): void {
@@ -161,3 +162,5 @@ if (writeButtons.length && adminApiBase) {
     if (response.ok && (await response.json()).role === 'ADMIN') writeButtons.forEach(button => { button.hidden = false; });
   }).catch(() => undefined);
 }
+
+connectTableOfContents();

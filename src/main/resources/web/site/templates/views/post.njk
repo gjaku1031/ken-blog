@@ -4,12 +4,12 @@
     <div class="post-overline">
       <a href="{{ base + ('projects/' if project else 'posts/') }}">{{ 'Projects' if project else 'Posts' }}</a>{% if post.category %}<span> · </span>{% endif %}{% if post.category %}<span>{{ post.category.path }}</span>{% endif %}
     </div>
+    <h1>{{ post.title }}</h1>
     {% if project %}<div class="project-overview">
       <a href="{{ base + 'projects/' }}">Projects</a>
       <span>{{ project.name }}</span> · <span>{{ project.statusLabel }}</span> · <span>{{ project.period }}</span>
       <div class="stack-badges">{% for badge in project.stackBadges %}<span><img alt="" width="22" height="22" src="{{ badge.imageUrl }}">{{ badge.name }}</span>{% endfor %}</div>
     </div>{% endif %}
-    <h1>{{ post.title }}</h1>
     {% if post.relatedProject %}<p class="post-related-project">
       <span>[연관 프로젝트]</span><a href="{{ post.relatedProject.href }}">{{ post.relatedProject.name }}</a>
     </p>{% endif %}

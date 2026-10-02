@@ -116,7 +116,7 @@ export async function generateSite(payload: Input, output: string) {
     refs.push({ href: postPath(source), title: source.title, section: label(source.section) });
     backlinks.set(postPath(target), refs);
   }
-  const feed = [...allPosts].sort((a, b) => chronological(b, a)), home = feed.slice(0, 12);
+  const feed = [...allPosts].sort((a, b) => chronological(b, a)), home = feed.filter(p => p.section === "TECH").slice(0, 12);
   await page("", "home", "Home", "Home", "Ken Blog", {
     cards: home.map(card),
     categories: unique(home.map(p => p.category?.path ?? "")), tags: unique(home.flatMap(p => p.tags)),
