@@ -26,6 +26,7 @@ import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
 import java.util.Locale
+import java.util.UUID
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
@@ -47,7 +48,7 @@ class PostService(
     @Transactional
     fun createMetadata(request: PostMetadataCreateRequest): PostDetailResponse {
         val title = validTitle(request.title)
-        val slug = validSlug(request.slug)
+        val slug = validSlug(request.slug ?: "post-${UUID.randomUUID()}")
         val summary = validSummary(request.summary)
         val normalizedTags = TagNames.displayAll(request.tags)
         if (request.categoryId != null) validCategory(request.categoryId)

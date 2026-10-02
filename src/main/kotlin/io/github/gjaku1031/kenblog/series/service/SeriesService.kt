@@ -15,6 +15,7 @@ import org.springframework.dao.DataIntegrityViolationException
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.util.Locale
+import java.util.UUID
 
 /** 시리즈 메타데이터 저장과 첫 공개 글 대문 계산. 글과 파일은 시리즈 삭제로 지우지 않음. */
 @Service
@@ -36,7 +37,8 @@ class SeriesService(private val series: SeriesRepository, private val posts: Pos
     }
     @Transactional
     fun create(input: SeriesCreateRequest): SeriesResponse {
-        val slug = input.slug.trim().lowercase(Locale.ROOT)
+        val prefix = if (input.kind == SeriesKind.PROJECT) "project" else "series"
+        val slug = (input.slug ?: "$prefix-${UUID.randomUUID()}").trim().lowercase(Locale.ROOT)
         if (slug.length > 160 || !Regex("[a-z0-9]+(?:-[a-z0-9]+)*").matches(slug) || input.metadata.baseUpdatedAt != null)
             throw InvalidSeriesRequestException()
         val value = SeriesRequests.validate(input.kind, input.metadata)

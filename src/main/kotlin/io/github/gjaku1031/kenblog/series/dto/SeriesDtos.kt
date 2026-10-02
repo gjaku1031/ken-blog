@@ -27,7 +27,7 @@ data class SeriesMetadataRequest(
     val stackBadgeNames: List<String> = emptyList(), val baseUpdatedAt: LocalDateTime? = null,
 )
 /** 시리즈 생성은 문서 생성과 독립적이며 첫 출간 전에는 공개 목록에 나오지 않음. */
-data class SeriesCreateRequest(val slug: String, val kind: SeriesKind, val metadata: SeriesMetadataRequest)
+data class SeriesCreateRequest(val slug: String? = null, val kind: SeriesKind, val metadata: SeriesMetadataRequest)
 
 /** JSON 타입·문자열·기간·종류별 메타데이터를 검사. */
 object SeriesRequests {
@@ -52,11 +52,12 @@ object SeriesRequests {
             optionalText(node, "endPeriod"), badges, base)
     }
     fun create(node: JsonNode): SeriesCreateRequest {
-        if (!node.isObject || node.size() != 3 || !node.path("slug").isTextual || !node.path("kind").isTextual || !node.has("metadata"))
+        val allowed = setOf("slug", "kind", "metadata")
+        if (!node.isObject || node.properties().any { it.key !in allowed } || !node.path("kind").isTextual || !node.has("metadata"))
             throw InvalidSeriesRequestException()
         val kind = SeriesKind.entries.firstOrNull { it.name == node.get("kind").textValue() }
             ?: throw InvalidSeriesRequestException()
-        return SeriesCreateRequest(node.get("slug").textValue(), kind, metadata(node.get("metadata")))
+        return SeriesCreateRequest(optionalText(node, "slug"), kind, metadata(node.get("metadata")))
     }
     fun validate(kind: SeriesKind, input: SeriesMetadataRequest): SeriesMetadataRequest {
         val name = input.name.trim(); val description = input.description.trim()

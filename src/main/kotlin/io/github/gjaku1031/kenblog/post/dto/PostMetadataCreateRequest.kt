@@ -6,7 +6,7 @@ import tools.jackson.databind.JsonNode
 
 /** 본문 없이 글 주소·시리즈·분류·첨부 선언만 등록. 구획은 시리즈에서 결정. */
 data class PostMetadataCreateRequest(
-    val title: String, val slug: String, val summary: String = "",
+    val title: String, val slug: String? = null, val summary: String = "",
     val categoryId: Long? = null, val tags: List<String> = emptyList(),
     val seriesId: Long? = null, val order: Int? = null, val relatedSeriesId: Long? = null,
     val attachmentIds: List<Long> = emptyList(), val wikiTargets: List<String> = emptyList(),
@@ -24,7 +24,7 @@ data class PostMetadataCreateRequest(
                     it[index].textValue()
                 }
             } ?: emptyList()
-            return PostMetadataCreateRequest(requiredString(node, "title"), requiredString(node, "slug"),
+            return PostMetadataCreateRequest(requiredString(node, "title"), optionalString(node, "slug"),
                 optionalString(node, "summary") ?: "", optionalLong(node, "categoryId"), tags,
                 optionalLong(node, "seriesId"), optionalInt(node, "order"), optionalLong(node, "relatedSeriesId"),
                 AttachmentIds.parse(node.get("attachmentIds")) ?: emptyList(),
