@@ -4,6 +4,7 @@ import io.github.gjaku1031.kenblog.attachment.domain.AttachmentFailure
 import io.github.gjaku1031.kenblog.attachment.dto.AttachmentResponse
 import io.github.gjaku1031.kenblog.attachment.service.AttachmentService
 import jakarta.servlet.http.HttpServletRequest
+import jakarta.servlet.http.HttpServletResponse
 import java.nio.charset.StandardCharsets
 import org.springframework.http.ContentDisposition
 import org.springframework.http.HttpHeaders
@@ -20,7 +21,6 @@ import org.springframework.web.bind.annotation.RequestPart
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.multipart.MultipartFile
 import org.springframework.web.multipart.MultipartHttpServletRequest
-import org.springframework.web.servlet.mvc.method.annotation.StreamingResponseBody
 
 /** 관리자 첨부 요청을 [AttachmentService]에 연결하고 안전한 다운로드 헤더를 구성. */
 @RestController
@@ -56,20 +56,20 @@ class AttachmentController(private val service: AttachmentService) {
      * 로컬 파일 스트림을 응답 전에 열어 오류 상태를 판별한 뒤 원본 바이트를 전송.
      *
      * @param id READY 첨부 식별자
-     * @return 길이·MIME·nosniff·비공개 캐시·RFC 5987 파일명을 가진 응답
+     * @param response 길이·MIME·nosniff·비공개 캐시·RFC 5987 파일명을 같은 요청 스레드에서 전송할 응답
      */
     @GetMapping("/{id}/content", produces = [MediaType.IMAGE_JPEG_VALUE, MediaType.IMAGE_PNG_VALUE])
-    fun content(@PathVariable id: Long): ResponseEntity<StreamingResponseBody> {
+    fun content(@PathVariable id: Long, response: HttpServletResponse) {
         val content = service.open(id)
-        val body = StreamingResponseBody { output -> content.stream.use { it.copyTo(output) } }
-        return ResponseEntity.ok()
-            .contentType(MediaType.parseMediaType(content.metadata.contentType))
-            .contentLength(content.metadata.byteSize)
-            .header(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
+        content.stream.use { stream ->
+            response.contentType = content.metadata.contentType
+            response.setContentLengthLong(content.metadata.byteSize)
+            response.setHeader(HttpHeaders.CONTENT_DISPOSITION, ContentDisposition.attachment()
                 .filename(content.metadata.originalFilename, StandardCharsets.UTF_8).build().toString())
-            .header("X-Content-Type-Options", "nosniff")
-            .header(HttpHeaders.CACHE_CONTROL, "private, no-store")
-            .body(body)
+            response.setHeader("X-Content-Type-Options", "nosniff")
+            response.setHeader(HttpHeaders.CACHE_CONTROL, "private, no-store")
+            stream.copyTo(response.outputStream)
+        }
     }
 
     /**

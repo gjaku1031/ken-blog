@@ -3,7 +3,7 @@ import './style.css';
 type Csrf = { headerName: string; token: string };
 type Page<T> = { items: T[]; page: number; totalElements: number; totalPages: number };
 type Category = { id: number; path: string; name: string; depth: number; sortOrder: number; directCount: number; children: Category[] };
-type Badge = { id: number; name: string; projectCount: number | null };
+type Badge = { id: number; name: string };
 type Series = { id: number; name: string; slug: string; kind: 'TECH' | 'PROJECT'; description: string; projectStatus: string | null; startPeriod: string | null; endPeriod: string | null; updatedAt: string; sortOrder: number; stackBadges: Badge[] };
 type Post = { id: number; title: string; slug: string; section: string; status: string; summary: string; category: Category | null; tags: string[]; series: Series | null; seriesOrder: number | null; relatedSeriesId: number | null };
 type AdminData = { posts: Page<Post>; series: Series[]; categories: Category[]; badges: Badge[] };
@@ -48,7 +48,7 @@ function setMessage(target: HTMLElement, message: string, error = false) {
 }
 function clearDashboard() {
   currentData = null;
-  for (const id of ['post-create', 'post-list', 'post-pages', 'category-create', 'category-list', 'series-create', 'series-list', 'badge-create', 'badge-list']) get(id).replaceChildren();
+  for (const id of ['post-create', 'post-list', 'post-pages', 'category-create', 'category-list', 'series-create', 'series-list']) get(id).replaceChildren();
 }
 function showLogin(message = '') {
   sessionReady = false;
@@ -68,19 +68,19 @@ function showDashboard() {
 class HttpError extends Error {
   constructor(readonly status: number, message: string) { super(message); }
 }
-async function request<T>(path: string, method = 'GET', body?: object | FormData): Promise<T> {
+async function request<T>(path: string, method = 'GET', body?: object): Promise<T> {
   if (!apiBase) throw new Error('관리자 연결 주소가 설정되지 않았습니다.');
   const headers = new Headers({ Accept: 'application/json' });
   if (method !== 'GET') {
     if (!csrf) await refreshCsrf();
     if (csrf) headers.set(csrf.headerName, csrf.token);
   }
-  if (body && !(body instanceof FormData)) headers.set('Content-Type', 'application/json');
+  if (body) headers.set('Content-Type', 'application/json');
   let response: Response;
   try {
     response = await fetch(new URL('/api/v1' + path, apiBase), {
       method, headers, credentials: 'include', cache: 'no-store', redirect: 'error',
-      body: body instanceof FormData ? body : body ? JSON.stringify(body) : undefined,
+      body: body ? JSON.stringify(body) : undefined,
     });
   } catch {
     throw new Error('관리자 연결에 실패했습니다. 인터넷 연결과 브라우저의 사이트 간 쿠키 허용 설정을 확인하세요.');
@@ -102,7 +102,7 @@ async function refreshCsrf(): Promise<void> {
   csrf = await request<Csrf>('/auth/csrf');
   if (!csrf || !csrf.headerName || !csrf.token) throw new Error('로그인 보호 토큰을 받지 못했습니다.');
 }
-async function mutate<T>(path: string, method: string, body?: object | FormData): Promise<T> {
+async function mutate<T>(path: string, method: string, body?: object): Promise<T> {
   try { return await request<T>(path, method, body); }
   catch (error) {
     if (error instanceof HttpError && error.status === 403) csrf = null;
@@ -185,7 +185,12 @@ function flatten(nodes: Category[]): Category[] { return nodes.flatMap(item => [
 function checkboxes(form: HTMLElement, title: string, badges: Badge[], selected: string[] = []) {
   const group = el('fieldset', 'wide badge-list');
   group.append(el('legend', '', title));
-  for (const badge of badges) {
+  // 기존 프로젝트의 선택 순서를 유지하고 미선택 기술은 등록순으로 뒤에 배치.
+  const ordered = [...badges].sort((a, b) => {
+    const index = (name: string) => selected.includes(name) ? selected.indexOf(name) : selected.length;
+    return index(a.name) - index(b.name);
+  });
+  for (const badge of ordered) {
     const label = el('label', 'check');
     const checkbox = el('input'); checkbox.type = 'checkbox'; checkbox.name = 'stackBadgeNames'; checkbox.value = badge.name;
     checkbox.checked = selected.includes(badge.name);
@@ -229,7 +234,6 @@ function render(data: AdminData) {
   renderPosts(data);
   renderCategories(data);
   renderSeries(data);
-  renderBadges(data);
 }
 function renderPosts(data: AdminData) {
   const create = form(input => mutate('/admin/posts', 'POST', {
@@ -356,35 +360,6 @@ function renderSeries(data: AdminData) {
     const order = form(input => mutate(`/admin/series/${item.id}/order`, 'PUT', { order: Number(value(input, 'order')) }), '시리즈 순서를 저장했습니다.');
     field(order, '카드 순서', 'order', String(item.sortOrder), { type: 'number' }); submit(order, '순서 저장'); article.append(order);
     smallAction(article, '빈 시리즈 삭제', () => mutate(`/admin/series/${item.id}`, 'DELETE'), '시리즈를 삭제했습니다.', `${item.name} 시리즈를 삭제할까요? 연결된 글이 있으면 삭제할 수 없습니다.`);
-    list.append(article);
-  }
-}
-function renderBadges(data: AdminData) {
-  const create = form(input => {
-    const file = input.get('file');
-    if (!(file instanceof File) || !file.size) throw new Error('PNG 파일을 선택하세요.');
-    const body = new FormData(); body.set('name', value(input, 'name')); body.set('file', file);
-    return mutate('/admin/stack-badges', 'POST', body);
-  }, '기술 뱃지를 만들었습니다.');
-  field(create, '이름', 'name', '', { required: true, max: 100 });
-  const file = field(create, 'PNG 아이콘', 'file', '', { type: 'file' }); file.accept = 'image/png'; file.required = true;
-  submit(create, '뱃지 만들기'); get('badge-create').replaceChildren(create);
-  const list = get('badge-list'); list.replaceChildren();
-  if (!data.badges.length) list.append(el('p', 'empty', '등록된 뱃지가 없습니다.'));
-  for (const badge of data.badges) {
-    const article = el('article', 'item'); article.append(itemHeading(badge.name, `${badge.projectCount ?? 0}개 프로젝트`));
-    const rename = form(input => mutate(`/admin/stack-badges/${badge.id}`, 'PUT', { name: value(input, 'name') }), '뱃지 이름을 저장했습니다.');
-    field(rename, '이름', 'name', badge.name, { required: true, max: 100 }); submit(rename, '이름 저장'); article.append(rename);
-    const image = form(input => {
-      const file = input.get('file');
-      if (!(file instanceof File) || !file.size) throw new Error('PNG 파일을 선택하세요.');
-      const body = new FormData(); body.set('file', file);
-      return mutate(`/admin/stack-badges/${badge.id}/image`, 'POST', body);
-    }, '뱃지 아이콘을 저장했습니다.');
-    const file = field(image, 'PNG 아이콘 교체', 'file', '', { type: 'file' }); file.accept = 'image/png'; file.required = true;
-    submit(image, '아이콘 교체'); article.append(image);
-    smallAction(article, '뱃지 삭제', () => mutate(`/admin/stack-badges/${badge.id}`, 'DELETE'),
-      '뱃지를 삭제했습니다.', `${badge.name} 뱃지를 삭제할까요?`);
     list.append(article);
   }
 }

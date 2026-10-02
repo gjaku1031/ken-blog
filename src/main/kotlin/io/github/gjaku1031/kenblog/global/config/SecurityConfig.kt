@@ -154,7 +154,8 @@ class SecurityConfig {
         }
         return CorsConfigurationSource { request ->
             val path = request.servletPath
-            if (path.startsWith("/api/v1/admin/") || path == "/api/v1/admin") adminCors
+            if (path == "/api/v1/admin/stack-badges") authenticatedPosts
+            else if (path.startsWith("/api/v1/admin/") || path == "/api/v1/admin") adminCors
             else if (path == "/api/v1/pages/snapshot" ||
                 path.matches(Regex("/api/v1/stack-badges/[0-9]+/image")) ||
                 path.matches(Regex("/api/v1/posts/[0-9]+/attachments/[0-9]+/content"))) {

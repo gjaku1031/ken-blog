@@ -20,11 +20,46 @@
 
 변경 빈도가 낮은 홈 소개는 `src/main/resources/web/site/templates/views/about.njk`의 정적 HTML로 직접 관리. 현재 공개 사이트의 이름·한 줄 소개·소개·GitHub·이메일 내용을 그대로 이전. 별도 DB 모델·설정 API·런타임 조회 없이 템플릿 수정과 Pages 배포로 반영하는 결정.
 
-프로필 Controller·Service·DTO·Repository·Entity와 사진 업로드/조회/삭제 API 제거. 관리자 메뉴·폼·요청, snapshot의 profile 필드, 빌드의 사진 다운로드 및 보안/Caddy 경로 허용도 제거. 공용 이미지 정규화는 남아 있는 기술 배지의 64px 생성·교체에만 사용.
+프로필 Controller·Service·DTO·Repository·Entity와 사진 업로드/조회/삭제 API 제거. 관리자 메뉴·폼·요청, snapshot의 profile 필드, 빌드의 사진 다운로드 및 보안/Caddy 경로 허용도 제거. 당시 기술 배지에만 남겼던 이미지 정규화는 아래 기술 목록 쓰기 기능 제거 결정으로 함께 제거.
 
 기존 운영 `home_profile` 행과 사진 파일의 실제 삭제는 수행하지 않음. 옛 DB/OCI 자료 이관 도구의 사진 참조는 자료 보존용으로 유지하며 애플리케이션 기능과 구분.
 
 검증: 기존 JVM 검사 35개, 타입 검사·빈 사이트 및 프로필 없는 실제 격리 API snapshot 기반 생성 통과. 관리자 인증 후 제거한 API 5개 모두 404, 기술 배지 생성·교체 64px 및 기존 프로필 DB 행 보존 확인. JPA 생성 DDL·jOOQ 생성 코드·API JAR에서 프로필 모델 부재 확인. 실제 격리 API에 Chromium으로 로그인·관리자 목록 조회·로그아웃 검증, 프로필 네트워크 요청과 JavaScript 오류 없음. 원격 push·운영 반영 전 상태.
+
+## 기술 목록의 DB·로컬 파일 관리 — 2026-10-02 결정
+
+기술 이름과 아이콘 키는 기존 `stack_badges` DB, 아이콘은 API의 영속 로컬 이미지 디스크가 정본. 에이전트가 직접 등록·수정·삭제하며 TypeScript 상수·Git 데이터·앱 시작 동기화로 이전하지 않는 결정. 웹 관리자는 기존 화면에서 프로젝트에 쓸 기술만 선택. 대체 CRUD API·MCP·CLI·새 스킬 없음.
+
+기술 목록 등록·이름 변경·아이콘 업로드/교체·삭제 Controller 메서드, 요청 DTO, 서비스/엔티티의 쓰기 메서드와 파일 보상 처리 제거. 호출자가 없는 전체 공개 목록 메서드와 CRUD 화면 전용 사용 수 조회도 제거. `StackBadgeEntity`의 ID·name·name_key·object_key·created_at·updated_at 매핑 및 `series_stack_badges` FK·sort_order는 유지. 생성 DDL·기존 DB 스키마나 행을 삭제하는 변경 없음.
+
+관리자 메뉴/폼/쓰기 요청 제거, 프로젝트 편집의 기술 체크박스와 목록 GET 유지. 기존 선택을 등록순으로 다시 저장하던 화면은 선택된 기술을 저장 순서대로 먼저 표시하도록 보정. 신규 선택은 현재 표시 순서로 뒤에 추가. Spring의 프로젝트 전용·최대 30개·등록 여부·중복·이름 검증과 트랜잭션, 선택 ID와 순서 저장 유지.
+
+### HTTP 계약
+
+- 유지: 관리자 `GET /api/v1/admin/stack-badges`, 프로젝트 생성/메타데이터 변경의 `stackBadgeNames`, 프로젝트 조회·Pages snapshot의 순서 있는 `stackBadges`, 공개 `GET /api/v1/stack-badges/{id}/image`.
+- 제거: `POST /api/v1/admin/stack-badges`, `PUT/DELETE /api/v1/admin/stack-badges/{id}`, `POST /api/v1/admin/stack-badges/{id}/image`. 인증·유효 CSRF로 API 직접 호출 시 목록 경로 POST는 남아 있는 GET 때문에 405, 삭제된 개별 경로는 404. Caddy에서는 모두 404. 인증/CSRF 실패는 기존 401/403 우선.
+- 기술 응답은 `id`, `name`, `imageUrl` 유지. CRUD 화면에서만 쓰던 `projectCount` 제거(목록·프로젝트 응답·snapshot의 기술 항목 공통). Node는 해당 필드를 사용하지 않으며 snapshot v2 유지. objectKey·서버 경로는 계속 비노출.
+- 목록 GET의 관리자 인증과 credential CORS 유지, 목록의 CORS는 GET만 허용. 다른 관리자 경로의 일반 인증/CSRF 규칙 유지. Caddy도 정확한 목록 GET/OPTIONS만 관리자 인증을 거쳐 전달하며 공개 아이콘 GET 경로 유지.
+
+### 파일 책임
+
+`ManagedImageNormalizer`는 기술 업로드만 사용하므로 삭제. Spring은 미리 준비된 PNG를 읽어 제공하며 읽을 때 다시 변환하거나 형식을 보정하지 않는 경계. 공개 응답은 기존 `image/png`, `nosniff`, `public, max-age=300`, `?v={updatedAt}` 유지. Node의 공개 URL 검증·이미지 다운로드·내용 해시 파일명과 Pages 재생성 유지.
+
+`LocalAssetStorage`의 생성/쓰기/열기/삭제와 `AttachmentImageValidator`·`AttachmentFailure`·본문 첨부의 DB/파일 보상 절차는 본문 PNG/JPEG 업로드·조회·삭제의 실제 사용처가 있으므로 보존. 아이콘도 공용 저장소의 키 패턴·루트 경계·심볼릭 링크·경로 권한 검증을 거쳐 읽으며 임의 경로 입력을 허용하지 않는 구조. 이미지 마운트 유지. 운영 자료 이관/복구 도구는 기술 목록 정리의 수정 대상에서 제외. 직접 관리 절차는 [인프라 ADR](ADR_infra.md#기술-이름아이콘의-직접-관리--2026-10-02) 참조.
+
+### 이미지 응답의 동기 스트리밍
+
+기술 목록 정리의 실제 HTTP 검사에서 아이콘·본문 첨부의 간헐적 연결 종료/손상 헤더 재현. 변경 전 JAR에서도 아이콘 150회 중 1회 연결 종료 확인. Tomcat MimeHeaders 예외와 Security 헤더 작성·비동기 응답의 경합 구조 확인. 관련 [Spring Security 이슈](https://github.com/spring-projects/spring-security/issues/9175)와 현재 사용 중인 HeaderWriterFilter 소스 대조. 사용자가 공통 응답 수정까지 작업 범위에 포함하도록 승인.
+
+아이콘·관리자 첨부·공개 첨부의 `StreamingResponseBody`를 제거하고 같은 servlet 요청 스레드에서 헤더 설정 후 `InputStream.copyTo`와 `use`로 전송·종료. 전체 이미지를 메모리에 적재하거나 새 추상화를 추가하지 않는 방식. DB 권한·READY 확인과 안전한 파일 열기는 여전히 헤더 설정 전에 실행하므로 기존 404/503 ProblemDetail 유지. 비동기 전송과 필터의 동시 헤더 변경을 피하면서 보안 헤더 비활성화나 공개 권한 확대 없이 처리. 전송 중 요청 스레드를 점유하는 비용은 존재하며 최대 10MiB 본문 이미지·64px 아이콘의 현재 용도에 맞춘 선택. 캐시·MIME·파일명·본문 길이·공개 범위 정책 유지.
+
+### 기술 목록·이미지 변경 검증
+
+최종 격리 소스의 clean build·기존 검사 34개 통과(실패·오류·건너뜀 0), 생성 DDL 바이트 동일. 기술 목록 DTO/쓰기 메서드·이미지 정규화·비동기 StreamingResponseBody의 최종 JAR 제거 확인. 저장소 밖 MySQL/파일의 직접 기술 등록, 관리자 인증·목록 GET/CORS, 삭제 API 404/405와 Caddy 404, 프로젝트 기술 선택·순서·미등록/중복 거부·실패 롤백 검증. 직접 이름/키/updated_at 변경 후 ID·created_at·연결 보존과 URL/revision 변경, 이전 파일 보존 확인. 잘못된 DB 키/심볼릭 링크는 경로 비노출 503 유지.
+
+본문 PNG/JPEG 업로드·공개 원본 바이트·잘못된 파일 거부·미연결 첨부 삭제 검증. 최종 동기 스트리밍에서 아이콘/API 직결·Caddy·공개/관리자 첨부를 혼합한 4개 동시 요청 750회 및 HEAD 30회 오류 0. 캐시·MIME·nosniff·X-Frame-Options·본문 길이·해시 유지, 파일 디스크립터는 전후 25→27로 반복 횟수에 비례한 누수 없음. 장기/최대 부하 보장을 뜻하지 않는 범위.
+
+Node 타입 검사·빈 Pages와 실제 API snapshot/로컬 원고/아이콘·본문 이미지의 Pages 생성 확인. Chromium 관리자 로그인·기술 선택 해제/재선택·기존 순서 유지·메타데이터 저장 및 CRUD 메뉴/폼 부재 확인. 기술 목록 요청은 GET만 존재. 다른 작업의 수정과 실제 운영 DB·파일은 보존, 원격 push·운영 배포 미수행.
 
 ## 인증과 제거한 기능
 
@@ -64,7 +99,7 @@ Spring에는 원고 디렉터리 설정·마운트·파일 조회 경로 없음.
 
 ## 예외와 공개 오류 응답
 
-입력·업무 규칙·알려진 자원 장애는 `global/error/BusinessException`의 상태와 안전한 공개 설명 사용. 기능별 의미가 있는 Post·Category·Series·위키 입력 예외와, 업로드 보상 정리에서 타입을 구분하는 `AttachmentFailure`는 하위 타입 유지. 기술 배지·이미지 정규화 오류는 공통 타입 직접 사용. 예상하지 못한 결함을 입력 오류로 감싸지 않는 기준.
+입력·업무 규칙·알려진 자원 장애는 `global/error/BusinessException`의 상태와 안전한 공개 설명 사용. 기능별 의미가 있는 Post·Category·Series·위키 입력 예외와, 업로드 보상 정리에서 타입을 구분하는 `AttachmentFailure`는 하위 타입 유지. 기술 선택 입력 오류와 없는 기술 조회는 공통 타입 직접 사용. 예상하지 못한 결함을 입력 오류로 감싸지 않는 기준.
 
 `ApiErrorHandler`에서 HTTP 분류와 ProblemDetail 생성을 직접 수행. MCP와 공유하던 중간 PublicError DTO는 유일한 소비자에 통합하여 제거. Security/JDBC 세션과 공유하는 연결 장애 판별 함수만 global/error에 유지. 알려진 업무 실패 우선, 잠금 충돌 409, DB 연결 장애 503, 인증 실패 401, 프레임워크 지정 상태, 나머지 500 처리. 내부 메시지·SQL·비밀값은 응답에 복사하지 않고 예상하지 못한 오류 로그에는 클래스명만 기록. MVC 상태·Allow/Accept 헤더·확정 응답의 null 처리 및 MVC 밖 Security/JDBC 세션 경계 유지.
 

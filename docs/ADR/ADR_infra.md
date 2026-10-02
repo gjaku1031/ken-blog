@@ -68,9 +68,42 @@ Spring Boot 4.1.1·Java 25 및 `paketobuildpacks/ubuntu-noble-builder:latest`/`u
 
 API 컨테이너 기본 메모리 한도 `1536m`, 운영 CPU 한도 1코어. `BPL_JVM_HEAD_ROOM=10`으로 JVM 외 작업에 10% 여유를 예약하고, 나머지에서 메타스페이스·코드 캐시·스레드 스택을 뺀 힙 크기는 Paketo 메모리 계산기에 위임. MCP가 존재하던 과거 최초 기본 계산의 메타스페이스 약 139MiB에서는 이미지 도구 실행 중 `OutOfMemoryError: Metaspace`와 종료 코드 3 확인. `JAVA_TOOL_OPTIONS=-XX:MaxMetaspaceSize=256m`으로 클래스 정보 공간을 확보하고 그만큼 힙을 줄여 전체 한도 유지. 컨테이너 한도 전체를 `-Xmx`로 지정하지 않는 기준. Caddy·OS 및 테스트 MySQL의 메모리는 별도. [Paketo 메모리 계산기](https://paketo.io/docs/reference/java-reference/#memory-calculator)
 
-CI의 Actuator health·CSRF·PNG/JPEG 업로드·64px 배지·Series/Post·jOOQ 조회·비밀번호 로그인/로그아웃·공개 스냅샷 v2 검사는 인증된 관리자 HTTP로 수행. MCP 도구·문서·프롬프트 검사는 제거하고 원고 디렉터리와 마운트 없이 API 동작 검증. 위키 선언은 해시 없는 새 HTTP 계약으로 확인. 기능 검사를 통과한 이미지·SHA-256을 커밋별 artifact로 90일 보관. 빌더의 `latest`는 변경 가능하므로 실제 이미지 ID와 아카이브 해시가 산출물 식별 기준. Compose는 검증된 이미지를 받아 실행하며 자동 운영 배포·레지스트리 공개는 없는 구성.
+CI의 Actuator health·CSRF·본문 PNG/JPEG 업로드·로컬 64px 아이콘·Series/Post·jOOQ 조회·비밀번호 로그인/로그아웃·공개 스냅샷 v2 검사는 인증된 관리자 HTTP로 수행. MCP 도구·문서·프롬프트 검사는 제거하고 원고 디렉터리와 마운트 없이 API 동작 검증. 위키 선언은 해시 없는 새 HTTP 계약으로 확인. 기능 검사를 통과한 이미지·SHA-256을 커밋별 artifact로 90일 보관. 빌더의 `latest`는 변경 가능하므로 실제 이미지 ID와 아카이브 해시가 산출물 식별 기준. Compose는 검증된 이미지를 받아 실행하며 자동 운영 배포·레지스트리 공개는 없는 구성.
 
 실서버 적용 및 새 용량 검증 결과는 문서 후반의 JVM 전환 기록 참조. 기존 외부 DB 연결·자료 이관·Pages 전환은 별도 잔여 작업이며 테스트 DB의 성공을 운영 완료로 간주하지 않는 원칙.
+
+## 기술 이름·아이콘의 직접 관리 — 2026-10-02
+
+기술 목록의 웹 쓰기 기능 제거, DB와 로컬 파일 직접 관리 채택. 운영 DB·파일에 대한 이번 코드 작업의 실제 변경 없음. 기존 기술 ID·프로젝트 연결·아이콘·백업 보존. CI는 기존 배지 업로드 검사를 격리 DB 행과 디스크 PNG fixture 준비 후 목록/프로젝트 선택/공개 이미지 조회 검사로 보정. CI 자료 준비는 테스트 실행에만 포함하며 애플리케이션 초기화·운영 동기화 기능과 별개.
+
+### 등록 값과 파일 규칙
+
+| 대상 | 규칙 |
+| --- | --- |
+| `stack_badges.id` | 신규만 DB AUTO_INCREMENT 사용, 이름/아이콘 변경 시 기존 ID 유지 |
+| `name` | 앞뒤 공백 제거, 비어 있지 않은 100자 이하, ISO 제어문자 금지; Kotlin String 길이 기준 |
+| `name_key` | name에 Kotlin `lowercase(Locale.ROOT)`와 동일한 소문자 변환, 기존 utf8mb4_bin UNIQUE 확인; DB 로케일의 LOWER 결과에 무조건 의존하지 않는 기준 |
+| `object_key` | 고유 상대 키 `{prefix}/{UUID}.png`, 기본 prefix `ken-blog/attachments`; prefix는 영문·숫자·밑줄·하이픈 세그먼트와 `/`만 허용, 전체 키 255자 이하. 절대 경로·점 세그먼트·역슬래시 금지 |
+| 시각 | created_at·updated_at은 UTC datetime(6), 신규는 둘 다 지정. 변경은 created_at 보존, updated_at을 이전 값과 다른 새 UTC 마이크로초 시각으로 갱신 |
+| 아이콘 | 미리 디코딩 검증한 64×64 PNG, 비율 유지·투명 여백, 불필요 메타데이터 제거. Node 다운로드 상한 10MiB 이하. JPEG/SVG 등을 `.png`로 이름만 바꿔 등록 금지 |
+| 저장 위치 | 호스트 `KEN_BLOG_ASSETS_DIR` 아래 object_key; 컨테이너 `/var/lib/ken-blog/assets`와 동일한 영속 마운트. 키는 DB만 보관하고 외부 응답에는 공개 ID URL만 노출 |
+| 소유자·권한 | 현재 Compose API UID:GID 10001:1001. 디렉터리 0700 또는 0750, 파일 0600 또는 0640. API의 읽기/경로 통과 권한 확인. 루트와 모든 조상·대상의 심볼릭 링크 금지, 저장 루트 이하 디렉터리의 group/other 쓰기 금지 |
+
+직접 준비한 아이콘은 Spring이 형식·크기를 다시 정규화하지 않으므로 등록자가 PNG 내용과 64px 크기를 검증할 책임. 기존 아이콘을 일괄 변환하거나 기존 키를 바꾸는 작업 없음.
+
+### 변경·삭제·복구 순서
+
+1. 대상 DB 행·연결·기존 파일과 해시를 별도 백업하고 대상 ID 확인. 관리자 동시 저장과 겹치지 않도록 작업 시점 조율. 필요한 경우 영향 시리즈 행을 ID순으로 잠근 후 기술 행/참조 재확인. 인증 정보는 저장소 밖 0600 파일에 보관.
+2. 신규/교체 PNG를 API 저장 루트의 새 UUID 키로 준비. 같은 디렉터리의 비공개 임시 파일에 내용을 완성·검증하고 안전하게 게시, 소유자·권한·API 계정 읽기 확인. 기존 파일 덮어쓰기 금지. 실패 시 DB를 바꾸지 않고 새 미참조 파일만 정리 가능한 상태 유지.
+3. DB 트랜잭션에서 이름/name_key의 고유성, 새 object_key, UTC 시각을 기록. 이름 변경도 name_key와 updated_at 함께 갱신. 기존 ID·created_at·`series_stack_badges(series_id,badge_id,sort_order)` 보존. 변경 후 열린 관리자 화면은 재조회하여 새 이름을 선택하는 기준. 읽기용 엔티티 메서드를 우회하기 위한 앱 코드 추가 없음.
+4. 커밋 결과 확정 후 목록·프로젝트 응답·공개 아이콘 바이트/MIME 확인. 커밋 실패가 확정되면 새 파일만 정리하고 이전 DB·파일 유지. 결과가 불확실하면 재조회할 때까지 두 파일 모두 보존. 되돌릴 때는 이전 키/이름과 새 updated_at으로 DB 복구하여 캐시 재사용 방지.
+5. 아이콘 교체는 반드시 새 키와 updated_at 변경. `imageUrl`의 v 및 사용 중인 공개 프로젝트의 snapshot revision 변경으로 새 Pages 입력 생성. 기존 URL 캐시는 최대 300초 남을 수 있으며 v는 과거 파일을 지정하는 저장소 버전이 아님. 기존 키의 파일만 덮어쓰면 revision이 바뀌지 않고 캐시/빌드 중 일관성 검사가 무력화되므로 금지.
+6. DB·아이콘 변경은 Git 커밋 트리거가 없으므로 Pages 워크플로 수동 실행 필요. Node가 최신 아이콘을 다시 다운로드하고 내용 해시 파일명으로 HTML 재생성. 공개 프로젝트에 쓰이지 않는 기술은 snapshot에 없어 revision 변화가 없을 수 있음. 성공한 산출물/공개 반영 확인 후에만 참조 없는 이전 파일을 보관 대상으로 이동 또는 명시적 승인 범위에서 정리.
+7. 기술 삭제 전 비공개를 포함한 `series_stack_badges` 참조와 순서 확인. 사용 중이면 명시적으로 선택을 제거/교체하고 필요한 sort_order 정리 후 기술 행 삭제. 기존 FK cascade가 있어도 자동 연결 소실에 의존하지 않는 기준. DB 트랜잭션 커밋·Pages 재생성 확인 전에는 파일을 먼저 삭제하지 않으며, 롤백용 행·연결·파일 백업 보존. 본문 attachments 또는 과거 복구 자료가 같은 키를 참조하는지도 파일 정리 전에 확인.
+
+DB와 파일을 하나의 트랜잭션으로 처리할 수 없으므로 새 파일 준비 → DB 전환 → 공개 검증/Pages 발행 → 이전 파일 보관 순서. 운영 적용 시 API와 관리자 Pages를 함께 갱신하여 옛 화면의 삭제된 쓰기 API 호출 제거 필요. 신규 운영 CLI·자동 동기화·스킬 없음.
+
+기술 목록 변경 검증: 기존 CI 시나리오의 DB/PNG 직접 준비·조회·프로젝트 연결·본문 첨부·출간·jOOQ 검사 통과. CI YAML/shell/내장 Python 구문 및 Caddy adapt/validate 확인. 격리 Caddy에서 목록 인증·삭제 쓰기 경로 차단·공개 PNG 헤더/바이트 검증. Node가 변경된 imageUrl을 수집해 내용 해시 아이콘과 본문 이미지를 포함한 Pages 생성. 이미지 동기 스트리밍의 반복 전송 검증과 한계는 [애플리케이션 ADR](ADR_application.md) 참조. Buildpacks 재생성·원격 CI·운영 반영은 별도 미수행.
 
 ## 상태 확인의 Actuator 통일 — 2026-10-02 결정
 

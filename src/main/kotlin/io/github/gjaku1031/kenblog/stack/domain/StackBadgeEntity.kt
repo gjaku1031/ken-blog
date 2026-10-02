@@ -36,25 +36,4 @@ class StackBadgeEntity protected constructor() {
     lateinit var updatedAt: LocalDateTime
         protected set
 
-    /** 검증된 이름·객체 key로 새 행을 생성. */
-    constructor(name: String, nameKey: String, objectKey: String, now: LocalDateTime) : this() {
-        this.name = name
-        this.nameKey = nameKey
-        this.objectKey = objectKey
-        createdAt = now
-        updatedAt = now
-    }
-
-    /** 이름을 바꿔 ID로 연결된 프로젝트의 표기를 함께 변경. */
-    fun rename(name: String, nameKey: String, now: LocalDateTime) {
-        this.name = name
-        this.nameKey = nameKey
-        updatedAt = now
-    }
-
-    /** 새 PNG key로 교체하고 이전 key를 호출자에게 반환. */
-    fun replaceImage(key: String, now: LocalDateTime): String = objectKey.also {
-        objectKey = key
-        updatedAt = now
-    }
 }
