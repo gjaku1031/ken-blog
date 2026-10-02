@@ -57,20 +57,52 @@ dependencies {
     jooqCodegen("org.jooq:jooq-meta-extensions:3.21.8")
 }
 
-// 조회용 Kotlin 테이블 타입은 로컬 DDL로 생성하며 운영 DB에 연결하지 않는다.
+// 앱 컴파일은 jOOQ 타입에 의존하므로 JPA 모델만 먼저 별도 컴파일한다.
+// 원본 엔티티를 그대로 읽으며 이 소스셋의 클래스는 API JAR에 별도로 넣지 않는다.
+val jpaModel = sourceSets.create("jpaModel")
+kotlin.sourceSets.named("jpaModel") {
+    kotlin.srcDirs("src/main/kotlin", "src/jooq/kotlin")
+    kotlin.include("**/domain/**", "**/GenerateJpaSchema.kt")
+}
+configurations[jpaModel.implementationConfigurationName].extendsFrom(configurations.implementation.get())
+
+val jpaSchema = layout.buildDirectory.file("generated/jooq/schema.sql")
+val generateJpaSchema by tasks.registering(JavaExec::class) {
+    group = "jooq"
+    description = "JPA 엔티티에서 jOOQ 코드 생성용 MySQL DDL을 만든다. DB에는 접속하지 않는다."
+    dependsOn(jpaModel.classesTaskName)
+    classpath = jpaModel.runtimeClasspath
+    mainClass.set("io.github.gjaku1031.kenblog.codegen.GenerateJpaSchemaKt")
+    inputs.files(jpaModel.output)
+    outputs.file(jpaSchema)
+    args(jpaSchema.get().asFile.absolutePath)
+}
+
+// Hibernate가 빌드 중 생성한 DDL을 사용한다. 수동 스키마나 운영 DB 연결은 필요 없다.
 jooq {
     configuration {
         generator {
             name = "org.jooq.codegen.KotlinGenerator"
             database {
                 name = "org.jooq.meta.extensions.ddl.DDLDatabase"
+                // JPA의 EnumType.STRING 계약을 유지하고 별도 jOOQ enum을 만들지 않는다.
+                forcedTypes {
+                    forcedType { name = "VARCHAR"; includeTypes = "(?i:ENUM.*)" }
+                }
                 properties {
-                    property { key = "scripts"; value = "src/jooq/schema.sql" }
+                    property { key = "scripts"; value = jpaSchema.get().asFile.absolutePath }
                     property { key = "unqualifiedSchema"; value = "none" }
                     property { key = "defaultNameCase"; value = "lower" }
                 }
             }
-            generate { isPojos = false; isDaos = false }
+            generate {
+                isPojos = false
+                isDaos = false
+                // 조회는 명시적인 JOIN만 사용한다. 자기 참조 카테고리의 경로 이름 충돌도 방지한다.
+                isImplicitJoinPathsToOne = false
+                isImplicitJoinPathsToMany = false
+                isImplicitJoinPathsManyToMany = false
+            }
             target {
                 packageName = "io.github.gjaku1031.kenblog.jooq"
                 directory = "build/generated-src/jooq/main"
@@ -80,7 +112,10 @@ jooq {
 }
 
 kotlin.sourceSets.main { kotlin.srcDir("build/generated-src/jooq/main") }
-tasks.named("jooqCodegen") { inputs.file("src/jooq/schema.sql") }
+tasks.named("jooqCodegen") {
+    dependsOn(generateJpaSchema)
+    inputs.file(jpaSchema)
+}
 tasks.named("compileKotlin") { dependsOn("jooqCodegen") }
 
 // API JAR에는 화면 자산을 넣지 않고 Pages 빌드에서 npm으로 별도 생성한다.

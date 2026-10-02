@@ -1,6 +1,5 @@
 package io.github.gjaku1031.kenblog.account.domain
 
-import io.github.gjaku1031.kenblog.account.service.AccountService
 import jakarta.persistence.Column
 import jakarta.persistence.Entity
 import jakarta.persistence.EnumType
@@ -61,7 +60,7 @@ class UserEntity protected constructor() {
     /**
      * 이미 검증된 계정 속성으로 새 저장 객체를 생성.
      *
-     * 호출자는 [AccountService.ensureInitialAdmin]에서 초기 관리자 입력을 검증해야 함.
+     * 호출자는 [io.github.gjaku1031.kenblog.account.service.AccountService.ensureInitialAdmin]에서 초기 관리자 입력을 검증해야 함.
      *
      * @param username 대소문자를 구분하는 ASCII 계정명
      * @param passwordHash `{bcrypt}` 형식의 비밀번호 해시

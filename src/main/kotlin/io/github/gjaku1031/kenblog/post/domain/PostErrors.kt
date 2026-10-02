@@ -1,11 +1,9 @@
 package io.github.gjaku1031.kenblog.post.domain
 
-import io.github.gjaku1031.kenblog.post.service.PostService
-
 /**
  * 등록한 주소가 이미 [PostEntity]에 저장되었을 때 발생.
  *
- * [PostService.createMetadata]의 트랜잭션을 롤백하며
+ * [io.github.gjaku1031.kenblog.post.service.PostService.createMetadata]의 트랜잭션을 롤백하며
  * 관리자 HTTP 경계에서는 slug를 숨긴 409 [org.springframework.http.ProblemDetail]로 변환함.
  */
 class DuplicatePostSlugException(slug: String, cause: Throwable? = null) :

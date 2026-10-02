@@ -2,7 +2,7 @@
 
 기준일: 2026-10-02. 인프라 변경 시 구현과 함께 갱신하는 결정 원본 문서.
 
-**코드의 구성과 실제 운영 적용 상태를 구분하는 원칙.** 현재 운영 원고·OCI 첨부 이관 전이며, 아래 신규 구성의 실서버 전환·push·배포는 보류 상태.
+**코드의 구성과 실제 운영 적용 상태를 구분하는 원칙.** 새 서버의 별도 테스트 DB로 Native API·Caddy 배포와 공개 HTTPS 검증 완료. 기존 운영 DB·원고·OCI 첨부 이관 및 실제 GitHub Pages 전환·push는 미완료. 아래 과거 검증 기록은 당시 상태이며 최신 배포·용량 결과는 문서 후반 참조. 애플리케이션 및 영속성 결정은 [ADR 목록](README.md)에서 연결.
 
 ## 서비스 배치
 
@@ -22,8 +22,8 @@ flowchart LR
 | --- | --- | --- |
 | 공개·관리자 화면 모두 GitHub Pages | 정적 파일 배포 유지, 서버의 HTML 렌더링 제거 | 소스 및 격리 브라우저 검증 완료, 운영 반영 전 |
 | Thymeleaf는 빌드 시 HTML 생성, TypeScript는 브라우저 동작 | Spring 중심 소스 구조와 정적 Pages의 역할 분리 | 기존 생성·로그인 검증 완료 |
-| Caddy가 공개 HTTPS 종료·인증서 갱신 | 별도 Certbot·systemd·Spring 직접 TLS 관리 제거 | 소스 및 시험 인증서 검증 완료, 운영 발급·전환 전 |
-| 공개 IPv4 + Let’s Encrypt ACME `shortlived` | 도메인 구매 없이 지원되는 브라우저의 공개 신뢰 사용 | 설정 검증 완료, 실제 공개 인증서 요청 전 |
+| Caddy가 공개 HTTPS 종료·인증서 갱신 | 별도 Certbot·systemd·Spring 직접 TLS 관리 제거 | 새 서버에서 공개 인증서·HTTPS 검증 완료, 실제 운영 데이터 전환 전 |
+| 공개 IPv4 + Let’s Encrypt ACME `shortlived` | 도메인 구매 없이 지원되는 브라우저의 공개 신뢰 사용 | 새 서버 공인 IP의 실제 발급·CA 검증 완료 |
 | Caddy `default_sni`에 공인 IP 지정 | IP 접속의 SNI 부재와 OCI NAT 환경에서 올바른 인증서 선택 | IP URL의 TLS·주소 검증 완료 |
 | MySQL/JDBC 세션, 단일 관리자 비밀번호, CSRF 유지 | 사용자 승인에 따라 MFA 제거, 로그인 실패 제한과 계정 변경 시 세션 해제 유지 | Post·Series 통합 브랜치 JVM 검증 완료; 아래 병합 검증 기록 참조 |
 | 원고는 저장소 Markdown, 이미지는 영속 로컬 파일 | 본문 웹 편집·S3/Redis 의존 제거 | 소스 구현 완료, 기존 자료 이관 전 |
@@ -97,7 +97,7 @@ AOT 분석은 `caddy` 프로필로 수행하며 해당 프로필의 쿠키·CORS
 
 도구를 지우기 위해 실제 원고·첨부·계정·DB·비밀 파일·기존 운영 인증서를 삭제하지 않는 원칙. 폴더 이름 변경이나 이관을 끝내는 작업은 별도 범위.
 
-## 검증과 남은 운영 작업
+## Native Image 최초 전환 검증과 당시 남은 작업
 
 - 기존 Caddy/Pages 변경: 기존35개 검사, TS, 정적 사이트 생성, 시험 인증서를 통한 HTTPS/IP URL, 관리자 브라우저와 API 재시작 검증 완료.
 - 이번 변경의 기존35개 검사: 실패·오류·건너뜀 없이 통과. TS 검사와 빈 fixture의 공개·관리자 Pages HTML 생성 통과. 로컬 볼륨 준비의 최상위 권한과 기존 파일 보존 검증 통과.
@@ -105,11 +105,11 @@ AOT 분석은 `caddy` 프로필로 수행하며 해당 프로필의 쿠키·CORS
 - CI와 같은 별도 빈 DB에서 더미 계정 초기화·MCP/이미지/프로젝트/Markdown/빈 공개 스냅샷 검사 통과. 기본 MCP 비활성 상태의 접근 차단 검증 통과.
 - 같은 최종 코드·환경·DB·1 CPU/1GiB 조건의 API 메모리 비교 완료. 동일 읽기 요청 120회 후 중앙값 JVM 684.4MiB/Native 136.3MiB, 약 80.1% 감소 관측. 기본 한도 1GiB 유지.
 - 운영 잔여: 기존 DB 원고 추출·공개 Markdown 반영, OCI 이미지 로컬 이관·해시 확인, 운영 API/env·권한·방화벽·이미지 선택·Caddy 전환 후 Pages 배포.
-- 운영 이관 전 push·실서버 전환·실제 공개 인증서 발급은 보류 상태.
+- 당시 운영 이관 전 push·실서버 전환·실제 공개 인증서 발급은 보류 상태. 이후 별도 테스트 DB의 실서버 배포와 인증서 검증은 아래 2026-10-02 기록 참조.
 
 ## Post·Series 통합 병합 — 2026-10-02
 
-메인의 Native Image·Buildpacks·ARM64 CI·Caddy 구성을 유지한 채 Post·Series와 jOOQ 변경을 병합한다. JPA는 저장·단일 조회·잠금, jOOQ는 목록·검색·태그·위키·공개 첨부 조회를 담당한다. jOOQ 3.21.8의 Kotlin 테이블 코드는 저장소 DDL로 생성하며 코드 생성과 AOT가 운영 DB에 연결하지 않는다. 본문은 Markdown 정본을 유지하고 기존 DB 원문·ID·slug·비공개 상태를 보존하는 명시적 `ops/unify-post-series.py` 이관 도구를 제공한다.
+메인의 Native Image·Buildpacks·ARM64 CI·Caddy 구성을 유지한 채 Post·Series와 jOOQ 변경을 병합한다. JPA는 저장·단일 조회·잠금, jOOQ는 목록·검색·태그·위키·공개 첨부 조회를 담당한다. 병합 당시 jOOQ 3.21.8의 Kotlin 테이블 코드는 저장소 DDL로 생성했다. 이후 수동 DDL을 제거하고 JPA 엔티티에서 빌드 중 자동 생성하도록 변경했다([영속성 ADR](ADR_persistence.md)). 코드 생성과 AOT는 운영 DB에 연결하지 않는다. 본문은 Markdown 정본을 유지하고 기존 DB 원문·ID·slug·비공개 상태를 보존하는 명시적 `ops/unify-post-series.py` 이관 도구를 제공한다.
 
 MFA 제거는 사용자 승인된 인증 요구사항 변경이다. 단일 설정 관리자 비밀번호·JDBC 세션·CSRF·로그인 실패 제한은 유지한다. 기존 MFA 자료는 DB에서 삭제하지 않으며 신규 세션 증명으로 이전 MFA 세션의 자동 재사용을 막는다. 운영 환경 예시에서 TOTP·복구 코드 설정도 제거한다.
 

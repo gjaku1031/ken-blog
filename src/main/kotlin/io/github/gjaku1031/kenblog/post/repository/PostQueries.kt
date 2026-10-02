@@ -26,7 +26,9 @@ class PostQueries(private val sql: DSLContext) {
     private val p = POSTS
     private val s = SERIES
     private val joined get() = p.leftJoin(s).on(p.SERIES_ID.eq(s.ID))
-    private val fields get() = p.fields().toList() + listOf(s.ID, s.SLUG, s.NAME, s.KIND)
+    private val fields get() = listOf(p.ID, p.TITLE, p.SLUG, p.SUMMARY, p.CREATED_AT, p.UPDATED_AT,
+        p.PUBLISHED_AT, p.STATUS, p.VISIBILITY, p.CATEGORY_ID, p.SERIES_ORDER, p.RELATED_SERIES_ID,
+        p.LEGACY_PATH, s.ID, s.SLUG, s.NAME, s.KIND)
     private val newest get() = listOf(p.PUBLISHED_AT.desc(), p.ID.desc())
     private val ordered get() = listOf(p.SERIES_ORDER.asc().nullsLast(), p.PUBLISHED_AT.asc().nullsLast(), p.ID.asc())
 
