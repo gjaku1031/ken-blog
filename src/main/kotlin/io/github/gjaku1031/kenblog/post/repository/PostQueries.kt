@@ -39,16 +39,7 @@ class PostQueries(private val sql: DSLContext) {
     private fun general(): Condition = p.SERIES_ID.isNull.or(s.KIND.eq("TECH"))
 
     fun adminPage(page: Int, size: Int): PostRows = page(trueCondition(), page, size, false)
-    fun publicPage(page: Int, size: Int, kind: SeriesKind? = null, categoryPath: String? = null,
-        tag: String? = null): PostRows {
-        var condition = readable()
-        if (kind != null) condition = condition.and(if (kind == SeriesKind.TECH) general() else s.KIND.eq(kind.name))
-        if (categoryPath != null) condition = condition.and(p.CATEGORY_ID.`in`(sql.select(CATEGORIES.ID)
-            .from(CATEGORIES).where(CATEGORIES.PATH.eq(categoryPath).or(CATEGORIES.PATH.startsWith("$categoryPath/")))))
-        if (tag != null) condition = condition.and(exists(sql.selectOne().from(POST_TAGS)
-            .where(POST_TAGS.POST_ID.eq(p.ID).and(POST_TAGS.TAG_NAME.eq(tag)))))
-        return page(condition, page, size, true)
-    }
+    fun publicPage(page: Int, size: Int): PostRows = page(readable(), page, size, true)
     private fun page(condition: Condition, page: Int, size: Int, published: Boolean): PostRows {
         val total = sql.selectCount().from(joined).where(condition).fetchOne(0, Long::class.java)!!
         val rows = sql.select(fields).from(joined).where(condition)

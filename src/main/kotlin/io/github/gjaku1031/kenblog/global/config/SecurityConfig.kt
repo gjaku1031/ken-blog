@@ -3,7 +3,6 @@ package io.github.gjaku1031.kenblog.global.config
 import io.github.gjaku1031.kenblog.auth.controller.AuthController
 import io.github.gjaku1031.kenblog.global.security.AccountSessionValidationFilter
 import io.github.gjaku1031.kenblog.global.security.SecurityProblemWriter
-import io.github.gjaku1031.kenblog.mcp.transport.McpLocalAccessFilter
 import jakarta.servlet.FilterChain
 import jakarta.servlet.http.HttpServletRequest
 import jakarta.servlet.http.HttpServletResponse
@@ -13,7 +12,6 @@ import org.springframework.boot.web.servlet.FilterRegistrationBean
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.core.Ordered
-import org.springframework.core.annotation.Order
 import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import org.springframework.security.config.annotation.web.builders.HttpSecurity
@@ -71,33 +69,6 @@ class SecurityConfig {
     @Bean
     fun accountSessionValidationRegistration(filter: AccountSessionValidationFilter): FilterRegistrationBean<AccountSessionValidationFilter> =
         FilterRegistrationBean(filter).apply { isEnabled = false }
-    /**
-     * `/mcp` 전용 체인을 먼저 적용해 브라우저 세션·CSRF 대신 VM 로컬 소켓 경계를 검사.
-     *
-     * [McpLocalAccessFilter]는 비활성 설정에서 404를, 허용되지 않은 접속에서 403을 반환.
-     */
-    @Bean
-    @Order(Ordered.HIGHEST_PRECEDENCE)
-    fun mcpSecurityFilterChain(
-        http: HttpSecurity,
-        writer: SecurityProblemWriter,
-        @Value("\${app.mcp.enabled}") enabled: Boolean,
-        @Value("\${app.mcp.allowed-peers}") allowedPeers: String,
-        @Value("\${app.mcp.allowed-hosts}") allowedHosts: String,
-    ): SecurityFilterChain = http
-        .securityMatcher("/mcp", "/mcp/**")
-        .csrf { it.disable() }
-        .cors { it.disable() }
-        .securityContext { it.disable() }
-        .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.STATELESS) }
-        .requestCache { it.disable() }
-        .formLogin { it.disable() }
-        .httpBasic { it.disable() }
-        .logout { it.disable() }
-        .addFilterBefore(McpLocalAccessFilter(enabled, allowedPeers, allowedHosts, writer), AuthorizationFilter::class.java)
-        .authorizeHttpRequests { it.anyRequest().permitAll() }
-        .build()
-
     /**
      * `{bcrypt}` 저장 형식에 맞는 비밀번호 검증기를 제공.
      *

@@ -27,7 +27,7 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 import tools.jackson.databind.JsonNode
 
-/** 본문 생성·교체·발행 HTTP를 제거하고 메타데이터만 공통 서비스에 연결. */
+/** 본문 없이 관리자 메타데이터·출간 상태·선언 관계를 관리하는 HTTP API. */
 @RestController
 @RequestMapping("/api/v1/admin/posts")
 class PostController(private val service: PostService, private val navigation: WikiNavigationService) {
@@ -47,12 +47,12 @@ class PostController(private val service: PostService, private val navigation: W
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(navigation.titleSearch(values[0]))
     }
 
-    /** 본문은 유지하고 링크 선언만 현재 파일 해시에 맞춰 변경. */
+    /** 원고 접근 없이 링크 선언 전체를 교체. */
     @PutMapping("/{id}/wiki-links", consumes = [MediaType.APPLICATION_JSON_VALUE], produces = [MediaType.APPLICATION_JSON_VALUE])
     fun wikiLinks(@PathVariable id: Long, @RequestBody request: JsonNode): ResponseEntity<PostDetailResponse> {
         val input = WikiLinkCorrectionRequest.fromJson(request)
         return ResponseEntity.ok().cacheControl(CacheControl.noStore())
-            .body(service.replaceWikiLinks(id, input.expectedBodySha256, input.wikiTargets))
+            .body(service.replaceWikiLinks(id, input.wikiTargets))
     }
 
     /** 저장소 본문을 읽지 않는 관리자 목록. */

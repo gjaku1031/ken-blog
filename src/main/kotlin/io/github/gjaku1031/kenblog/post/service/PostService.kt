@@ -3,17 +3,14 @@ package io.github.gjaku1031.kenblog.post.service
 import io.github.gjaku1031.kenblog.attachment.service.AttachmentLinkService
 import io.github.gjaku1031.kenblog.category.domain.CategoryNotFoundException
 import io.github.gjaku1031.kenblog.category.repository.CategoryRepository
-import io.github.gjaku1031.kenblog.content.service.RepositoryMarkdown
 import io.github.gjaku1031.kenblog.post.domain.DuplicatePostSlugException
 import io.github.gjaku1031.kenblog.post.domain.InvalidPostRequestException
-import io.github.gjaku1031.kenblog.post.domain.PostBodyHash
 import io.github.gjaku1031.kenblog.post.domain.PostEntity
 import io.github.gjaku1031.kenblog.post.domain.PostNotFoundException
 import io.github.gjaku1031.kenblog.post.domain.PostStatus
 import io.github.gjaku1031.kenblog.post.domain.PostTagEntity
 import io.github.gjaku1031.kenblog.post.domain.PostVisibility
 import io.github.gjaku1031.kenblog.post.domain.TagNames
-import io.github.gjaku1031.kenblog.post.domain.WikiLinkConflictException
 import io.github.gjaku1031.kenblog.post.dto.PostDetailResponse
 import io.github.gjaku1031.kenblog.post.dto.PostMetadataCreateRequest
 import io.github.gjaku1031.kenblog.post.dto.PostPageResponse
@@ -31,12 +28,11 @@ import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
 import java.util.Locale
 import org.springframework.dao.DataIntegrityViolationException
-import org.springframework.data.domain.PageRequest
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
-/** 게시글의 DB 메타데이터와 저장소 Markdown 읽기만 담당한다. */
+/** 게시글의 DB 메타데이터·출간 상태·첨부 및 위키 관계 관리. */
 @Service
 class PostService(
     private val repository: PostRepository,
@@ -47,7 +43,6 @@ class PostService(
     private val wikiLinks: WikiLinkMetadata,
     private val series: SeriesRepository,
     private val queries: PostQueries,
-    private val markdown: RepositoryMarkdown,
 ) {
     /** 본문 없이 등록한다. 출간은 별도 상태 변경이며 원고 파일은 Git에서 직접 만든다. */
     @Transactional
@@ -78,7 +73,7 @@ class PostService(
             tags.saveAllAndFlush(normalizedTags.mapIndexed { index, name -> PostTagEntity(id, index, name) })
         attachmentLinks.replacePost(id, request.attachmentIds)
         wikiLinks.replacePost(id, request.wikiTargets)
-        return saved.adminDetail(includeBody = false)
+        return saved.adminDetail()
     }
 
     /** 관리자가 출간 상태만 명시적으로 전환한다. 저장소 파일은 수정하지 않는다. */
@@ -87,7 +82,7 @@ class PostService(
         val post = lockedPost(id)
         if (published) post.publish(PostVisibility.PUBLIC, now()) else post.unpublish(now())
         repository.saveAndFlush(post)
-        return post.adminDetail(includeBody = false)
+        return post.adminDetail()
     }
 
     /** 본문 열 없이 초안·출간 메타데이터를 고정 정렬로 조회한다. */
@@ -105,13 +100,9 @@ class PostService(
         return PostPageResponse(items, page, size, result.total, result.pages)
     }
 
-    /** 파일이 없는 글은 원본 경로를 포함한 404로 알린다. */
-    @Transactional(readOnly = true)
-    fun adminDetail(id: Long): PostDetailResponse = lockedPostRead(id).adminDetail(includeBody = true)
-
     /** 파일이 아직 없는 새 글도 제목·상태 등 메타데이터를 조회할 수 있다. */
     @Transactional(readOnly = true)
-    fun adminMetadata(id: Long): PostDetailResponse = lockedPostRead(id).adminDetail(includeBody = false)
+    fun adminMetadata(id: Long): PostDetailResponse = lockedPostRead(id).adminDetail()
 
     /** 웹에서 제목·요약·분류·태그만 교체한다. */
     @Transactional
@@ -131,7 +122,7 @@ class PostService(
             if (normalizedTags.isNotEmpty())
                 tags.saveAllAndFlush(normalizedTags.mapIndexed { index, name -> PostTagEntity(id, index, name) })
         }
-        return post.adminDetail(includeBody = false)
+        return post.adminDetail()
     }
 
     /** 부모 잠금 순서를 지키며 섹션별 번호만 저장하고 Markdown 원문은 유지. */
@@ -142,7 +133,7 @@ class PostService(
         if (order != null && post.seriesId == null && post.categoryId == null) throw InvalidPostRequestException()
         post.reorder(order)
         repository.saveAndFlush(post)
-        return post.adminDetail(includeBody = false)
+        return post.adminDetail()
     }
 
     /** 새 소속을 먼저 잠근 뒤 글 소속과 순서를 함께 바꾼다. */
@@ -158,16 +149,15 @@ class PostService(
         if (order != null && seriesId == null && post.categoryId == null) throw InvalidPostRequestException()
         post.assignSeries(seriesId, order, relatedId, now())
         repository.saveAndFlush(post)
-        return post.adminDetail(false)
+        return post.adminDetail()
     }
 
-    /** 본문 해시를 확인한 후 위키 대상 선언만 교체한다. */
+    /** 원고 접근 없이 관리자 위키 대상 선언 전체를 교체. 마지막으로 저장한 선언 사용. */
     @Transactional
-    fun replaceWikiLinks(id: Long, expectedBodySha256: String, wikiTargets: List<String>): PostDetailResponse {
+    fun replaceWikiLinks(id: Long, wikiTargets: List<String>): PostDetailResponse {
         val post = lockedPost(id)
-        if (PostBodyHash.sha256(markdown.readPost(post)) != expectedBodySha256) throw WikiLinkConflictException()
         wikiLinks.replacePost(id, wikiTargets)
-        return post.adminDetail(includeBody = true)
+        return post.adminDetail()
     }
 
     /** Git 원고의 첨부 참조에 대해 공개 다운로드 권한을 선언한다. */
@@ -175,7 +165,7 @@ class PostService(
     fun replaceAttachments(id: Long, attachmentIds: List<Long>): PostDetailResponse {
         val post = lockedPost(id)
         attachmentLinks.replacePost(id, attachmentIds)
-        return post.adminDetail(includeBody = false)
+        return post.adminDetail()
     }
 
     @Transactional(readOnly = true)
@@ -200,17 +190,15 @@ class PostService(
         return repository.findLockedById(id) ?: throw PostNotFoundException()
     }
 
-    private fun PostEntity.adminDetail(includeBody: Boolean): PostDetailResponse {
+    private fun PostEntity.adminDetail(): PostDetailResponse {
         val postId = id ?: error("Persisted post has no ID")
         val view = taxonomy.one(postId, categoryId)
         val ref = seriesId?.let(series::findByIdOrNull)?.let {
             io.github.gjaku1031.kenblog.post.dto.SeriesRef(it.id!!, it.slug, it.name, it.kind)
         }
-        val fileBody = if (includeBody) markdown.readPost(this) else ""
-        return PostDetailResponse(postId, title, slug, fileBody, createdAt, updatedAt,
+        return PostDetailResponse(postId, title, slug, createdAt, updatedAt,
             status, visibility, publishedAt, view.category, view.tags, attachmentLinks.postIds(postId),
-            wikiLinks.postTitles(postId), ref, seriesOrder, relatedSeriesId, summary,
-            if (includeBody) PostBodyHash.sha256(fileBody) else "")
+            wikiLinks.postTitles(postId), ref, seriesOrder, relatedSeriesId, summary)
     }
 
     private fun validTitle(value: String): String = value.trim().also {

@@ -60,17 +60,32 @@ Chromium에서 홈·상세·위키 링크·목차·시리즈·본문 검색·이
 
 ## JVM 이미지 빌드와 배포 — 2026-10-02 결정
 
-상시 실행하는 1코어·RAM 4GB 개인 블로그의 기본 런타임을 Java 25 일반 JVM으로 변경. Native의 기동 시간·메모리 이득보다 Spring/JPA·jOOQ·MCP·ImageIO의 동적 기능 호환과 유지보수 단순성을 우선하는 선택. 이전 같은 조건의 JVM 실측은 유휴 647.4MiB, 조회 120회 후 684.4MiB였으며, 4GB 서버에서 JVM을 배제할 근거가 부족하다는 판단. 이 과거 값은 현재 코드의 최대 부하 상한이 아님.
+상시 실행하는 1코어·RAM 4GB 개인 블로그의 기본 런타임을 Java 25 일반 JVM으로 변경. Native의 기동 시간·메모리 이득보다 Spring/JPA·jOOQ·ImageIO의 동적 기능 호환과 유지보수 단순성을 우선하는 선택. 이전 같은 조건의 JVM 실측은 유휴 647.4MiB, 조회 120회 후 684.4MiB였으며, 4GB 서버에서 JVM을 배제할 근거가 부족하다는 판단. 이 과거 값은 현재 코드의 최대 부하 상한이 아님.
 
-이미지 생성은 기존 `bootBuildImage`·Cloud Native Buildpacks 유지. GraalVM Gradle 플러그인, `processAot` 환경 설정, Native 컴파일 옵션, `NativeRuntimeHints.kt` 및 ImageIO 전용 reachability metadata 제거. Spring 빈과 MCP 활성 여부는 일반 JVM의 실행 환경에서 결정. JPA 기반 jOOQ 빌드 코드 생성은 런타임 AOT와 별개이므로 유지.
+이미지 생성은 기존 `bootBuildImage`·Cloud Native Buildpacks 유지. GraalVM Gradle 플러그인, `processAot` 환경 설정, Native 컴파일 옵션, `NativeRuntimeHints.kt` 및 ImageIO 전용 reachability metadata 제거. Spring 빈은 일반 JVM 실행 환경에서 구성하며 MCP 서버는 후속 단순화로 제거. JPA 기반 jOOQ 빌드 코드 생성은 런타임 AOT와 별개이므로 유지.
 
 Spring Boot 4.1.1·Java 25 및 `paketobuildpacks/ubuntu-noble-builder:latest`/`ubuntu-noble-run:latest` 유지. Java desktop 이미지 처리에 필요한 시스템 라이브러리를 포함한 실행 이미지 사용. CI의 ARM64 작업은 Liberica JVM buildpack 포함·Native buildpack 미포함, 실제 Java 실행, 비루트 사용자와 운영 UID 10001/GID 1001의 파일 접근을 검증하는 구성. [Spring Boot 이미지 빌드](https://docs.spring.io/spring-boot/gradle-plugin/packaging-oci-image.html)
 
-API 컨테이너 기본 메모리 한도 `1536m`, 운영 CPU 한도 1코어. `BPL_JVM_HEAD_ROOM=10`으로 JVM 외 작업에 10% 여유를 예약하고, 나머지에서 메타스페이스·코드 캐시·스레드 스택을 뺀 힙 크기는 Paketo 메모리 계산기에 위임. 최초 기본 계산의 메타스페이스 약 139MiB에서는 MCP 이미지 도구 실행 중 `OutOfMemoryError: Metaspace`와 종료 코드 3 확인. `JAVA_TOOL_OPTIONS=-XX:MaxMetaspaceSize=256m`으로 클래스 정보 공간을 확보하고 그만큼 힙을 줄여 전체 한도 유지. 컨테이너 한도 전체를 `-Xmx`로 지정하지 않는 기준. Caddy·OS 및 테스트 MySQL의 메모리는 별도. [Paketo 메모리 계산기](https://paketo.io/docs/reference/java-reference/#memory-calculator)
+API 컨테이너 기본 메모리 한도 `1536m`, 운영 CPU 한도 1코어. `BPL_JVM_HEAD_ROOM=10`으로 JVM 외 작업에 10% 여유를 예약하고, 나머지에서 메타스페이스·코드 캐시·스레드 스택을 뺀 힙 크기는 Paketo 메모리 계산기에 위임. MCP가 존재하던 과거 최초 기본 계산의 메타스페이스 약 139MiB에서는 이미지 도구 실행 중 `OutOfMemoryError: Metaspace`와 종료 코드 3 확인. `JAVA_TOOL_OPTIONS=-XX:MaxMetaspaceSize=256m`으로 클래스 정보 공간을 확보하고 그만큼 힙을 줄여 전체 한도 유지. 컨테이너 한도 전체를 `-Xmx`로 지정하지 않는 기준. Caddy·OS 및 테스트 MySQL의 메모리는 별도. [Paketo 메모리 계산기](https://paketo.io/docs/reference/java-reference/#memory-calculator)
 
-CI의 기존 health·status·CSRF·MCP 24개 도구/문서/프롬프트·PNG/JPEG 업로드·64px 배지·Series/Post·jOOQ 조회·비밀번호 로그인/로그아웃·공개 스냅샷 v2 검사를 JVM 이미지에서도 유지. fixture 원고는 호스트에만 작성하고 CI 컨테이너에는 읽기 전용 마운트. 기능 검사를 통과한 이미지·SHA-256을 커밋별 artifact로 90일 보관. 빌더의 `latest`는 변경 가능하므로 실제 이미지 ID와 아카이브 해시가 산출물 식별 기준. Compose는 검증된 이미지를 받아 실행하며 자동 운영 배포·레지스트리 공개는 없는 구성.
+CI의 health·status·CSRF·PNG/JPEG 업로드·64px 배지·Series/Post·jOOQ 조회·비밀번호 로그인/로그아웃·공개 스냅샷 v2 검사는 인증된 관리자 HTTP로 수행. MCP 도구·문서·프롬프트 검사는 제거하고 원고 디렉터리와 마운트 없이 API 동작 검증. 위키 선언은 해시 없는 새 HTTP 계약으로 확인. 기능 검사를 통과한 이미지·SHA-256을 커밋별 artifact로 90일 보관. 빌더의 `latest`는 변경 가능하므로 실제 이미지 ID와 아카이브 해시가 산출물 식별 기준. Compose는 검증된 이미지를 받아 실행하며 자동 운영 배포·레지스트리 공개는 없는 구성.
 
 실서버 적용 및 새 용량 검증 결과는 문서 후반의 JVM 전환 기록 참조. 기존 외부 DB 연결·자료 이관·Pages 전환은 별도 잔여 작업이며 테스트 DB의 성공을 운영 완료로 간주하지 않는 원칙.
+
+## API 원고 마운트와 MCP 런타임 제거 — 2026-10-02 결정
+
+두 Compose·환경 예시·application.yml·CI에서 MCP 활성화/접속 설정과 API 원고 디렉터리 설정·마운트 제거. Spring AI BOM·MCP starter와 앱의 전용 Security 체인·리소스 제거. API 컨테이너는 DB와 이미지 저장소만 필요하며 로컬 API 포트 바인딩은 기존 HTTP 점검·관리 용도로 유지. Caddy에는 원래 MCP 허용 경로가 없으므로 기존 공개/인증/관리자 allowlist와 나머지 404 처리 유지.
+
+삭제된 `/mcp`에는 앱 라우트나 별도 허용 규칙 없음. API 직결 익명 요청은 일반 Security 정책으로 401 또는 CSRF 403, 인증·유효 CSRF 요청은 없는 경로 404. Caddy 외부 경로는 기존과 같이 404. 서버가 활성 상태가 되는 호환 플래그나 대체 엔드포인트 없음.
+
+Node/Pages의 `content/posts` checkout·원고 변경 트리거·Markdown→HTML 생성과 공개 메타데이터 수집 유지. 기존 Pages 소비자는 API의 빈 body를 사용하지 않으므로 필드 제거와 함께 새로운 본문 다운로드 경로를 만들지 않음. API 출간과 Git 원고 배포는 원자적 작업이 아니며 누락 원고는 Pages 생성 시 실패하는 기존 계약.
+
+`ops/prepare-local-storage.py`는 assets만으로 미리보기/적용 가능하도록 수정. 기존 --content-root는 과거 원고 권한 복구를 명시한 경우에만 사용하며 기본 생성·접근 없음. export-markdown·unify-post-series·OCI 첨부 이관·DB 백업/복구 도구는 미완료 자료 이관을 위해 보존하며 앱 런타임에서 실행하지 않음. 기존 서버의 원고·비공개 자료·DB 열·이미지·백업·시크릿은 실제로 삭제하거나 변경하지 않는 범위.
+
+아래 Native/JVM 측정의 MCP 언급은 당시 검증 이력이며 현재 의존성이나 기능이 아님. 기존 256MiB 메타스페이스·1536MiB 컨테이너 한도는 유지하며 MCP 제거 후 새 부하 한도를 추정하지 않는 기준.
+
+검증: 최종 clean build·기존 35개 검사, 원고 없는 별도 Java 25 JRE API의 관리자 HTTP 시나리오, Node 타입/빈 생성/실제 snapshot 기반 Pages 생성 통과. 두 Compose는 이미지 저장소만 마운트하고 원고 경로 없이 정상 해석. Caddy adapt/validate 및 CI YAML·shell·내장 HTTP 검사 구문 확인. 자산 전용 권한 준비가 기존 원고를 변경하지 않는 것, 명시적 과거 원고 권한 복구의 바이트/소유자 보존과 심볼릭 링크 거부 검증. 실제 Buildpacks 이미지 재생성·원격 Actions 실행·push·운영 배포는 미수행.
+
 
 ## 루트 파일 정리
 
@@ -88,7 +103,7 @@ CI의 기존 health·status·CSRF·MCP 24개 도구/문서/프롬프트·PNG/JPE
 | --- | --- | --- |
 | `ops/backup-mysql.sh` | 기존 운영 DB의 안전한 백업 | 검증된 별도 백업 체계로 대체 후 검토 |
 | `ops/restore-mysql.sh` | 빈 복구 스키마의 백업 복원 | 검증된 복구 절차로 대체 후 검토 |
-| `ops/prepare-local-storage.py` | 컨테이너·호스트의 파일 소유권과 권한 준비 | 실행 사용자·마운트 권한 계약을 대체 절차에 옮긴 후 검토 |
+| `ops/prepare-local-storage.py` | 이미지 저장소 권한 준비, 명시한 경우에만 과거 원고 권한 복구 | 실행 사용자·마운트 권한 계약을 대체 절차에 옮긴 후 검토 |
 | `ops/export-markdown.py` | 기존 DB 원고·미출간·편집본 보존 추출 | 이관 완료 및 원본 대조 후 제거 가능 |
 | `ops/migrate-oci-assets.py` | DB가 참조하는 OCI 객체의 로컬 이관·해시 대조 | 이관 완료 및 원본 대조 후 제거 가능 |
 

@@ -12,7 +12,7 @@
 
 본문 정본은 `content/posts/{slug}.md`, DB는 메타데이터와 연결 관계 관리. 기존 DB 본문 열은 이관·복구 호환용으로 보존하며 신규 원고를 저장하는 경로로 사용하지 않음. 공개 원고만 Git 추적하고 미출간·비공개 원고와 비밀값은 공개 저장소에 반영하지 않는 기준.
 
-웹 본문 작성·수정 화면과 본문 쓰기 API는 제거. 원고는 저장소에서 수정하고 웹/MCP는 지원하는 조회·메타데이터·로컬 이미지 기능 제공. 첨부는 영속 로컬 디스크로 관리하며 기존 OCI 객체는 해시를 대조해 이관할 때까지 보존.
+웹 본문 작성·수정 화면과 본문 쓰기 API는 제거. 원고는 에이전트나 작성자가 로컬 Git 파일에서 직접 수정하고 관리자 화면·HTTP API는 메타데이터·출간 상태·로컬 이미지 관리 담당. Spring은 원고를 보관하거나 읽지 않으며 Markdown 렌더링과 HTML 조립은 Node 빌드의 책임. 첨부는 영속 로컬 디스크로 관리하며 기존 OCI 객체는 해시를 대조해 이관할 때까지 보존.
 
 공개·관리자 화면은 Node/TypeScript·Nunjucks로 빌드한 GitHub Pages 정적 파일. 본문 렌더링과 완성 HTML 조립을 Node로 통일하고 Kotlin SiteGenerator·Thymeleaf 제거. API는 Spring Boot, Node는 빌드 용도. `pages`의 공개 snapshot·revision 계약 유지. 독자용 공개 Post API·SPA 라우터·htmx 추가 없음. 배포 실행과 이력은 GitHub Actions 담당. 상세 배치와 운영 상태는 [인프라 ADR](ADR_infra.md) 참조.
 
@@ -20,7 +20,7 @@
 
 변경 빈도가 낮은 홈 소개는 `src/main/resources/web/site/templates/views/about.njk`의 정적 HTML로 직접 관리. 현재 공개 사이트의 이름·한 줄 소개·소개·GitHub·이메일 내용을 그대로 이전. 별도 DB 모델·설정 API·런타임 조회 없이 템플릿 수정과 Pages 배포로 반영하는 결정.
 
-프로필 Controller·Service·DTO·Repository·Entity와 사진 업로드/조회/삭제 API 제거. 관리자 메뉴·폼·요청, snapshot의 profile 필드, 빌드의 사진 다운로드 및 보안/Caddy 경로 허용도 제거. 기존 MCP에는 프로필 전용 도구가 없어 도구 수 변경 없음. 공용 이미지 정규화는 남아 있는 기술 배지의 64px 생성·교체에만 사용.
+프로필 Controller·Service·DTO·Repository·Entity와 사진 업로드/조회/삭제 API 제거. 관리자 메뉴·폼·요청, snapshot의 profile 필드, 빌드의 사진 다운로드 및 보안/Caddy 경로 허용도 제거. 공용 이미지 정규화는 남아 있는 기술 배지의 64px 생성·교체에만 사용.
 
 기존 운영 `home_profile` 행과 사진 파일의 실제 삭제는 수행하지 않음. 옛 DB/OCI 자료 이관 도구의 사진 참조는 자료 보존용으로 유지하며 애플리케이션 기능과 구분.
 
@@ -34,28 +34,36 @@
 
 검증 이력: Post·Series 통합 시 기존 JVM 검사 35개, Pages 생성, Native API의 비밀번호 로그인·jOOQ 조회·MCP·이미지 기능 검증 완료. 배포 및 성능 검증의 데이터 범위와 제한은 인프라 ADR에 별도 기록.
 
+## MCP 제거와 원고 접근 경계
+
+원고 작성·수정은 로컬 파일 편집, DB 메타데이터·이미지는 관리자 HTTP, 렌더링·페이지 생성은 Node로 역할 분리. 이 구조에서 별도의 블로그 MCP 서버는 중복 진입점과 원고 배포 의존성을 만들므로 전부 제거. 대체 MCP·CLI·추상화나 신규 스킬 제작 없음.
+
+제거 대상은 `mcp` 도구·DTO·본문 선언 검사·리소스/프롬프트·이미지 Base64 입력·오류 변환·로컬 접속 필터와 Spring AI/MCP 의존성·설정·전용 Security 체인. 이들만 호출하던 `RepositoryMarkdown`, `ContentFeedService`, 공개 피드 DTO/목록 필터와 위키 다중 제목 해석 서비스도 제거. Pages가 사용하는 공개 상세 메타데이터 서비스, 관리자 제목 검색·위키 선언 DB 관계·탐색 쿼리, 인증·분류·시리즈·태그·첨부·기술 배지·출간 서비스는 유지.
+
+Spring에는 원고 디렉터리 설정·마운트·파일 조회 경로 없음. 관리자 상세 조회·등록·메타데이터 수정·출간은 Markdown 파일 존재와 무관하게 처리. 관리자 화면의 원고 안내는 slug로 계산하는 `content/posts/{slug}.md` 규칙이며 파일 존재 확인 없음. 기존 원고·비공개 파일·백업과 DB의 옛 body/body_sha256 열은 보존. `PostBodyHash`는 신규 행의 빈 본문 호환 열 초기화에만 사용하며 파일 검증이나 응답에는 사용하지 않음.
+
+### 변경된 HTTP 계약
+
+- 관리자 글 상세/변경 응답 `PostDetailResponse`의 body·bodySha256 제거. 웹 화면은 두 필드를 소비하지 않으며 MCP 소비자는 함께 제거.
+- 공개 snapshot의 글 항목 `PublicPostDetailResponse.body` 제거. 항상 빈 값이던 필드이며 Node 소비자는 기존에도 API 본문을 무시하고 Git 원고를 읽던 구조. snapshot v2·revision·공개 선별 유지. Node 내부 렌더링 모델과 격리 fixture의 body는 API 필드와 별개로 유지.
+- `PUT /api/v1/admin/posts/{id}/wiki-links` 입력은 `{"wikiTargets":["제목"]}`만 허용. expectedBodySha256 제거 및 원고 해시 불일치 409 제거. 이전 해시 필드가 남은 요청은 보호 장치가 동작하는 것으로 오해하지 않도록 400 반환. 요청의 배열 필수·타입·개수·문자 검증과 중복 정규화, 글 404, 부모 행 잠금과 트랜잭션은 유지.
+
+이전 해시는 조회 시점과 선언 교체 시점 사이의 원고 변경을 감지해 낡은 원고에 근거한 선언 저장을 거부하던 장치. 원고를 바꾸지 않은 채 두 요청이 선언만 수정하는 경합까지 차단하는 버전은 아니었음. 제거 후 선언은 DB 메타데이터로 독립 교체하며 마지막으로 저장한 요청이 최종 값. 원고와 선언의 일치는 작성자 책임으로 이동하며 새로운 해시·낙관적 버전은 미도입. `WikiLinkConflictException`도 실제 발생 조건 소멸로 제거.
+
+위키 제목 해석·링크·역링크의 정적 렌더링은 기존 Node가 원고에서 추출한 제목을 공개 snapshot에 연결하는 방식 유지. DB의 `post_wiki_links`와 관리자 선언·제목 탐색은 유지하며, Node의 원고 링크와 DB 선언을 자동 동기화하는 새 흐름은 추가하지 않음. 출간된 글의 원고 누락은 API 출간 요청을 막지 않고 기존 Pages 빌드를 실패시키는 경계.
+
 ## 예외와 공개 오류 응답
 
-### 조사와 분류 기준
+입력·업무 규칙·알려진 자원 장애는 `global/error/BusinessException`의 상태와 안전한 공개 설명 사용. 기능별 의미가 있는 Post·Category·Series·위키 입력 예외와, 업로드 보상 정리에서 타입을 구분하는 `AttachmentFailure`는 하위 타입 유지. 기술 배지·이미지 정규화 오류는 공통 타입 직접 사용. 예상하지 못한 결함을 입력 오류로 감싸지 않는 기준.
 
-기존 `operations/domain/OperationFailure`는 Markdown 조회·기술 배지·이미지 검증·MCP 입력 검증이 공유하는 실패로, 운영 기능 전용 패키지와 실제 역할의 불일치. HTTP의 기능별 핸들러와 MCP의 타입 분기가 별도로 상태·설명을 정의하여 같은 실패의 의미가 달라지는 구조. 선택적 `code`는 값을 지정한 사용처가 없고 HTTP 확장 필드도 실제 생성되지 않는 상태.
+`ApiErrorHandler`에서 HTTP 분류와 ProblemDetail 생성을 직접 수행. MCP와 공유하던 중간 PublicError DTO는 유일한 소비자에 통합하여 제거. Security/JDBC 세션과 공유하는 연결 장애 판별 함수만 global/error에 유지. 알려진 업무 실패 우선, 잠금 충돌 409, DB 연결 장애 503, 인증 실패 401, 프레임워크 지정 상태, 나머지 500 처리. 내부 메시지·SQL·비밀값은 응답에 복사하지 않고 예상하지 못한 오류 로그에는 클래스명만 기록. MVC 상태·Allow/Accept 헤더·확정 응답의 null 처리 및 MVC 밖 Security/JDBC 세션 경계 유지.
 
-- 입력·업무 규칙·알려진 자원 장애: `global/error/BusinessException`의 HTTP 상태와 안전한 공개 설명으로 표현. 별도 기능 타입이 필요 없는 Markdown·배지·이미지·MCP 검증은 직접 사용.
-- 기능별 의미나 타입 분기가 필요한 실패: Post·Category·Series·Wiki 예외와 `AttachmentFailure`를 공통 예외의 하위 타입으로 유지. 없는 글·중복 slug·원고 SHA 충돌 등의 의미 보존. 첨부 실패 타입은 업로드 보상 정리와 이미지 검증의 catch 경계에서 사용하므로 제거 금지.
-- 예상하지 못한 결함: 일반 예외를 입력 오류로 감싸지 않고 공통 경계에서 안전한 서버 오류로 처리. 내부 메시지·SQL·파일 경로·비밀값을 응답에 복사하지 않는 기준. Markdown 안내의 기존 검증된 저장소 상대 경로만 유지.
+이전 OperationFailure의 잘못된 위치·미사용 code·중복 필드는 앞선 정리에서 제거한 상태. 이번 MCP 제거로 MCP 오류 코드 호환 분기와 이중 프로토콜 설명도 전부 제거. 공통 예외를 위한 별도 enum이나 새로운 추상화 없음. 기능별 예외 부모인 BusinessException만 JPA 선행 컴파일 대상에 포함하는 기존 생성 구조 유지.
 
-기능별 예외 자체는 모두 사용 중이므로 삭제 대상이 아니며 서로 다른 의미를 하나로 합치지 않는 결정. 상태·설명은 각 예외에 한 번 선언하고 `AttachmentFailure`의 중복 필드, `OperationFailure`와 미사용 `code`, 양쪽 경계의 기능별 중복 매핑 제거. 중복 slug 예외의 미사용 원문 인자는 제거하되 원인 예외 보존. DB 본문을 전제로 한 Wiki 충돌 주석은 실제 Markdown 원본 기준으로 수정.
+## 이번 변경의 검증과 적용 범위
 
-### HTTP·MCP 변환과 호환성
+최종 clean build와 기존 MySQL·인증·HTTP·첨부 검사 35개 통과. 저장소 밖의 별도 MySQL/JVM을 원고 설정·마운트 없이 실행하여 CI와 동일한 관리자 HTTP 시나리오 검증: 로그인/로그아웃·권한/CSRF, PNG/JPEG 업로드·64px 배지, 분류/시리즈/글 등록·메타데이터/태그·이미지 연결·위키 선언·출간/공개 해제·제목 탐색·공개 snapshot. 새 위키 요청의 교체/정규화/빈 배열/잘못된 입력과 제거된 경로의 인증 후 GET/POST 404 확인. 최종 오류 처리 통합 JAR에서도 기동·인증·위키 변경 및 안전한 400/404/409 ProblemDetail 재확인.
 
-`PublicError`에서 공통 공개 상태·설명을 결정하고 `ApiErrorHandler`와 `McpToolCalls`는 각 프로토콜의 응답으로 변환. 알려진 업무 예외 우선, 잠금 충돌 409, 원인 체인에서 확인한 DB 연결 장애 503, 인증 실패 401, 프레임워크 지정 상태, 나머지 500 순서. 예상하지 못한 서버 오류는 메시지나 원인 대신 예외 클래스명만 로그에 기록. 새로운 오류 코드 enum이나 예외별 매핑 계층 추가 없음.
+Node 타입 검사·빈 Pages 생성과 실제 격리 API snapshot + 별도 Git 형식 원고의 완성 HTML 생성 통과. 위키 링크/역링크·이미지 포함, 미출간 파일과 옛 DB 본문 비노출 확인. 원고 누락 시 API snapshot은 정상이며 Node 빌드는 실패하고 이전 사이트 산출물 유지. 격리 DB의 옛 body/body_sha256 값은 메타데이터·위키 변경 후 보존. 기존 원고 파일 바이트와 사용자 수정 대조 완료.
 
-HTTP는 기존 상태·ProblemDetail의 title/status/detail/instance 형태와 Allow·Accept 등 프로토콜 헤더 유지. Spring MVC의 구체적 예외는 `ResponseEntityExceptionHandler` 경계에서 처리하고 확정된 응답의 null 결과 보존. MVC 밖 인증·권한·JDBC 세션 오류는 기존 Security 필터 경계 유지하며 DB 연결 판별 함수만 `global/error`에서 공유.
-
-MCP는 기존 `isError`, `{ok:false,error:{code,message}}`, 구조화 본문과 JSON 텍스트의 동시 반환 계약 유지. 업무 오류의 validation/not_found/conflict/unavailable 코드도 유지하며 메시지만 HTTP의 구체적인 안전한 설명으로 통일. 상태→MCP 코드 변환은 숫자로 비교하여 Spring의 413 상태 별칭 차이로 동일 상태가 다른 코드가 되는 문제 방지. 실제 첨부 크기 초과의 기존 validation 계약 유지.
-
-기존 MCP의 모든 `DataAccessException` → unavailable 규칙과 그 밖의 비업무 예외 → internal 규칙은 클라이언트 호환성 때문에 유지. 따라서 직접 전달된 잠금·SQL 문법·무결성 오류의 코드는 unavailable, 다른 예외에 감싸진 DB 연결 장애의 코드는 internal인 기존 한계 존속. 다만 잠금 충돌은 충돌 설명, 예상하지 못한 SQL 오류는 서버 오류 설명으로 구분하여 모든 DB 실패를 연결 장애라고 잘못 설명하던 동작 제거. 코드까지 재분류하는 변경은 별도 외부 계약 변경 대상으로 분리.
-
-공통 예외에서 HttpStatus를 유지하는 선택은 기존 HTTP 중심 계약과 일치하며, 별도 상태 enum과 변환 계층을 만들지 않기 위한 기준. 도메인 선행 컴파일에는 이 부모 클래스만 포함하며 JPA 스키마 생성의 독립성 유지.
-
-검증: clean build와 기존 MySQL·인증·HTTP·첨부 검사 35개 통과. 저장소 밖 격리 검사 44개 통과: 기능별 예외·공통/첨부 상태·실제 Markdown/이미지/본문 선언 오류·연결/잠금/SQL 오류·인증/프레임워크 오류의 HTTP 상태와 MCP 코드, 공개 설명 일치, 내부 문자열 비노출, 성공 응답, 원인 보존, 응답 확정 후 처리 및 JDBC 세션 필터 경계 확인. 413의 기존·새 상태 별칭 모두 validation 확인. 최종 API JAR에 옛 예외·격리 검증 코드 없음. 신규 저장소 테스트·원격 push·운영 배포 없음.
+최종 JAR의 MCP 코드·리소스·Spring AI/MCP 라이브러리·RepositoryMarkdown·중간 PublicError 부재 확인. API가 접근하는 파일은 이미지 저장소이며 원고 파일 접근 없음. 신규 저장소 테스트·원격 push·운영 배포·서버 파일 삭제 미수행. Git과 DB 선언의 일치/출간 준비 및 실제 운영 반영은 별도 책임.

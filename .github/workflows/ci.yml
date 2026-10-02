@@ -106,8 +106,6 @@ jobs:
       - name: Start JVM image with production storage identity
         run: |
           sudo install -d -o 10001 -g 1001 -m 0750 "$RUNNER_TEMP/ken-blog-jvm-assets"
-          sudo install -d -o 10001 -g 1001 -m 0750 "$RUNNER_TEMP/ken-blog-jvm-content"
-          sudo install -d -o 10001 -g 1001 -m 0750 "$RUNNER_TEMP/ken-blog-jvm-content/posts"
           docker run -d --name ken-blog-jvm-ci --network host --user 10001:1001 --memory 1536m --cpus 1 \
             -e BPL_JVM_HEAD_ROOM=10 \
             -e JAVA_TOOL_OPTIONS=-XX:MaxMetaspaceSize=256m \
@@ -118,13 +116,8 @@ jobs:
             -e 'BOOTSTRAP_ADMIN_PASSWORD_HASH={bcrypt}$2b$10$4FBi6otvIFtcNbMAYerE3O1eSZAmB9sw3r4iEgU2ovjbUuSVcfivG' \
             -e ADMIN_USERNAME=ci_jvm_admin \
             -e SESSION_COOKIE_SECURE=false -e SESSION_COOKIE_SAME_SITE=lax -e SESSION_COOKIE_PARTITIONED=false \
-            -e APP_MCP_ENABLED=true \
-            -e APP_MCP_ALLOWED_HOSTS=127.0.0.1:8080 \
-            -e APP_MCP_ALLOWED_PEERS=127.0.0.1,::1 \
             -e APP_ASSETS_DIRECTORY=/var/lib/ken-blog/assets \
-            -e APP_CONTENT_DIRECTORY=/app/content \
             --mount "type=bind,source=$RUNNER_TEMP/ken-blog-jvm-assets,target=/var/lib/ken-blog/assets" \
-            --mount "type=bind,source=$RUNNER_TEMP/ken-blog-jvm-content,target=/app/content,readonly" \
             "$IMAGE_NAME"
           cleanup() {
             result=$?
@@ -162,192 +155,135 @@ jobs:
             docker logs ken-blog-jvm-ci
             exit 1
           fi
+          docker exec ken-blog-jvm-ci sh -c 'test ! -e /app/content && test ! -e /workspace/content'
           java_executable=$(docker exec ken-blog-jvm-ci readlink /proc/1/exe)
           case "$java_executable" in
             */bin/java) ;;
             *) echo 'API PID 1 must be the JVM' >&2; exit 1 ;;
           esac
           docker exec ken-blog-jvm-ci "$java_executable" -version
-          # 실제 JVM 컨테이너에서 MCP·이미지·인증·jOOQ 기능을 산출물 업로드 전에 확인.
+          # 원고 마운트 없는 실제 JVM에서 관리자 HTTP·이미지·인증·jOOQ 검증.
           python3 - <<'PY'
           import base64
-          import hashlib
           import http.cookiejar
           import json
-          import os
           import struct
-          import subprocess
+          import urllib.error
           import urllib.request
           import zlib
 
           base = 'http://127.0.0.1:8080'
-          opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
-          sequence = 0
-          session = None
+          public = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+          auth = urllib.request.build_opener(urllib.request.ProxyHandler({}),
+              urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
+          csrf = None
 
-          def rpc(method, params=None, notification=False):
-              global sequence, session
-              sequence += 1
-              payload = {'jsonrpc': '2.0', 'method': method}
-              if not notification:
-                  payload['id'] = sequence
-              if params is not None:
-                  payload['params'] = params
-              headers = {
-                  'Accept': 'application/json, text/event-stream',
-                  'Content-Type': 'application/json',
-                  'MCP-Protocol-Version': '2025-03-26',
-              }
-              if session:
-                  headers['Mcp-Session-Id'] = session
-              request = urllib.request.Request(base + '/mcp', json.dumps(payload).encode(), headers=headers)
-              with opener.open(request, timeout=30) as response:
+          def request(method, path, data=None, expected=200, authenticated=True, content_type='application/json'):
+              payload = json.dumps(data).encode() if data is not None and content_type == 'application/json' else data
+              headers = {'Accept': '*/*', 'Content-Type': content_type}
+              if authenticated and csrf and method != 'GET':
+                  headers['X-CSRF-TOKEN'] = csrf
+              req = urllib.request.Request(base + path, payload, headers=headers, method=method)
+              try:
+                  response = (auth if authenticated else public).open(req, timeout=30)
+              except urllib.error.HTTPError as error:
+                  response = error
+              with response:
                   body = response.read()
-                  session = response.headers.get('Mcp-Session-Id') or session
-              if notification:
-                  return None
-              events = [line.removeprefix('data:').strip() for line in body.decode().splitlines()
-                        if line.startswith('data:')]
-              result = json.loads(events[-1] if events else body)
-              assert 'error' not in result, (method, result)
-              return result['result']
+                  assert response.status == expected, (method, path, response.status, body)
+                  if expected >= 400:
+                      assert b'secret-marker' not in body
+                  return json.loads(body) if 'json' in response.headers.get_content_type() else body
 
-          def tool(name, arguments):
-              response = rpc('tools/call', {'name': name, 'arguments': arguments})
-              assert not response.get('isError'), (name, response)
-              result = response.get('structuredContent') or json.loads(response['content'][0]['text'])
-              assert result['ok'], (name, result)
-              return result['data']
+          def upload(path, filename, mime, image, name=None, expected=201):
+              boundary = 'ken-blog-ci-boundary'
+              payload = b''
+              if name is not None:
+                  payload += ('--' + boundary + '\r\nContent-Disposition: form-data; name="name"\r\n\r\n' + name + '\r\n').encode()
+              payload += ('--' + boundary + '\r\nContent-Disposition: form-data; name="file"; filename="' + filename +
+                  '"\r\nContent-Type: ' + mime + '\r\n\r\n').encode() + image + ('\r\n--' + boundary + '--\r\n').encode()
+              return request('POST', path, payload, expected, content_type='multipart/form-data; boundary=' + boundary)
+
+          def metadata(post):
+              assert 'body' not in post and 'bodySha256' not in post, post
+              return post
 
           def chunk(kind, payload):
-              return (struct.pack('>I', len(payload)) + kind + payload
-                      + struct.pack('>I', zlib.crc32(kind + payload)))
+              return struct.pack('>I', len(payload)) + kind + payload + struct.pack('>I', zlib.crc32(kind + payload))
 
           png = b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', struct.pack('>IIBBBBB', 2, 2, 8, 6, 0, 0, 0))
           png += chunk(b'IDAT', zlib.compress((b'\x00' + b'\xff\x00\x00\xff' * 2) * 2))
           png += chunk(b'IEND', b'')
+          # 기존 이미지 검증의 JPEG fixture 유지.
           jpeg = base64.b64decode(
               '/9j/4AAQSkZJRgABAgAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAADAAQDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDn6KKK+PP2Q//Z'
           )
 
-          rpc('initialize', {
-              'protocolVersion': '2025-03-26',
-              'capabilities': {},
-              'clientInfo': {'name': 'jvm-image-ci', 'version': '1'},
-          })
-          rpc('notifications/initialized', notification=True)
-          tools = {item['name'] for item in rpc('tools/list')['tools']}
-          assert len(tools) == 24, tools
-          assert {'blog_create_series', 'blog_set_post_series'} <= tools
-          assert not any('project' in name or 'course' in name for name in tools)
-          assert {'blog_upload_image', 'blog_create_stack_badge'} <= tools
-          resources = rpc('resources/list')['resources']
-          assert resources
-          contents = rpc('resources/read', {'uri': resources[0]['uri']})['contents']
-          assert contents and len(contents[0]['text']) > 100
-          prompt = rpc('prompts/get', {
-              'name': 'plan_ken_blog_article',
-              'arguments': {'topic': 'JVM Image', 'section': 'TECH'},
-          })
-          assert prompt['messages']
+          request('GET', '/api/v1/admin/posts', expected=401, authenticated=False)
+          csrf = request('GET', '/api/v1/auth/csrf')['token']
+          request('POST', '/api/v1/auth/login', {'password': 'jvm-ci-ephemeral-only', 'rememberMe': True})
+          assert request('GET', '/api/v1/auth/me')['username'] == 'ci_jvm_admin'
+          csrf = request('GET', '/api/v1/auth/csrf')['token']
+          # 인증·유효 CSRF 요청에서 제거된 엔드포인트의 일반 404 확인.
+          for path in ['/mcp', '/mcp/anything']:
+              request('GET', path, expected=404)
+              request('POST', path, {}, expected=404)
 
-          images = [
-              ('PNG', 'image/png', 'fixture.png', png),
-              ('JPEG', 'image/jpeg', 'fixture.jpg', jpeg),
-          ]
-          for label, mime_type, filename, image_bytes in images:
-              image = {
-                  'filename': filename,
-                  'mimeType': mime_type,
-                  'base64': base64.b64encode(image_bytes).decode(),
-              }
-              uploaded = tool('blog_upload_image', {'image': image})
-              assert uploaded['id'], (label, uploaded)
-              badge = tool('blog_create_stack_badge', {
-                  'input': {'name': 'JVM CI ' + label, 'image': image},
-              })
-              assert badge['id'], (label, badge)
-              request = urllib.request.Request(
-                  base + '/api/v1/stack-badges/' + str(badge['id']) + '/image',
-                  headers={'Accept': 'image/png'},
-              )
-              with opener.open(request, timeout=30) as response:
-                  normalized = response.read()
-                  assert response.status == 200
-                  assert response.headers.get_content_type() == 'image/png'
-              assert normalized.startswith(b'\x89PNG\r\n\x1a\n')
-              assert normalized[12:16] == b'IHDR'
-              assert struct.unpack('>II', normalized[16:24]) == (64, 64), label
+          uploaded_ids = []
+          for label, mime, filename, image in [('PNG', 'image/png', 'fixture.png', png), ('JPEG', 'image/jpeg', 'fixture.jpg', jpeg)]:
+              uploaded = upload('/api/v1/admin/attachments', filename, mime, image)
+              assert uploaded['id'] > 0 and uploaded['status'] == 'READY', uploaded
+              uploaded_ids.append(uploaded['id'])
+              assert request('GET', '/api/v1/admin/attachments/' + str(uploaded['id']))['id'] == uploaded['id']
+              badge = upload('/api/v1/admin/stack-badges', filename, mime, image, 'JVM CI ' + label)
+              normalized = request('GET', '/api/v1/stack-badges/' + str(badge['id']) + '/image', authenticated=False)
+              assert normalized.startswith(b'\x89PNG\r\n\x1a\n') and struct.unpack('>II', normalized[16:24]) == (64, 64)
 
-          series = tool('blog_create_series', {'input': {
+          category = request('POST', '/api/v1/admin/categories', {'path': 'CI/HTTP'}, 201)
+          series = request('POST', '/api/v1/admin/series', {
               'slug': 'jvm-ci-series', 'kind': 'PROJECT',
               'metadata': {'name': 'JVM CI Project', 'projectStatus': 'PLAN',
                            'startPeriod': '2026.10', 'stackBadgeNames': ['JVM CI PNG']},
-          }})
+          })
           assert series['kind'] == 'PROJECT' and series.get('cover') is None, series
           assert series['startPeriod'] == '2026.10' and len(series['stackBadges']) == 1, series
           slug = 'jvm-ci-project'
-          registered = tool('blog_register_post', {'input': {
+          post = metadata(request('POST', '/api/v1/admin/posts', {
               'title': 'JVM CI Project', 'slug': slug, 'seriesId': series['id'], 'order': 1,
-          }})
-          assert registered['sourcePath'] == 'content/posts/' + slug + '.md', registered
-          post = registered['post']
-          assert post['id'] > 0 and post['series']['id'] == series['id'], post
-          assert post['section'] == 'PROJECT' and post['status'] == 'DRAFT', post
-          assert post['body'] == '' and post['seriesOrder'] == 1, post
+              'categoryId': category['id'], 'tags': ['Kotlin'],
+          }, 201))
+          assert post['series']['id'] == series['id'] and post['section'] == 'PROJECT' and post['status'] == 'DRAFT', post
+          post_path = '/api/v1/admin/posts/' + str(post['id'])
+          assert metadata(request('GET', post_path))['slug'] == slug
+          assert metadata(request('PATCH', post_path + '/metadata', {
+              'title': 'JVM CI Project', 'summary': 'HTTP metadata only', 'categoryId': category['id'], 'tags': ['Spring'],
+          }))['tags'] == ['Spring']
+          assert metadata(request('PUT', post_path + '/attachments', {'attachmentIds': uploaded_ids}))['attachmentIds'] == uploaded_ids
+          assert metadata(request('PUT', post_path + '/wiki-links', {'wikiTargets': ['Target', 'Target']}))['wikiTargets'] == ['Target']
+          request('PUT', post_path + '/wiki-links', {'expectedBodySha256': '0' * 64, 'wikiTargets': []}, 400)
+          request('PUT', post_path + '/wiki-links', {'wikiTargets': ['secret-marker\ninvalid']}, 400)
+          assert metadata(request('GET', post_path))['wikiTargets'] == ['Target']
+          assert metadata(request('PUT', post_path + '/wiki-links', {'wikiTargets': []}))['wikiTargets'] == []
+          assert request('GET', '/api/v1/admin/posts')['totalElements'] == 1
+          assert request('GET', '/api/v1/admin/posts/wiki-titles?q=JVM')['items'] == []
+          assert request('GET', '/api/v1/admin/series/' + str(series['id']))['posts'][0]['id'] == post['id']
+          snapshot = request('GET', '/api/v1/pages/snapshot', authenticated=False)
+          assert snapshot['version'] == 2 and len(snapshot['revision']) == 64
+          assert snapshot['posts'] == [] and snapshot['series'] == [] and 'profile' not in snapshot
 
-          source = os.path.join(os.environ['RUNNER_TEMP'], 'ken-blog-jvm-content', 'posts', slug + '.md')
-          assert subprocess.run(['sudo', 'test', '!', '-e', source], check=False).returncode == 0, source
-          detail = tool('blog_get_series', {'id': series['id']})
-          assert detail['series']['id'] == series['id'], detail
-          assert detail['series'].get('cover') is None, detail
-          assert len(detail['posts']) == 1 and detail['posts'][0]['id'] == post['id'], detail
-
-          body = '# JVM CI Project\n\nRepository Markdown fixture.\n'
-          subprocess.run(['sudo', 'tee', source], input=body.encode(), stdout=subprocess.DEVNULL, check=True)
-          subprocess.run(['sudo', 'chown', '10001:1001', source], check=True)
-          subprocess.run(['sudo', 'chmod', '0640', source], check=True)
-          fetched = tool('blog_get_post', {'postId': post['id']})
-          assert fetched['body'] == body and fetched['series']['id'] == series['id'], fetched
-          assert fetched['bodySha256'] == hashlib.sha256(body.encode()).hexdigest(), fetched
-
-          request = urllib.request.Request(base + '/api/v1/pages/snapshot', headers={'Accept': 'application/json'})
-          with opener.open(request, timeout=30) as response:
-              assert response.status == 200
-              snapshot = json.load(response)
-          assert snapshot['version'] == 2 and len(snapshot['revision']) == 64, snapshot
-          assert snapshot['posts'] == [] and snapshot['series'] == [] and 'profile' not in snapshot, snapshot
-          assert slug not in json.dumps(snapshot), snapshot
-
-          tool('blog_set_post_publication', {'postId': post['id'], 'published': True})
-          with opener.open(request, timeout=30) as response:
-              snapshot = json.load(response)
-          assert len(snapshot['posts']) == 1 and len(snapshot['series']) == 1, snapshot
-          assert snapshot['series'][0]['cover']['id'] == post['id'], snapshot
-          assert snapshot['posts'][0]['section'] == 'PROJECT', snapshot
-          tool('blog_list_posts', {'page': 0, 'size': 20})
-          tool('blog_search_posts', {'query': 'JVM', 'page': 0, 'size': 20})
-          tool('blog_set_post_publication', {'postId': post['id'], 'published': False})
-
-          auth = urllib.request.build_opener(urllib.request.ProxyHandler({}),
-              urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
-          with auth.open(base + '/api/v1/auth/csrf') as response:
-              csrf = json.load(response)['token']
-          login = urllib.request.Request(base + '/api/v1/auth/login',
-              json.dumps({'password': 'jvm-ci-ephemeral-only', 'rememberMe': True}).encode(),
-              headers={'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf})
-          with auth.open(login) as response:
-              assert response.status == 200
-          with auth.open(base + '/api/v1/auth/me') as response:
-              assert json.load(response)['username'] == 'ci_jvm_admin'
-          with auth.open(base + '/api/v1/auth/csrf') as response:
-              csrf = json.load(response)['token']
-          logout = urllib.request.Request(base + '/api/v1/auth/logout', data=b'',
-              headers={'X-CSRF-TOKEN': csrf})
-          with auth.open(logout) as response:
-              assert response.status == 204
-
-          print('PASS password-only login/logout and jvm MCP metadata, 24 tools, series/post jOOQ reads, resource, prompt, PNG/JPEG uploads, 64px badges and Pages v2 visibility')
+          metadata(request('PUT', post_path + '/publication', {'published': True}))
+          snapshot = request('GET', '/api/v1/pages/snapshot', authenticated=False)
+          assert len(snapshot['posts']) == 1 and len(snapshot['series']) == 1
+          assert snapshot['series'][0]['cover']['id'] == post['id']
+          assert metadata(snapshot['posts'][0])['section'] == 'PROJECT'
+          assert request('GET', '/api/v1/admin/posts/wiki-titles?q=JVM')['items'][0]['id'] == post['id']
+          for image_id in uploaded_ids:
+              assert request('GET', '/api/v1/posts/' + str(post['id']) + '/attachments/' + str(image_id) + '/content', authenticated=False)
+          metadata(request('PUT', post_path + '/publication', {'published': False}))
+          assert request('GET', '/api/v1/pages/snapshot', authenticated=False)['posts'] == []
+          request('POST', '/api/v1/auth/logout', expected=204)
+          request('GET', '/api/v1/auth/me', expected=401)
+          print('PASS HTTP login/logout, metadata/publication/wiki, PNG/JPEG attachments, 64px badges, jOOQ reads, Pages v2 and removed endpoint; no API Markdown files')
           PY
       - name: Upload reviewed image archive
         uses: actions/upload-artifact@v7.0.1

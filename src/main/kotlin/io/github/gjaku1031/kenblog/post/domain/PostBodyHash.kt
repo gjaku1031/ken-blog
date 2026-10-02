@@ -3,7 +3,7 @@ package io.github.gjaku1031.kenblog.post.domain
 import java.security.MessageDigest
 import java.util.HexFormat
 
-/** MySQL `SHA2(body, 256)`과 동일한 UTF-8 본문 SHA-256 소문자 16진수를 계산. */
+/** 옛 DB body_sha256 열의 저장 호환용 계산. 파일 조회·HTTP 검증에는 사용하지 않음. */
 object PostBodyHash {
     /**
      * 본문의 UTF-8 바이트를 해시하며 빈 문자열도 실제 SHA-256을 반환.

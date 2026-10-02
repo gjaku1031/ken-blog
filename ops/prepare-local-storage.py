@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
-"""운영 자산·Markdown 마운트의 UID/GID/모드를 안전하게 준비.
+"""운영 이미지 저장소의 UID/GID/모드 준비와 선택적 과거 원고 권한 복구.
 
 인자 없이 실행하면 권한 계약과 사용법만 출력하며, 경로를 지정해도 기본은 미리보기.
-실제 변경은 두 절대경로와 --apply를 모두 지정하고 root/sudo로 실행할 때만 수행.
+실제 변경은 자산 절대경로와 --apply를 지정하고 root/sudo로 실행할 때만 수행.
 파일 내용은 읽거나 바꾸지 않고 심볼릭 링크·특수 파일을 먼저 전부 검사함.
 
 자산은 앱 UID 10001 소유, 호스트 Ubuntu GID 1001 읽기 전용 접근.
-본문은 기존 소유자를 유지하고 GID 1001/쓰기 권한을 부여해 앱과 호스트가 협업.
-새 파일의 그룹 쓰기는 앱 umask 0002 또는 생성 코드의 0660 설정이 별도로 필요.
+Spring API는 원고 디렉터리가 불필요. --content-root는 과거 자료의 권한 복구용 선택 인자.
+지정한 경우에만 기존 소유자를 유지하고 GID 1001과 이전 권한 계약 적용.
 """
 
 import argparse
@@ -108,37 +108,41 @@ def set_group_and_mode(path: Path, group: int, mode: int, owner: int = -1) -> No
         os.close(descriptor)
 
 
-def print_plan(assets: Path, content: Path, asset_dirs: list[Path], asset_files: list[Path],
+def print_plan(assets: Path, content: Path | None, asset_dirs: list[Path], asset_files: list[Path],
     content_dirs: list[Path], content_files: list[Path]) -> None:
     """파일명과 자격 정보 없이 변경 규모와 필요한 root 명령만 출력."""
     editable = sum(file.suffix in CONTENT_EXTENSIONS for file in content_files)
     print(f"자산: {assets} / 디렉터리 {len(asset_dirs)}개(0750, 10001:1001), 파일 {len(asset_files)}개(0640, 10001:1001)")
-    print(f"본문: {content} / 디렉터리 {len(content_dirs)}개(2770, GID 1001), .md/.pending/.base {editable}개(0660, GID 1001)")
+    if content is not None:
+        print(f"과거 본문: {content} / 디렉터리 {len(content_dirs)}개(2770, GID 1001), .md/.pending/.base {editable}개(0660, GID 1001)")
     command = ["sudo", sys.executable, str(Path(__file__).resolve()),
-        "--assets-root", str(assets), "--content-root", str(content), "--apply"]
+        "--assets-root", str(assets)]
+    if content is not None:
+        command += ["--content-root", str(content)]
+    command.append("--apply")
     print("적용 명령:", shlex.join(command))
 
 
 def main() -> None:
-    """명시한 두 트리를 전부 사전 검사한 뒤에만 권한 변경을 시작."""
+    """명시한 트리를 전부 사전 검사한 뒤에만 권한 변경 시작."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--assets-root", help="영속 자산 디렉터리 절대경로; 끝 이름 assets")
-    parser.add_argument("--content-root", help="영속 Markdown 디렉터리 절대경로; 끝 이름 content")
+    parser.add_argument("--content-root", help="선택적 과거 원고 권한 복구; 끝 이름 content인 절대경로")
     parser.add_argument("--apply", action="store_true", help="root 권한으로 계획한 소유권·모드 적용")
     args = parser.parse_args()
     if args.assets_root is None and args.content_root is None and not args.apply:
-        print("미리보기만 실행합니다. 두 전용 절대경로를 지정하면 변경 규모와 sudo 명령을 표시합니다.")
-        print("예: python3 ops/prepare-local-storage.py --assets-root /srv/ken-blog/assets --content-root /srv/ken-blog/content")
+        print("미리보기만 실행합니다. 자산 전용 절대경로를 지정하면 변경 규모와 sudo 명령을 표시합니다.")
+        print("예: python3 ops/prepare-local-storage.py --assets-root /srv/ken-blog/assets")
         return
-    if not args.assets_root or not args.content_root:
-        parser.error("--assets-root와 --content-root를 모두 지정해야 합니다")
+    if not args.assets_root:
+        parser.error("--assets-root를 지정해야 합니다")
     try:
         assets = validate_root(args.assets_root, "assets")
-        content = validate_root(args.content_root, "content")
-        if assets == content or assets in content.parents or content in assets.parents:
+        content = validate_root(args.content_root, "content") if args.content_root else None
+        if content is not None and (assets == content or assets in content.parents or content in assets.parents):
             raise ValueError("자산과 본문 경로가 겹칩니다")
         asset_dirs, asset_files = inventory(assets)
-        content_dirs, content_files = inventory(content)
+        content_dirs, content_files = inventory(content) if content is not None else ([], [])
     except (OSError, ValueError) as exc:
         parser.error(str(exc))
     print_plan(assets, content, asset_dirs, asset_files, content_dirs, content_files)
@@ -148,7 +152,8 @@ def main() -> None:
     if os.geteuid() != 0:
         parser.error("--apply는 sudo/root 권한이 필요합니다")
     create_root(assets)
-    create_root(content)
+    if content is not None:
+        create_root(content)
     for file in asset_files:
         set_group_and_mode(file, HOST_GID, ASSET_FILE_MODE, APP_UID)
     for directory in sorted(asset_dirs, key=lambda item: len(item.parts), reverse=True):

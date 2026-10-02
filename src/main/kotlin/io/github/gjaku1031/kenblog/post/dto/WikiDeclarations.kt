@@ -73,20 +73,15 @@ data class WikiBacklinkPageResponse(
     val hasMore: Boolean,
 )
 
-/** 본문 버전을 확인한 뒤 선언만 바꾸는 관리자 보정 입력. */
+/** 원고와 독립적으로 위키 대상 선언 전체를 교체하는 관리자 입력. */
 data class WikiLinkCorrectionRequest(
-    val expectedBodySha256: String,
     val wikiTargets: List<String>,
 ) {
     companion object {
-        /** @return SHA-256과 필수 배열을 강제 변환 없이 검증한 보정 요청. */
+        /** @return 필수 제목 배열만 허용한 요청. 이전 본문 해시 필드도 묵시적으로 무시하지 않고 거부. */
         fun fromJson(node: JsonNode): WikiLinkCorrectionRequest {
-            if (!node.isObject) throw InvalidWikiLinkRequestException()
-            val hash = node.get("expectedBodySha256")
-            if (hash == null || !hash.isTextual || !Regex("[0-9a-f]{64}").matches(hash.textValue())) {
-                throw InvalidWikiLinkRequestException()
-            }
-            return WikiLinkCorrectionRequest(hash.textValue(), WikiDeclarations.required(node.get("wikiTargets")))
+            if (!node.isObject || node.size() != 1 || !node.has("wikiTargets")) throw InvalidWikiLinkRequestException()
+            return WikiLinkCorrectionRequest(WikiDeclarations.required(node.get("wikiTargets")))
         }
     }
 }

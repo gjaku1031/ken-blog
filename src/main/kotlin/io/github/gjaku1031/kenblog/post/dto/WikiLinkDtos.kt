@@ -38,8 +38,3 @@ data class WikiLinkMissing(
 ) : WikiLinkResult {
     override val status = WikiLinkStatus.MISSING
 }
-
-/** 반복 title 입력과 같은 순서의 위키 링크 대상 결과. */
-data class WikiLinkResolveResponse(
-    val items: List<WikiLinkResult>,
-)

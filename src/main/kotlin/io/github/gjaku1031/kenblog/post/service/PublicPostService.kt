@@ -9,33 +9,15 @@ import io.github.gjaku1031.kenblog.series.domain.SeriesKind
 import io.github.gjaku1031.kenblog.series.repository.SeriesRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
-import org.springframework.security.core.Authentication
 import org.springframework.data.repository.findByIdOrNull
 import java.time.ZoneId
 import java.time.ZoneOffset
 import java.util.Locale
 
-/** 공통 공개 글 목록과 시리즈 우선 문서 탐색. 본문은 Git에서 주입. */
+/** Pages용 공개 글 메타데이터와 시리즈·분류 내 문서 탐색. 본문은 Node 빌드 담당. */
 @Service
 class PublicPostService(private val queries: PostQueries, private val categories: CategoryRepository,
     private val taxonomy: PostTaxonomyMetadata, private val series: SeriesRepository) {
-    @Transactional(readOnly = true)
-    fun list(page: Int, size: Int, authentication: Authentication?, categoryId: Long?, tag: String?,
-        kind: SeriesKind? = SeriesKind.TECH): PublicPostPageResponse {
-        validatePage(page, size)
-        if (categoryId != null && categoryId <= 0) throw InvalidPostRequestException()
-        val category = categoryId?.let { categories.findByIdOrNull(it)
-            ?: return PublicPostPageResponse(emptyList(), page, size, 0, 0) }
-        val result = queries.publicPage(page, size, kind, category?.path, tag?.takeIf { it.isNotBlank() }?.let(TagNames::normalize))
-        return PublicPostPageResponse(summaries(result.items), page, size, result.total, result.pages)
-    }
-    fun summaries(rows: List<PostRow>): List<PublicPostSummaryResponse> {
-        val views = taxonomy.batch(rows.map { it.id }, rows.map { it.categoryId })
-        return rows.map { row -> val view = views.getValue(row.id)
-            PublicPostSummaryResponse(row.id, row.title, row.slug, row.summary, row.publishedDate(),
-                row.series?.kind ?: SeriesKind.TECH, view.category, view.tags, row.series, row.seriesOrder)
-        }
-    }
     @Transactional(readOnly = true)
     fun detailMetadata(slug: String): PublicPostDetailResponse {
         val row = queries.publicBySlug(slug.trim().lowercase(Locale.ROOT)) ?: throw PostNotFoundException()
@@ -54,9 +36,6 @@ class PublicPostService(private val queries: PostQueries, private val categories
         }?.let { SeriesRef(it.id!!, it.slug, it.name, it.kind) } }
         return PublicPostDetailResponse(row.id, row.title, row.slug, row.summary, row.publishedDate(),
             row.series?.kind ?: SeriesKind.TECH, view.category, view.tags, navigation, related, row.legacyPath, publishedAt = row.publishedAt)
-    }
-    fun validatePage(page: Int, size: Int) {
-        if (page < 0 || size !in 1..100 || page.toLong() * size > Int.MAX_VALUE) throw InvalidPostRequestException()
     }
     private fun PostRow.publishedDate() = publishedAt!!.atZone(ZoneOffset.UTC).withZoneSameInstant(ZoneId.of("Asia/Seoul")).toLocalDate()
 }
