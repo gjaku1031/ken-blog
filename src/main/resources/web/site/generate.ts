@@ -153,12 +153,15 @@ export async function generateSite(payload: Input, output: string) {
   for (const post of allPosts) {
     const navigation = post.series;
     const series = (navigation?.items ?? []).map(item => ({ ...item, href: postPath(item), current: item.id === post.id }));
+    const currentIndex = series.findIndex(item => item.current);
+    const previousPost = currentIndex > 0 ? series[currentIndex - 1] : null;
+    const nextPost = currentIndex >= 0 ? series[currentIndex + 1] ?? null : null;
     const project = projects.find(p => p.id === navigation?.id && p.slug === navigation?.slug) ?? null;
     const relatedProject = projects.find(p => p.id === post.relatedSeries?.id) ?? null;
     await page(`post/${slug(post.slug)}`, "post", post.section === "PROJECT" ? "Project" : "Post", post.title, post.summary, {
       post: { ...post, categoryTrail: categoryTrail(post.category?.path ?? ""), displayDate: date(post.publishedDate), relatedProject }, project, html: post.rendered.html,
       toc: post.rendered.headings.filter(h => h.depth === 2 || h.depth === 3), backlinks: backlinks.get(postPath(post)) ?? [],
-      series, seriesName: navigation?.name ?? "", seriesPosition: navigation?.position ?? 0,
+      series, previousPost, nextPost, seriesName: navigation?.name ?? "", seriesPosition: navigation?.position ?? 0,
     });
   }
   // 공개 대상에 한해 옛 주소를 생성하고 프로젝트 루트는 현재 첫 글로 연결.

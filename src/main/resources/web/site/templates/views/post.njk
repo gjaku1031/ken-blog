@@ -23,17 +23,21 @@
       <div class="post-main-content">
         <div class="markdown-body">{{ html | safe }}</div>
         {% include "views/backlinks.njk" %}
+        {% if previousPost or nextPost %}<nav class="series-previous-next" aria-label="이전·다음 글">
+          {% if previousPost %}<a class="series-previous" rel="prev" href="{{ previousPost.href }}"><span>← 이전 글 · {{ previousPost.order }}편</span><strong>{{ previousPost.title }}</strong></a>{% else %}<div class="series-start" aria-hidden="true"></div>{% endif %}
+          {% if nextPost %}<a class="series-next" rel="next" href="{{ nextPost.href }}"><span>다음 글 · {{ nextPost.order }}편 →</span><strong>{{ nextPost.title }}</strong></a>{% else %}<p class="series-end">마지막 글입니다</p>{% endif %}
+        </nav>{% endif %}
       </div>
       {% if toc | length or series | length %}<aside class="post-side-rail can-stick">
         {% include "views/toc.njk" %}
         {% if series | length %}<nav class="series-nav" aria-label="시리즈 글 목록">
-          <h2>{{ seriesName }} <span>{{ seriesPosition }}/{{ series | length }}</span>
-          </h2>
+          <h2>{{ seriesName }}</h2>
           <ol>
             {% for item in series %}<li>
               <a href="{{ item.href }}"{% if item.current %} aria-current="page"{% endif %}><span class="series-number">{{ item.order }}</span><span>{{ item.title }}</span></a>
             </li>{% endfor %}
           </ol>
+          <p class="series-progress mono" aria-label="전체 {{ series | length }}편 중 {{ seriesPosition }}번째 글">{{ seriesPosition }}/{{ series | length }}</p>
         </nav>{% endif %}
       </aside>{% endif %}
     </div>

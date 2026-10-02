@@ -52,7 +52,3 @@ print([job["id"] for job in ordered])  # [2, 1, 3]
 1. 입력의 유효 범위를 한 문장으로 설명할 수 있는가?
 2. 중간 상태가 바뀌는 지점을 찾을 수 있는가?
 3. 결과를 실제로 사용할 때 필요한 추가 조건은 무엇인가?
-
----
-
-[이전 글: 배열 순회와 집계](/ken-blog/post/mock-backend-01/) · [다음 글: 해시 맵으로 빈도 세기](/ken-blog/post/mock-backend-03/)
