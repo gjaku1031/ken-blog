@@ -51,3 +51,9 @@ MCP·RepositoryMarkdown 제거 후에도 옛 Post body/body_sha256 매핑과 Pos
 - API JAR에서 빌드 전용 생성기와 생성용 DDL 제외 확인. 런타임 초기화용 `schema.sql`만 유지.
 
 이번 변경에서 Native 이미지를 다시 빌드하거나 서버를 재배포하지 않음. 기존 운영 DB·파일·Pages·시크릿은 변경하지 않은 상태.
+
+## 기존 운영 DB의 Post·Series 이관 — 2026-10-02
+
+운영 DB 백업·원고/편집본 추출 후 별도 복사 DB에서 이관과 API·Pages 조회 확인. 기존 `ck_posts_owner_shape`는 section과 옛 project/course 열의 조합을 강제하여 section의 TECH 정규화와 충돌. 통합 모델에서 폐기된 이 CHECK만 제거하고 기존 정의는 DB 백업에 보존. 다른 공개·상태·출간일 CHECK와 FK는 유지. 기존 분류와 부모 열 값은 `post_model_legacy_metadata`에도 보존하며 원본 테이블·옛 본문 열 삭제 없음.
+
+원고·ID·slug·본문 해시와 기존 첨부·계정·기술·프로젝트·편집본 행 대조 후 운영 적용. 글 7개·프로젝트 시리즈 6개와 기술 연결 이관 확인. 공개 글 7개만 Git 원고로 반영, 편집본 4개와 메타데이터 보존본은 저장소 밖 백업. 초기 실패의 DML은 롤백 확인 후 복사 DB 검증을 거쳐 재시도. 런타임 자동 이관이나 운영 CLI의 저장소 재도입 없음.

@@ -278,3 +278,11 @@ ARM 1코어·RAM 3894MiB 서버, API 제한 1 CPU/1536MiB, Caddy와 테스트 My
 격리 clean build 기존 검사 30개, Node 타입·빈 사이트·실제 격리 API/Markdown/PNG/JPEG/아이콘 기반 사이트 생성 통과. Linux ARM64 Buildpacks JVM 이미지 생성 및 운영 UID 10001/GID 1001·1코어·1536MiB 제한·읽기 전용 이미지 디스크·원고 마운트 없는 기동 확인. 배포 이미지와 검증용 사이트의 분리 보관, 시험 자료의 운영 배포 제외.
 
 운영 준비 중 기존 DB 연결 실패와 API 키 인증 401 확인. 로컬 키 fingerprint·시간 대조 정상, VM 자체 인증은 기본 조회에 성공하지만 DB/Compute/API 키 관리 권한 없음. 사용자 결정은 OCI 인증 복구 후 기존 운영 DB 사용이며 시험 DB 대체나 백업 복원은 적용하지 않은 상태. 운영 전환·Pages 발행·push는 인증 및 운영 자료 연결 이후 확인할 단계.
+
+## OCI 운영 전환 — 2026-10-02
+
+OCI API 키 인증 복구 후 기존 외부 MySQL의 ACTIVE 상태 확인. 이전 서버 IP만 허용하던 DB NSG와 MySQL 계정에 새 API 서버의 단일 사설 IP 접근 추가. 기존 규칙·계정·인증 정보 보존, DB 포트의 인터넷 공개 없음.
+
+기존 DB 백업·원고 추출·Post/Series 이관 후 OCI 이미지 78개를 로컬 디스크로 복사하고 길이·제공된 MD5·SHA-256 대조. 공개 원고만 Git 반영, 기존 객체·DB 본문·편집본·백업 삭제 없음. 검증한 ARM64 JVM 이미지를 새 운영 Compose로 기동하고 기존 Caddy 인증서 볼륨의 복사본으로 HTTPS 전환. 이전 시험 스택은 컨테이너와 볼륨을 보존한 채 중지. 새 API에는 이미지 읽기 전용 마운트만 있으며 원고 마운트 없음.
+
+공개 API 주소는 `https://158.101.158.194`, GitHub Pages의 `BLOG_API_BASE_URL`도 같은 주소로 변경. 외부 TLS 검증·Actuator UP·공개 snapshot의 글 7개/시리즈 6개 및 실제 API를 사용한 Node 사이트 생성 확인. 기존 계정·원고·첨부·기술의 데이터 해시 보존, 인증 상태 행은 새 로그인 정책에 따라 갱신. 원격 push·CI·Pages 결과는 후속 검증으로 기록.
