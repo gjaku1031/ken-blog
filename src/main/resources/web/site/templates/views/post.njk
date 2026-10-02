@@ -30,7 +30,8 @@
       </div>
       {% if toc | length or series | length %}<aside class="post-side-rail can-stick">
         {% include "views/toc.njk" %}
-        {% if series | length %}<nav class="series-nav" aria-label="시리즈 글 목록">
+        {% if series | length %}<nav class="series-nav" aria-label="{{ '프로젝트' if project else '시리즈' }} 글 목록">
+          <p class="series-nav-label">{{ '프로젝트' if project else '시리즈' }}</p>
           <h2>{{ seriesName }}</h2>
           <ol>
             {% for item in series %}<li>

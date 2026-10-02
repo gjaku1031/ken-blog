@@ -11,10 +11,12 @@
         <a href="{{ project.href }}">{{ project.name }}</a>
       </h2>
       <p>{{ project.description }}</p>
-      {% if project.stackBadges | length %}<div class="stack-badges" aria-label="기술 배지">
-        {% for badge in project.stackBadges %}<span><img alt="" width="22" height="22" src="{{ badge.imageUrl }}" data-stack-name="{{ badge.name }}">{{ badge.name }}</span>{% endfor %}
-      </div>{% endif %}
-      <div class="project-card-counts">문서 {{ project.postCount }}개</div>
+      <div class="project-card-footer">
+        {% if project.stackBadges | length %}<div class="stack-badges" aria-label="기술 배지">
+          {% for badge in project.stackBadges %}<span><img alt="" width="22" height="22" src="{{ badge.imageUrl }}" data-stack-name="{{ badge.name }}">{{ badge.name }}</span>{% endfor %}
+        </div>{% endif %}
+        <div class="project-card-counts">문서 {{ project.postCount }}개</div>
+      </div>
     </article>{% endfor %}
     <button id="new-project" class="project-create-card" type="button" data-admin-write hidden><span aria-hidden="true">+</span>새 프로젝트</button>
   </div>

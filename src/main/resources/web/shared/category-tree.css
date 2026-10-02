@@ -12,6 +12,6 @@
 .category-name[aria-current=page]{color:var(--accent-d);background:var(--tint);border-radius:4px}
 .category-label{min-width:0;flex:1;overflow-wrap:anywhere}
 .category-name .category-total{flex-shrink:0;font-weight:400}
-.feed-sidebar .category-name{font-size:13px;font-weight:400;gap:7px;padding:5px 8px}
+.feed-sidebar .category-name{font-size:11px;font-weight:400;gap:7px;padding:5px 8px}
 .feed-sidebar .category-total{font-size:11px;margin-left:4px}
 .category-line:hover{background:var(--soft);border-radius:4px}
