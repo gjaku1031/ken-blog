@@ -1,4 +1,5 @@
 import "../shared/theme.css";
+import "../shared/stack-icons.css";
 import "@fontsource-variable/noto-sans-kr/index.css";
 import "@fontsource/ibm-plex-mono/400.css";
 import "katex/dist/katex.min.css";

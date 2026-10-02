@@ -74,7 +74,7 @@ export function stackPicker(parent: HTMLElement, badges: Badge[], initial: strin
   let active = -1;
   function icon(badge: Badge) {
     const image = el('img'); image.src = new URL(`/api/v1/stack-badges/${badge.id}/image`, apiBase).href;
-    image.width = 20; image.height = 20; image.alt = ''; image.addEventListener('error', () => { image.hidden = true; });
+    image.width = 20; image.height = 20; image.alt = ''; image.dataset.stackName = badge.name; image.addEventListener('error', () => { image.hidden = true; });
     return image;
   }
   function close() { list.hidden = true; input.setAttribute('aria-expanded', 'false'); input.removeAttribute('aria-activedescendant'); active = -1; }

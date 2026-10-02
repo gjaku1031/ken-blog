@@ -1,4 +1,5 @@
 import "../shared/theme.css";
+import "../shared/stack-icons.css";
 import './style.css';
 import '../shared/header.css';
 import '../shared/forms.css';
