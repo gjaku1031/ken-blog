@@ -86,10 +86,6 @@ const category = query.get('category');
 for (const link of document.querySelectorAll<HTMLAnchorElement>('[data-category-link]')) {
   if (link.dataset.categoryLink === category) link.setAttribute('aria-current', 'page');
 }
-if (document.getElementById('new-project')) {
-  void import('./projects').then(({ connectProjectCreator }) => connectProjectCreator());
-}
-
 connectTableOfContents();
 
 if (document.querySelector('[data-post-create]')) {

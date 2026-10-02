@@ -371,9 +371,11 @@ function createSeriesForm(data: AdminData, project: boolean, item?: Series) {
   });
 }
 function renderSeries(data: AdminData) {
-  const add = el('button', 'button ghost', '+ 시리즈'); add.type = 'button';
+  const add = el('button', 'button ghost', '+ 새 시리즈'); add.type = 'button';
   add.addEventListener('click', () => openDialog('새 시리즈', createSeriesForm(data, false)));
-  get('series-create').replaceChildren(add);
+  const addProject = el('button', 'button ghost', '+ 새 프로젝트'); addProject.type = 'button';
+  addProject.addEventListener('click', () => openDialog('새 프로젝트', createSeriesForm(data, true)));
+  get('series-create').replaceChildren(add, addProject);
   const list = get('series-list'); list.replaceChildren();
   if (!data.series.length) list.append(el('p', 'empty', '등록된 시리즈가 없습니다.'));
   for (const item of data.series) {

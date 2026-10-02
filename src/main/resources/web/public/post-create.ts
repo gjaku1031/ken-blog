@@ -19,7 +19,6 @@ export function connectPostCreator() {
     const trigger = event.target instanceof Element ? event.target.closest<HTMLElement>('[data-post-create]') : null;
     if (!trigger || (event instanceof MouseEvent && (event.button || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey))) return;
     event.preventDefault();
-    document.querySelector<HTMLDialogElement>('#project-dialog')?.close();
     const run = ++generation;
     const project = trigger.dataset.postCreate === 'PROJECT';
     title.textContent = project ? 'Projects 글쓰기' : 'Posts 글쓰기';

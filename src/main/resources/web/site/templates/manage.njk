@@ -35,11 +35,16 @@
         <div class="card list-card"><div id="post-list"></div><div id="post-pages" class="pagination"></div></div>
       </section>
       <section id="categories" data-panel hidden><div class="page-heading"><h1>분류 관리</h1></div><div class="card panel category-card"><div id="category-create"></div><div id="category-list"></div></div></section>
-      <section id="series" data-panel hidden><div class="page-heading"><h1>시리즈·프로젝트</h1></div><div class="card panel"><div id="series-create"></div><div id="series-list"></div></div></section>
+      <section id="series" data-panel hidden>
+        <div class="page-heading series-heading"><h1>시리즈·프로젝트</h1><div id="series-create" class="heading-actions"></div></div>
+        <div class="card panel"><div id="series-list"></div></div>
+      </section>
       {% endif %}
     </main>
   </div>
   <dialog id="edit-dialog" class="edit-dialog" aria-labelledby="dialog-title"><div class="dialog-heading"><h2 id="dialog-title"></h2><button id="dialog-close" class="text-button" type="button" aria-label="닫기">×</button></div><p id="dialog-message" class="notice" role="status" hidden></p><div id="dialog-content"></div></dialog>
-  <footer class="site-footer"><span>© ken.blog</span><a href="https://github.com/gjaku1031/ken-blog">GitHub</a></footer>
+  <footer class="site-footer"><span>© ken.blog</span><a class="footer-github" href="https://github.com/gjaku1031/ken-blog" aria-label="GitHub 저장소" title="GitHub">
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" focusable="false"><path d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.6-3.37-1.34-3.37-1.34-.45-1.16-1.11-1.47-1.11-1.47-.91-.62.07-.61.07-.61 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.08 2.91.83.09-.65.35-1.09.63-1.34-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02a9.56 9.56 0 0 1 5 0c1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.85v2.74c0 .27.18.58.69.48A10 10 0 0 0 12 2z"/></svg>
+  </a></footer>
 </body>
 </html>
