@@ -10,10 +10,15 @@ import { connectHeader, updateHeaderSession } from "../shared/header";
 import { request } from "../shared/admin-api";
 import { enhanceMarkdown } from "../shared/enhance";
 import { connectTableOfContents } from "./toc";
+import { connectImageZoom } from "../shared/image-zoom";
 
 const query = new URLSearchParams(location.search);
 const route = document.body.dataset.route;
 const search = document.querySelector<HTMLInputElement>("#site-search");
+for (const avatar of document.querySelectorAll<HTMLButtonElement>("button.about-avatar")) {
+  const image = avatar.querySelector("img");
+  if (image) connectImageZoom(image, { trigger: avatar });
+}
 
 /** 제목 링크를 유지하며 원본 Projects 카드의 빈 영역 클릭도 연다. */
 document.addEventListener("click", (event) => {

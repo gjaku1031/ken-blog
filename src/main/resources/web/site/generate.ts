@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, writeFile, copyFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import nunjucks from "nunjucks";
 
@@ -86,6 +86,8 @@ function card(post: Post) {
 export async function generateSite(payload: Input, output: string) {
   const { snapshot, assets, admin } = payload;
   if (snapshot.version !== 2) throw new Error("공개 스냅샷 버전 오류");
+  await mkdir(join(output, "assets"), { recursive: true });
+  await copyFile(join(import.meta.dirname, "../public/profile-placeholder.svg"), join(output, "assets/profile-placeholder.svg"));
   const engine = new nunjucks.Environment(new nunjucks.FileSystemLoader(join(import.meta.dirname, "templates")), {
     autoescape: true, throwOnUndefined: true,
   });

@@ -1,4 +1,5 @@
 import { renderMermaid } from "./mermaid-render";
+import { connectImageZoom } from "./image-zoom";
 
 const pendingMermaid = new WeakMap<HTMLElement, { theme: string; source: string; controller: AbortController; task: Promise<void> }>();
 
@@ -9,24 +10,7 @@ export async function enhanceMarkdown(root: HTMLElement, options: { theme?: "lig
   for (const image of root.querySelectorAll<HTMLImageElement>("img.ken-attachment")) {
     if (!image.dataset.lightSrc) image.dataset.lightSrc = image.src;
     if (image.dataset.darkSrc) image.src = theme === "dark" ? image.dataset.darkSrc : image.dataset.lightSrc;
-    if (image.dataset.enhanced) continue;
-    image.dataset.enhanced = "1";
-    image.tabIndex = 0;
-    image.setAttribute("role", "button");
-    image.setAttribute("aria-label", `${image.alt || "이미지"} 확대`);
-    const zoom = () => {
-      const dialog = document.createElement("dialog");
-      dialog.className = "ken-image-zoom";
-      const large = document.createElement("img");
-      large.src = image.src; large.alt = image.alt;
-      const close = document.createElement("button");
-      close.type = "button"; close.textContent = "닫기"; close.addEventListener("click", () => dialog.close());
-      dialog.append(close, large); document.body.append(dialog);
-      dialog.addEventListener("close", () => dialog.remove(), { once: true });
-      if (image.isConnected) dialog.showModal(); else dialog.remove();
-    };
-    image.addEventListener("click", zoom);
-    image.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); zoom(); } });
+    connectImageZoom(image);
   }
   for (const button of root.querySelectorAll<HTMLButtonElement>(".code-copy")) {
     if (button.dataset.enhanced) continue;
@@ -94,6 +78,7 @@ export async function enhanceMarkdown(root: HTMLElement, options: { theme?: "lig
       image.alt = "Mermaid 도식"; image.src = url;
       image.addEventListener("load", () => URL.revokeObjectURL(url), { once: true });
       image.addEventListener("error", () => URL.revokeObjectURL(url), { once: true });
+      connectImageZoom(image, { source: () => new Blob([svg], { type: "image/svg+xml" }) });
       diagram.append(image);
       block.dataset.enhanced = theme;
       block.dataset.enhancedSource = source;
