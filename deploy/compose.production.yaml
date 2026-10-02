@@ -1,18 +1,22 @@
-# 독립 운영 스택. --env-file에 저장소 밖 0600 production.env 사본을 지정.
-# DB는 기존 외부 MySQL을 사용하며, api와 caddy만 이 Compose 네트워크에 둔다.
-# 파일 위치 변경 후에도 기존 컨테이너·볼륨의 기본 프로젝트 이름 유지.
+# 독립 운영 스택 --env-file에 저장소 밖 0600 production.env 사본을 지정
+# DB는 기존 외부 MySQL을 사용하며, api와 caddy만 이 Compose 네트워크에 둠
+# 파일 위치 변경 후에도 기존 컨테이너·볼륨의 기본 프로젝트 이름 유지
 name: ken-blog
 
+# 서비스 실행 구성
 services:
+  # DB·이미지 저장소를 사용하는 API 컨테이너
   api:
-    # 검증된 CI 이미지 아카이브를 먼저 docker load 하고 SHA 태그를 지정.
+    # 검증된 CI 이미지 아카이브를 먼저 docker load 하고 SHA 태그를 지정
     image: ${KEN_BLOG_API_IMAGE:?Reviewed JVM image tag is required}
     user: "10001:1001"
     restart: unless-stopped
+    # 저장소 밖 운영 접속 정보를 원문 그대로 주입
     env_file:
       - path: ${KEN_BLOG_PRODUCTION_ENV_FILE:?Dedicated production env file is required}
         required: true
         format: raw
+    # 운영 HTTPS·Pages origin·저장소 경로 고정
     environment:
       SERVER_PORT: "8080"
       SERVER_FORWARD_HEADERS_STRATEGY: none
@@ -22,9 +26,9 @@ services:
       APP_CORS_ALLOWED_ORIGINS: https://gjaku1031.github.io
       APP_AUTH_CORS_ALLOWED_ORIGINS: https://gjaku1031.github.io
       APP_ASSETS_DIRECTORY: /var/lib/ken-blog/assets
-      # JVM 외 메모리를 위해 10% 여유 확보. 힙은 Paketo가 계산.
+      # JVM 외 메모리를 위해 10% 여유 확보 힙은 Paketo가 계산
       BPL_JVM_HEAD_ROOM: ${BPL_JVM_HEAD_ROOM:-10}
-      # Kotlin·jOOQ 동적 클래스 로딩을 위한 메타스페이스. 힙은 남은 공간에서 계산.
+      # Kotlin·jOOQ 동적 클래스 로딩을 위한 메타스페이스 힙은 남은 공간에서 계산
       JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS:--XX:MaxMetaspaceSize=256m}
     ports:
       - "127.0.0.1:${API_PORT:-18081}:8080"
@@ -35,10 +39,11 @@ services:
         read_only: true
         bind:
           create_host_path: false
-    # JVM 힙 외 메모리를 포함한 컨테이너 전체 한도.
+    # JVM 힙 외 메모리를 포함한 컨테이너 전체 한도
     mem_limit: ${API_MEMORY_LIMIT:-1536m}
     cpus: 1.0
 
+  # 공개 TLS 종료와 허용 API 경로 프록시
   caddy:
     image: caddy:2.11.4-alpine
     restart: unless-stopped
@@ -61,6 +66,7 @@ services:
       - ken_blog_caddy_data:/data
       - ken_blog_caddy_config:/config
 
+# 재시작 이후에도 유지할 named volume
 volumes:
   ken_blog_caddy_data:
   ken_blog_caddy_config:

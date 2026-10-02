@@ -21,18 +21,23 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.context.annotation.Import
 
 /**
- * 실제 MVC 설정에서 공개 CORS와 오류 응답을 검증하는 통합 테스트.
+ * 실제 MVC 설정에서 공개 CORS와 오류 응답을 검증하는 통합 테스트
  *
  * [TestMysqlConfig]가 실제 MySQL 스키마를 초기화하고,
- * [TestProbeController]는 테스트에서만 오류 입력과 예상하지 못한 예외를 생성함.
- *
- * @property mvc 테스트 HTTP 요청을 처리할 Spring MVC 인스턴스
+ * [TestProbeController]는 테스트에서만 오류 입력과 예상하지 못한 예외를 생성함
  */
 @SpringBootTest(properties = ["app.cors.allowed-origins=https://gjaku1031.github.io,http://127.0.0.1:14000"])
 @AutoConfigureMockMvc
 @Import(TestProbeController::class, TestProbeSecurityConfig::class, TestMysqlConfig::class)
-class HttpApiIntegrationTest(@Autowired private val mvc: MockMvc) {
-    /** 지정한 Pages origin의 공개 GET에만 읽기 허용 헤더를 반환하는지 검증. */
+class HttpApiIntegrationTest(
+    /**
+     * 테스트 HTTP 요청 실행기
+     */
+    @Autowired private val mvc: MockMvc
+) {
+    /**
+     * 지정한 Pages origin의 공개 GET에만 읽기 허용 헤더를 반환하는지 검증
+     */
     @Test
     fun snapshotAllowsPagesOriginWithoutCredentials() {
         mvc.perform(get("/api/v1/pages/snapshot").servletPath("/api/v1/pages/snapshot").header("Origin", "https://gjaku1031.github.io"))
@@ -42,7 +47,9 @@ class HttpApiIntegrationTest(@Autowired private val mvc: MockMvc) {
             .andExpect(jsonPath("$.version").value(2))
     }
 
-    /** 로컬 정적 화면의 GET 사전 요청이 허용 origin과 메서드를 반환하는지 검증. */
+    /**
+     * 로컬 정적 화면의 GET 사전 요청이 허용 origin과 메서드를 반환하는지 검증
+     */
     @Test
     fun snapshotAllowsLocalGetPreflight() {
         mvc.perform(options("/api/v1/pages/snapshot").servletPath("/api/v1/pages/snapshot")
@@ -55,7 +62,9 @@ class HttpApiIntegrationTest(@Autowired private val mvc: MockMvc) {
             .andExpect(header().doesNotExist("Access-Control-Allow-Credentials"))
     }
 
-    /** 허용하지 않은 origin과 메서드의 사전 요청을 거부하는지 검증. */
+    /**
+     * 허용하지 않은 origin과 메서드의 사전 요청을 거부하는지 검증
+     */
     @Test
     fun snapshotRejectsOtherOriginAndMethod() {
         mvc.perform(get("/api/v1/pages/snapshot").servletPath("/api/v1/pages/snapshot").header("Origin", "https://other.example"))
@@ -69,7 +78,9 @@ class HttpApiIntegrationTest(@Autowired private val mvc: MockMvc) {
             .andExpect(header().doesNotExist("Access-Control-Allow-Origin"))
     }
 
-    /** 수치로 변환할 수 없는 입력이 원문 노출 없이 ProblemDetail로 반환되는지 검증. */
+    /**
+     * 수치로 변환할 수 없는 입력이 원문 노출 없이 ProblemDetail로 반환되는지 검증
+     */
     @Test
     fun invalidQueryIsSafeProblem() {
         mvc.perform(get("/__test/input").param("count", "secret-marker"))
@@ -83,7 +94,9 @@ class HttpApiIntegrationTest(@Autowired private val mvc: MockMvc) {
             .andExpect(content().string(not(containsString("secret-marker"))))
     }
 
-    /** 누락된 필수 입력이 HTTP 400 ProblemDetail로 반환되는지 검증. */
+    /**
+     * 누락된 필수 입력이 HTTP 400 ProblemDetail로 반환되는지 검증
+     */
     @Test
     fun missingQueryIsSafeProblem() {
         mvc.perform(get("/__test/input"))
@@ -92,7 +105,9 @@ class HttpApiIntegrationTest(@Autowired private val mvc: MockMvc) {
             .andExpect(jsonPath("$.detail").value("요청을 처리할 수 없습니다."))
     }
 
-    /** 잘못된 JSON 본문이 파서 내부 메시지 없이 반환되는지 검증. */
+    /**
+     * 잘못된 JSON 본문이 파서 내부 메시지 없이 반환되는지 검증
+     */
     @Test
     fun malformedJsonIsSafeProblem() {
         mvc.perform(post("/__test/body").contentType(MediaType.APPLICATION_JSON).content("{\"count\":"))
@@ -101,7 +116,9 @@ class HttpApiIntegrationTest(@Autowired private val mvc: MockMvc) {
             .andExpect(jsonPath("$.detail").value("요청을 처리할 수 없습니다."))
     }
 
-    /** 지원하지 않는 메서드가 원래 Allow 헤더를 유지하는지 검증. */
+    /**
+     * 지원하지 않는 메서드가 원래 Allow 헤더를 유지하는지 검증
+     */
     @Test
     fun unsupportedMethodKeepsAllowHeader() {
         mvc.perform(post("/__test/input"))
@@ -111,7 +128,9 @@ class HttpApiIntegrationTest(@Autowired private val mvc: MockMvc) {
             .andExpect(jsonPath("$.status").value(405))
     }
 
-    /** 지원하지 않는 요청 미디어 타입을 HTTP 415로 반환하는지 검증. */
+    /**
+     * 지원하지 않는 요청 미디어 타입을 HTTP 415로 반환하는지 검증
+     */
     @Test
     fun unsupportedContentTypeIsProblem() {
         mvc.perform(post("/__test/body").contentType(MediaType.TEXT_PLAIN).content("secret-marker"))
@@ -120,7 +139,9 @@ class HttpApiIntegrationTest(@Autowired private val mvc: MockMvc) {
             .andExpect(jsonPath("$.status").value(415))
     }
 
-    /** 협상 불가능한 응답 형식을 HTTP 406으로 반환하는지 검증. */
+    /**
+     * 협상 불가능한 응답 형식을 HTTP 406으로 반환하는지 검증
+     */
     @Test
     fun unacceptableResponseTypeIsNotAcceptable() {
         mvc.perform(get("/__test/input").param("count", "1").accept(MediaType.APPLICATION_XML))
@@ -130,7 +151,9 @@ class HttpApiIntegrationTest(@Autowired private val mvc: MockMvc) {
             .andExpect(jsonPath("$.status").value(406))
     }
 
-    /** 없는 경로가 경로 내용을 설명에 노출하지 않고 HTTP 404를 반환하는지 검증. */
+    /**
+     * 없는 경로가 경로 내용을 설명에 노출하지 않고 HTTP 404를 반환하는지 검증
+     */
     @Test
     fun missingPathIsSafeProblem() {
         mvc.perform(get("/__test/secret-marker"))
@@ -139,7 +162,9 @@ class HttpApiIntegrationTest(@Autowired private val mvc: MockMvc) {
             .andExpect(jsonPath("$.detail").value("요청을 처리할 수 없습니다."))
     }
 
-    /** 예기치 못한 앱 예외를 고정 설명의 HTTP 500으로 반환하는지 검증. */
+    /**
+     * 예기치 못한 앱 예외를 고정 설명의 HTTP 500으로 반환하는지 검증
+     */
     @Test
     fun unexpectedExceptionIsSafeProblem() {
         mvc.perform(get("/__test/failure"))
@@ -150,7 +175,9 @@ class HttpApiIntegrationTest(@Autowired private val mvc: MockMvc) {
             .andExpect(content().string(not(containsString("secret-marker"))))
     }
 
-    /** 명시적 HTTP 오류의 사유가 원문 노출 없이 상태와 안전한 설명을 유지하는지 검증. */
+    /**
+     * 명시적 HTTP 오류의 사유가 원문 노출 없이 상태와 안전한 설명을 유지하는지 검증
+     */
     @Test
     fun responseStatusReasonIsSanitized() {
         mvc.perform(get("/__test/status-error"))

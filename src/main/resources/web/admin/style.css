@@ -1,9 +1,21 @@
+/*
+ * 관리 화면 한글·고정폭 글꼴
+ */
 @import '@fontsource-variable/noto-sans-kr/wght.css';
 @import '@fontsource/ibm-plex-mono/latin-400.css';
+/*
+ * 밝은 테마 기본 변수
+ */
 :root{color-scheme:light;--bg:#f8f9fa;--card:#fff;--text:#212529;--muted:#6c757d;--line:#dee2e6;--soft:#f1f3f5;--accent:#1b9c85;--accent-dark:#147a68;--danger:#a92e2e;--shadow:0 1px 3px #0000000f,0 6px 20px #0000000a;font-family:'Noto Sans KR Variable',system-ui,sans-serif}
 
+/*
+ * 어두운 테마 색상
+ */
 :root[data-theme=dark]{color-scheme:dark;--bg:#121417;--card:#1b1e23;--text:#e9ecef;--muted:#a1a8b0;--line:#343a42;--soft:#252a31;--accent:#2fc4a6;--accent-dark:#5ad6bd;--danger:#f3a3a3;--shadow:0 1px 3px #0006,0 6px 20px #0005}
 
+/*
+ * 공통 요소·입력·키보드 접근성
+ */
 *{box-sizing:border-box}
 [hidden]{display:none!important}
 html{scroll-behavior:smooth}
@@ -15,6 +27,9 @@ a:hover{color:var(--accent-dark)}
 :focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 .skip-link{position:absolute;left:12px;top:-80px;background:var(--card);padding:8px 12px}
 .skip-link:focus{top:10px}
+/*
+ * 관리 메뉴·테마·로그아웃 헤더
+ */
 .site-header{position:sticky;top:0;z-index:3;background:var(--card);border-bottom:1px solid var(--line)}
 .header-inner{max-width:1180px;min-height:64px;margin:auto;padding:8px 24px;display:flex;align-items:center;gap:20px}
 .brand{font-weight:700;font-size:22px;white-space:nowrap}
@@ -22,6 +37,9 @@ a:hover{color:var(--accent-dark)}
 .brand-dot{color:var(--accent)}
 nav{display:flex;gap:14px;flex:1;overflow:auto;white-space:nowrap}
 nav a{font-size:14px;color:var(--muted)}
+/*
+ * 페이지 제목과 관리 구간 배치
+ */
 .page-container{width:min(100% - 32px,1092px);margin:32px auto 80px}
 .page-heading,.section-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:20px}
 .page-heading{margin-bottom:28px}
@@ -29,6 +47,9 @@ nav a{font-size:14px;color:var(--muted)}
 .eyebrow{margin:0;color:var(--accent-dark);font:700 12px/1.4 'IBM Plex Mono',monospace;letter-spacing:.1em}
 .muted{color:var(--muted)}
 .page-heading .muted,.section-heading .muted{margin:4px 0}
+/*
+ * 관리 패널·항목·상태 배지
+ */
 .card{background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}
 .panel{padding:28px;margin:0 0 24px;scroll-margin-top:84px}
 .panel h2{margin:4px 0;font-size:23px}
@@ -37,6 +58,9 @@ nav a{font-size:14px;color:var(--muted)}
 .item{border-top:1px solid var(--line);padding:22px 0}
 .item:first-of-type{margin-top:18px}
 .item-title{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+/*
+ * 메타데이터 입력 폼
+ */
 .field-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px}
 .field-grid label{display:flex;flex-direction:column;gap:6px;color:var(--muted);font-size:13px;font-weight:600}
 .field-grid label small{font-weight:400}
@@ -45,18 +69,30 @@ nav a{font-size:14px;color:var(--muted)}
 .field-grid .wide,.field-grid .form-actions{grid-column:1/-1}
 .inline-actions{display:flex;gap:8px;margin:14px 0}
 .form-actions{display:flex;justify-content:flex-end}
+/*
+ * 관리 동작 버튼
+ */
 .button{display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:7px;padding:8px 14px;background:var(--card);color:var(--text);font-weight:600;min-height:39px}
 .button.primary{background:var(--accent-dark);border-color:var(--accent-dark);color:#fff}
 .button.ghost{background:transparent}
+/*
+ * 성공·실패 안내와 빈 목록
+ */
 .notice{padding:12px 16px;border-radius:8px;border:1px solid var(--accent);background:color-mix(in srgb,var(--accent) 10%,var(--card));margin:16px 0}
 .notice.error{color:var(--danger);border-color:var(--danger);background:var(--card)}
 .empty{padding:24px 0;color:var(--muted)}
 .pagination{justify-content:center;margin-top:20px}
 .pagination a{color:var(--accent-dark)}
+/*
+ * 프로젝트 기술 선택 목록
+ */
 .badge-list{border:1px solid var(--line);border-radius:7px;padding:12px;display:flex;gap:10px;flex-wrap:wrap}
 .badge-list legend{font-size:13px;color:var(--muted)}
 .field-grid .badge-list .check,.check{display:inline-flex;align-items:center;flex-direction:row;gap:6px;font-size:13px;color:var(--text);font-weight:400}
 .check input{width:auto}
+/*
+ * 로그인 입력 화면
+ */
 .login-card{width:min(100%,410px);padding:32px}
 .page-container>.login-card{margin:12vh auto}
 .login-card h1{margin:6px 0;font-size:27px}
@@ -66,6 +102,9 @@ nav a{font-size:14px;color:var(--muted)}
 .login-card .button{width:100%;margin-top:6px}
 .text-link{font-size:13px;color:var(--accent-dark)}
 
+/*
+ * 좁은 화면에서 헤더·폼을 세로로 배치
+ */
 @media(max-width:760px){.header-inner{flex-wrap:wrap;gap:8px}
 .header-inner nav{order:3;flex-basis:100%;padding:0 0 4px}
 .page-heading{display:block}
@@ -74,6 +113,9 @@ nav a{font-size:14px;color:var(--muted)}
 .section-heading{display:block}
 }
 
+/*
+ * 첨부·위키 연결 펼침 영역
+ */
 .declarations{margin:16px 0}
 .declarations summary{cursor:pointer;color:var(--accent-dark)}
 .declarations form{margin-top:18px}

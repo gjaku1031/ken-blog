@@ -2,11 +2,21 @@ package io.github.gjaku1031.kenblog.post.domain
 
 import java.util.Locale
 
-/** 게시글 태그와 공개 필터에 동일한 Unicode 길이·정규화 계약을 적용. */
+/**
+ * 게시글 태그와 공개 필터에 동일한 Unicode 길이·정규화 계약을 적용
+ */
 object TagNames {
-    /** [normalize]로 대소문자 무관 중복을 판정하면서 첫 입력의 표시 철자를 보존. */
+    /**
+     * [normalize]로 대소문자 무관 중복을 판정하면서 첫 입력의 표시 철자를 보존
+     *
+     * 1. 입력 순서와 최초 표시 철자를 보존할 맵 준비
+     * 2. 태그별 문자·길이를 검사하고 대소문자 무관 중복 제거
+     * 3. 최초 입력 순서의 표시 이름 반환
+     */
     fun displayAll(rawNames: List<String>): List<String> {
+        // 입력 순서와 최초 표시 철자를 보존할 맵 준비
         val names = LinkedHashMap<String, String>()
+        // 태그별 문자·길이를 검사하고 대소문자 무관 중복 제거
         for (raw in rawNames) {
             val display = raw.trim()
             val canonical = normalize(display)
@@ -14,10 +24,11 @@ object TagNames {
             names.putIfAbsent(canonical, display)
             if (names.size > 16) throw InvalidPostRequestException()
         }
+        // 최초 입력 순서의 표시 이름 반환
         return names.values.toList()
     }
     /**
-     * 앞뒤 공백 제거·ROOT 소문자화 후 1~40 Unicode 문자 및 제어 문자 금지를 확인.
+     * 앞뒤 공백 제거·ROOT 소문자화 후 1~40 Unicode 문자 및 제어 문자 금지를 확인
      *
      * @param raw 원본 태그명
      * @return 정규화된 정확 일치 태그명

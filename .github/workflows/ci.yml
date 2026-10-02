@@ -1,5 +1,6 @@
 name: CI
 
+# 실행 브랜치·변경 경로·수동 실행 조건
 on:
   push:
     branches: [main]
@@ -15,10 +16,13 @@ on:
       - '.github/workflows/ci.yml'
   workflow_dispatch:
 
+# 워크플로 실행에 필요한 저장소 권한
 permissions:
   contents: read
 
+# 검증·산출물 생성 작업
 jobs:
+  # 격리 MySQL에서 Spring 빌드·테스트 실행
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -51,6 +55,7 @@ jobs:
       - name: Verify Spring application
         run: ./gradlew --no-daemon clean build
 
+  # 테스트 성공 후 ARM64 JVM 이미지 생성·실행 검증
   jvm-image:
     needs: verify
     runs-on: ubuntu-24.04-arm
@@ -81,6 +86,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - name: Build Linux ARM64 JVM image with Cloud Native Buildpacks
         run: |
+          # 러너 아키텍처 확인 후 Buildpacks 이미지 생성
           test "$(uname -m)" = aarch64
           ./gradlew --no-daemon bootBuildImage \
             --imageName="$IMAGE_NAME" \
@@ -88,10 +94,12 @@ jobs:
       - name: Verify and archive JVM image
         run: |
           test "$(docker image inspect --format '{{.Os}}/{{.Architecture}}' "$IMAGE_NAME")" = linux/arm64
+          # 이미지 플랫폼·비루트 기본 사용자 확인
           image_user=$(docker image inspect --format '{{.Config.User}}' "$IMAGE_NAME")
           case "$image_user" in
             ''|root|root:*|0|0:*) echo 'JVM image must declare a non-root user' >&2; exit 1 ;;
           esac
+          # Buildpacks 구성 검증 후 이미지·체크섬·출처 기록
           mkdir -p "$RUNNER_TEMP/ken-blog-jvm-image"
           docker image inspect --format '{{ index .Config.Labels "io.buildpacks.build.metadata" }}' "$IMAGE_NAME" \
             > "$RUNNER_TEMP/ken-blog-jvm-image/buildpacks.json"
@@ -105,6 +113,7 @@ jobs:
             "$IMAGE_NAME" "$GITHUB_SHA" "$image_user" > image.txt
       - name: Start JVM image with production storage identity
         run: |
+          # 운영과 같은 UID·GID의 임시 저장소로 API 기동
           sudo install -d -o 10001 -g 1001 -m 0750 "$RUNNER_TEMP/ken-blog-jvm-assets"
           docker run -d --name ken-blog-jvm-ci --network host --user 10001:1001 --memory 1536m --cpus 1 \
             -e BPL_JVM_HEAD_ROOM=10 \
@@ -118,6 +127,7 @@ jobs:
             -e APP_ASSETS_DIRECTORY=/var/lib/ken-blog/assets \
             --mount "type=bind,source=$RUNNER_TEMP/ken-blog-jvm-assets,target=/var/lib/ken-blog/assets" \
             "$IMAGE_NAME"
+          # 종료 시 실패 진단을 남기고 검증 컨테이너 정리
           cleanup() {
             result=$?
             if [ "$result" -ne 0 ]; then
@@ -128,6 +138,7 @@ jobs:
             exit "$result"
           }
           trap cleanup EXIT
+          # 최대 재시도 내 상태 점검 성공 대기
           for attempt in $(seq 1 60); do
             if curl -fsS --connect-timeout 2 --max-time 5 http://127.0.0.1:8080/actuator/health 2>/dev/null \
               | jq -e '.status == "UP"' >/dev/null; then
@@ -144,7 +155,7 @@ jobs:
             docker logs ken-blog-jvm-ci
             exit 1
           fi
-          # 기동 완료 후 CI 전용 DB에만 관리자 직접 등록. 운영 초기화와 분리.
+          # 기동 완료 후 CI 전용 DB에만 관리자 직접 등록, 운영 초기화와 분리
           docker exec -i '${{ job.services.mysql.id }}' sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" exec mysql --user="$MYSQL_USER" "$MYSQL_DATABASE"' <<'SQL'
           INSERT INTO users (username, password_hash, role, created_at, enabled)
           VALUES ('ci_jvm_admin', '{bcrypt}$2b$10$4FBi6otvIFtcNbMAYerE3O1eSZAmB9sw3r4iEgU2ovjbUuSVcfivG', 'ADMIN', UTC_TIMESTAMP(6), true);
@@ -155,13 +166,14 @@ jobs:
             exit 1
           fi
           docker exec ken-blog-jvm-ci sh -c 'test ! -e /app/content && test ! -e /workspace/content'
+          # PID 1이 실제 JVM인지 확인
           java_executable=$(docker exec ken-blog-jvm-ci readlink /proc/1/exe)
           case "$java_executable" in
             */bin/java) ;;
             *) echo 'API PID 1 must be the JVM' >&2; exit 1 ;;
           esac
           docker exec ken-blog-jvm-ci "$java_executable" -version
-          # 원고 마운트 없는 실제 JVM에서 관리자 HTTP·이미지·인증·jOOQ 검증.
+          # 원고 마운트 없는 실제 JVM에서 관리자 HTTP·이미지·인증·jOOQ 검증
           python3 - <<'PY'
           import base64
           import http.cookiejar
@@ -174,15 +186,18 @@ jobs:
           import urllib.request
           import zlib
 
+          # 쿠키 없는 클라이언트와 세션 유지 클라이언트 분리
           base = 'http://127.0.0.1:8080'
           public = urllib.request.build_opener(urllib.request.ProxyHandler({}))
           auth = urllib.request.build_opener(urllib.request.ProxyHandler({}),
               urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
           csrf = None
 
+          # CSRF·쿠키를 반영해 HTTP 요청 후 상태·오류 원문 노출 검사
           def request(method, path, data=None, expected=200, authenticated=True, content_type='application/json'):
               payload = json.dumps(data).encode() if data is not None and content_type == 'application/json' else data
               headers = {'Accept': '*/*', 'Content-Type': content_type}
+              # 변경 요청에 현재 CSRF 토큰 첨부
               if authenticated and csrf and method != 'GET':
                   headers['X-CSRF-TOKEN'] = csrf
               req = urllib.request.Request(base + path, payload, headers=headers, method=method)
@@ -190,6 +205,7 @@ jobs:
                   response = (auth if authenticated else public).open(req, timeout=30)
               except urllib.error.HTTPError as error:
                   response = error
+              # 응답 본문·상태 확인 후 연결 해제
               with response:
                   body = response.read()
                   assert response.status == expected, (method, path, response.status, body)
@@ -197,17 +213,20 @@ jobs:
                       assert b'secret-marker' not in body
                   return json.loads(body) if 'json' in response.headers.get_content_type() else body
 
+          # 본문 데이터가 관리자 메타데이터 응답에 없는지 확인
           def metadata(post):
               assert 'body' not in post and 'bodySha256' not in post, post
               return post
 
+          # PNG 청크 길이·타입·본문·CRC 구성
           def chunk(kind, payload):
               return struct.pack('>I', len(payload)) + kind + payload + struct.pack('>I', zlib.crc32(kind + payload))
 
+          # 검증용 작은 PNG 바이트 생성
           png = b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', struct.pack('>IIBBBBB', 2, 2, 8, 6, 0, 0, 0))
           png += chunk(b'IDAT', zlib.compress((b'\x00' + b'\xff\x00\x00\xff' * 2) * 2))
           png += chunk(b'IEND', b'')
-          # 기존 이미지 검증의 JPEG fixture 유지.
+          # 기존 이미지 검증의 JPEG fixture 유지
           jpeg = base64.b64decode(
               '/9j/4AAQSkZJRgABAgAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/2wBDAQkJCQwLDBgNDRgyIRwhMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjL/wAARCAADAAQDASIAAhEBAxEB/8QAHwAAAQUBAQEBAQEAAAAAAAAAAAECAwQFBgcICQoL/8QAtRAAAgEDAwIEAwUFBAQAAAF9AQIDAAQRBRIhMUEGE1FhByJxFDKBkaEII0KxwRVS0fAkM2JyggkKFhcYGRolJicoKSo0NTY3ODk6Q0RFRkdISUpTVFVWV1hZWmNkZWZnaGlqc3R1dnd4eXqDhIWGh4iJipKTlJWWl5iZmqKjpKWmp6ipqrKztLW2t7i5usLDxMXGx8jJytLT1NXW19jZ2uHi4+Tl5ufo6erx8vP09fb3+Pn6/8QAHwEAAwEBAQEBAQEBAQAAAAAAAAECAwQFBgcICQoL/8QAtREAAgECBAQDBAcFBAQAAQJ3AAECAxEEBSExBhJBUQdhcRMiMoEIFEKRobHBCSMzUvAVYnLRChYkNOEl8RcYGRomJygpKjU2Nzg5OkNERUZHSElKU1RVVldYWVpjZGVmZ2hpanN0dXZ3eHl6goOEhYaHiImKkpOUlZaXmJmaoqOkpaanqKmqsrO0tba3uLm6wsPExcbHyMnK0tPU1dbX2Nna4uPk5ebn6Onq8vP09fb3+Pn6/9oADAMBAAIRAxEAPwDn6KKK+PP2Q//Z'
           )
@@ -217,6 +236,7 @@ jobs:
           icon += chunk(b'IDAT', zlib.compress((b'\x00' + b'\x00\xff\x00\xff' * 64) * 64)) + chunk(b'IEND', b'')
           temporary = Path(os.environ['RUNNER_TEMP']) / 'ci-stack.png'
           temporary.write_bytes(icon)
+          # CI 파일·DB에 기술 이미지 직접 준비
           icon_dir = Path(os.environ['RUNNER_TEMP']) / 'ken-blog-jvm-assets/ken-blog/attachments'
           subprocess.run(['sudo', 'install', '-d', '-o', '10001', '-g', '1001', '-m', '0750', str(icon_dir)], check=True)
           sql = []
@@ -229,17 +249,18 @@ jobs:
                           'MYSQL_PWD="$MYSQL_PASSWORD" exec mysql -u"$MYSQL_USER" "$MYSQL_DATABASE"'],
                          input='\n'.join(sql), text=True, check=True)
 
+          # 익명 접근 거부 후 세션 로그인·CSRF 교체 검증
           request('GET', '/api/v1/admin/posts', expected=401, authenticated=False)
           csrf = request('GET', '/api/v1/auth/csrf')['token']
           request('POST', '/api/v1/auth/login', {'password': 'jvm-ci-ephemeral-only', 'rememberMe': True})
           assert request('GET', '/api/v1/auth/me')['username'] == 'ci_jvm_admin'
           csrf = request('GET', '/api/v1/auth/csrf')['token']
-          # 인증·유효 CSRF 요청에서 제거된 엔드포인트의 일반 404 확인.
+          # 인증·유효 CSRF 요청에서 제거된 엔드포인트의 일반 404 확인
           for path in ['/mcp', '/mcp/anything']:
               request('GET', path, expected=404)
               request('POST', path, {}, expected=404)
 
-          # 본문 이미지도 격리 DB·디스크에 직접 준비. 앱 업로드/삭제 경로 없음.
+          # 본문 이미지도 격리 DB·디스크에 직접 준비, 앱 업로드·삭제 경로 없음
           attachment_ids = []
           for index, (mime, extension, image) in enumerate([('image/png', 'png', png), ('image/jpeg', 'jpg', jpeg)], 101):
               filename = f'00000000-0000-4000-8000-{index:012d}.{extension}'
@@ -256,12 +277,14 @@ jobs:
               request('GET', path, expected=404)
               request('POST', path, {}, expected=404)
               request('DELETE', path, expected=404)
+          # 기술 목록과 공개 이미지 원본·크기 검증
           badges = request('GET', '/api/v1/admin/stack-badges')
           assert [badge['name'] for badge in badges] == ['JVM CI PNG', 'JVM CI Local']
           for badge in badges:
               stored = request('GET', badge['imageUrl'], authenticated=False)
               assert stored == icon and struct.unpack('>II', stored[16:24]) == (64, 64)
 
+          # 분류·프로젝트·미발행 글 메타데이터 생성
           category = request('POST', '/api/v1/admin/categories', {'path': 'CI/HTTP'}, 201)
           series = request('POST', '/api/v1/admin/series', {
               'slug': 'jvm-ci-series', 'kind': 'PROJECT',
@@ -276,6 +299,7 @@ jobs:
               'categoryId': category['id'], 'tags': ['Kotlin'],
           }, 201))
           assert post['series']['id'] == series['id'] and post['section'] == 'PROJECT' and post['status'] == 'DRAFT', post
+          # 글 수정·첨부·위키 연결 전체 교체 검증
           post_path = '/api/v1/admin/posts/' + str(post['id'])
           assert metadata(request('GET', post_path))['slug'] == slug
           assert metadata(request('PATCH', post_path + '/metadata', {
@@ -294,6 +318,7 @@ jobs:
           assert snapshot['version'] == 2 and len(snapshot['revision']) == 64
           assert snapshot['posts'] == [] and snapshot['series'] == [] and 'profile' not in snapshot
 
+          # 발행 후 스냅샷·검색·이미지 공개 확인
           metadata(request('PUT', post_path + '/publication', {'published': True}))
           snapshot = request('GET', '/api/v1/pages/snapshot', authenticated=False)
           assert len(snapshot['posts']) == 1 and len(snapshot['series']) == 1
@@ -302,6 +327,7 @@ jobs:
           assert request('GET', '/api/v1/admin/posts/wiki-titles?q=JVM')['items'][0]['id'] == post['id']
           for image_id, original in zip(attachment_ids, [png, jpeg]):
               assert request('GET', '/api/v1/posts/' + str(post['id']) + '/attachments/' + str(image_id) + '/content', authenticated=False) == original
+          # 발행 취소·로그아웃 후 공개 데이터·인증 상태 회수 확인
           metadata(request('PUT', post_path + '/publication', {'published': False}))
           assert request('GET', '/api/v1/pages/snapshot', authenticated=False)['posts'] == []
           request('POST', '/api/v1/auth/logout', expected=204)

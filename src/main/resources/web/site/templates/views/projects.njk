@@ -1,9 +1,9 @@
-<main id="main-content" class="page-container projects-page">
+{# 공개 프로젝트 목록 #}<main id="main-content" class="page-container projects-page">
   <div class="projects-heading">
     <h1>Projects</h1>
   </div>
   <div class="projects-grid">
-    {% for project in projects %}<article class="project-card card hv">
+    {# 정렬된 프로젝트 카드 #}{% for project in projects %}<article class="project-card card hv">
       <div class="project-card-top">
         <span class="project-status {{ 'project-status-' + project.statusClass }}"><span aria-hidden="true"></span>{{ project.statusLabel }}</span>{% if project.period %}<span class="mono project-period">{{ project.period }}</span>{% endif %}
       </div>
@@ -17,5 +17,5 @@
       <div class="project-card-counts">문서 {{ project.postCount }}개</div>
     </article>{% endfor %}
   </div>
-  {% if not projects | length %}<p class="projects-empty">아직 출간된 프로젝트가 없습니다.</p>{% endif %}
+  {# 출간된 프로젝트가 없는 경우 안내 #}{% if not projects | length %}<p class="projects-empty">아직 출간된 프로젝트가 없습니다.</p>{% endif %}
 </main>

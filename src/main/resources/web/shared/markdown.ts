@@ -12,17 +12,135 @@ import { readableMathFallback, isOversizeMath } from "./math-format";
 import { highlightCode, resolveHighlightLanguage } from "./code-highlight";
 import { mermaidSourceError } from "./mermaid-render";
 
-/** Pages 본문 생성에 사용하는 이미지·위키 주소 해석 계약. */
-export type RenderOptions = { attachmentUrl?: (id: number) => string | null; wikiUrl?: (title: string) => string | null };
-export type TocItem = { id: string; label: string; depth: number; line: number };
-export type RenderResult = { html: string; headings: TocItem[]; attachmentIds: number[]; wikiTargets: string[] };
+/**
+ * Pages 본문 생성에 사용하는 이미지·위키 주소 해석 계약
+ */
+export type RenderOptions = {
+  /**
+   * 첨부 ID의 공개 주소 해석기
+   */
+  attachmentUrl?: (id: number) => string | null;
+  /**
+   * 위키 제목의 이동 주소 해석기
+   */
+  wikiUrl?: (title: string) => string | null
+};
+/**
+ * 목차 항목
+ */
+export type TocItem = {
+  /**
+   * ID
+   */
+  id: string;
+  /**
+   * 표시 문구
+   */
+  label: string;
+  /**
+   * 분류 깊이
+   */
+  depth: number;
+  /**
+   * 행 번호
+   */
+  line: number
+};
+/**
+ * 본문 HTML·목차·첨부·위키 렌더 결과
+ */
+export type RenderResult = {
+  /**
+   * 렌더된 HTML
+   */
+  html: string;
+  /**
+   * 목차 항목
+   */
+  headings: TocItem[];
+  /**
+   * 첨부 ID 목록
+   */
+  attachmentIds: number[];
+  /**
+   * 위키 대상 제목 목록
+   */
+  wikiTargets: string[]
+};
 
-type Positioned = { type: string; value?: string; depth?: number; alt?: string; url?: string;
-  data?: { hName?: string; hProperties?: Record<string, unknown>; hChildren?: Array<{ value?: string }> };
-  position?: { start: { line: number } }; children?: Positioned[] };
+/**
+ * 위치를 가진 Markdown AST 노드
+ */
+type Positioned = {
+  /**
+   * 종류
+   */
+  type: string;
+  /**
+   * 노드 값
+   */
+  value?: string;
+  /**
+   * 분류 깊이
+   */
+  depth?: number;
+  /**
+   * 이미지 대체 텍스트
+   */
+  alt?: string;
+  /**
+   * 대상 URL
+   */
+  url?: string;
+  /**
+   * AST 렌더 보조 정보
+   */
+  data?: {
+    /**
+     * 변환할 HTML 태그명
+     */
+    hName?: string;
+    /**
+     * 변환할 HTML 속성
+     */
+    hProperties?: Record<string, unknown>;
+    /**
+     * 변환할 HTML 하위 노드
+     */
+    hChildren?: Array<{
+      /**
+       * 노드 값
+       */
+      value?: string
+    }>
+  };
+  /**
+   * 문서 내 위치
+   */
+  position?: {
+    /**
+     * 구간 시작 위치
+     */
+    start: {
+      /**
+       * 행 번호
+       */
+      line: number
+    }
+  };
+  /**
+   * 하위 AST 노드
+   */
+  children?: Positioned[]
+};
 
+/**
+ * 경로 이동·인코딩 변형 없는 내부 주소 검사
+ */
 const safeLocal = (url: string): boolean => /^\/(?!\/)[a-zA-Z0-9/_~.?=-]*$/.test(url) && !url.includes("..") && !url.includes("%") && !url.includes("\\");
-/** 일반 Markdown 상대 경로와 유니코드 앵커를 URL 파서로 검사한다. */
+/**
+ * 일반 Markdown 상대 경로와 유니코드 앵커를 URL 파서로 검사함
+ */
 function safeLink(url: string): boolean {
   if (!url || /[\u0000-\u0020\u007f<>"'\\]/u.test(url) || url.startsWith("//")) return false;
   try {
@@ -32,11 +150,22 @@ function safeLink(url: string): boolean {
     return /^[a-z][a-z\d+.-]*:/i.test(url) || parsed.origin === "https://ken-blog.invalid";
   } catch { return false; }
 }
+/**
+ * 내부 주소 또는 HTTPS 이미지 주소 검사
+ */
 const safeImage = (url: string): boolean => safeLocal(url) || /^https:\/\/[^\s<>"'\\]+$/i.test(url);
+/**
+ * HTML 요소 노드 생성
+ */
 const element = (tagName: string, properties: Element["properties"], children: ElementContent[] = []): Element => ({ type: "element", tagName, properties, children });
+/**
+ * HTML 텍스트 노드 생성
+ */
 const textNode = (value: string): Text => ({ type: "text", value });
 
-/** 제목의 독자 표시 텍스트를 기존 앵커 규칙으로 변환한다. */
+/**
+ * 제목의 독자 표시 텍스트를 기존 앵커 규칙으로 변환함
+ */
 function headingText(node: Positioned): string {
   if (node.type.startsWith("kenAnnotation") || node.type === "image") return "";
   if (node.type === "kenWikiLink") return node.data?.hChildren?.map((item) => item.value ?? "").join("") ?? "";
@@ -45,11 +174,16 @@ function headingText(node: Positioned): string {
   return (node.children ?? []).map(headingText).join("");
 }
 
-/** Markdown AST의 블록을 순회해 안정적인 제목 앵커를 확정한다. */
+/**
+ * Markdown AST의 블록을 순회해 안정적인 제목 앵커를 확정함
+ */
 function headingsOf(root: Root): TocItem[] {
   const counts = new Map<string, number>();
   const used = new Set<string>();
   const result: TocItem[] = [];
+  /**
+   * 현재 노드와 하위 노드 순회
+   */
   const visit = (node: Positioned): void => {
     if (node.type === "heading" && (node.depth === 2 || node.depth === 3) && node.position) {
       const label = headingText(node).replace(/\s+/gu, " ").trim() || "제목";
@@ -67,9 +201,39 @@ function headingsOf(root: Root): TocItem[] {
   return result;
 }
 
-/** 주석·링크·코드 속성을 HTML로 옮기기 전에 출처와 허용 주소를 검사한다. */
-async function decorate(tree: HtmlRoot, options: RenderOptions, headings: TocItem[], wiki: Set<string>, annotations: Array<{index:number; label:string; content:string; refs:number[]}>): Promise<void> {
+/**
+ * 주석·링크·코드 속성을 HTML로 옮기기 전에 출처와 허용 주소를 검사함
+ *
+ * 1. 원문 행 기준 제목·목차 대응 준비
+ * 2. 첨부 주소·대체 이미지·캡션을 허용 규칙에 맞게 조립
+ * 3. 본문 주석의 참조·복귀 링크 조립
+ * 4. 수식 크기를 제한하고 신뢰 기능을 끈 KaTeX로 변환
+ * 5. Mermaid 검증 또는 코드 강조·복사 버튼 구성
+ * 6. 본문 하위 노드에 변환 적용
+ */
+async function decorate(tree: HtmlRoot, options: RenderOptions, headings: TocItem[], wiki: Set<string>, annotations: Array<{
+  /**
+   * 문서 내 순번
+   */
+  index:number;
+  /**
+   * 표시 문구
+   */
+  label:string;
+  /**
+   * 본문 내용
+   */
+  content:string;
+  /**
+   * 참조 순번 목록
+   */
+  refs:number[]
+}>): Promise<void> {
+  // 원문 행 기준 제목·목차 대응 준비
   const headingByLine = new Map(headings.map((item) => [item.line, item]));
+  /**
+   * 현재 노드와 하위 노드 순회
+   */
   const visit = async (node: HtmlNode, parent?: Element): Promise<void> => {
     if (node.type !== "element") return;
     const tag = node.tagName;
@@ -88,6 +252,7 @@ async function decorate(tree: HtmlRoot, options: RenderOptions, headings: TocIte
       };
       else { node.tagName = "span"; node.properties = {}; node.children = []; }
     }
+    // 첨부 주소·대체 이미지·캡션을 허용 규칙에 맞게 조립
     if (tag === "img") {
       const id = parseAttachmentId(String(node.properties.src ?? ""));
       const metadata = parseImageAlt(String(node.properties.alt ?? ""));
@@ -114,6 +279,7 @@ async function decorate(tree: HtmlRoot, options: RenderOptions, headings: TocIte
       if (target && safeLink(target)) { node.tagName = "a"; node.properties = { href: target, className: ["ken-wiki-link"], dataWikiTitle: title }; wiki.add(title); }
       else { node.properties = { className: ["ken-wiki-unresolved"], dataWikiTitle: title }; if (title) wiki.add(title); }
     }
+    // 본문 주석의 참조·복귀 링크 조립
     if (tag === "sup" && String(node.properties.className ?? "").includes("ken-annotation-ref")) {
       const index = Number(node.properties.dataAnnotationIndex ?? node.properties["data-annotation-index"]);
       const occurrence = Number(node.properties.dataAnnotationOccurrence ?? node.properties["data-annotation-occurrence"]);
@@ -123,18 +289,20 @@ async function decorate(tree: HtmlRoot, options: RenderOptions, headings: TocIte
         node.children = [element("a", { href: `#annotation-${index}`, ariaLabel: `주석 ${annotations[index].label}` }, node.children)];
       } else node.properties = {};
     }
+    // 수식 크기를 제한하고 신뢰 기능을 끈 KaTeX로 변환
     if ((tag === "span" || tag === "div") && String(node.properties.className ?? "").includes("ken-math-")) {
       const source = node.children.map((child) => child.type === "text" ? child.value : "").join("");
       const display = tag === "div";
       if (!isOversizeMath(source)) {
         try {
-          // KaTeX의 trust=false는 TeX의 URL·HTML 기능을 사용하지 않는다.
+          // KaTeX의 trust=false는 TeX의 URL·HTML 기능을 사용하지 않음
           const html = katex.renderToString(source, { displayMode: display, throwOnError: false, trust: false, strict: "ignore", output: "htmlAndMathml" });
           node.properties = { className: [display ? "ken-math-block" : "ken-math-inline"], dataKatexHtml: html };
           node.children = [];
         } catch { node.children = [textNode(source)]; }
       }
     }
+    // Mermaid 검증 또는 코드 강조·복사 버튼 구성
     if (tag === "pre") {
       const code = node.children[0];
       if (code?.type === "element" && code.tagName === "code") {
@@ -169,28 +337,46 @@ async function decorate(tree: HtmlRoot, options: RenderOptions, headings: TocIte
     }
     for (const child of [...node.children]) await visit(child, node);
   };
+  // 본문 하위 노드에 변환 적용
   for (const child of tree.children) await visit(child);
 }
 
-/** 단일 Markdown 계약으로 파싱·안전 변환·첨부 수집·목차 생성을 수행한다. */
+/**
+ * 단일 Markdown 계약으로 파싱·안전 변환·첨부 수집·목차 생성을 수행함
+ *
+ * 1. 원문 타입·크기 검사
+ * 2. 문법 파싱 후 목차·위키 대상 수집과 HTML 변환
+ * 3. 허용 태그·속성·프로토콜로 HTML 정제
+ * 4. 각주 본문도 같은 검증·변환을 거쳐 문서 끝에 추가
+ * 5. HTML·목차·첨부 ID·위키 대상 반환
+ */
 export async function renderMarkdown(source: string, options: RenderOptions = {}): Promise<RenderResult> {
+  // 원문 타입·크기 검사
   if (typeof source !== "string") throw new TypeError("Markdown 원문이 필요합니다.");
   if (new TextEncoder().encode(source).byteLength > 1024 * 1024) throw new RangeError("Markdown 원문이 1 MiB를 넘습니다.");
+  // 문법 파싱 후 목차·위키 대상 수집과 HTML 변환
   const parsed = parseAnnotationDocument(source);
   const headings = headingsOf(parsed.root);
   const wikiTargets = new Set(collectWikiTitles(parsed.root, parsed.items).titles);
   const tree = toHast(parsed.root, { allowDangerousHtml: false }) as HtmlRoot;
   await decorate(tree, options, headings, wikiTargets, parsed.items);
+  // 허용 태그·속성·프로토콜로 HTML 정제
   const schema = { ...defaultSchema, clobberPrefix: "", tagNames: [...(defaultSchema.tagNames ?? []), "figure", "figcaption", "button", "details", "summary"], attributes: { ...defaultSchema.attributes,
     "*": ["className", "id", "title", "dataWidth", "dataAlign", "dataDarkSrc", "dataLanguage", "dataMermaidSource", "dataAnnotationIndex", "dataWikiTitle", "dataKatexHtml", "role", "ariaLabel", "tabIndex"],
     a: ["href", "target", "rel", "className", "ariaLabel", "dataAnnotationReturn"], img: ["src", "alt", "loading", "decoding", "className", "dataDarkSrc"], span: ["className", "style", "id", "role", "tabIndex", "ariaLabel", "dataAnnotationIndex", "dataKatexHtml"],
     figure: ["className", "style", "dataWidth", "dataAlign"], input: ["type", "checked", "disabled"], button: ["type", "className"], th: ["align"], td: ["align"] },
     protocols: { ...defaultSchema.protocols, href: ["http", "https", "mailto"], src: ["http", "https"] } };
+  /**
+   * 출처 검증·정화 후 HTML 직렬화
+   */
   const serialize = async (input: HtmlRoot): Promise<string> => {
     const sanitized = await unified().use(rehypeSanitize, schema).run(input) as HtmlRoot;
-  // dataKatexHtml은 신뢰된 KaTeX 출력만 담고 사용자 HTML 속성에서 유래하지 않는다.
+  // dataKatexHtml은 신뢰된 KaTeX 출력만 담고 사용자 HTML 속성에서 유래하지 않음
   const inserts = new Map<string, string>();
   let serial = 0;
+  /**
+   * 최종 HTML 노드의 렌더 속성 정리
+   */
   const finalize = (node: HtmlNode) => {
     if (node.type !== "element") return;
     const math = node.properties.dataKatexHtml;
@@ -206,11 +392,12 @@ export async function renderMarkdown(source: string, options: RenderOptions = {}
     return html;
   };
   let html = await serialize(tree);
+  // 각주 본문도 같은 검증·변환을 거쳐 문서 끝에 추가
   if (parsed.items.length) {
     const notes = await Promise.all(parsed.items.map(async (item) => {
       const noteTree = toHast(parseWikiMarkdown(item.content), { allowDangerousHtml: false }) as HtmlRoot;
       const paragraph = noteTree.children[0];
-      // 유효 주석은 한 문단이다. 불명확한 구조는 원문 텍스트로만 남긴다.
+      // 유효 주석은 한 문단임 불명확한 구조는 원문 텍스트로만 남김
       let content: string;
       if (noteTree.children.length !== 1 || paragraph.type !== "element" || paragraph.tagName !== "p") {
         content = `<span class="ken-annotation-content">${escapeHtml(item.content)}</span>`;
@@ -224,8 +411,11 @@ export async function renderMarkdown(source: string, options: RenderOptions = {}
     }));
     html += `<section class="ken-annotations"><h2>주석</h2><ol>${notes.join("")}</ol></section>`;
   }
+  // HTML·목차·첨부 ID·위키 대상 반환
   return { html, headings, attachmentIds: collectAttachmentIds(source), wikiTargets: [...wikiTargets] };
 }
 
-/** HTML 텍스트 위치에서만 쓰는 문자 이스케이프. */
+/**
+ * HTML 텍스트 위치에서만 쓰는 문자 이스케이프
+ */
 function escapeHtml(value: string): string { return value.replace(/[&<>"']/g, (char) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[char]!); }

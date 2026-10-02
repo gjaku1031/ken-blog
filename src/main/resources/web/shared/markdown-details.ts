@@ -4,22 +4,154 @@ import { annotationSourceMask, resolveAnnotationDocument,
   type AnnotationItem } from "./annotation-syntax";
 import { parseWikiMarkdown, wikiSourceMask } from "./wiki-link-syntax";
 
+/**
+ * 접기·요약 태그 경계 종류
+ */
 type Boundary = "details-open" | "details-close" | "summary-open" | "summary-close";
-type Replacement = { start: number; end: number; boundary?: Boundary; fallback?: string };
-type OffsetShift = { originalStart: number; originalEnd: number; modifiedStart: number; modifiedEnd: number };
-type PositionedNode = { position?: { start: { offset?: number }; end: { offset?: number } }; children?: PositionedNode[] };
-type Frame = { summarySeen: boolean; summaryOpen: boolean; contentStart: number };
-type SafeNode = RootContent & { children: RootContent[]; data: { hName: string } };
+/**
+ * 원문 치환 구간
+ */
+type Replacement = {
+  /**
+   * 구간 시작 위치
+   */
+  start: number;
+  /**
+   * 구간 끝 위치
+   */
+  end: number;
+  /**
+   * 접기 태그 경계 종류
+   */
+  boundary?: Boundary;
+  /**
+   * 해석 실패 시 표시할 원문
+   */
+  fallback?: string
+};
+/**
+ * 치환 전후 위치 대응
+ */
+type OffsetShift = {
+  /**
+   * 원문 시작 위치
+   */
+  originalStart: number;
+  /**
+   * 원문 끝 위치
+   */
+  originalEnd: number;
+  /**
+   * 수정된 문자열의 시작 위치
+   */
+  modifiedStart: number;
+  /**
+   * 수정된 문자열의 끝 위치
+   */
+  modifiedEnd: number
+};
+/**
+ * 원문 위치를 가진 AST 노드
+ */
+type PositionedNode = {
+  /**
+   * 문서 내 위치
+   */
+  position?: {
+    /**
+     * 구간 시작 위치
+     */
+    start: {
+      /**
+       * 원문 오프셋
+       */
+      offset?: number
+    };
+    /**
+     * 구간 끝 위치
+     */
+    end: {
+      /**
+       * 원문 오프셋
+       */
+      offset?: number
+    }
+  };
+  /**
+   * 하위 AST 노드
+   */
+  children?: PositionedNode[]
+};
+/**
+ * 접기 태그 중첩 상태
+ */
+type Frame = {
+  /**
+   * 요약 태그 확인 여부
+   */
+  summarySeen: boolean;
+  /**
+   * 요약 태그 열림 여부
+   */
+  summaryOpen: boolean;
+  /**
+   * 접기 내용 시작 위치
+   */
+  contentStart: number
+};
+/**
+ * 검증된 접기 AST 노드
+ */
+type SafeNode = RootContent & {
+  /**
+   * 하위 AST 노드
+   */
+  children: RootContent[];
+  /**
+   * AST 렌더 보조 정보
+   */
+  data: {
+    /**
+     * 변환할 HTML 태그명
+     */
+    hName: string
+  }
+};
 
+/**
+ * 접기 중첩 깊이 상한
+ */
 const MAX_DEPTH = 8;
+/**
+ * 접기 경계 개수 상한
+ */
 const MAX_BOUNDARIES = 2048;
+/**
+ * 제목 없는 접기의 기본 표시 문구
+ */
 const DEFAULT_SUMMARY = "펼치기";
 
-/** Markdown 코드 구간의 태그 예제를 접기 문법으로 오인하지 않도록 위치를 표시한다. */
+/**
+ * Markdown 코드 구간의 태그 예제를 접기 문법으로 오인하지 않도록 위치를 표시함
+ *
+ * 1. 펜스·들여쓰기 코드의 줄 범위 제외
+ * 2. 문단별 인라인 코드의 백틱 쌍 처리
+ * 3. 수식·본문 주석·위키 링크 제외 영역 합산
+ */
 function codeMask(source: string): Uint8Array {
   const mask = new Uint8Array(source.length);
-  let fence: { character: string; length: number } | null = null;
+  let fence: {
+    /**
+     * 구분 문자
+     */
+    character: string;
+    /**
+     * 길이
+     */
+    length: number
+  } | null = null;
   let start = 0;
+  // 펜스·들여쓰기 코드의 줄 범위 제외
   while (start < source.length) {
     const next = source.indexOf("\n", start);
     const end = next < 0 ? source.length : next + 1;
@@ -40,8 +172,24 @@ function codeMask(source: string): Uint8Array {
     start = end;
   }
 
+  /**
+   * 인라인 코드 구간을 접기 파싱에서 제외
+   */
   const markInlineCode = (from: number, to: number) => {
-    const runs: { start: number; end: number; length: number }[] = [];
+    const runs: {
+      /**
+       * 구간 시작 위치
+       */
+      start: number;
+      /**
+       * 구간 끝 위치
+       */
+      end: number;
+      /**
+       * 길이
+       */
+      length: number
+    }[] = [];
     for (let index = from; index < to;) {
       if (mask[index] || source[index] !== "`") { index++; continue; }
       let end = index + 1;
@@ -62,6 +210,7 @@ function codeMask(source: string): Uint8Array {
       index = closing + 1;
     }
   };
+  // 문단별 인라인 코드의 백틱 쌍 처리
   const blank = /\r?\n[ \t]*\r?\n/g;
   let paragraphStart = 0;
   for (const match of source.matchAll(blank)) {
@@ -69,6 +218,7 @@ function codeMask(source: string): Uint8Array {
     paragraphStart = match.index + match[0].length;
   }
   markInlineCode(paragraphStart, source.length);
+  // 수식·본문 주석·위키 링크 제외 영역 합산
   const mathMask = mathSourceMask(source);
   for (let index = 0; index < mask.length; index++) if (mathMask[index]) mask[index] = 1;
   const annotationMask = annotationSourceMask(source);
@@ -78,7 +228,9 @@ function codeMask(source: string): Uint8Array {
   return mask;
 }
 
-/** 따옴표 안의 `>`와 태그 비슷한 문자열을 건너뛰며 HTML 태그 끝을 찾는다. */
+/**
+ * 따옴표 안의 `>`와 태그 비슷한 문자열을 건너뛰며 HTML 태그 끝을 찾음
+ */
 function tagEnd(source: string, start: number): number {
   let quote = "";
   for (let index = start + 1; index < source.length; index++) {
@@ -94,11 +246,32 @@ function tagEnd(source: string, start: number): number {
   return source.length;
 }
 
-/** 하나의 접기 범위를 검사하고, 불명확한 HTML은 범위 전체를 원문 표시로 돌린다. */
-function readGroup(source: string, start: number, mask: Uint8Array): { end: number; safe: boolean; boundaries: Replacement[] } {
+/**
+ * 하나의 접기 범위를 검사하고, 불명확한 HTML은 범위 전체를 원문 표시로 돌림
+ *
+ * 1. 가려진 구간·이스케이프를 건너뛰며 태그 탐색
+ * 2. 접기 외 HTML이 섞이면 전체 그룹을 원문 처리
+ * 3. 스택으로 접기 중첩과 summary의 위치·개수 검증
+ * 4. 닫히지 않은 그룹은 문서 끝까지 원문 처리
+ */
+function readGroup(source: string, start: number, mask: Uint8Array): {
+  /**
+   * 구간 끝 위치
+   */
+  end: number;
+  /**
+   * 허용 구조 여부
+   */
+  safe: boolean;
+  /**
+   * 태그 경계 목록
+   */
+  boundaries: Replacement[]
+} {
   const frames: Frame[] = [];
   const boundaries: Replacement[] = [];
   let safe = true;
+  // 가려진 구간·이스케이프를 건너뛰며 태그 탐색
   for (let index = start; index < source.length;) {
     if (mask[index] || source[index] !== "<") { index++; continue; }
     let escapes = 0;
@@ -116,6 +289,7 @@ function readGroup(source: string, start: number, mask: Uint8Array): { end: numb
     const general = raw.match(/^<\/?([a-z][\w:-]*)\b/i);
     if (!general) { index = end; continue; }
     const name = general[1].toLowerCase();
+    // 접기 외 HTML이 섞이면 전체 그룹을 원문 처리
     if (name !== "details" && name !== "summary") {
       safe = false;
       if (/^(script|style|iframe|pre|code|textarea)$/.test(name) && !raw.startsWith("</")) {
@@ -131,6 +305,7 @@ function readGroup(source: string, start: number, mask: Uint8Array): { end: numb
     const exact = raw.match(/^<(\/)?(details|summary)\s*>$/i);
     if (!exact) safe = false;
     const closing = raw.startsWith("</");
+    // 스택으로 접기 중첩과 summary의 위치·개수 검증
     if (name === "details") {
       if (closing) {
         const frame = frames.pop();
@@ -161,10 +336,13 @@ function readGroup(source: string, start: number, mask: Uint8Array): { end: numb
     if (boundaries.length > MAX_BOUNDARIES) safe = false;
     index = end;
   }
+  // 닫히지 않은 그룹은 문서 끝까지 원문 처리
   return { end: source.length, safe: false, boundaries };
 }
 
-/** 원본 AST에서 블록 HTML로 확인된 접기 시작점만 수집한다. */
+/**
+ * 원본 AST에서 블록 HTML로 확인된 접기 시작점만 수집함
+ */
 function starts(root: Root): number[] {
   const positions: number[] = [];
   for (const child of root.children) {
@@ -176,22 +354,32 @@ function starts(root: Root): number[] {
   return positions;
 }
 
-/** 마커를 노출 원문과 충돌하지 않는 문단 텍스트로 선택한다. */
+/**
+ * 마커를 노출 원문과 충돌하지 않는 문단 텍스트로 선택함
+ */
 function markerPrefix(source: string): string {
   let number = 0;
   while (source.includes(`KENBLOGSAFEDETAILS${number}BOUNDARY`)) number++;
   return `KENBLOGSAFEDETAILS${number}BOUNDARY`;
 }
 
-/** 마커 문단인지 검사한다. */
+/**
+ * 마커 문단인지 검사함
+ */
 function markerIndex(node: RootContent, prefix: string): number | null {
   if (node.type !== "paragraph" || node.children.length !== 1 || node.children[0].type !== "text") return null;
   const match = node.children[0].value.match(new RegExp(`^${prefix}([0-9]+)END$`));
   return match ? Number(match[1]) : null;
 }
 
-/** 접기 마커 치환 전후의 길이 차이로 바뀐 offset을 원문 위치로 되돌린다. */
+/**
+ * 접기 마커 치환 전후의 길이 차이로 바뀐 offset을 원문 위치로 되돌림
+ *
+ * 1. 치환 시작점 기준 이분 탐색
+ * 2. 치환 내부는 요청한 경계로, 외부는 누적 길이 차이로 복원
+ */
 function originalOffset(offset: number, shifts: OffsetShift[], endBoundary: boolean): number {
+  // 치환 시작점 기준 이분 탐색
   let left = 0;
   let right = shifts.length;
   while (left < right) {
@@ -200,21 +388,43 @@ function originalOffset(offset: number, shifts: OffsetShift[], endBoundary: bool
     else right = middle;
   }
   const shift = shifts[left - 1];
+  // 치환 내부는 요청한 경계로, 외부는 누적 길이 차이로 복원
   if (!shift) return offset;
   if (offset === shift.modifiedStart) return shift.originalStart;
   if (offset < shift.modifiedEnd) return endBoundary ? shift.originalEnd : shift.originalStart;
   return offset + shift.originalEnd - shift.modifiedEnd;
 }
 
-/** 원본의 CRLF도 한 줄로 세며 각 줄의 시작 offset을 모은다. */
+/**
+ * 원본의 CRLF도 한 줄로 세며 각 줄의 시작 offset을 모음
+ */
 function lineStarts(source: string): number[] {
   const starts = [0];
   for (let index = 0; index < source.length; index++) if (source[index] === "\n") starts.push(index + 1);
   return starts;
 }
 
-/** 원본 offset으로 unist의 행·열·offset을 다시 계산한다. */
-function sourcePoint(starts: number[], offset: number): { line: number; column: number; offset: number } {
+/**
+ * 원본 offset으로 unist의 행·열·offset을 다시 계산함
+ *
+ * 1. 오프셋이 속한 원문 줄을 이분 탐색
+ * 2. 원문 기준 행·열·오프셋 반환
+ */
+function sourcePoint(starts: number[], offset: number): {
+  /**
+   * 행 번호
+   */
+  line: number;
+  /**
+   * 열 번호
+   */
+  column: number;
+  /**
+   * 원문 오프셋
+   */
+  offset: number
+} {
+  // 오프셋이 속한 원문 줄을 이분 탐색
   let left = 0;
   let right = starts.length;
   while (left < right) {
@@ -222,12 +432,18 @@ function sourcePoint(starts: number[], offset: number): { line: number; column: 
     if (starts[middle] <= offset) left = middle + 1;
     else right = middle;
   }
+  // 원문 기준 행·열·오프셋 반환
   return { line: left, column: offset - starts[left - 1] + 1, offset };
 }
 
-/** 수식 파서가 복원한 수정 문자열 위치를 다시 실제 게시글 원문 위치로 옮긴다. */
+/**
+ * 수식 파서가 복원한 수정 문자열 위치를 다시 실제 게시글 원문 위치로 옮김
+ */
 function restoreSourcePositions(root: Root, source: string, shifts: OffsetShift[]): void {
   const starts = lineStarts(source);
+  /**
+   * 현재 노드와 하위 노드 순회
+   */
   const visit = (node: PositionedNode) => {
     const start = node.position?.start.offset;
     const end = node.position?.end.offset;
@@ -240,24 +456,66 @@ function restoreSourcePositions(root: Root, source: string, shifts: OffsetShift[
   visit(root as PositionedNode);
 }
 
-/** 원래의 참조 링크·각주 정의를 공유하는 단일 AST 안에서 안전한 접기 노드를 조립한다. */
+/**
+ * 원래의 참조 링크·각주 정의를 공유하는 단일 AST 안에서 안전한 접기 노드를 조립함
+ *
+ * 1. 일반 노드는 유지하고 마커 문단만 해석
+ * 2. 검증 실패 범위를 코드 원문으로 복원
+ * 3. 접기 스택으로 본문·요약 노드 조립
+ * 4. 모든 그룹 종료·마커 소비 확인 후 결과 반영
+ */
 function groupNodes(root: Root, replacements: Replacement[], prefix: string, source: string): Root | null {
   const output: RootContent[] = [];
-  const stack: { details: SafeNode; target: RootContent[]; parent: RootContent[]; start: number; invalid: boolean; summary?: RootContent[]; summaryStart?: number }[] = [];
+  const stack: {
+    /**
+     * 현재 접기 노드
+     */
+    details: SafeNode;
+    /**
+     * 노드 추가 대상
+     */
+    target: RootContent[];
+    /**
+     * 부모 노드 목록
+     */
+    parent: RootContent[];
+    /**
+     * 구간 시작 위치
+     */
+    start: number;
+    /**
+     * 유효하지 않은 구조 여부
+     */
+    invalid: boolean;
+    /**
+     * 접기 요약 노드
+     */
+    summary?: RootContent[];
+    /**
+     * 요약 시작 위치
+     */
+    summaryStart?: number
+  }[] = [];
   const starts = lineStarts(source);
+  /**
+   * 현재 접기 프레임 또는 최상위 결과에 노드 추가
+   */
   const append = (node: RootContent) => (stack.at(-1)?.target ?? output).push(node);
   let used = 0;
+  // 일반 노드는 유지하고 마커 문단만 해석
   for (const node of root.children) {
     const index = markerIndex(node, prefix);
     if (index === null) { append(node); continue; }
     const replacement = replacements[index];
     if (!replacement) return null;
     used++;
+    // 검증 실패 범위를 코드 원문으로 복원
     if (replacement.fallback !== undefined) {
       append({ type: "code", value: replacement.fallback,
         position: { start: sourcePoint(starts, replacement.start), end: sourcePoint(starts, replacement.end) } });
       continue;
     }
+    // 접기 스택으로 본문·요약 노드 조립
     if (replacement.boundary === "details-open") {
       const details = { type: "safeDetails", data: { hName: "details" }, children: [],
         position: { start: sourcePoint(starts, replacement.start), end: sourcePoint(starts, replacement.end) } } as unknown as SafeNode;
@@ -298,20 +556,35 @@ function groupNodes(root: Root, replacements: Replacement[], prefix: string, sou
       current.target = current.details.children;
     }
   }
+  // 모든 그룹 종료·마커 소비 확인 후 결과 반영
   if (stack.length || used !== replacements.length) return null;
   root.children = output;
   return root;
 }
 
-/** 안전한 접기 태그만 단일 Markdown 문서 AST의 네이티브 disclosure 노드로 변환한다. */
+/**
+ * 안전한 접기 태그만 단일 Markdown 문서 AST의 네이티브 disclosure 노드로 변환함
+ *
+ * 1. 블록 HTML에서 접기 시작점·제외 영역 확인
+ * 2. 접기 경계 검증, 잘못된 그룹은 원문 범위로 수집
+ * 3. 경계를 충돌 없는 마커로 치환
+ * 4. 한 문서로 재파싱 후 원문 위치·접기 구조 복원
+ */
 export function remarkSafeDetails() {
-  return (root: Root, file: { value: unknown }) => {
+  return (root: Root, file: {
+  /**
+   * 노드 값
+   */
+  value: unknown
+  }) => {
     const source = String(file.value);
+    // 블록 HTML에서 접기 시작점·제외 영역 확인
     const candidates = starts(root);
     if (!candidates.length) return;
     const mask = codeMask(source);
     const replacements: Replacement[] = [];
     let cursor = 0;
+    // 접기 경계 검증, 잘못된 그룹은 원문 범위로 수집
     for (const candidate of candidates) {
       if (candidate < cursor || mask[candidate]) continue;
       let next = candidate;
@@ -321,7 +594,7 @@ export function remarkSafeDetails() {
         else replacements.push(...group.boundaries);
         cursor = group.end;
         if (replacements.length > MAX_BOUNDARIES) break;
-        // 한 HTML 블록에 같은 줄로 이어 쓴 형제 접기도 각각 보존한다.
+        // 한 HTML 블록에 같은 줄로 이어 쓴 형제 접기도 각각 보존함
         const sibling = source.slice(cursor).match(/^\s*<details\b/i);
         if (!sibling) break;
         next = cursor + sibling[0].indexOf("<");
@@ -333,6 +606,7 @@ export function remarkSafeDetails() {
       root.children = [{ type: "code", value: source }];
       return;
     }
+    // 경계를 충돌 없는 마커로 치환
     const prefix = markerPrefix(source);
     let modified = "";
     let from = 0;
@@ -346,6 +620,7 @@ export function remarkSafeDetails() {
       from = item.end;
     });
     modified += source.slice(from);
+    // 한 문서로 재파싱 후 원문 위치·접기 구조 복원
     const parsed = parseWikiMarkdown(modified);
     restoreSourcePositions(parsed, source, shifts);
     const grouped = groupNodes(parsed, replacements, prefix, source);
@@ -353,8 +628,19 @@ export function remarkSafeDetails() {
   };
 }
 
-/** 수식·주석·안전 접기를 같은 문서로 조립하고 살아남은 주석만 목록으로 반환한다. */
-export function parseAnnotationDocument(source: string): { root: Root; items: AnnotationItem[] } {
+/**
+ * 수식·주석·안전 접기를 같은 문서로 조립하고 살아남은 주석만 목록으로 반환함
+ */
+export function parseAnnotationDocument(source: string): {
+  /**
+   * 문서 AST 루트
+   */
+  root: Root;
+  /**
+   * 조회 결과 목록
+   */
+  items: AnnotationItem[]
+} {
   const root = parseWikiMarkdown(source);
   remarkSafeDetails()(root, { value: source });
   return { root, items: resolveAnnotationDocument(root) };

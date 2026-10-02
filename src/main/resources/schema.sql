@@ -1,5 +1,6 @@
--- JPA가 관리하지 않는 현재 테이블과 단일 상태 행의 개발용 초기화.
--- 재시작 시 테이블과 기존 행은 유지.
+-- JPA가 관리하지 않는 현재 테이블과 단일 상태 행의 개발용 초기화
+-- 재시작 시 테이블과 기존 행은 유지
+-- 세션 ID·수명·인증 주체 저장
 CREATE TABLE IF NOT EXISTS SPRING_SESSION (
     PRIMARY_ID CHAR(36) NOT NULL,
     SESSION_ID CHAR(36) NOT NULL,
@@ -14,6 +15,7 @@ CREATE TABLE IF NOT EXISTS SPRING_SESSION (
     KEY SPRING_SESSION_IX3 (PRINCIPAL_NAME)
 ) ENGINE=InnoDB ROW_FORMAT=DYNAMIC;
 
+-- 직렬화 세션 속성, 부모 세션 삭제 시 함께 정리
 CREATE TABLE IF NOT EXISTS SPRING_SESSION_ATTRIBUTES (
     SESSION_PRIMARY_ID CHAR(36) NOT NULL,
     ATTRIBUTE_NAME VARCHAR(200) NOT NULL,
@@ -22,6 +24,7 @@ CREATE TABLE IF NOT EXISTS SPRING_SESSION_ATTRIBUTES (
     CONSTRAINT SPRING_SESSION_ATTRIBUTES_FK FOREIGN KEY (SESSION_PRIMARY_ID) REFERENCES SPRING_SESSION(PRIMARY_ID) ON DELETE CASCADE
 ) ENGINE=InnoDB ROW_FORMAT=DYNAMIC;
 
+-- 관리자 설정 지문·세션 버전·로그인 실패 상태를 단일 행으로 직렬화
 CREATE TABLE IF NOT EXISTS admin_auth_state (
     id TINYINT NOT NULL,
     config_fingerprint CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
@@ -32,9 +35,11 @@ CREATE TABLE IF NOT EXISTS admin_auth_state (
     CONSTRAINT ck_admin_auth_state_id CHECK (id = 1)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- 최초 기동에만 인증 상태 행 추가, 기존 잠금·실패 횟수 유지
 INSERT IGNORE INTO admin_auth_state (id, config_fingerprint, auth_version, failure_count)
 VALUES (1, REPEAT('0', 64), 0, 0);
 
 
 
+-- 분류 변경 직렬화용 상태 행 보장
 INSERT IGNORE INTO content_state (id) VALUES (1);

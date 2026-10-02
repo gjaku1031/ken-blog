@@ -11,17 +11,23 @@ import org.springframework.stereotype.Component
 import org.springframework.web.filter.OncePerRequestFilter
 
 /**
- * MVC 바깥의 Spring Session JDBC 연결 실패를 공개 가능한 HTTP 503으로 변환.
+ * MVC 바깥의 Spring Session JDBC 연결 실패를 공개 가능한 HTTP 503으로 변환
  *
- * DB가 없을 때 로컬 메모리 세션으로 대체하지 않으며 무결성 오류 등은 원래 경계로 전달.
- *
- * @property writer 내부 연결 정보를 숨기는 [SecurityProblemWriter]
+ * DB가 없을 때 로컬 메모리 세션으로 대체하지 않으며 무결성 오류 등은 원래 경계로 전달
  */
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE)
-class JdbcSessionFailureFilter(private val writer: SecurityProblemWriter) : OncePerRequestFilter() {
+class JdbcSessionFailureFilter(
     /**
-     * 뒤따르는 세션 필터의 DB 연결 실패만 HTTP 503으로 변환.
+     * 보안 오류 응답기
+     */
+    private val writer: SecurityProblemWriter
+) : OncePerRequestFilter() {
+    /**
+     * 뒤따르는 세션 필터의 DB 연결 실패만 HTTP 503으로 변환
+     *
+     * 1. 세션 필터와 요청 처리 실행
+     * 2. 연결 장애이면서 응답 미확정인 경우만 503으로 변환
      *
      * @param request 현재 HTTP 요청
      * @param response 현재 HTTP 응답
@@ -33,8 +39,10 @@ class JdbcSessionFailureFilter(private val writer: SecurityProblemWriter) : Once
         filterChain: FilterChain,
     ) {
         try {
+            // 세션 필터와 요청 처리 실행
             filterChain.doFilter(request, response)
         } catch (ex: Exception) {
+            // 연결 장애이면서 응답 미확정인 경우만 503으로 변환
             if (!ex.isDatabaseConnectionFailure() || response.isCommitted) throw ex
             writer.write(response, HttpStatus.SERVICE_UNAVAILABLE)
         }

@@ -1,5 +1,7 @@
+# 저장소의 편집기 설정 기준
 root = true
 
+# 공통 문자 인코딩·개행·공백·들여쓰기
 [*]
 charset = utf-8
 end_of_line = lf
@@ -8,5 +10,6 @@ trim_trailing_whitespace = true
 indent_style = space
 indent_size = 2
 
+# Kotlin은 공백 4칸 들여쓰기
 [*.kt]
 indent_size = 4

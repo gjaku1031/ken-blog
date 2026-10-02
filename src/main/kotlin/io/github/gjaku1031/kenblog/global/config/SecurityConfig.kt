@@ -35,29 +35,41 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource
 import org.springframework.web.filter.OncePerRequestFilter
 
 /**
- * 공개 조회와 인증 경계를 구분하고 JDBC 기반 Servlet 세션 인증을 구성.
+ * 공개 조회와 인증 경계를 구분하고 JDBC 기반 Servlet 세션 인증을 구성
  *
- * 로그인과 로그아웃은 [AuthController]에서 수행하며 폼 로그인·Basic 인증은 비활성화.
+ * 로그인과 로그아웃은 [AuthController]에서 수행하며 폼 로그인·Basic 인증은 비활성화
  */
 @Configuration
 class SecurityConfig {
-    /** 이전 Spring 관리자 화면과 서버 자산 경로는 인증 상태와 관계없이 404. */
+    /**
+     * 이전 Spring 관리자 화면과 서버 자산 경로는 인증 상태와 관계없이 404.
+     */
     @Bean
     fun retiredWebPathRegistration(): FilterRegistrationBean<OncePerRequestFilter> =
         FilterRegistrationBean<OncePerRequestFilter>(object : OncePerRequestFilter() {
+            /**
+             * 제거된 화면·자산 경로는 404로 종료하고 나머지 요청 전달
+             *
+             * 1. 제거된 화면·자산 경로인지 확인
+             * 2. 일치하면 캐시를 금지한 404로 종료
+             * 3. 나머지 요청만 다음 필터로 전달
+             */
             override fun doFilterInternal(
                 request: HttpServletRequest,
                 response: HttpServletResponse,
                 chain: FilterChain,
             ) {
+                // 제거된 화면·자산 경로인지 확인
                 val path = request.requestURI
                 val retired = listOf("/manage", "/assets", "/write", "/admin")
                     .any { path == it || path.startsWith("$it/") }
+                // 일치하면 캐시를 금지한 404로 종료
                 if (retired) {
                     response.setHeader("Cache-Control", "no-store")
                     response.status = HttpStatus.NOT_FOUND.value()
                     return
                 }
+                // 나머지 요청만 다음 필터로 전달
                 chain.doFilter(request, response)
             }
         }).apply {
@@ -65,12 +77,14 @@ class SecurityConfig {
             addUrlPatterns("/*")
         }
 
-    /** 세션 검증 필터를 Security chain에서만 실행. */
+    /**
+     * 세션 검증 필터를 Security chain에서만 실행
+     */
     @Bean
     fun accountSessionValidationRegistration(filter: AccountSessionValidationFilter): FilterRegistrationBean<AccountSessionValidationFilter> =
         FilterRegistrationBean(filter).apply { isEnabled = false }
     /**
-     * `{bcrypt}` 저장 형식에 맞는 비밀번호 검증기를 제공.
+     * `{bcrypt}` 저장 형식에 맞는 비밀번호 검증기를 제공
      *
      * @return [io.github.gjaku1031.kenblog.auth.service.AdminLoginAttemptService]가 사용할 [PasswordEncoder]
      */
@@ -78,7 +92,7 @@ class SecurityConfig {
     fun passwordEncoder(): PasswordEncoder = PasswordEncoderFactories.createDelegatingPasswordEncoder()
 
     /**
-     * 로그인 전후 기대 CSRF 토큰을 MySQL의 HTTP 세션에 저장.
+     * 로그인 전후 기대 CSRF 토큰을 MySQL의 HTTP 세션에 저장
      *
      * @return [AuthController.csrf]와 Security 필터가 공유할 저장소
      */
@@ -86,7 +100,7 @@ class SecurityConfig {
     fun csrfTokenRepository(): CsrfTokenRepository = HttpSessionCsrfTokenRepository()
 
     /**
-     * 인증 컨텍스트를 HTTP 세션에 명시적으로 저장할 저장소.
+     * 인증 컨텍스트를 HTTP 세션에 명시적으로 저장할 저장소
      *
      * @return [AuthController.login]과 필터가 공유할 [SecurityContextRepository]
      */
@@ -94,7 +108,7 @@ class SecurityConfig {
     fun securityContextRepository(): SecurityContextRepository = HttpSessionSecurityContextRepository()
 
     /**
-     * MVC 로그인에서 세션 ID 변경과 기존 CSRF 토큰 제거를 수행.
+     * MVC 로그인에서 세션 ID 변경과 기존 CSRF 토큰 제거를 수행
      *
      * @param csrfRepository 기대 CSRF 토큰 저장소
      * @return 새 인증 성공 시 실행할 [SessionAuthenticationStrategy]
@@ -106,8 +120,14 @@ class SecurityConfig {
         )
 
     /**
-     * 공개 스냅샷·이미지는 지정 origin의 GET, 관리자 변경은 인증 origin의 credential 요청으로 분리.
-     * 관리자 경로의 GET·POST·PUT·PATCH·DELETE와 CSRF 헤더를 허용.
+     * 공개 스냅샷·이미지는 지정 origin의 GET, 관리자 변경은 인증 origin의 credential 요청으로 분리
+     *
+     * 관리자 경로의 GET·POST·PUT·PATCH·DELETE와 CSRF 헤더를 허용
+     *
+     * 1. 공개·인증 origin 목록 검증
+     * 2. 쿠키 없는 공개 읽기·쿠키 포함 읽기·관리자 변경 정책 분리
+     * 3. 설정된 인증 origin이 있을 때만 로그인 경로 등록
+     * 4. 요청 경로와 origin에 맞는 CORS 정책 선택
      *
      * @param publicOriginsCsv 공개 스냅샷·이미지 조회 허용 origin
      * @param authOriginsCsv 인증 요청을 허용할 명시적 origin; 기본은 빈 목록
@@ -119,9 +139,11 @@ class SecurityConfig {
         @Value("\${app.cors.allowed-origins}") publicOriginsCsv: String,
         @Value("\${app.auth.cors.allowed-origins}") authOriginsCsv: String,
     ): CorsConfigurationSource {
+        // 공개·인증 origin 목록 검증
         val publicOrigins = parseOrigins(publicOriginsCsv, allowEmpty = true)
         val authOrigins = parseOrigins(authOriginsCsv, allowEmpty = true)
         val source = UrlBasedCorsConfigurationSource()
+        // 쿠키 없는 공개 읽기·쿠키 포함 읽기·관리자 변경 정책 분리
         val publicPosts = CorsConfiguration().apply {
             allowedOrigins = publicOrigins
             allowedMethods = listOf("GET")
@@ -143,6 +165,7 @@ class SecurityConfig {
             allowCredentials = true
             maxAge = 600
         }
+        // 설정된 인증 origin이 있을 때만 로그인 경로 등록
         if (authOrigins.isNotEmpty()) {
             source.registerCorsConfiguration("/api/v1/auth/**", CorsConfiguration().apply {
                 allowedOrigins = authOrigins
@@ -152,6 +175,7 @@ class SecurityConfig {
                 maxAge = 600
             })
         }
+        // 요청 경로와 origin에 맞는 CORS 정책 선택
         return CorsConfigurationSource { request ->
             val path = request.servletPath
             if (path == "/api/v1/admin/stack-badges") authenticatedPosts
@@ -165,7 +189,13 @@ class SecurityConfig {
     }
 
     /**
-     * 공개 Pages 스냅샷·이미지와 세션 기반 접근 제어 및 [SecurityProblemWriter]를 연결.
+     * 공개 Pages 스냅샷·이미지와 세션 기반 접근 제어 및 [SecurityProblemWriter]를 연결
+     *
+     * 1. CSRF·CORS·세션 저장소 설정
+     * 2. 사용하지 않는 기본 인증·로그아웃 기능 비활성화
+     * 3. 인증·권한 실패를 고정 오류 응답으로 변환
+     * 4. 권한 검사 전에 계정·세션 재검증
+     * 5. 공개 경로·인증 경로·관리자 경로의 접근 범위 지정
      *
      * @param http Spring Security 설정 빌더
      * @param writer 인증·권한 오류 응답기
@@ -184,19 +214,24 @@ class SecurityConfig {
         csrfRepository: CsrfTokenRepository,
         @Qualifier("corsConfigurationSource") corsSource: CorsConfigurationSource,
     ): SecurityFilterChain = http
+        // CSRF·CORS·세션 저장소 설정
         .csrf { it.csrfTokenRepository(csrfRepository) }
         .cors { it.configurationSource(corsSource) }
         .securityContext { it.securityContextRepository(contextRepository) }
         .sessionManagement { it.sessionCreationPolicy(SessionCreationPolicy.IF_REQUIRED) }
         .requestCache { it.requestCache(NullRequestCache()) }
+        // 사용하지 않는 기본 인증·로그아웃 기능 비활성화
         .formLogin { it.disable() }
         .httpBasic { it.disable() }
         .logout { it.disable() }
+        // 인증·권한 실패를 고정 오류 응답으로 변환
         .exceptionHandling {
             it.authenticationEntryPoint { _, response, _ -> writer.write(response, HttpStatus.UNAUTHORIZED) }
             it.accessDeniedHandler { _, response, _ -> writer.write(response, HttpStatus.FORBIDDEN) }
         }
+        // 권한 검사 전에 계정·세션 재검증
         .addFilterBefore(accountSessionValidationFilter, AuthorizationFilter::class.java)
+        // 공개 경로·인증 경로·관리자 경로의 접근 범위 지정
         .authorizeHttpRequests {
             it.requestMatchers(HttpMethod.GET, "/actuator/health", "/api/v1/pages/snapshot").permitAll()
             it.requestMatchers(HttpMethod.GET, "/api/v1/posts/*/attachments/*/content").permitAll()
@@ -211,7 +246,7 @@ class SecurityConfig {
         .build()
 
     /**
-     * 쉼표로 구분한 실제 origin 목록만 허용.
+     * 쉼표로 구분한 실제 origin 목록만 허용
      *
      * @param csv 설정 문자열
      * @param allowEmpty 비어 있는 목록 허용 여부

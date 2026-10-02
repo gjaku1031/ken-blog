@@ -1,33 +1,238 @@
 import type { Root, RootContent } from "mdast";
 import { parseMathMarkdown } from "./math-syntax";
 
-/** 본문 전체에서 식별한 한 주석의 표시·본문·참조 순서. */
-export type AnnotationItem = { index: number; label: string; content: string; firstRef: number; refs: number[] };
+/**
+ * 본문 전체에서 식별한 한 주석의 표시·본문·참조 순서
+ */
+export type AnnotationItem = {
+  /**
+   * 문서 내 순번
+   */
+  index: number;
+  /**
+   * 표시 문구
+   */
+  label: string;
+  /**
+   * 본문 내용
+   */
+  content: string;
+  /**
+   * 첫 참조 순번
+   */
+  firstRef: number;
+  /**
+   * 참조 순번 목록
+   */
+  refs: number[]
+};
 
+/**
+ * 본문 주석 후보 종류
+ */
 type CandidateKind = "anonymous" | "definition" | "reference" | "raw";
-type Candidate = { start: number; end: number; raw: string; kind: CandidateKind; name?: string; content?: string;
-  marker: string; transformedStart: number; transformedEnd: number };
-type CandidateNode = { type: "kenAnnotationCandidate"; raw: string; kind: CandidateKind;
-  name?: string; content?: string; data: { hName: string; hProperties?: Record<string, unknown>;
-    hChildren: Array<{ type: "text"; value: string }> }; position?: { start: { offset?: number }; end: { offset?: number } } };
-type PositionedNode = { type: string; position?: { start: { offset?: number }; end: { offset?: number } };
-  children?: PositionedNode[] };
+/**
+ * 본문 주석 원문 후보
+ */
+type Candidate = {
+  /**
+   * 구간 시작 위치
+   */
+  start: number;
+  /**
+   * 구간 끝 위치
+   */
+  end: number;
+  /**
+   * 원문
+   */
+  raw: string;
+  /**
+   * 문법 후보 종류
+   */
+  kind: CandidateKind;
+  /**
+   * 이름
+   */
+  name?: string;
+  /**
+   * 본문 내용
+   */
+  content?: string;
+  /**
+   * 충돌 방지용 치환 마커
+   */
+  marker: string;
+  /**
+   * 치환 후 시작 위치
+   */
+  transformedStart: number;
+  /**
+   * 치환 후 끝 위치
+   */
+  transformedEnd: number
+};
+/**
+ * 본문 주석 후보 AST 노드
+ */
+type CandidateNode = {
+  /**
+   * 종류
+   */
+  type: "kenAnnotationCandidate";
+  /**
+   * 원문
+   */
+  raw: string;
+  /**
+   * 문법 후보 종류
+   */
+  kind: CandidateKind;
+  /**
+   * 이름
+   */
+  name?: string;
+  /**
+   * 본문 내용
+   */
+  content?: string;
+  /**
+   * AST 렌더 보조 정보
+   */
+  data: {
+    /**
+     * 변환할 HTML 태그명
+     */
+    hName: string;
+    /**
+     * 변환할 HTML 속성
+     */
+    hProperties?: Record<string, unknown>;
+    /**
+     * 변환할 HTML 하위 노드
+     */
+    hChildren: Array<{
+      /**
+       * 종류
+       */
+      type: "text";
+      /**
+       * 노드 값
+       */
+      value: string
+    }>
+  };
+  /**
+   * 문서 내 위치
+   */
+  position?: {
+    /**
+     * 구간 시작 위치
+     */
+    start: {
+      /**
+       * 원문 오프셋
+       */
+      offset?: number
+    };
+    /**
+     * 구간 끝 위치
+     */
+    end: {
+      /**
+       * 원문 오프셋
+       */
+      offset?: number
+    }
+  }
+};
+/**
+ * 원문 위치를 가진 AST 노드
+ */
+type PositionedNode = {
+  /**
+   * 종류
+   */
+  type: string;
+  /**
+   * 문서 내 위치
+   */
+  position?: {
+    /**
+     * 구간 시작 위치
+     */
+    start: {
+      /**
+       * 원문 오프셋
+       */
+      offset?: number
+    };
+    /**
+     * 구간 끝 위치
+     */
+    end: {
+      /**
+       * 원문 오프셋
+       */
+      offset?: number
+    }
+  };
+  /**
+   * 하위 AST 노드
+   */
+  children?: PositionedNode[]
+};
 
+/**
+ * 본문 주석 파싱 원문 바이트 상한
+ */
 const MAX_SOURCE = 1024 * 1024;
+/**
+ * 문법 후보 개수 상한
+ */
 const MAX_CANDIDATES = 512;
+/**
+ * 주석 본문 길이 상한
+ */
 const MAX_CONTENT = 2048;
+/**
+ * 주석 이름 코드 포인트 수 상한
+ */
 const MAX_NAME_CODEPOINTS = 64;
 
-/** UTF-8 바이트 기준 1MiB를 넘는 원문은 주석 파서를 안전하게 건너뛴다. */
+/**
+ * UTF-8 바이트 기준 1MiB를 넘는 원문은 주석 파서를 안전하게 건너뜀
+ */
 function sourceTooLarge(source: string): boolean {
   return source.length > MAX_SOURCE || new TextEncoder().encode(source).length > MAX_SOURCE;
 }
 
-/** 수식·코드·이미지·링크·raw HTML 안에서 후보를 찾지 않도록 원문 위치를 가린다. */
+/**
+ * 수식·코드·이미지·링크·raw HTML 안에서 후보를 찾지 않도록 원문 위치를 가림
+ *
+ * 1. AST에서 코드·수식·링크 등 제외 구간 수집
+ * 2. HTML 여닫는 태그 사이의 텍스트도 제외
+ * 3. 닫히지 않은 HTML은 문서 끝까지 제외
+ */
 function excludedMask(source: string, root: Root): Uint8Array {
   const mask = new Uint8Array(source.length);
-  const html: Array<{ start: number; end: number }> = [];
+  const html: Array<{
+    /**
+     * 구간 시작 위치
+     */
+    start: number;
+    /**
+     * 구간 끝 위치
+     */
+    end: number
+  }> = [];
+  /**
+   * 파싱 제외 구간 표시
+   */
   const cover = (start: number, end: number) => mask.fill(1, start, end);
+  /**
+   * 현재 노드와 하위 노드 순회
+   */
   const visit = (node: PositionedNode) => {
     const start = node.position?.start.offset;
     const end = node.position?.end.offset;
@@ -39,15 +244,26 @@ function excludedMask(source: string, root: Root): Uint8Array {
       return;
     }
     if (start !== undefined && end !== undefined && (node.type === "link" || node.type === "linkReference")) {
-      // 본문 링크 안에서 sup 링크를 만들면 <a>가 중첩되므로 표시 문구까지 원문으로 둔다.
+      // 본문 링크 안에서 sup 링크를 만들면 <a>가 중첩되므로 표시 문구까지 원문으로 둠
       cover(start, end);
       return;
     }
     for (const child of node.children ?? []) visit(child);
   };
+  // AST에서 코드·수식·링크 등 제외 구간 수집
   visit(root as PositionedNode);
-  // 인라인 HTML 태그 사이에 있는 텍스트도 HTML로 취급하되 안전한 details/summary 내용은 남긴다.
-  const stack: Array<{ name: string; start: number }> = [];
+  // 인라인 HTML 태그 사이에 있는 텍스트도 HTML로 취급하되 안전한 details/summary 내용은 남김
+  // HTML 여닫는 태그 사이의 텍스트도 제외
+  const stack: Array<{
+    /**
+     * 이름
+     */
+    name: string;
+    /**
+     * 구간 시작 위치
+     */
+    start: number
+  }> = [];
   for (const item of html.sort((left, right) => left.start - right.start)) {
     const raw = source.slice(item.start, item.end);
     const tag = /^<(\/)?([A-Za-z][\w:-]*)(?:\s[^>]*)?>$/.exec(raw);
@@ -61,23 +277,33 @@ function excludedMask(source: string, root: Root): Uint8Array {
       stack.push({ name, start: item.start });
     }
   }
+  // 닫히지 않은 HTML은 문서 끝까지 제외
   for (const open of stack) cover(open.start, source.length);
   return mask;
 }
 
-/** 바로 앞 역슬래시의 홀짝으로 현재 구두점이 이스케이프됐는지 판단한다. */
+/**
+ * 바로 앞 역슬래시의 홀짝으로 현재 구두점이 이스케이프됐는지 판단함
+ */
 function escaped(source: string, position: number): boolean {
   let count = 0;
   for (let index = position - 1; index >= 0 && source[index] === "\\"; index--) count++;
   return count % 2 === 1;
 }
 
-/** 한 줄의 균형 잡힌 후보를 익명 정의·이름 정의·재참조·원문으로 분류한다. */
+/**
+ * 한 줄의 균형 잡힌 후보를 익명 정의·이름 정의·재참조·원문으로 분류함
+ *
+ * 1. 중첩·길이·닫는 괄호 검사, 실패하면 원문 유지
+ * 2. 공백으로 시작하면 익명 정의, 그 외는 이름·본문 분리
+ */
 function classify(source: string, start: number, end: number, nested: boolean): Candidate {
   const raw = source.slice(start, end);
   const base: Candidate = { start, end, raw, kind: "raw", marker: "", transformedStart: 0, transformedEnd: 0 };
+  // 중첩·길이·닫는 괄호 검사, 실패하면 원문 유지
   if (nested || raw.length > MAX_CONTENT + MAX_NAME_CODEPOINTS * 2 + 4 || raw[raw.length - 1] !== "]") return base;
   const inside = raw.slice(2, -1);
+  // 공백으로 시작하면 익명 정의, 그 외는 이름·본문 분리
   if (/^[ \t]/.test(inside)) {
     const content = inside.trim();
     return content && content.length <= MAX_CONTENT ? { ...base, kind: "anonymous", content } : base;
@@ -89,14 +315,22 @@ function classify(source: string, start: number, end: number, nested: boolean): 
   return content && content.length <= MAX_CONTENT ? { ...base, kind: "definition", name: match[1], content } : base;
 }
 
-/** 닫히지 않은 후보는 줄 끝까지 한 번에 건너뛰어 긴 입력의 반복 스캔을 막는다. */
+/**
+ * 닫히지 않은 후보는 줄 끝까지 한 번에 건너뛰어 긴 입력의 반복 스캔을 막음
+ *
+ * 1. 제외 영역 밖의 이스케이프되지 않은 시작점 검색
+ * 2. 같은 줄에서 괄호 균형을 맞추며 종료점 탐색
+ * 3. 후보 상한 초과 시 문서 전체 원문 처리 신호 반환
+ */
 function candidates(source: string, mask: Uint8Array): Candidate[] | null {
   const found: Candidate[] = [];
+  // 제외 영역 밖의 이스케이프되지 않은 시작점 검색
   for (let index = 0; index < source.length; index++) {
     if (source[index] !== "[" || source[index + 1] !== "*" || mask[index] || escaped(source, index)) continue;
     let depth = 1;
     let nested = false;
     let cursor = index + 2;
+    // 같은 줄에서 괄호 균형을 맞추며 종료점 탐색
     while (cursor < source.length && source[cursor] !== "\r" && source[cursor] !== "\n") {
       if (mask[cursor]) { cursor++; continue; }
       if (source[cursor] === "\\" && cursor + 1 < source.length) { cursor += 2; continue; }
@@ -110,13 +344,16 @@ function candidates(source: string, mask: Uint8Array): Candidate[] | null {
     found.push(depth === 0 ? classify(source, index, end, nested) :
       { start: index, end, raw: source.slice(index, end), kind: "raw",
         marker: "", transformedStart: 0, transformedEnd: 0 });
+    // 후보 상한 초과 시 문서 전체 원문 처리 신호 반환
     if (found.length > MAX_CANDIDATES) return null;
     index = end - 1;
   }
   return found;
 }
 
-/** 접기 태그·편집 모델의 원문 구간 검사에서 주석 안의 HTML 모양 텍스트를 가린다. */
+/**
+ * 접기 태그·편집 모델의 원문 구간 검사에서 주석 안의 HTML 모양 텍스트를 가림
+ */
 export function annotationSourceMask(source: string): Uint8Array {
   const mask = new Uint8Array(source.length);
   if (sourceTooLarge(source)) { mask.fill(1); return mask; }
@@ -127,7 +364,9 @@ export function annotationSourceMask(source: string): Uint8Array {
   return mask;
 }
 
-/** 충돌 없는 영숫자 접두사를 한정된 횟수만 시도하고 실패하면 안전 원문으로 돌린다. */
+/**
+ * 충돌 없는 영숫자 접두사를 한정된 횟수만 시도하고 실패하면 안전 원문으로 돌림
+ */
 function markerPrefix(source: string): string | null {
   for (let serial = 0; serial < 16; serial++) {
     const prefix = `KENBLOGANNOTATION${serial}BOUNDARY`;
@@ -136,10 +375,16 @@ function markerPrefix(source: string): string | null {
   return null;
 }
 
-/** 원문의 후보를 마커로 치환하되 나중에 위치를 복원할 대응을 기록한다. */
+/**
+ * 원문의 후보를 마커로 치환하되 나중에 위치를 복원할 대응을 기록함
+ *
+ * 1. 후보별 원문·치환 위치 대응 기록
+ * 2. 마지막 후보 뒤의 원문 보존
+ */
 function prepare(source: string, found: Candidate[], prefix: string): string {
   let transformed = "";
   let cursor = 0;
+  // 후보별 원문·치환 위치 대응 기록
   found.forEach((candidate, index) => {
     transformed += source.slice(cursor, candidate.start);
     candidate.marker = `${prefix}${index}END`;
@@ -148,11 +393,18 @@ function prepare(source: string, found: Candidate[], prefix: string): string {
     candidate.transformedEnd = transformed.length;
     cursor = candidate.end;
   });
+  // 마지막 후보 뒤의 원문 보존
   return transformed + source.slice(cursor);
 }
 
-/** 치환 뒤의 offset을 원문 offset으로 이분 탐색해 복원한다. */
+/**
+ * 치환 뒤의 offset을 원문 offset으로 이분 탐색해 복원함
+ *
+ * 1. 치환 시작점 기준 이분 탐색
+ * 2. 치환 내부는 요청한 경계로, 외부는 누적 길이 차이로 복원
+ */
 function originalOffset(offset: number, found: Candidate[], endBoundary: boolean): number {
+  // 치환 시작점 기준 이분 탐색
   let left = 0;
   let right = found.length;
   while (left < right) {
@@ -161,21 +413,43 @@ function originalOffset(offset: number, found: Candidate[], endBoundary: boolean
     else right = middle;
   }
   const candidate = found[left - 1];
+  // 치환 내부는 요청한 경계로, 외부는 누적 길이 차이로 복원
   if (!candidate) return offset;
   if (offset === candidate.transformedStart) return candidate.start;
   if (offset < candidate.transformedEnd) return endBoundary ? candidate.end : candidate.start;
   return offset + candidate.end - candidate.transformedEnd;
 }
 
-/** CRLF도 한 줄로 취급하기 위해 원문 줄 시작 offset을 모은다. */
+/**
+ * CRLF도 한 줄로 취급하기 위해 원문 줄 시작 offset을 모음
+ */
 function lineStarts(source: string): number[] {
   const starts = [0];
   for (let index = 0; index < source.length; index++) if (source[index] === "\n") starts.push(index + 1);
   return starts;
 }
 
-/** 원문 offset을 행·열·offset을 갖춘 unist 위치로 만든다. */
-function sourcePoint(starts: number[], offset: number): { line: number; column: number; offset: number } {
+/**
+ * 원문 offset을 행·열·offset을 갖춘 unist 위치로 만듦
+ *
+ * 1. 오프셋이 속한 원문 줄을 이분 탐색
+ * 2. 원문 기준 행·열·오프셋 반환
+ */
+function sourcePoint(starts: number[], offset: number): {
+  /**
+   * 행 번호
+   */
+  line: number;
+  /**
+   * 열 번호
+   */
+  column: number;
+  /**
+   * 원문 오프셋
+   */
+  offset: number
+} {
+  // 오프셋이 속한 원문 줄을 이분 탐색
   let left = 0;
   let right = starts.length;
   while (left < right) {
@@ -183,10 +457,13 @@ function sourcePoint(starts: number[], offset: number): { line: number; column: 
     if (starts[middle] <= offset) left = middle + 1;
     else right = middle;
   }
+  // 원문 기준 행·열·오프셋 반환
   return { line: left, column: offset - starts[left - 1] + 1, offset };
 }
 
-/** 후보는 최종 문서 해석 전까지도 텍스트로만 렌더해 이미지·HTML 실행을 막는다. */
+/**
+ * 후보는 최종 문서 해석 전까지도 텍스트로만 렌더해 이미지·HTML 실행을 막음
+ */
 function candidateNode(candidate: Candidate, starts: number[]): RootContent {
   return { type: "kenAnnotationCandidate", raw: candidate.raw, kind: candidate.kind,
     name: candidate.name, content: candidate.content,
@@ -195,15 +472,35 @@ function candidateNode(candidate: Candidate, starts: number[]): RootContent {
   } as unknown as RootContent;
 }
 
-/** 파싱 결과의 마커 텍스트를 원문 후보 노드로 바꿔 주변 Markdown 구조를 유지한다. */
+/**
+ * 파싱 결과의 마커 텍스트를 원문 후보 노드로 바꿔 주변 Markdown 구조를 유지함
+ *
+ * 1. 후보 번호를 읽을 마커 패턴 준비
+ * 2. 주변 텍스트를 보존하며 마커만 후보 노드로 복원
+ * 3. 하위 노드까지 복원한 결과 반영
+ */
 function restoreCandidates(root: Root, found: Candidate[], starts: number[], prefix: string): void {
+  // 후보 번호를 읽을 마커 패턴 준비
   const marker = new RegExp(`${prefix}([0-9]+)END`, "g");
+  /**
+   * 현재 노드와 하위 노드 순회
+   */
   const visit = (children: RootContent[]): RootContent[] => {
     const output: RootContent[] = [];
     for (const node of children) {
-      const typed = node as RootContent & { value?: string; children?: RootContent[] };
+      const typed = node as RootContent & {
+        /**
+         * 노드 값
+         */
+        value?: string;
+        /**
+         * 하위 AST 노드
+         */
+        children?: RootContent[]
+      };
       if (node.type === "text" && typeof typed.value === "string") {
         let cursor = 0;
+        // 주변 텍스트를 보존하며 마커만 후보 노드로 복원
         for (const match of typed.value.matchAll(marker)) {
           const candidate = found[Number(match[1])];
           if (!candidate || candidate.marker !== match[0]) continue;
@@ -221,10 +518,13 @@ function restoreCandidates(root: Root, found: Candidate[], starts: number[], pre
     }
     return output;
   };
+  // 하위 노드까지 복원한 결과 반영
   root.children = visit(root.children);
 }
 
-/** 마커 때문에 이동한 일반 AST 노드 위치를 원문의 LF/CRLF 위치로 되돌린다. */
+/**
+ * 마커 때문에 이동한 일반 AST 노드 위치를 원문의 LF/CRLF 위치로 되돌림
+ */
 function restorePositions(node: PositionedNode, found: Candidate[], starts: number[]): void {
   const start = node.position?.start.offset;
   const end = node.position?.end.offset;
@@ -235,7 +535,9 @@ function restorePositions(node: PositionedNode, found: Candidate[], starts: numb
   for (const child of node.children ?? []) restorePositions(child, found, starts);
 }
 
-/** 과도한 후보 수나 마커 충돌에서는 문서 전체를 텍스트만 있는 원문 노드로 남긴다. */
+/**
+ * 과도한 후보 수나 마커 충돌에서는 문서 전체를 텍스트만 있는 원문 노드로 남김
+ */
 function rawDocument(source: string): Root {
   const starts = lineStarts(source);
   return { type: "root", children: [{ type: "kenAnnotationRaw", value: source,
@@ -244,8 +546,15 @@ function rawDocument(source: string): Root {
   } as unknown as RootContent] };
 }
 
-/** 수식 문법 다음, 안전 접기 재파싱에서도 공유하는 주석 우선 파싱 결과. */
+/**
+ * 수식 문법 다음, 안전 접기 재파싱에서도 공유하는 주석 우선 파싱 결과
+ *
+ * 1. 입력·후보 수·마커 충돌 제한 검사
+ * 2. 후보를 마커로 가린 뒤 수식 파서로 재해석
+ * 3. 후보 노드와 원문 위치를 차례로 복원
+ */
 export function parseAnnotationMarkdown(source: string): Root {
+  // 입력·후보 수·마커 충돌 제한 검사
   if (sourceTooLarge(source)) return rawDocument(source);
   const root = parseMathMarkdown(source);
   const found = candidates(source, excludedMask(source, root));
@@ -253,28 +562,42 @@ export function parseAnnotationMarkdown(source: string): Root {
   if (!found.length) return root;
   const prefix = markerPrefix(source);
   if (!prefix) return rawDocument(source);
+  // 후보를 마커로 가린 뒤 수식 파서로 재해석
   const modified = prepare(source, found, prefix);
   const parsed = parseMathMarkdown(modified);
   const starts = lineStarts(source);
+  // 후보 노드와 원문 위치를 차례로 복원
   restoreCandidates(parsed, found, starts, prefix);
   restorePositions(parsed as PositionedNode, found, starts);
   return parsed;
 }
 
-/** 허용한 링크 주소만 주석 본문에서 활성화하고 나머지는 원문 후보로 남긴다. */
+/**
+ * 허용한 링크 주소만 주석 본문에서 활성화하고 나머지는 원문 후보로 남김
+ */
 function safeLink(url: string): boolean {
   if (/[\u0000-\u001f\u007f\\]/.test(url)) return false;
   return url.startsWith("#") || (url.startsWith("/") && !url.startsWith("//")) ||
     /^(https?:|mailto:)/i.test(url) || /^[^:/?#][^:]*$/.test(url);
 }
 
-/** 주석 본문을 한 문단의 안전한 인라인 문법으로 제한한다. */
+/**
+ * 주석 본문을 한 문단의 안전한 인라인 문법으로 제한함
+ */
 function validContent(content: string): boolean {
   if (!content || content.length > MAX_CONTENT || /\r|\n/.test(content)) return false;
   const root = parseMathMarkdown(content);
   if (root.children.length !== 1 || root.children[0].type !== "paragraph") return false;
+  /**
+   * 현재 노드와 하위 노드 순회
+   */
   const visit = (node: RootContent): boolean => {
-    if (node.type === "text" || node.type === "inlineCode" || (node as { type: string }).type === "kenMathInline") return true;
+    if (node.type === "text" || node.type === "inlineCode" || (node as {
+    /**
+     * 종류
+     */
+    type: string
+  }).type === "kenMathInline") return true;
     if (node.type === "strong" || node.type === "emphasis") return node.children.every(visit);
     if (node.type === "link") return safeLink(node.url) && node.children.every(visit);
     return false;
@@ -282,15 +605,33 @@ function validContent(content: string): boolean {
   return root.children[0].children.every(visit);
 }
 
-/** 안전 접기 그룹화 후 실제로 남은 후보만 문서 전체 순서로 해석한다. */
+/**
+ * 안전 접기 그룹화 후 실제로 남은 후보만 문서 전체 순서로 해석함
+ *
+ * 1. 남은 후보를 원문 순서로 정렬
+ * 2. 본문을 검증하고 이름별 최초 유효 정의 수집
+ * 3. 익명 번호·이름 참조를 첫 등장 순서로 배정
+ * 4. 정의가 없거나 잘못된 후보는 텍스트로 유지
+ * 5. 유효 참조에 왕복 탐색용 순번 부여
+ */
 export function resolveAnnotationDocument(root: Root): AnnotationItem[] {
   const nodes: CandidateNode[] = [];
+  /**
+   * 현재 노드와 하위 노드 순회
+   */
   const visit = (node: RootContent | Root) => {
-    if ((node as { type: string }).type === "kenAnnotationCandidate") { nodes.push(node as unknown as CandidateNode); return; }
+    if ((node as {
+    /**
+     * 종류
+     */
+    type: string
+  }).type === "kenAnnotationCandidate") { nodes.push(node as unknown as CandidateNode); return; }
     for (const child of "children" in node ? node.children : []) visit(child);
   };
+  // 남은 후보를 원문 순서로 정렬
   visit(root);
   nodes.sort((left, right) => (left.position?.start.offset ?? 0) - (right.position?.start.offset ?? 0));
+  // 본문을 검증하고 이름별 최초 유효 정의 수집
   const valid = new Map<CandidateNode, boolean>();
   const definitions = new Map<string, string>();
   for (const node of nodes) {
@@ -305,6 +646,7 @@ export function resolveAnnotationDocument(root: Root): AnnotationItem[] {
   const named = new Map<string, AnnotationItem>();
   let anonymousNumber = 0;
   let occurrence = 0;
+  // 익명 번호·이름 참조를 첫 등장 순서로 배정
   for (const node of nodes) {
     let item: AnnotationItem | undefined;
     if (node.kind === "anonymous" && valid.get(node)) {
@@ -316,6 +658,7 @@ export function resolveAnnotationDocument(root: Root): AnnotationItem[] {
       const content = node.name ? definitions.get(node.name) : undefined;
       if (content && node.name) {
         item = named.get(node.name);
+        // 정의가 없거나 잘못된 후보는 텍스트로 유지
         if (!item) {
           item = { index: items.length, label: node.name, content, firstRef: occurrence, refs: [] };
           named.set(node.name, item);
@@ -327,6 +670,7 @@ export function resolveAnnotationDocument(root: Root): AnnotationItem[] {
       node.data = { hName: "span", hChildren: [{ type: "text", value: node.raw }] };
       continue;
     }
+    // 유효 참조에 왕복 탐색용 순번 부여
     item.refs.push(occurrence);
     node.data = { hName: "sup", hProperties: { className: ["ken-annotation-ref"],
       "data-annotation-index": String(item.index), "data-annotation-occurrence": String(occurrence) },

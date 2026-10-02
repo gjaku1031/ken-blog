@@ -1,11 +1,12 @@
 {
-	# IP URL 클라이언트는 TLS ClientHello에 SNI를 보내지 않을 수 있다.
+	# IP URL 클라이언트는 TLS ClientHello에 SNI를 보내지 않을 수 있음
 	default_sni {$KEN_BLOG_PUBLIC_IP}
 }
 
+# API 프록시 공통 처리
 (proxy_api) {
 	reverse_proxy api:8080 {
-		# 클라이언트가 보낸 프록시 메타데이터를 상류에 전달하지 않는다.
+		# 클라이언트가 보낸 프록시 메타데이터를 상류에 전달하지 않음
 		header_up -Forwarded
 		header_up -X-Forwarded-For
 		header_up -X-Forwarded-Host
@@ -21,30 +22,37 @@
 }
 
 # KEN_BLOG_PUBLIC_IP는 인증서 SAN에 들어가는 공인 IPv4. bind IP는 별도 사설 NIC.
+# 공인 IP 인증서를 사용하는 HTTPS 사이트
 {$KEN_BLOG_PUBLIC_IP} {
+	# 짧은 수명의 ACME 인증서 발급
 	tls {
 		issuer acme https://acme-v02.api.letsencrypt.org/directory {
 			profile shortlived
 		}
 	}
 
+	# 공개 읽기·상태 점검 경로와 메서드
 	@public_read {
 		method GET HEAD OPTIONS
 		path /api/v1/pages/snapshot /api/v1/stack-badges/*/image /api/v1/posts/*/attachments/*/content /actuator/health
 	}
+	# 세션 인증 경로와 메서드
 	@auth {
 		method GET POST OPTIONS
 		path /api/v1/auth/csrf /api/v1/auth/login /api/v1/auth/me /api/v1/auth/logout
 	}
+	# 관리자 기술 목록 읽기 경로
 	@stack_catalog {
 		method GET OPTIONS
 		path /api/v1/admin/stack-badges
 	}
+	# 관리자 메타데이터 변경 경로
 	@admin {
 		method GET POST PUT PATCH DELETE OPTIONS
 		path /api/v1/admin/categories /api/v1/admin/categories/* /api/v1/admin/posts /api/v1/admin/posts/* /api/v1/admin/series /api/v1/admin/series/* /api/v1/admin/tags /api/v1/admin/tags/*
 	}
 
+	# 허용 경로만 API로 전달, 실제 인증은 애플리케이션에서 검사
 	handle @public_read {
 		import proxy_api
 	}
@@ -57,6 +65,7 @@
 	handle @admin {
 		import proxy_api
 	}
+	# 허용 목록 밖 요청은 404로 종료
 	handle {
 		respond 404
 	}

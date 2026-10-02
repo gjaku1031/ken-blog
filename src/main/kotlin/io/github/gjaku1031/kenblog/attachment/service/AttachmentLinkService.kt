@@ -9,34 +9,58 @@ import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
 /**
- * 글의 이미지 권한 선언을 해당 쓰기 트랜잭션 안에서 교체.
- * 호출자는 부모 글을 먼저 잠그고 이 서비스가 첨부를 ID 오름차순으로 잠금.
+ * 글의 이미지 권한 선언을 해당 쓰기 트랜잭션 안에서 교체
+ *
+ * 호출자는 부모 글을 먼저 잠그고 이 서비스가 첨부를 ID 오름차순으로 잠금
  */
 @Service
 class AttachmentLinkService(
+    /**
+     * 게시글 메타데이터 조회기
+     */
     private val queries: PostQueries,
+    /**
+     * 게시글·첨부 연결 저장소
+     */
     private val posts: PostAttachmentRepository,
 ) {
-    /** @return 게시글에 선언된 첨부 ID의 오름차순 목록. */
+    /**
+     * 게시글에 선언된 첨부 ID의 오름차순 목록
+     */
     @Transactional(readOnly = true)
     fun postIds(postId: Long): List<Long> = posts.findIdsByPostId(postId)
 
     /**
-     * 잠근 글의 연결을 전부 교체. 빈 목록은 해제이며 실패 시 원본 글 변경까지 롤백됨.
+     * 잠근 글의 연결을 전부 교체
+     * 빈 목록은 해제이며 실패 시 원본 글 변경까지 롤백됨
+     *
      * @throws AttachmentFailure 없는 ID면 404, READY가 아니면 409
      */
     @Transactional
     fun replacePost(postId: Long, ids: List<Long>) = replacePostInTransaction(postId, ids)
 
-    /** 이미 열린 부모 쓰기 트랜잭션 안에서 READY 확인과 연결 전체 교체를 수행. */
+    /**
+     * 이미 열린 부모 쓰기 트랜잭션 안에서 READY 확인과 연결 전체 교체를 수행
+     *
+     * 1. ID 중복 제거·정렬로 잠금 순서 고정
+     * 2. 기존 연결 삭제 전에 모든 첨부의 READY 상태 확인
+     * 3. 검증된 연결로 전체 교체, 빈 목록이면 해제
+     */
     private fun replacePostInTransaction(postId: Long, ids: List<Long>) {
+        // ID 중복 제거·정렬로 잠금 순서 고정
         val normalized = ids.distinct().sorted()
+        // 기존 연결 삭제 전에 모든 첨부의 READY 상태 확인
         lockReady(normalized)
+        // 검증된 연결로 전체 교체, 빈 목록이면 해제
         posts.deleteByPostId(postId)
         if (normalized.isNotEmpty()) posts.saveAllAndFlush(normalized.map { PostAttachmentEntity(postId, it) })
     }
 
-    /** @throws AttachmentFailure ID별 행잠금에서 없는 첨부 또는 처리 중 상태를 만났을 때. */
+    /**
+     * 첨부 READY 상태 검사
+     *
+     * @throws AttachmentFailure ID별 행잠금에서 없는 첨부 또는 처리 중 상태를 만났을 때
+     */
     private fun lockReady(ids: List<Long>) {
         for (id in ids) {
             val status = queries.lockAttachmentStatus(id)

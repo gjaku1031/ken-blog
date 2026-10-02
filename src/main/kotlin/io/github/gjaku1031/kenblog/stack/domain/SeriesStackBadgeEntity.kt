@@ -14,39 +14,63 @@ import java.io.Serializable
 import org.hibernate.annotations.OnDelete
 import org.hibernate.annotations.OnDeleteAction
 
-/** 프로젝트와 기술 뱃지의 복합 키. */
+/**
+ * 프로젝트와 기술 뱃지의 복합 키
+ */
 @Embeddable
 data class SeriesStackBadgeId(
+    /**
+     * 시리즈 ID
+     */
     @Column(name = "series_id") var seriesId: Long = 0,
+    /**
+     * 기술 뱃지 ID
+     */
     @Column(name = "badge_id") var badgeId: Long = 0,
 ) : Serializable
 
-/** 프로젝트 뱃지 선택 순서를 보존하는 연결 행. */
+/**
+ * 프로젝트 뱃지 선택 순서를 보존하는 연결 행
+ */
 @Entity
 @Table(name = "series_stack_badges", uniqueConstraints = [
     UniqueConstraint(name = "uk_series_stack_badges_order", columnNames = ["series_id", "sort_order"]),
 ])
 class SeriesStackBadgeEntity protected constructor() {
-    // DB 외래 키와 삭제 규칙. 저장은 기존 ID 필드를 사용.
+    // DB 외래 키와 삭제 규칙 저장은 기존 ID 필드를 사용
+    /**
+     * 프로젝트 시리즈 FK 매핑
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "series_id", insertable = false, updatable = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
     private var project: SeriesEntity? = null
 
+    /**
+     * 기술 뱃지 FK 매핑
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "badge_id", insertable = false, updatable = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
     private var badge: StackBadgeEntity? = null
 
+    /**
+     * ID
+     */
     @EmbeddedId
     lateinit var id: SeriesStackBadgeId
         protected set
 
+    /**
+     * 정렬 순서
+     */
     @Column(name = "sort_order", nullable = false)
     var sortOrder: Int = 0
         protected set
 
-    /** 프로젝트 ID와 이미 등록된 뱃지 ID를 순서대로 연결. */
+    /**
+     * 프로젝트 ID와 이미 등록된 뱃지 ID를 순서대로 연결
+     */
     constructor(seriesId: Long, badgeId: Long, sortOrder: Int) : this() {
         id = SeriesStackBadgeId(seriesId, badgeId)
         this.sortOrder = sortOrder

@@ -32,7 +32,7 @@ import java.time.Duration
 import java.util.Base64
 
 /**
- * 실제 서버·MySQL에서 브라우저 쿠키, CSRF, 로그인과 역할 경계를 검증.
+ * 실제 서버·MySQL에서 브라우저 쿠키, CSRF, 로그인과 역할 경계를 검증
  */
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
@@ -42,19 +42,33 @@ import java.util.Base64
 @Import(TestMysqlConfig::class, TestAdminProbeController::class)
 @TestMethodOrder(OrderAnnotation::class)
 class AuthHttpIntegrationTest {
+    /**
+     * 테스트 서버 포트
+     */
     @LocalServerPort
     private var port: Int = 0
 
+    /**
+     * JSON 직렬화기
+     */
     @Autowired
     private lateinit var mapper: ObjectMapper
 
+    /**
+     * JDBC 쿼리 실행기
+     */
     @Autowired
     private lateinit var jdbc: JdbcTemplate
 
+    /**
+     * 테스트 세션 저장소
+     */
     @Autowired
     private lateinit var sessions: SessionRepository<*>
 
-    /** 운영 자동 생성에 의존하지 않고 격리 테스트 DB에만 관리자 행 준비. */
+    /**
+     * 운영 자동 생성에 의존하지 않고 격리 테스트 DB에만 관리자 행 준비
+     */
     @BeforeEach
     fun prepareAdmin() {
         jdbc.update(
@@ -63,10 +77,17 @@ class AuthHttpIntegrationTest {
         )
     }
 
-    /** 익명 경로와 인증 경로의 CORS·쿠키 정책 및 ProblemDetail을 실제 HTTP로 검증. */
+    /**
+     * 익명 경로와 인증 경로의 CORS·쿠키 정책 및 ProblemDetail을 실제 HTTP로 검증
+     *
+     * 1. 독립 브라우저로 공개 읽기와 익명 접근 거부 검증
+     * 2. 허용 origin·거부 origin의 인증 사전 요청 비교
+     * 3. 로컬 HTTP용 세션 쿠키 속성 검증
+     */
     @Test
     @Order(1)
     fun publicAndAnonymousBoundaries() {
+        // 독립 브라우저로 공개 읽기와 익명 접근 거부 검증
         val client = newClient().first
         val snapshot = send(client, "GET", "/api/v1/pages/snapshot", headers = mapOf("Origin" to "https://gjaku1031.github.io"))
         assertEquals(200, snapshot.statusCode())
@@ -75,6 +96,7 @@ class AuthHttpIntegrationTest {
         assertEquals(401, send(client, "GET", "/api/v1/auth/me").statusCode())
         assertEquals(401, send(client, "GET", "/api/v1/admin/__test").statusCode())
 
+        // 허용 origin·거부 origin의 인증 사전 요청 비교
         val preflight = send(client, "OPTIONS", "/api/v1/auth/login", headers = mapOf(
             "Origin" to "http://127.0.0.1:14000",
             "Access-Control-Request-Method" to "POST",
@@ -89,6 +111,7 @@ class AuthHttpIntegrationTest {
         assertEquals(403, rejected.statusCode())
         assertFalse(rejected.headers().firstValue("Access-Control-Allow-Credentials").isPresent)
 
+        // 로컬 HTTP용 세션 쿠키 속성 검증
         val csrf = send(client, "GET", "/api/v1/auth/csrf")
         assertEquals(200, csrf.statusCode())
         assertTrue(csrf.headers().allValues("set-cookie").any { it.contains("HttpOnly") && it.contains("SameSite=Lax") })
@@ -97,10 +120,18 @@ class AuthHttpIntegrationTest {
 
     }
 
-    /** 로그인 CSRF, 세션 ID 교체, 로그아웃 후 이전 쿠키와 토큰의 무효화를 검증. */
+    /**
+     * 로그인 CSRF, 세션 ID 교체, 로그아웃 후 이전 쿠키와 토큰의 무효화를 검증
+     *
+     * 1. 로그인 전 쿠키·CSRF 토큰 확보
+     * 2. 정상 로그인 후 세션 ID 교체와 이전 토큰 무효화 검증
+     * 3. 세션 직렬화 데이터에 비밀번호 해시가 없는지 확인
+     * 4. 새 CSRF로 로그아웃 후 DB 세션·쿠키 재사용 거부 검증
+     */
     @Test
     @Order(2)
     fun loginFixationAndLogout() {
+        // 로그인 전 쿠키·CSRF 토큰 확보
         val (client, cookies) = newClient()
         val token = csrfToken(client)
         val before = sessionCookie(cookies)
@@ -109,6 +140,7 @@ class AuthHttpIntegrationTest {
         assertProblem(send(client, "POST", "/api/v1/auth/login", body = body), 403)
         assertProblem(send(client, "POST", "/api/v1/auth/login", body = body, csrf = "wrong-token"), 403)
 
+        // 정상 로그인 후 세션 ID 교체와 이전 토큰 무효화 검증
         val login = send(client, "POST", "/api/v1/auth/login", body = body, csrf = token)
         assertEquals(200, login.statusCode())
         assertEquals("ADMIN", mapper.readTree(login.body()).path("role").asText())
@@ -121,84 +153,119 @@ class AuthHttpIntegrationTest {
         val sessionId = decodeSessionId(after)
         assertEquals(1, sessionCount(sessionId))
         assertEquals(Duration.ofHours(8), sessions.findById(sessionId)?.maxInactiveInterval)
+        // 세션 직렬화 데이터에 비밀번호 해시가 없는지 확인
         val serialized = jdbc.query(
             "SELECT a.ATTRIBUTE_BYTES FROM SPRING_SESSION_ATTRIBUTES a JOIN SPRING_SESSION s ON a.SESSION_PRIMARY_ID = s.PRIMARY_ID WHERE s.SESSION_ID = ?",
             { rs, _ -> rs.getBytes(1) }, sessionId,
         )
         assertTrue(serialized.none { String(it, Charsets.ISO_8859_1).contains(TEST_HASH) })
 
+        // 새 CSRF로 로그아웃 후 DB 세션·쿠키 재사용 거부 검증
         val freshToken = csrfToken(client)
         assertEquals(204, send(client, "POST", "/api/v1/auth/logout", csrf = freshToken).statusCode())
         assertEquals(0, sessionCount(sessionId))
         assertProblem(send(newClient().first, "GET", "/api/v1/auth/me", headers = mapOf("Cookie" to "KENBLOGSESSION=$after")), 401)
     }
 
-    /** 빈 비밀번호, 잘못된 비밀번호, BCrypt 바이트 초과 입력이 같은 401 설명인지 검증. */
+    /**
+     * 빈 비밀번호, 잘못된 비밀번호, BCrypt 바이트 초과 입력이 같은 401 설명인지 검증
+     *
+     * 1. 오입력·빈 입력·BCrypt 길이 초과 요청 생성
+     * 2. 상태와 공개 오류 설명이 같은지 비교
+     */
     @Test
     @Order(3)
     fun badCredentialsAreIndistinguishable() {
         val (client, _) = newClient()
         val token = csrfToken(client)
+        // 오입력·빈 입력·BCrypt 길이 초과 요청 생성
         val wrong = send(client, "POST", "/api/v1/auth/login", csrf = token, body = loginBody("wrong"))
         val missing = send(client, "POST", "/api/v1/auth/login", csrf = token,
             body = mapper.writeValueAsString(mapOf("password" to "")))
         val tooLong = send(client, "POST", "/api/v1/auth/login", csrf = token, body = loginBody("가".repeat(25)))
+        // 상태와 공개 오류 설명이 같은지 비교
         listOf(wrong, missing, tooLong).forEach { assertProblem(it, 401) }
         assertEquals(mapper.readTree(wrong.body()).path("detail").asText(), mapper.readTree(missing.body()).path("detail").asText())
         assertEquals(mapper.readTree(wrong.body()).path("detail").asText(), mapper.readTree(tooLong.body()).path("detail").asText())
     }
 
-    /** 구 요청의 USER 이름은 무시하고 설정된 ADMIN만 세션 주체가 되는지 검증. */
+    /**
+     * 구 요청의 USER 이름은 무시하고 설정된 ADMIN만 세션 주체가 되는지 검증
+     *
+     * 1. 별도 USER 계정으로 구 요청의 사용자명 무시 조건 재현
+     * 2. 세션 주체가 설정된 ADMIN인지 검증
+     * 3. 실패 시에도 임시 USER 계정 정리
+     */
     @Test
     @Order(4)
     fun userRoleCannotEnterAdminBoundary() {
+        // 별도 USER 계정으로 구 요청의 사용자명 무시 조건 재현
         jdbc.update("INSERT INTO users (username, password_hash, role, created_at) VALUES (?, ?, 'USER', UTC_TIMESTAMP(6))", "testuser", TEST_HASH)
         try {
             val (client, _) = newClient()
             val token = csrfToken(client)
             assertEquals(200, send(client, "POST", "/api/v1/auth/login", csrf = token,
                 body = loginBody(TEST_PASSWORD, "testuser")).statusCode())
+            // 세션 주체가 설정된 ADMIN인지 검증
             val principal = mapper.readTree(send(client, "GET", "/api/v1/auth/me").body())
             assertEquals("testadmin", principal.path("username").asText())
             assertEquals("ADMIN", principal.path("role").asText())
             assertEquals(200, send(client, "GET", "/api/v1/admin/__test").statusCode())
         } finally {
+            // 실패 시에도 임시 USER 계정 정리
             jdbc.update("DELETE FROM users WHERE username = ?", "testuser")
         }
     }
 
-    /** JDBC 세션 만료 시 브라우저 쿠키만으로 인증이 복원되지 않는지 검증. */
+    /**
+     * JDBC 세션 만료 시 브라우저 쿠키만으로 인증이 복원되지 않는지 검증
+     *
+     * 1. 로그인으로 유효한 세션·쿠키 생성
+     * 2. DB 세션을 강제 만료한 뒤 쿠키 재사용 거부 확인
+     */
     @Test
     @Order(5)
     fun expiredSessionCannotBeReused() {
+        // 로그인으로 유효한 세션·쿠키 생성
         val (client, cookies) = newClient()
         val token = csrfToken(client)
         assertEquals(200, send(client, "POST", "/api/v1/auth/login", csrf = token, body = loginBody(TEST_PASSWORD)).statusCode())
         val sessionId = decodeSessionId(sessionCookie(cookies))
         assertEquals(1, sessionCount(sessionId))
+        // DB 세션을 강제 만료한 뒤 쿠키 재사용 거부 확인
         jdbc.update("UPDATE SPRING_SESSION SET LAST_ACCESS_TIME = 0, EXPIRY_TIME = 0 WHERE SESSION_ID = ?", sessionId)
         assertProblem(send(client, "GET", "/api/v1/auth/me"), 401)
     }
 
-    /** 테스트마다 독립적인 브라우저 쿠키 저장소와 HTTP 클라이언트를 생성. */
+    /**
+     * 테스트마다 독립적인 브라우저 쿠키 저장소와 HTTP 클라이언트를 생성
+     */
     private fun newClient(): Pair<HttpClient, CookieManager> {
         val cookies = CookieManager(null, CookiePolicy.ACCEPT_ALL)
         return HttpClient.newBuilder().cookieHandler(cookies).connectTimeout(Duration.ofSeconds(5)).build() to cookies
     }
 
-    /** 현재 브라우저에 저장된 세션 쿠키 값을 읽음. */
+    /**
+     * 현재 브라우저에 저장된 세션 쿠키 값을 읽음
+     */
     private fun sessionCookie(cookies: CookieManager): String = cookies.cookieStore.cookies
         .single { it.name == "KENBLOGSESSION" }.value
 
-    /** Spring Session 쿠키의 Base64 값에서 세션 ID를 복원. */
+    /**
+     * Spring Session 쿠키의 Base64 값에서 세션 ID를 복원
+     */
     private fun decodeSessionId(cookieValue: String): String = String(Base64.getDecoder().decode(cookieValue), Charsets.UTF_8)
 
-    /** 현재 브라우저 세션 ID에 대응하는 JDBC 행 수를 읽음. */
+    /**
+     * 현재 브라우저 세션 ID에 대응하는 JDBC 행 수를 읽음
+     */
     private fun sessionCount(sessionId: String): Int = jdbc.queryForObject(
         "SELECT COUNT(*) FROM SPRING_SESSION WHERE SESSION_ID = ?", Int::class.java, sessionId,
     )!!
 
-    /** 공개 CSRF 경로에서 토큰을 읽고 세션 쿠키를 브라우저 저장소에 남김. */
+    /**
+     * 공개 CSRF 경로에서 토큰을 읽고 세션 쿠키를 브라우저 저장소에 남김
+     */
     private fun csrfToken(client: HttpClient): String {
         val response = send(client, "GET", "/api/v1/auth/csrf")
         assertEquals(200, response.statusCode())
@@ -206,13 +273,17 @@ class AuthHttpIntegrationTest {
         return mapper.readTree(response.body()).path("token").asText()
     }
 
-    /** 테스트 전용 로그인 JSON을 직렬화함. */
+    /**
+     * 테스트 전용 로그인 JSON을 직렬화함
+     */
     private fun loginBody(password: String, legacyUsername: String? = null): String =
         mapper.writeValueAsString(mutableMapOf("password" to password).apply {
             if (legacyUsername != null) put("username", legacyUsername)
         })
 
-    /** 실제 로컬 TCP 서버에 요청을 보내고 JSON 또는 빈 응답을 읽음. */
+    /**
+     * 실제 로컬 TCP 서버에 요청을 보내고 JSON 또는 빈 응답을 읽음
+     */
     private fun send(
         client: HttpClient,
         method: String,
@@ -231,7 +302,9 @@ class AuthHttpIntegrationTest {
         return client.send(request, HttpResponse.BodyHandlers.ofString())
     }
 
-    /** HTTP 오류가 내부 메시지를 배제한 ProblemDetail 상태를 가지는지 검증. */
+    /**
+     * HTTP 오류가 내부 메시지를 배제한 ProblemDetail 상태를 가지는지 검증
+     */
     private fun assertProblem(response: HttpResponse<String>, expectedStatus: Int) {
         assertEquals(expectedStatus, response.statusCode())
         assertTrue(response.headers().firstValue("Content-Type").orElse("").startsWith("application/problem+json"))
@@ -239,11 +312,23 @@ class AuthHttpIntegrationTest {
         assertFalse(response.body().contains(TEST_PASSWORD))
     }
 
+    /**
+     * 공통 상수·도우미
+     */
     private companion object {
+        /**
+         * 테스트용 비밀번호
+         */
         const val TEST_PASSWORD = "sample-secret"
+        /**
+         * 테스트용 비밀번호 해시
+         */
         val TEST_HASH = "{bcrypt}" + BCryptPasswordEncoder(10).encode(TEST_PASSWORD)
 
-        /** 인증에서 선택할 테스트 관리자 이름만 지정. 계정은 테스트 DB에 직접 등록. */
+        /**
+         * 인증에서 선택할 테스트 관리자 이름만 지정
+         * 계정은 테스트 DB에 직접 등록
+         */
         @JvmStatic
         @DynamicPropertySource
         fun adminProperties(registry: DynamicPropertyRegistry) {

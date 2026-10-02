@@ -1,6 +1,9 @@
+# 공개 원고 외의 로컬·임시 자료 제외
 /local-posts/
 /local-drafts/
 /legacy-metadata/
+# 초기화·작성 중 상태 파일
 /.pending/
 /.initialized
+# Markdown 저장용 임시 파일
 **/.markdown-*.tmp

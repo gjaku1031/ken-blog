@@ -11,15 +11,15 @@ import org.springframework.web.bind.annotation.RequestParam
 import org.springframework.web.bind.annotation.RestController
 
 /**
- * 테스트에서만 입력 변환과 예기치 못한 예외를 유발하는 Controller.
+ * 테스트에서만 입력 변환과 예기치 못한 예외를 유발하는 Controller
  *
- * 운영 JAR에는 포함되지 않음.
+ * 운영 JAR에는 포함되지 않음
  */
 @RestController
 @RequestMapping("/__test")
 class TestProbeController {
     /**
-     * 수치형 필수 쿼리 입력을 받아 변환 오류 검증에 사용.
+     * 수치형 필수 쿼리 입력을 받아 변환 오류 검증에 사용
      *
      * @param count 변환 대상 입력
      * @return 정상 변환된 값을 담은 [TestProbePayload]
@@ -28,7 +28,7 @@ class TestProbeController {
     fun input(@RequestParam count: Int): TestProbePayload = TestProbePayload(count)
 
     /**
-     * JSON 본문을 받아 파싱과 미디어 타입 오류 검증에 사용.
+     * JSON 본문을 받아 파싱과 미디어 타입 오류 검증에 사용
      *
      * @param payload 파싱 대상 JSON 값
      * @return 정상 파싱된 값을 담은 [TestProbePayload]
@@ -37,7 +37,7 @@ class TestProbeController {
     fun body(@RequestBody payload: TestProbePayload): TestProbePayload = payload
 
     /**
-     * 처리되지 않은 앱 예외를 던져 공개 오류 응답을 검증.
+     * 처리되지 않은 앱 예외를 던져 공개 오류 응답을 검증
      *
      * @throws IllegalStateException 테스트용 내부 메시지와 함께 항상 발생
      */
@@ -45,7 +45,7 @@ class TestProbeController {
     fun failure(): TestProbePayload = throw IllegalStateException("secret-marker")
 
     /**
-     * 명시적 [ResponseStatusException]의 상태와 비공개 사유 처리 검증에 사용.
+     * 명시적 [ResponseStatusException]의 상태와 비공개 사유 처리 검증에 사용
      *
      * @throws ResponseStatusException HTTP 400과 테스트용 내부 사유로 항상 발생
      */
@@ -54,8 +54,11 @@ class TestProbeController {
 }
 
 /**
- * [TestProbeController]의 JSON 입력과 응답을 위한 테스트 전용 DTO.
- *
- * @property count 수치형 입력값
+ * [TestProbeController]의 JSON 입력과 응답을 위한 테스트 전용 DTO
  */
-data class TestProbePayload(val count: Int)
+data class TestProbePayload(
+    /**
+     * 개수
+     */
+    val count: Int
+)

@@ -1,49 +1,62 @@
+# API 공통 실행 설정
 spring:
+  # 기본 생성 사용자 대신 저장된 관리자 인증 사용
   autoconfigure:
     exclude: org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration
   application:
     name: ken-blog
+  # JDBC 세션 수명·만료 정리, 스키마는 프로젝트 SQL에서 관리
   session:
     timeout: 30m
     jdbc:
       initialize-schema: never
       cleanup-cron: 0 * * * * *
+  # 환경에서 주입하는 MySQL 접속 정보
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
+  # JPA 초기화 뒤 보조 테이블·상태 행 초기화
   sql:
     init:
       mode: always
+  # 요청 범위 영속성 컨텍스트 비활성화와 DDL 정책
   jpa:
     open-in-view: false
     defer-datasource-initialization: true
     hibernate:
       ddl-auto: ${APP_JPA_DDL_AUTO:update}
+# 수신 포트·전달 헤더·세션 쿠키 정책
 server:
   port: 8080
-  # Caddy 뒤에서도 전달 헤더를 자동 신뢰하지 않는 공통 정책.
+  # Caddy 뒤에서도 전달 헤더를 자동 신뢰하지 않는 공통 정책
   forward-headers-strategy: none
   servlet:
     session:
+      # 브라우저의 세션 저장·전송 속성
       cookie:
         name: KENBLOGSESSION
         http-only: true
         secure: ${SESSION_COOKIE_SECURE:false}
         same-site: ${SESSION_COOKIE_SAME_SITE:lax}
         partitioned: ${SESSION_COOKIE_PARTITIONED:false}
+# 상태 점검 엔드포인트만 노출
 management:
   endpoints:
     web:
       exposure:
         include: health
+# 애플리케이션 저장소·인증·공개 읽기 정책
 app:
+  # 외부에서 준비한 이미지의 로컬 저장 루트
   assets:
     directory: ${APP_ASSETS_DIRECTORY:}
+  # 관리자 계정명과 쿠키 인증 허용 origin
   auth:
     cors:
       allowed-origins: ${APP_AUTH_CORS_ALLOWED_ORIGINS:}
     admin:
       username: ${ADMIN_USERNAME:}
+  # 쿠키 없는 공개 읽기 허용 origin
   cors:
     allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:}

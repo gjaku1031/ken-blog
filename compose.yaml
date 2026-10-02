@@ -1,4 +1,6 @@
+# 서비스 실행 구성
 services:
+  # 로컬 개발용 MySQL과 영속 데이터
   mysql:
     image: mysql:8.4.11
     environment:
@@ -10,6 +12,7 @@ services:
     - 127.0.0.1:${DB_PORT:-13306}:3306
     volumes:
     - ken_blog_mysql_data:/var/lib/mysql
+    # DB 쿼리 성공 후 API 기동 허용
     healthcheck:
       test:
       - CMD-SHELL
@@ -18,7 +21,7 @@ services:
       timeout: 3s
       retries: 20
       start_period: 30s
-  # 새 named volume의 루트만 앱 UID/GID로 조정. 기존 첨부 파일은 건드리지 않는다.
+  # 새 named volume의 루트만 앱 UID/GID로 조정 기존 첨부 파일은 건드리지 않음
   assets-init:
     image: busybox:1.37.0
     user: "0:0"
@@ -26,15 +29,18 @@ services:
     volumes:
     - ken_blog_assets:/assets
     restart: "no"
+  # DB·이미지 저장소를 사용하는 API 컨테이너
   api:
-    # 로컬에서 ./gradlew bootBuildImage --imageName=ken-blog-api:jvm 로 생성.
+    # 로컬에서 ./gradlew bootBuildImage --imageName=ken-blog-api:jvm 로 생성
     image: ${KEN_BLOG_API_IMAGE:-ken-blog-api:jvm}
     user: "10001:1001"
+    # DB 준비와 이미지 볼륨 권한 초기화 완료 대기
     depends_on:
       mysql:
         condition: service_healthy
       assets-init:
         condition: service_completed_successfully
+    # API 접속·인증·저장소·메모리 환경 설정
     environment:
       APP_CORS_ALLOWED_ORIGINS: ${APP_CORS_ALLOWED_ORIGINS:-}
       DB_URL: jdbc:mysql://mysql:3306/ken_blog
@@ -46,15 +52,16 @@ services:
       ADMIN_USERNAME: ${ADMIN_USERNAME:-}
       APP_AUTH_CORS_ALLOWED_ORIGINS: ${APP_AUTH_CORS_ALLOWED_ORIGINS:-}
       APP_ASSETS_DIRECTORY: /var/lib/ken-blog/assets
-      # 이미지 처리 등 JVM 외 메모리를 위해 10% 여유 확보. 힙은 Paketo가 계산.
+      # 이미지 처리 등 JVM 외 메모리를 위해 10% 여유 확보 힙은 Paketo가 계산
       BPL_JVM_HEAD_ROOM: ${BPL_JVM_HEAD_ROOM:-10}
-      # Kotlin·jOOQ 동적 클래스 로딩을 위한 메타스페이스. 힙은 남은 공간에서 계산.
+      # Kotlin·jOOQ 동적 클래스 로딩을 위한 메타스페이스 힙은 남은 공간에서 계산
       JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS:--XX:MaxMetaspaceSize=256m}
     ports:
     - 127.0.0.1:${API_PORT:-18081}:8080
     volumes:
     - ken_blog_assets:/var/lib/ken-blog/assets
     mem_limit: ${API_MEMORY_LIMIT:-1536m}
+# 재시작 이후에도 유지할 named volume
 volumes:
   ken_blog_mysql_data: null
   ken_blog_assets: null

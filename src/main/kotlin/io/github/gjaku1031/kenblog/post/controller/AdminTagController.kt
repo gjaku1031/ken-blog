@@ -9,13 +9,20 @@ import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
-/** [AdminTagController]의 관리자 전용 집계를 구체 [PostService]에 연결. */
+/**
+ * 관리자 태그 사용량 조회
+ */
 @RestController
 @RequestMapping("/api/v1/admin/tags")
-class AdminTagController(private val service: PostService) {
+class AdminTagController(
+    /**
+     * 게시글 서비스
+     */
+    private val service: PostService
+) {
 
     /**
-     * @return 초안 포함 태그 사용량과 no-store HTTP 200.
+     * 초안 포함 태그 사용량과 no-store HTTP 200.
      */
     @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE])
     fun list(): ResponseEntity<List<TagCountResponse>> =

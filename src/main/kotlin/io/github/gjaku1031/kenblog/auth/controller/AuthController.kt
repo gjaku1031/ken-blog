@@ -20,22 +20,28 @@ import org.springframework.web.bind.annotation.RequestMapping
 import org.springframework.web.bind.annotation.RestController
 
 /**
- * 로그인·로그아웃 요청과 Spring Security의 세션·CSRF 수명 주기를 처리.
- *
- * @property service 인증 성공 시 보안 컨텍스트를 저장할 서비스
- * @property csrfRepository 로그인·로그아웃과 공유하는 CSRF 토큰 저장소
+ * 로그인·로그아웃 요청과 Spring Security의 세션·CSRF 수명 주기를 처리
  */
 @RestController
 @RequestMapping("/api/v1/auth")
 class AuthController(
+    /**
+     * 인증 서비스
+     */
     private val service: AuthService,
     csrfRepository: CsrfTokenRepository,
 ) {
+    /**
+     * 로그아웃 시 CSRF 토큰 제거
+     */
     private val csrfLogoutHandler = CsrfLogoutHandler(csrfRepository)
+    /**
+     * 로그아웃 시 세션·인증 컨텍스트 제거
+     */
     private val securityLogoutHandler = SecurityContextLogoutHandler()
 
     /**
-     * 현재 세션의 CSRF 토큰과 요청 헤더명을 반환.
+     * 현재 세션의 CSRF 토큰과 요청 헤더명을 반환
      *
      * @param token Security 필터가 생성한 [CsrfToken]
      * @return 안전하지 않은 HTTP 요청에 필요한 [CsrfResponse]
@@ -44,7 +50,7 @@ class AuthController(
     fun csrf(token: CsrfToken): CsrfResponse = CsrfResponse(token.headerName, token.token)
 
     /**
-     * CSRF 필터가 허용한 로그인 요청으로 인증 세션을 생성.
+     * CSRF 필터가 허용한 로그인 요청으로 인증 세션을 생성
      *
      * @param body 관리자 비밀번호와 로그인 유지 여부
      * @param request 기존 CSRF 세션 요청
@@ -60,7 +66,7 @@ class AuthController(
         service.login(body, request, response)
 
     /**
-     * 현재 세션 인증의 계정명과 권한을 반환.
+     * 현재 세션 인증의 계정명과 권한을 반환
      *
      * @param authentication 복원된 인증 정보
      * @return 현재 [CurrentUserResponse]
@@ -69,7 +75,10 @@ class AuthController(
     fun me(authentication: Authentication): CurrentUserResponse = service.currentUser(authentication)
 
     /**
-     * 세션과 인증 컨텍스트를 지우고 이전 CSRF 토큰을 무효화.
+     * 세션과 인증 컨텍스트를 지우고 이전 CSRF 토큰을 무효화
+     *
+     * 1. 기존 CSRF 토큰 제거
+     * 2. 인증 컨텍스트·세션 폐기 후 204 응답
      *
      * @param authentication 로그아웃할 인증 정보
      * @param request 현재 세션 요청
@@ -82,7 +91,9 @@ class AuthController(
         request: HttpServletRequest,
         response: HttpServletResponse,
     ): ResponseEntity<Void> {
+        // 인증 컨텍스트·세션 폐기 후 204 응답
         securityLogoutHandler.logout(request, response, authentication)
+        // 기존 CSRF 토큰 제거
         csrfLogoutHandler.logout(request, response, authentication)
         return ResponseEntity.noContent().build()
     }
