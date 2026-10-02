@@ -145,11 +145,6 @@ jobs:
             docker logs ken-blog-jvm-ci
             exit 1
           fi
-          if ! curl -fsS --max-time 5 http://127.0.0.1:8080/api/v1/status \
-            | jq -e '.status == "UP"'; then
-            docker logs ken-blog-jvm-ci
-            exit 1
-          fi
           if ! curl -fsS --max-time 5 http://127.0.0.1:8080/api/v1/auth/csrf \
             | jq -e '.headerName == "X-CSRF-TOKEN" and (.token | type == "string" and length > 0)'; then
             docker logs ken-blog-jvm-ci

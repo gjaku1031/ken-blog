@@ -109,7 +109,7 @@ class SecurityConfig {
      * 공개 스냅샷·이미지는 지정 origin의 GET, 관리자 변경은 인증 origin의 credential 요청으로 분리.
      * 관리자 경로의 GET·POST·PUT·PATCH·DELETE와 CSRF 헤더를 허용.
      *
-     * @param publicOriginsCsv 공개 상태 조회 허용 origin
+     * @param publicOriginsCsv 공개 스냅샷·이미지 조회 허용 origin
      * @param authOriginsCsv 인증 요청을 허용할 명시적 origin; 기본은 빈 목록
      * @return 공개 읽기·관리자 변경 경로를 구분하는 [CorsConfigurationSource]
      * @throws IllegalStateException origin에 와일드카드 또는 형식 오류가 있을 때
@@ -122,12 +122,6 @@ class SecurityConfig {
         val publicOrigins = parseOrigins(publicOriginsCsv, allowEmpty = true)
         val authOrigins = parseOrigins(authOriginsCsv, allowEmpty = true)
         val source = UrlBasedCorsConfigurationSource()
-        source.registerCorsConfiguration("/api/v1/status", CorsConfiguration().apply {
-            allowedOrigins = publicOrigins
-            allowedMethods = listOf("GET")
-            allowedHeaders = listOf("Accept")
-            allowCredentials = false
-        })
         val publicPosts = CorsConfiguration().apply {
             allowedOrigins = publicOrigins
             allowedMethods = listOf("GET")
@@ -203,7 +197,7 @@ class SecurityConfig {
         }
         .addFilterBefore(accountSessionValidationFilter, AuthorizationFilter::class.java)
         .authorizeHttpRequests {
-            it.requestMatchers(HttpMethod.GET, "/api/v1/status", "/actuator/health", "/api/v1/pages/snapshot").permitAll()
+            it.requestMatchers(HttpMethod.GET, "/actuator/health", "/api/v1/pages/snapshot").permitAll()
             it.requestMatchers(HttpMethod.GET, "/api/v1/posts/*/attachments/*/content").permitAll()
             it.requestMatchers(HttpMethod.GET, "/api/v1/stack-badges/*/image").permitAll()
             it.requestMatchers(HttpMethod.GET, "/api/v1/auth/csrf").permitAll()

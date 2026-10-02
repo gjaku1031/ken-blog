@@ -58,10 +58,10 @@ class AuthHttpIntegrationTest {
     @Order(1)
     fun publicAndAnonymousBoundaries() {
         val client = newClient().first
-        val status = send(client, "GET", "/api/v1/status", headers = mapOf("Origin" to "https://gjaku1031.github.io"))
-        assertEquals(200, status.statusCode())
-        assertEquals("https://gjaku1031.github.io", status.headers().firstValue("Access-Control-Allow-Origin").orElse(null))
-        assertFalse(status.headers().firstValue("Access-Control-Allow-Credentials").isPresent)
+        val snapshot = send(client, "GET", "/api/v1/pages/snapshot", headers = mapOf("Origin" to "https://gjaku1031.github.io"))
+        assertEquals(200, snapshot.statusCode())
+        assertEquals("https://gjaku1031.github.io", snapshot.headers().firstValue("Access-Control-Allow-Origin").orElse(null))
+        assertFalse(snapshot.headers().firstValue("Access-Control-Allow-Credentials").isPresent)
         assertEquals(401, send(client, "GET", "/api/v1/auth/me").statusCode())
         assertEquals(401, send(client, "GET", "/api/v1/admin/__test").statusCode())
 

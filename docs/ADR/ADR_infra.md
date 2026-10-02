@@ -68,9 +68,21 @@ Spring Boot 4.1.1·Java 25 및 `paketobuildpacks/ubuntu-noble-builder:latest`/`u
 
 API 컨테이너 기본 메모리 한도 `1536m`, 운영 CPU 한도 1코어. `BPL_JVM_HEAD_ROOM=10`으로 JVM 외 작업에 10% 여유를 예약하고, 나머지에서 메타스페이스·코드 캐시·스레드 스택을 뺀 힙 크기는 Paketo 메모리 계산기에 위임. MCP가 존재하던 과거 최초 기본 계산의 메타스페이스 약 139MiB에서는 이미지 도구 실행 중 `OutOfMemoryError: Metaspace`와 종료 코드 3 확인. `JAVA_TOOL_OPTIONS=-XX:MaxMetaspaceSize=256m`으로 클래스 정보 공간을 확보하고 그만큼 힙을 줄여 전체 한도 유지. 컨테이너 한도 전체를 `-Xmx`로 지정하지 않는 기준. Caddy·OS 및 테스트 MySQL의 메모리는 별도. [Paketo 메모리 계산기](https://paketo.io/docs/reference/java-reference/#memory-calculator)
 
-CI의 health·status·CSRF·PNG/JPEG 업로드·64px 배지·Series/Post·jOOQ 조회·비밀번호 로그인/로그아웃·공개 스냅샷 v2 검사는 인증된 관리자 HTTP로 수행. MCP 도구·문서·프롬프트 검사는 제거하고 원고 디렉터리와 마운트 없이 API 동작 검증. 위키 선언은 해시 없는 새 HTTP 계약으로 확인. 기능 검사를 통과한 이미지·SHA-256을 커밋별 artifact로 90일 보관. 빌더의 `latest`는 변경 가능하므로 실제 이미지 ID와 아카이브 해시가 산출물 식별 기준. Compose는 검증된 이미지를 받아 실행하며 자동 운영 배포·레지스트리 공개는 없는 구성.
+CI의 Actuator health·CSRF·PNG/JPEG 업로드·64px 배지·Series/Post·jOOQ 조회·비밀번호 로그인/로그아웃·공개 스냅샷 v2 검사는 인증된 관리자 HTTP로 수행. MCP 도구·문서·프롬프트 검사는 제거하고 원고 디렉터리와 마운트 없이 API 동작 검증. 위키 선언은 해시 없는 새 HTTP 계약으로 확인. 기능 검사를 통과한 이미지·SHA-256을 커밋별 artifact로 90일 보관. 빌더의 `latest`는 변경 가능하므로 실제 이미지 ID와 아카이브 해시가 산출물 식별 기준. Compose는 검증된 이미지를 받아 실행하며 자동 운영 배포·레지스트리 공개는 없는 구성.
 
 실서버 적용 및 새 용량 검증 결과는 문서 후반의 JVM 전환 기록 참조. 기존 외부 DB 연결·자료 이관·Pages 전환은 별도 잔여 작업이며 테스트 DB의 성공을 운영 완료로 간주하지 않는 원칙.
+
+## 상태 확인의 Actuator 통일 — 2026-10-02 결정
+
+CI의 커스텀 상태 호출 제거, 기존 `/actuator/health` 기동 대기·최종 UP 확인과 후속 관리자 HTTP 검사 유지. Caddy 공개 allowlist에서 삭제 경로만 제거하며 health의 정확한 경로 매칭 유지. Spring의 health 단독 웹 노출·DB 검사·상세 정보 비공개 설정에는 변경 없음.
+
+삭제 경로는 Caddy에서 기존 미등록 경로와 같은 404 처리. API 직접 접근에서는 기본 Security 정책에 따라 익명 GET은 401, 인증한 GET은 미등록 경로 404. 삭제 경로의 호환 허용 규칙이나 대체 상태 API 미도입.
+
+아래 과거 부하 측정의 공개 상태 요청은 삭제 전 커스텀 응답의 이력. DB를 실제 검사하는 Actuator의 현재 처리량 측정으로 해석하지 않는 기준. 운영 배포·외부 모니터링 설정 변경은 이번 범위 밖.
+
+검증: CI YAML·모든 shell 단계·내장 Python 구문, Caddy adapt/validate 통과. 동일 Caddy 라우트를 인증서 발급 없는 로컬 HTTP로 실행하여 삭제 경로·추가 Actuator 경로 404와 health의 정상/DB 장애/복구 상태 전달 확인. API 직결 익명 요청의 추가 Actuator 경로 401 및 관리자 요청의 미노출 env/beans 404 확인. 변경 전후 JAR의 application 설정 동일, DB 검사·상세 정보 비공개 유지 확인.
+
+현재 Spring Boot 의존성의 probes 기본값이 true이므로 health 응답에는 기존 `groups: [liveness, readiness]`가 포함됨. 이번 변경으로 그룹을 추가하거나 공개 경로를 열지 않았으며 하위 probe 경로는 기존 정책대로 Caddy 404·API 직결 익명 401. health의 components/details는 정상·장애 응답과 인증한 정상 응답에서 비노출. 실제 Buildpacks 이미지 재생성·원격 CI 실행·TLS 재발급·운영 배포는 미수행.
 
 ## API 원고 마운트와 MCP 런타임 제거 — 2026-10-02 결정
 

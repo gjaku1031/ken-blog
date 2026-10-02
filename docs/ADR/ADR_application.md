@@ -34,6 +34,16 @@
 
 검증 이력: Post·Series 통합 시 기존 JVM 검사 35개, Pages 생성, Native API의 비밀번호 로그인·jOOQ 조회·MCP·이미지 기능 검증 완료. 배포 및 성능 검증의 데이터 범위와 제한은 인프라 ADR에 별도 기록.
 
+## 상태 확인의 Actuator 통일 — 2026-10-02 결정
+
+고정 `UP`만 반환하던 `status` 패키지의 Controller·DTO와 `GET /api/v1/status` 제거. 프론트 소비자는 없으며 실제 사용처는 CI와 테스트뿐. 상태 확인은 이미 사용하는 `GET /actuator/health`로 통일하며 대체 커스텀 API·DTO 미도입.
+
+삭제 경로의 전용 CORS와 Security 공개 허용 제거. Actuator의 기존 health 단독 웹 노출, GET 공개 허용, 상세 정보 비공개 기본값과 DB 상태 검사 유지. Actuator에 공개 CORS·추가 엔드포인트·liveness/readiness 설정을 추가하지 않는 결정.
+
+기존 StatusApiIntegrationTest를 HttpApiIntegrationTest로 정리하고, 삭제 API의 고정 UP 응답 검사만 제거. 공개 CORS 검사는 실제 Pages snapshot 경로로, 406/Accept 헤더 검사는 기존 테스트 입력 fixture로 이전. 400/404/405/415/500 ProblemDetail·Allow 헤더·내부 메시지 비노출·실제 HTTP 인증/CSRF/세션 검사는 유지. 테스트 fixture의 응답은 테스트 전용 입력 DTO 또는 접근 성공 Map을 사용하며 운영 상태 DTO 의존성 제거.
+
+검증: `clean build`와 기존 검사 34개 통과(실패·오류·건너뜀 0). 이전 35개 중 삭제 API만 검증하던 1개 제거, CORS·오류·인증 검사는 유지. 최종 JAR에 status 패키지·테스트 fixture 부재 확인. 별도 MySQL/JVM/Caddy에서 정상 200 UP → DB 중단 503 DOWN → 복구 200 UP 확인, 익명·관리자 모두 DB 구성 요소·상세 정보 비노출. 삭제 API는 인증 후 404이며 이전 공개 CORS 헤더 없음. 원격 push·운영 반영 미수행.
+
 ## MCP 제거와 원고 접근 경계
 
 원고 작성·수정은 로컬 파일 편집, DB 메타데이터·이미지는 관리자 HTTP, 렌더링·페이지 생성은 Node로 역할 분리. 이 구조에서 별도의 블로그 MCP 서버는 중복 진입점과 원고 배포 의존성을 만들므로 전부 제거. 대체 MCP·CLI·추상화나 신규 스킬 제작 없음.
@@ -60,7 +70,7 @@ Spring에는 원고 디렉터리 설정·마운트·파일 조회 경로 없음.
 
 이전 OperationFailure의 잘못된 위치·미사용 code·중복 필드는 앞선 정리에서 제거한 상태. 이번 MCP 제거로 MCP 오류 코드 호환 분기와 이중 프로토콜 설명도 전부 제거. 공통 예외를 위한 별도 enum이나 새로운 추상화 없음. 기능별 예외 부모인 BusinessException만 JPA 선행 컴파일 대상에 포함하는 기존 생성 구조 유지.
 
-## 이번 변경의 검증과 적용 범위
+## MCP 제거 검증과 적용 범위
 
 최종 clean build와 기존 MySQL·인증·HTTP·첨부 검사 35개 통과. 저장소 밖의 별도 MySQL/JVM을 원고 설정·마운트 없이 실행하여 CI와 동일한 관리자 HTTP 시나리오 검증: 로그인/로그아웃·권한/CSRF, PNG/JPEG 업로드·64px 배지, 분류/시리즈/글 등록·메타데이터/태그·이미지 연결·위키 선언·출간/공개 해제·제목 탐색·공개 snapshot. 새 위키 요청의 교체/정규화/빈 배열/잘못된 입력과 제거된 경로의 인증 후 GET/POST 404 확인. 최종 오류 처리 통합 JAR에서도 기동·인증·위키 변경 및 안전한 400/404/409 ProblemDetail 재확인.
 

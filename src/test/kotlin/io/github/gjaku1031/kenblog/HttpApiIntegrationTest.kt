@@ -21,7 +21,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
 import org.springframework.context.annotation.Import
 
 /**
- * 실제 MVC 설정에서 상태 응답과 오류 응답을 검증하는 통합 테스트.
+ * 실제 MVC 설정에서 공개 CORS와 오류 응답을 검증하는 통합 테스트.
  *
  * [TestMysqlConfig]가 실제 MySQL 스키마를 초기화하고,
  * [TestProbeController]는 테스트에서만 오류 입력과 예상하지 못한 예외를 생성함.
@@ -31,21 +31,21 @@ import org.springframework.context.annotation.Import
 @SpringBootTest(properties = ["app.cors.allowed-origins=https://gjaku1031.github.io,http://127.0.0.1:14000"])
 @AutoConfigureMockMvc
 @Import(TestProbeController::class, TestProbeSecurityConfig::class, TestMysqlConfig::class)
-class StatusApiIntegrationTest(@Autowired private val mvc: MockMvc) {
+class HttpApiIntegrationTest(@Autowired private val mvc: MockMvc) {
     /** 지정한 Pages origin의 공개 GET에만 읽기 허용 헤더를 반환하는지 검증. */
     @Test
-    fun statusAllowsPagesOriginWithoutCredentials() {
-        mvc.perform(get("/api/v1/status").header("Origin", "https://gjaku1031.github.io"))
+    fun snapshotAllowsPagesOriginWithoutCredentials() {
+        mvc.perform(get("/api/v1/pages/snapshot").servletPath("/api/v1/pages/snapshot").header("Origin", "https://gjaku1031.github.io"))
             .andExpect(status().isOk)
             .andExpect(header().string("Access-Control-Allow-Origin", "https://gjaku1031.github.io"))
             .andExpect(header().doesNotExist("Access-Control-Allow-Credentials"))
-            .andExpect(jsonPath("$.status").value("UP"))
+            .andExpect(jsonPath("$.version").value(2))
     }
 
     /** 로컬 정적 화면의 GET 사전 요청이 허용 origin과 메서드를 반환하는지 검증. */
     @Test
-    fun statusAllowsLocalGetPreflight() {
-        mvc.perform(options("/api/v1/status")
+    fun snapshotAllowsLocalGetPreflight() {
+        mvc.perform(options("/api/v1/pages/snapshot").servletPath("/api/v1/pages/snapshot")
             .header("Origin", "http://127.0.0.1:14000")
             .header("Access-Control-Request-Method", "GET")
             .header("Access-Control-Request-Headers", "Accept"))
@@ -57,25 +57,16 @@ class StatusApiIntegrationTest(@Autowired private val mvc: MockMvc) {
 
     /** 허용하지 않은 origin과 메서드의 사전 요청을 거부하는지 검증. */
     @Test
-    fun statusRejectsOtherOriginAndMethod() {
-        mvc.perform(get("/api/v1/status").header("Origin", "https://other.example"))
+    fun snapshotRejectsOtherOriginAndMethod() {
+        mvc.perform(get("/api/v1/pages/snapshot").servletPath("/api/v1/pages/snapshot").header("Origin", "https://other.example"))
             .andExpect(status().isForbidden)
             .andExpect(header().doesNotExist("Access-Control-Allow-Origin"))
 
-        mvc.perform(options("/api/v1/status")
+        mvc.perform(options("/api/v1/pages/snapshot").servletPath("/api/v1/pages/snapshot")
             .header("Origin", "https://gjaku1031.github.io")
             .header("Access-Control-Request-Method", "POST"))
             .andExpect(status().isForbidden)
             .andExpect(header().doesNotExist("Access-Control-Allow-Origin"))
-    }
-
-    /** 정상 프로세스 요청의 JSON 계약과 미디어 타입을 검증. */
-    @Test
-    fun statusReturnsUp() {
-        mvc.perform(get("/api/v1/status"))
-            .andExpect(status().isOk)
-            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_JSON))
-            .andExpect(jsonPath("$.status").value("UP"))
     }
 
     /** 수치로 변환할 수 없는 입력이 원문 노출 없이 ProblemDetail로 반환되는지 검증. */
@@ -132,7 +123,7 @@ class StatusApiIntegrationTest(@Autowired private val mvc: MockMvc) {
     /** 협상 불가능한 응답 형식을 HTTP 406으로 반환하는지 검증. */
     @Test
     fun unacceptableResponseTypeIsNotAcceptable() {
-        mvc.perform(get("/api/v1/status").accept(MediaType.APPLICATION_XML))
+        mvc.perform(get("/__test/input").param("count", "1").accept(MediaType.APPLICATION_XML))
             .andExpect(status().isNotAcceptable)
             .andExpect(header().string("Accept", containsString("application/json")))
             .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PROBLEM_JSON))

@@ -30,7 +30,7 @@
 
 	@public_read {
 		method GET HEAD OPTIONS
-		path /api/v1/status /api/v1/pages/snapshot /api/v1/stack-badges/*/image /api/v1/posts/*/attachments/*/content /actuator/health
+		path /api/v1/pages/snapshot /api/v1/stack-badges/*/image /api/v1/posts/*/attachments/*/content /actuator/health
 	}
 	@auth {
 		method GET POST OPTIONS
