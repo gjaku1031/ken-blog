@@ -53,7 +53,7 @@ class CategoryEntity protected constructor() {
      * @param parentId 기존 부모 또는 대분류의 `null`
      * @param path 중복되지 않는 전체 경로
      * @param name 표시 이름
-     * @param depth 1~3 깊이
+     * @param depth 대분류 1, 소분류 2
      * @param sortOrder 같은 부모의 마지막에 배치할 양수 순서
      */
     internal constructor(parentId: Long?, path: String, name: String, depth: Int, sortOrder: Int) : this() {

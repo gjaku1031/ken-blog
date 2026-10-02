@@ -32,7 +32,7 @@ data class CategoryOrderRequest(val order: Long)
  * @property id 분류 식별자
  * @property path 루트부터 이어지는 정규화 경로
  * @property name 공백을 정리한 원래 단계 표시명
- * @property depth 1~3단계 깊이
+ * @property depth 대분류 1, 소분류 2
  */
 data class CategoryRefResponse(val id: Long, val path: String, val name: String, val depth: Int, val sortOrder: Int)
 
@@ -42,7 +42,7 @@ data class CategoryRefResponse(val id: Long, val path: String, val name: String,
  * @property id 분류 식별자
  * @property path 루트부터 이어지는 정규화 경로
  * @property name 단계 표시명
- * @property depth 1~3단계 깊이
+ * @property depth 대분류 1, 소분류 2
  * @property directCount 현재 역할로 읽을 수 있는 이 분류의 직접 글 수
  * @property totalCount 직접 글과 모든 자손 분류의 읽을 수 있는 글 수 합계
  * @property children 하위 분류 노드; 빈 폴더도 포함

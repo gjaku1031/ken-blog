@@ -24,7 +24,7 @@ class CategoryService(private val categories: CategoryRepository, private val po
     /**
      * 경로의 기존 중간 폴더를 잠가 재사용하고 없는 단계를 한 트랜잭션에서 생성.
      *
-     * @param path 슬래시 구분 1~3단계 입력
+     * @param path 슬래시 구분 대분류·소분류 1~2단계 입력
      * @return 새 마지막 폴더의 [CategoryRefResponse]
      * @throws InvalidCategoryRequestException 깊이·이름·기호가 잘못되었을 때
      * @throws CategoryConflictException 마지막 경로 중복 또는 동시 FK·잠금 충돌일 때
@@ -131,12 +131,12 @@ class CategoryService(private val categories: CategoryRepository, private val po
      * 단계별 표시명과 대소문자 비민감 경로 조각을 분리하고 잘못된 기호·제어 문자를 거부.
      *
      * @param rawPath 사용자가 입력한 슬래시 경로
-     * @return 순서대로 검증된 1~3단계 조각
+     * @return 순서대로 검증된 1~2단계 조각
      * @throws InvalidCategoryRequestException 단계·길이·문자 계약 위반
      */
     private fun normalizePath(rawPath: String): List<PathSegment> {
         val raw = rawPath.split('/')
-        if (raw.size !in 1..3) throw InvalidCategoryRequestException()
+        if (raw.size !in 1..2) throw InvalidCategoryRequestException()
         return raw.map { segment ->
             if (segment.any { Character.isISOControl(it) }) throw InvalidCategoryRequestException()
             val name = segment.trim().replace(Regex(" +"), " ")
