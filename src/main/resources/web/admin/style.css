@@ -43,7 +43,10 @@ main:focus{outline:none}
 .admin-table th:nth-child(4){width:15%}
 .admin-table th:last-child{width:1%;text-align:left}
 .admin-table td{padding:17px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
-@media(min-width:641px){.admin-table :is(th,td):is(:nth-child(2),:nth-child(3),:last-child){padding-right:6px;white-space:nowrap}}
+@media(min-width:641px){
+  .admin-table :is(th,td):is(:nth-child(2),:nth-child(3)){padding-right:28px;white-space:nowrap}
+  .admin-table :is(th,td):last-child{padding-right:6px;white-space:nowrap}
+}
 .admin-table tr:last-child td{border-bottom:0}
 .admin-table .post-title small{display:block;font-size:12px;margin-top:3px;overflow-wrap:anywhere}
 .title-button{border:0;background:none;color:var(--text);padding:0;text-align:left;line-height:1.6;overflow-wrap:anywhere}

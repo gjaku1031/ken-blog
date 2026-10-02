@@ -63,8 +63,8 @@
 .theme-switch-thumb{ position: absolute; top: 2px; left: 2px; display: grid; place-items: center; width: 20px; height: 20px;
   border-radius: 50%; background: var(--card); box-shadow: 0 1px 4px rgb(0 0 0 / 18%); color: var(--text2); transition: transform .22s ease; }
 .theme-switch-thumb svg{ width: 13px; height: 13px; stroke-width: 1.8; }
-.theme-switch[aria-checked="true"] .theme-switch-track{ border-color: var(--accent); background: var(--accent); }
-.theme-switch[aria-checked="true"] .theme-switch-thumb{ transform: translateX(20px); color: var(--accent-d); }
+:root[data-theme="dark"] .theme-switch-track{ border-color: var(--accent); background: var(--accent); }
+:root[data-theme="dark"] .theme-switch-thumb{ transform: translateX(20px); color: var(--accent-d); }
 
 @media (max-width: 620px) {
 

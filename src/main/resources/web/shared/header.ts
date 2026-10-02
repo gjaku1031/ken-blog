@@ -13,19 +13,20 @@ export function connectHeader(options: {
   onLogout?: () => void;
   onError?: (error: Error) => void;
 } = {}): void {
-  /** 공개 HTML의 테마를 로컬 상태에 맞춰 적용한다. */
-  function setTheme(theme: "light" | "dark"): void {
+  /** head에서 결정한 테마를 이어받고, 사용자 조작만 저장한다. */
+  function setTheme(theme: "light" | "dark", persist = false): void {
     document.documentElement.dataset.theme = theme;
-    try { localStorage.setItem("ken-blog-theme", theme); } catch { /* 저장소가 막혀도 현재 화면의 테마는 유지한다. */ }
+    document.documentElement.style.colorScheme = theme;
+    if (persist) {
+      try { localStorage.setItem("ken-blog-theme", theme); } catch { /* 저장소가 막혀도 현재 화면의 테마는 유지한다. */ }
+    }
     const toggle = document.querySelector<HTMLButtonElement>("#theme-toggle");
     if (toggle) { toggle.setAttribute("aria-checked", String(theme === "dark")); toggle.title = theme === "dark" ? "다크 모드 켜짐" : "다크 모드 꺼짐"; }
     options.onThemeChange?.(theme);
   }
 
-  let saved: string | null = null;
-  try { saved = localStorage.getItem("ken-blog-theme"); } catch { /* 저장소가 막힌 브라우저는 시스템 테마를 사용한다. */ }
-  setTheme(saved === "dark" || (saved !== "light" && matchMedia("(prefers-color-scheme: dark)").matches) ? "dark" : "light");
-  document.querySelector<HTMLButtonElement>("#theme-toggle")?.addEventListener("click", () => setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark"));
+  setTheme(document.documentElement.dataset.theme === "dark" ? "dark" : "light");
+  document.querySelector<HTMLButtonElement>("#theme-toggle")?.addEventListener("click", () => setTheme(document.documentElement.dataset.theme === "dark" ? "light" : "dark", true));
 
   /** 원본 헤더 검색 UI를 정적 결과 주소와 연결한다. */
   const route = document.body.dataset.route;
