@@ -481,9 +481,9 @@ function renderCategories(data: AdminData) {
       path: [parent?.path, value(input, 'name')].filter(Boolean).join('/'),
     }), '분류를 만들었습니다.');
     if (parent) create.append(el('p', 'wide category-parent', parent.path.replaceAll('/', ' › ')));
-    const name = field(create, '분류 이름', 'name', '', { required: true, wide: true });
-    name.pattern = '[^/]+?';
-    submit(create, '추가'); openDialog(parent ? '하위 분류 추가' : '새 대분류', create);
+    const name = field(create, '분류 이름', 'name', '', { required: true, max: 60, wide: true });
+    name.pattern = '[^\\/]+';
+    submit(create, '추가'); openDialog(parent ? '새 소분류' : '새 대분류', create);
   };
   const editCategory = (category: Category) => {
     const content = el('div');
@@ -498,8 +498,7 @@ function renderCategories(data: AdminData) {
   };
   const count = (category: Category): number => category.totalCount ?? category.directCount + category.children.reduce((sum, child) => sum + count(child), 0);
   const addButton = (parent: Category | null) => {
-    const depth = parent?.depth ?? 0;
-    const button = el('button', 'category-add', `＋ 새 ${['대', '중', '소'][depth]}분류`); button.type = 'button';
+    const button = el('button', 'category-add', parent ? '＋ 새 소분류' : '＋ 새 대분류'); button.type = 'button';
     button.addEventListener('click', () => addCategory(parent)); return button;
   };
   const tree = (categories: Category[], parent: Category | null): HTMLUListElement => {
@@ -507,7 +506,7 @@ function renderCategories(data: AdminData) {
     for (const category of categories) {
       const li = el('li');
       const row = el('div', 'admin-category-line');
-      const children = category.depth < 3 ? tree(category.children, category) : null;
+      const children = category.depth < 2 ? tree(category.children, category) : null;
       const toggle = el('button', 'category-expand'); toggle.type = 'button';
       if (children) {
         children.id = `category-children-${category.id}`;
