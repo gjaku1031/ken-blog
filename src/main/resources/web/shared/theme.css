@@ -1,0 +1,26 @@
+:root {
+  color-scheme: light;
+  --font-sans: "Noto Sans KR Variable";
+  --font-mono: "IBM Plex Mono";
+  --page-width-standard: 1092px; --page-width-wide: 1204px; --page-width-post: 1132px;
+  --article-title-size: 32px; --heading-1-size: 28px; --heading-2-size: 24px; --heading-3-size: 20px;
+  --bg: #f8f9fa; --card: #fff; --text: #212529; --text2: #495057;
+  --muted: #868e96; --muted2: #adb5bd; --line: #e9ecef; --line2: #dee2e6; --line3: #ced4da;
+  --soft: #f1f3f5; --tint: #e9fbf6; --tint2: #d3f5ea; --accent: #1b9c85; --accent-d: #147a68;
+  --sec-bg: #eef2ff; --sec-fg: #3b4fb8; --pv-bg: #fce8e8; --pv-fg: #9a2020;
+  --on-accent: #fff; --code-bg: #1e2126; --code-fg: #e6e8eb;
+  --button-bg: #147a68; --button-hover: #0d6656; --danger: #b53838;
+  --inline-fg: #c92a2a; --shadow: 0 1px 3px rgb(0 0 0 / 6%), 0 6px 20px rgb(0 0 0 / 4%);
+  --shadow2: 0 2px 6px rgb(0 0 0 / 8%), 0 14px 32px rgb(0 0 0 / 8%);
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #121417; --card: #1b1e23; --text: #e9ecef; --text2: #c4c9d0;
+  --muted: #8b929a; --muted2: #6c737b; --line: #2a2f36; --line2: #343a42; --line3: #3e454e;
+  --soft: #252a31; --tint: #153a33; --tint2: #1b4a40; --accent: #2fc4a6; --accent-d: #5ad6bd;
+  --sec-bg: #232b4a; --sec-fg: #a9b6ff; --pv-bg: #3f2224; --pv-fg: #f3a3a3;
+  --on-accent: #0e1013; --code-bg: #0e1013; --code-fg: #e6e8eb;
+  --button-bg: #2fc4a6; --button-hover: #5ad6bd; --danger: #f3a3a3;
+  --inline-fg: #ff8a8a; --shadow: 0 1px 3px rgb(0 0 0 / 40%), 0 6px 20px rgb(0 0 0 / 35%);
+  --shadow2: 0 2px 6px rgb(0 0 0 / 50%), 0 14px 32px rgb(0 0 0 / 50%);
+}

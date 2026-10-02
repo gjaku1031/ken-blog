@@ -4,15 +4,20 @@
     <ul class="category-tree">
       {% for category in categories %}<li>
         <div class="category-line">
-          <a href="{{ '?category=' + (category | query) }}"><span>{{ category }}</span></a>
+          {% if category.children | length %}<button class="category-toggle" type="button" data-category-toggle aria-controls="category-children-{{ loop.index }}" aria-expanded="true" aria-label="{{ category.name }} 하위 분류"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m4 2 4 4-4 4"/></svg></button>{% endif %}
+          <a data-category-link="{{ category.path }}" href="{{ base + 'posts/?category=' + (category.path | query) }}"><span>{{ category.name }}</span><span class="side-count mono">{{ category.count }}</span></a>
         </div>
+        {% if category.children | length %}<ul id="category-children-{{ loop.index }}" class="category-tree">
+          {% for child in category.children %}<li><div class="category-line"><a data-category-link="{{ child.path }}" href="{{ base + 'posts/?category=' + (child.path | query) }}"><span>{{ child.name }}</span><span class="side-count mono">{{ child.count }}</span></a></div></li>{% endfor %}
+        </ul>{% endif %}
       </li>{% endfor %}
     </ul>
+    {% if not categories | length %}<p class="meta">아직 분류가 없습니다.</p>{% endif %}
   </section>
   <section class="side-card card">
     <h2>태그</h2>
     <div class="tag-cloud">
-      {% for tag in tags %}<a href="{{ '?tag=' + (tag | query) }}">#{{ tag }}</a>{% endfor %}
+      {% for tag in tags %}<a href="{{ base + 'posts/?tag=' + (tag | query) }}">#{{ tag }}</a>{% endfor %}
     </div>
   </section>
 </aside>

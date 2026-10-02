@@ -98,6 +98,13 @@ export function sanitizeMermaidSvg(svg: string): string {
   // 고정 테마 CSS에는 현재 look에서 쓰지 않는 내부 gradient 규칙도 포함된다.
   // CSS 자체는 내부 #fragment만 허용하며, 실제 SVG 요소의 참조만 존재 여부를 검사한다.
   if (references.some((id) => !ids.has(id))) throw new Error("도식 SVG 참조 오류");
+  // Mermaid의 width="100%"는 <img> 안에서 본문 너비만큼 확대된다.
+  // viewBox의 실제 치수를 주어 좁은 세로 도식도 원래 글자 크기로 표시한다.
+  const bounds = doc.documentElement.getAttribute("viewBox")?.trim().split(/[\s,]+/).map(Number);
+  if (!bounds || bounds.length !== 4 || bounds.some(value => !Number.isFinite(value)) || bounds[2] <= 0 || bounds[3] <= 0)
+    throw new Error("도식 SVG 크기 오류");
+  doc.documentElement.setAttribute("width", String(bounds[2]));
+  doc.documentElement.setAttribute("height", String(bounds[3]));
   // Blob 이미지 문서의 ID는 도식별로 격리되며 모든 fragment는 같은 SVG 안에서만 해석된다.
   return new XMLSerializer().serializeToString(doc.documentElement);
 }

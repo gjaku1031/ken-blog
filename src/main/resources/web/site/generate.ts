@@ -52,9 +52,31 @@ function period(project: Series): string {
   if (!end) return project.projectStatus === "DONE" ? start : `${start} – 현재`;
   return start === end ? start : `${start} – ${end}`;
 }
+function categoryTrail(path: string) {
+  const parts = path.split('/').filter(Boolean);
+  return parts.map((name, index) => ({ name, path: parts.slice(0, index + 1).join('/') }));
+}
+function categoryTree(posts: Post[]) {
+  const roots = new Map<string, { name: string; path: string; count: number; children: { name: string; path: string; count: number }[] }>();
+  for (const post of posts) {
+    const [parent, child] = categoryTrail(post.category?.path ?? '');
+    if (!parent) continue;
+    let root = roots.get(parent.path);
+    if (!root) { root = { ...parent, count: 0, children: [] }; roots.set(parent.path, root); }
+    root.count++;
+    if (child) {
+      let item = root.children.find(item => item.path === child.path);
+      if (!item) { item = { ...child, count: 0 }; root.children.push(item); }
+      item.count++;
+    }
+  }
+  const sorted = [...roots.values()].sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+  for (const root of sorted) root.children.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+  return sorted;
+}
 function card(post: Post) {
-  const categoryPath = post.category?.path ?? "", context = post.series?.name ?? "";
-  return { ...post, href: postPath(post), categoryPath, context, tagText: post.tags.join("|"), label: label(post.section),
+  const categoryPath = post.category?.path ?? "", context = post.series && post.series.slug !== categoryPath ? post.series.name : "";
+  return { ...post, href: postPath(post), categoryPath, categoryTrail: categoryTrail(categoryPath), context, tagText: post.tags.join("|"), label: label(post.section),
     searchText: `${post.title} ${post.summary} ${categoryPath} ${post.tags.join(" ")} ${context} ${post.searchBody ?? ""}`,
     displayDate: date(post.publishedDate) };
 }
@@ -73,10 +95,14 @@ export async function generateSite(payload: Input, output: string) {
     await mkdir(dirname(file), { recursive: true });
     await writeFile(file, content, "utf8");
   };
+  const header = (section: string) => ({
+    base: BASE, section, adminHref: payload.adminHref,
+    nav: [["", "Home"], ["posts/", "Posts"], ["projects/", "Projects"]].map(([href, label]) => ({ href: route(href), label, active: label === section })),
+  });
   // 관리자 데이터는 포함하지 않고 로그인 화면과 API·자산 주소만 전달.
-  await write("manage/index.html", engine.render("manage.njk", { apiBase: admin.apiBase, adminCss: admin.css, adminJs: admin.js, editor: "" }));
+  await write("manage/index.html", engine.render("manage.njk", { apiBase: admin.apiBase, adminCss: admin.css, adminJs: admin.js, editor: "", ...header("Manage") }));
   for (const [path, editor] of [["posts", "post"], ["projects", "project"]])
-    await write(`${path}/new/index.html`, engine.render("manage.njk", { apiBase: admin.apiBase, adminCss: admin.css, adminJs: admin.js, editor }));
+    await write(`${path}/new/index.html`, engine.render("manage.njk", { apiBase: admin.apiBase, adminCss: admin.css, adminJs: admin.js, editor, ...header(editor === "project" ? "Projects" : "Posts") }));
   async function page(path: string, view: string, section: string, title: string, description: string,
     data: Record<string, unknown> = {}, sitemap = true) {
     const canonical = ORIGIN + route(path === "404.html" ? path : path ? `${path}/` : "");
@@ -85,8 +111,7 @@ export async function generateSite(payload: Input, output: string) {
       section === "Search" ? "일반 글과 프로젝트 기록을 읽는 ken.blog" : description;
     const article = ["Post", "Project"].includes(section) && !!path;
     const active = ({ Post: "Posts", Project: "Projects", Search: "Home" } as Record<string, string>)[section] ?? section;
-    const nav = [["", "Home"], ["posts/", "Posts"], ["projects/", "Projects"]].map(([href, label]) =>
-      ({ href: route(href), label, active: label === active }));
+    const nav = header(active).nav;
     await write(path === "404.html" ? path : join(path, "index.html"), engine.render("page.njk", {
       view, section, documentTitle, socialTitle: article ? title : documentTitle, summary, canonical,
       ogType: article ? "article" : "website", base: BASE, assetsCss: route(`assets/${assets.css}`), assetsJs: route(`assets/${assets.js}`),
@@ -96,13 +121,10 @@ export async function generateSite(payload: Input, output: string) {
   }
   async function listing(path: string, section: string, title: string, rows: Post[]) {
     const cards = rows.map(card);
-    const groups = new Map<string, { name: string; href: string }>();
-    if (section === "Posts") for (const post of rows) if (post.series)
-      groups.set(post.series.slug, { name: post.series.name, href: postPath(post.series.items[0]) });
     await page(path, "listing", section, title, `${title} 공개 글 목록`, {
       heading: section === "Search" ? "최근 글" : title, cards,
-      categories: unique(cards.map(c => c.categoryPath)), tags: unique(cards.flatMap(c => c.tags)),
-      searching: section === "Search", groups: [...groups.values()],
+      categories: categoryTree(rows), tags: unique(cards.flatMap(c => c.tags)),
+      searching: section === "Search",
     });
   }
   const allPosts = snapshot.posts;
@@ -119,7 +141,7 @@ export async function generateSite(payload: Input, output: string) {
   const feed = [...allPosts].sort((a, b) => chronological(b, a)), home = feed.filter(p => p.section === "TECH").slice(0, 12);
   await page("", "home", "Home", "Home", "Ken Blog", {
     cards: home.map(card),
-    categories: unique(home.map(p => p.category?.path ?? "")), tags: unique(home.flatMap(p => p.tags)),
+    categories: categoryTree(feed.filter(p => p.section === "TECH")), tags: unique(feed.filter(p => p.section === "TECH").flatMap(p => p.tags)),
   });
   await listing("posts", "Posts", "Posts", feed.filter(p => p.section === "TECH"));
   const status: Record<string, string> = { PLAN: "기획 중", DEV: "개발 중", MAINT: "유지보수 중", DONE: "완료" };
@@ -134,7 +156,7 @@ export async function generateSite(payload: Input, output: string) {
     const project = projects.find(p => p.id === navigation?.id && p.slug === navigation?.slug) ?? null;
     const relatedProject = projects.find(p => p.id === post.relatedSeries?.id) ?? null;
     await page(`post/${slug(post.slug)}`, "post", post.section === "PROJECT" ? "Project" : "Post", post.title, post.summary, {
-      post: { ...post, displayDate: date(post.publishedDate), relatedProject }, project, html: post.rendered.html,
+      post: { ...post, categoryTrail: categoryTrail(post.category?.path ?? ""), displayDate: date(post.publishedDate), relatedProject }, project, html: post.rendered.html,
       toc: post.rendered.headings.filter(h => h.depth === 2 || h.depth === 3), backlinks: backlinks.get(postPath(post)) ?? [],
       series, seriesName: navigation?.name ?? "", seriesPosition: navigation?.position ?? 0,
     });

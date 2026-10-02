@@ -8,15 +8,9 @@
   <link rel="stylesheet" href="{{ adminCss }}">
   <script type="module" src="{{ adminJs }}"></script>
 </head>
-<body data-api-base="{{ apiBase }}" data-editor="{{ editor }}">
+<body data-route="manage" data-api-base="{{ apiBase }}" data-editor="{{ editor }}">
   <a class="skip-link" href="#content">본문으로 이동</a>
-  <header class="site-header">
-    <div class="header-inner">
-      <a class="brand" href="/ken-blog/"><svg width="30" height="30" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><g transform="rotate(-45 24 24)"><path d="M8 12.5 L45 24 L8 35.5 Z"></path><path d="M14 14.4 Q17.5 24 14 33.6 M22 16.9 Q24.8 24 22 31.1 M30 19.4 Q32 24 30 28.6 M37 21.6 Q38.2 24 37 26.4"></path></g></svg><span>ken<span class="brand-dot">.</span>blog</span></a>
-      <nav class="main-nav" aria-label="주 메뉴"><a href="/ken-blog/">Home</a><a href="/ken-blog/posts/">Posts</a><a href="/ken-blog/projects/">Projects</a></nav>
-      <div class="header-actions"><button class="text-button" type="button" data-theme-toggle aria-label="다크 모드" aria-pressed="false">◐</button><a class="text-button" href="/ken-blog/manage/"{% if not editor %} aria-current="page"{% endif %}>관리</a><button class="text-button" id="logout" type="button" hidden>로그아웃</button></div>
-    </div>
-  </header>
+  {% include "header.njk" %}
   <div id="boot" class="boot" role="status">관리자 연결을 확인하는 중입니다.</div>
   <section id="login" class="login-card card" hidden aria-labelledby="login-title">
     <h1 id="login-title">관리자 로그인</h1>

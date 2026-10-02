@@ -2,12 +2,12 @@
   <a class="back-link" href="{{ base + ('projects/' if project else 'posts/') }}">{{ '← Projects' if project else '← Posts' }}</a>
   <article>
     <div class="post-overline">
-      <a href="{{ base + ('projects/' if project else 'posts/') }}">{{ 'Projects' if project else 'Posts' }}</a>{% if post.category %}<span> · </span>{% endif %}{% if post.category %}<span>{{ post.category.path }}</span>{% endif %}
+      <a href="{{ base + ('projects/' if project else 'posts/') }}">{{ 'Projects' if project else 'Posts' }}</a>{% if post.category %}<span> · </span>{% endif %}{% if post.category %}<span class="category-breadcrumb">{% for part in post.categoryTrail %}{% if not loop.first %}<span aria-hidden="true">›</span>{% endif %}<a href="{{ base + 'posts/?category=' + (part.path | query) }}">{{ part.name }}</a>{% endfor %}</span>{% endif %}
     </div>
     <h1>{{ post.title }}</h1>
     {% if project %}<div class="project-overview">
-      <a href="{{ base + 'projects/' }}">Projects</a>
-      <span>{{ project.name }}</span> · <span>{{ project.statusLabel }}</span> · <span>{{ project.period }}</span>
+      <div class="project-card-top"><span class="project-status project-status-{{ project.statusClass }}"><span aria-hidden="true"></span>{{ project.statusLabel }}</span>{% if project.period %}<span class="mono project-period">{{ project.period }}</span>{% endif %}</div>
+      {% if project.description %}<p class="project-description">{{ project.description }}</p>{% endif %}
       <div class="stack-badges">{% for badge in project.stackBadges %}<span><img alt="" width="22" height="22" src="{{ badge.imageUrl }}">{{ badge.name }}</span>{% endfor %}</div>
     </div>{% endif %}
     {% if post.relatedProject %}<p class="post-related-project">
