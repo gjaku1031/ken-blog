@@ -8,14 +8,17 @@ import { createHash } from "node:crypto";
  * 저장소 루트
  */
 const root = resolve(import.meta.dirname, "../../../..");
+
 /**
  * 웹 소스 디렉터리
  */
 const source = join(root, "src/main/resources/web");
+
 /**
  * 관리자 번들 출력 디렉터리
  */
 const adminOutput = join(root, "build/admin-assets");
+
 /**
  * 공개 번들 출력 디렉터리
  */

@@ -50,18 +50,22 @@ data class CategoryRefResponse(
      * ID
      */
     val id: Long,
+
     /**
      * 루트부터 이어지는 정규화 경로
      */
     val path: String,
+
     /**
      * 이름
      */
     val name: String,
+
     /**
      * 분류 깊이, 1~2단계
      */
     val depth: Int,
+
     /**
      * 정렬 순서
      */
@@ -76,30 +80,37 @@ data class CategoryTreeResponse(
      * ID
      */
     val id: Long,
+
     /**
      * 분류 경로
      */
     val path: String,
+
     /**
      * 이름
      */
     val name: String,
+
     /**
      * 분류 깊이, 1~2단계
      */
     val depth: Int,
+
     /**
      * 정렬 순서
      */
     val sortOrder: Int,
+
     /**
      * 초안을 포함한 해당 분류의 직접 글 수
      */
     val directCount: Long,
+
     /**
      * 초안을 포함한 해당 분류와 모든 하위 분류의 글 수
      */
     val totalCount: Long,
+
     /**
      * 빈 분류도 포함한 하위 노드
      */
@@ -114,6 +125,7 @@ data class CategoryPostCountRow(
      * 분류 ID
      */
     val categoryId: Long,
+
     /**
      * 개수
      */

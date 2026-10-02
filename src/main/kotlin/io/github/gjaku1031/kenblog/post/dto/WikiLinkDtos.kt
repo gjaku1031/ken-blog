@@ -8,6 +8,7 @@ enum class WikiLinkStatus {
      * 읽기 가능
      */
     READABLE,
+
     /**
      * 일치하는 공개 글 없음
      */
@@ -42,22 +43,27 @@ data class WikiLinkReadable(
      * 조회 요청 제목
      */
     override val requestedTitle: String,
+
     /**
      * ID
      */
     val id: Long,
+
     /**
      * 제목
      */
     val title: String,
+
     /**
      * 공개 주소 식별자
      */
     val slug: String,
+
     /**
      * 탐색 구획
      */
     val section: String = "TECH",
+
     /**
      * 시리즈 주소 식별자
      */

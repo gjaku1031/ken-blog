@@ -68,6 +68,7 @@ export function connectPostCreator() {
       content.replaceChildren(form); form.querySelector('input')?.focus();
     } catch (error) { if (run === generation && dialog.open) showError(error); }
   });
+
   /**
    * 작성 실패 메시지 표시
    */

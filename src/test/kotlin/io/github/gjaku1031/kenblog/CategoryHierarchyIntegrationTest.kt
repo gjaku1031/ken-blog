@@ -26,14 +26,17 @@ class CategoryHierarchyIntegrationTest(
      * 분류 저장소
      */
     @Autowired private val categories: CategoryService,
+
     /**
      * 시리즈 문서 목록
      */
     @Autowired private val posts: PostService,
+
     /**
      * 공개 글 메타데이터 서비스
      */
     @Autowired private val publicPosts: PublicPostService,
+
     /**
      * JDBC 쿼리 실행기
      */

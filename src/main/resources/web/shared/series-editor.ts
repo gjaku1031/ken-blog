@@ -9,14 +9,17 @@ export type Series = SeriesMetadata & {
    * ID
    */
   id: number;
+
   /**
    * 공개 주소 식별자
    */
   slug: string;
+
   /**
    * 시리즈 종류
    */
   kind: 'TECH' | 'PROJECT';
+
   /**
    * 수정 시각
    */
@@ -37,22 +40,27 @@ export function seriesEditor(options: {
    * 프로젝트 시리즈 FK 매핑
    */
   project: boolean;
+
   /**
    * 기술 목록
    */
   badges: Badge[];
+
   /**
    * 수정할 시리즈, 생략하면 새로 생성
    */
   item?: Series;
+
   /**
    * 저장 시작 알림 콜백
    */
   onSaving?: () => void;
+
   /**
    * 저장 결과 반영 콜백
    */
   onSaved: (item: Series) => Promise<void> | void;
+
   /**
    * 작업 실패 안내 콜백
    */

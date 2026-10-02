@@ -337,6 +337,7 @@ class AuthHttpIntegrationTest {
          * 테스트용 비밀번호
          */
         const val TEST_PASSWORD = "sample-secret"
+
         /**
          * 테스트용 비밀번호 해시
          */

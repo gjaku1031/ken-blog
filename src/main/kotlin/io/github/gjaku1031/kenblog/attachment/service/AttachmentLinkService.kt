@@ -19,6 +19,7 @@ class AttachmentLinkService(
      * 게시글 메타데이터 조회기
      */
     private val queries: PostQueries,
+
     /**
      * 게시글·첨부 연결 저장소
      */

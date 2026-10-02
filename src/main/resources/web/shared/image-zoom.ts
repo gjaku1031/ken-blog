@@ -12,6 +12,7 @@ export function connectImageZoom(image: HTMLImageElement, options: {
    * 이미지 대신 확대 창을 열 버튼
    */
   trigger?: HTMLButtonElement;
+
   /**
    * 확대 시 사용할 이미지 주소 또는 Blob 공급자
    */
@@ -27,6 +28,7 @@ export function connectImageZoom(image: HTMLImageElement, options: {
     trigger.setAttribute("aria-label", `${image.alt || "이미지"} 확대`);
     trigger.classList.add("image-zoom-trigger");
   }
+
   /**
    * 화면에 연결된 이미지의 확대 창 열기, 중복 창은 생략
    */
@@ -65,6 +67,7 @@ function openImageZoom(source: string | Blob, title: string, trigger: HTMLElemen
   const status = document.createElement("p"); status.className = "image-zoom-status";
   status.setAttribute("role", "status"); status.textContent = "이미지를 불러오는 중입니다.";
   // 확대·축소·화면 맞춤 조작 구성
+
   /**
    * 확대 창의 조작 버튼 생성
    */
@@ -83,6 +86,7 @@ function openImageZoom(source: string | Blob, title: string, trigger: HTMLElemen
   let fitted = true;
   let ready = false;
   // 배율 변경 전 스크롤 중심을 보존해 이미지 치수 갱신
+
   /**
    * 확대 배율·조작 상태를 반영하고 스크롤 중심 유지
    */
@@ -100,6 +104,7 @@ function openImageZoom(source: string | Blob, title: string, trigger: HTMLElemen
     viewport.scrollLeft = (center ? 0.5 : x) * canvas.offsetWidth - viewport.clientWidth / 2;
     viewport.scrollTop = (center ? 0.5 : y) * canvas.offsetHeight - viewport.clientHeight / 2;
   }
+
   /**
    * 입력 배율을 허용 범위로 제한해 적용
    */
@@ -107,6 +112,7 @@ function openImageZoom(source: string | Blob, title: string, trigger: HTMLElemen
     if (!ready) return;
     fitted = false; scale = Math.max(0.01, Math.min(4, Math.round(value * 100) / 100)); paint();
   }
+
   /**
    * 이미지가 표시 영역에 맞도록 배율 계산
    */

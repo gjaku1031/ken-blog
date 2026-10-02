@@ -1,17 +1,18 @@
 /**
  * Mermaid 밝은·어두운 테마
  */
-
 export type MermaidTheme = "light" | "dark";
 
 /**
  * 도식 원문 길이 상한
  */
 export const MAX_MERMAID_LENGTH = 12 * 1024;
+
 /**
  * 도식 원문 줄 수 상한
  */
 export const MAX_MERMAID_LINES = 200;
+
 /**
  * 도식 연결 수 상한
  */
@@ -21,6 +22,7 @@ export const MAX_MERMAID_EDGES = 100;
  * 허용 SVG 네임스페이스
  */
 const SVG_NS = "http://www.w3.org/2000/svg";
+
 /**
  * 허용 SVG 요소
  */
@@ -29,6 +31,7 @@ const SVG_TAGS = new Set([
   "title", "desc", "style", "linearGradient", "radialGradient", "stop", "clipPath", "mask", "pattern", "symbol",
   "filter", "feDropShadow",
 ]);
+
 /**
  * 허용 SVG 속성
  */
@@ -44,10 +47,12 @@ const SVG_ATTRIBUTES = new Set([
   "textLength", "lengthAdjust", "vector-effect", "paint-order", "shape-rendering", "pointer-events", "tabindex", "focusable",
   "clip-rule", "flood-color", "flood-opacity", "stdDeviation", "name",
 ]);
+
 /**
  * 동일 SVG 내부 참조 패턴
  */
 const FRAGMENT_URL = /^url\(\s*['"]?#[-\w:.]+['"]?\s*\)$/i;
+
 /**
  * CSS URL 표현식 패턴
  */
@@ -61,6 +66,7 @@ function colorClass(line: string): {
    * 이름
    */
   name: string;
+
   /**
    * 역할별 Mermaid 클래스 스타일
    */
@@ -200,22 +206,27 @@ type Job = {
    * 원문
    */
   source: string;
+
   /**
    * 렌더 테마
    */
   theme: MermaidTheme;
+
   /**
    * 작업 취소 신호
    */
   signal: AbortSignal;
+
   /**
    * 렌더 성공 결과 전달
    */
   resolve: (svg: string) => void;
+
   /**
    * 렌더 실패 전달
    */
   reject: (error: Error) => void;
+
   /**
    * 취소 시 대기 작업 정리
    */
@@ -226,10 +237,12 @@ type Job = {
  * 대기 중인 도식 렌더 작업
  */
 const jobs: Job[] = [];
+
 /**
  * 렌더 큐 실행 여부
  */
 let running = false;
+
 /**
  * 도식별 고유 ID 순번
  */

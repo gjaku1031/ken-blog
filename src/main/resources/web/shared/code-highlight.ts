@@ -8,10 +8,12 @@ export type CodeToken = {
    * 본문 내용
    */
   content: string;
+
   /**
    * 토큰 색상
    */
   color?: string;
+
   /**
    * 토큰 글꼴 스타일
    */
@@ -26,6 +28,7 @@ export type HighlightedCode = {
    * 줄별 강조 토큰
    */
   tokens: CodeToken[][];
+
   /**
    * 원문의 줄 구분자
    */
@@ -40,46 +43,57 @@ const languages = {
    * kotlin 문법 지연 로딩
    */
   kotlin: () => import("@shikijs/langs/kotlin"),
+
   /**
    * java 문법 지연 로딩
    */
   java: () => import("@shikijs/langs/java"),
+
   /**
    * javascript 문법 지연 로딩
    */
   javascript: () => import("@shikijs/langs/javascript"),
+
   /**
    * typescript 문법 지연 로딩
    */
   typescript: () => import("@shikijs/langs/typescript"),
+
   /**
    * json 문법 지연 로딩
    */
   json: () => import("@shikijs/langs/json"),
+
   /**
    * sql 문법 지연 로딩
    */
   sql: () => import("@shikijs/langs/sql"),
+
   /**
    * bash 문법 지연 로딩
    */
   bash: () => import("@shikijs/langs/bash"),
+
   /**
    * yaml 문법 지연 로딩
    */
   yaml: () => import("@shikijs/langs/yaml"),
+
   /**
    * python 문법 지연 로딩
    */
   python: () => import("@shikijs/langs/python"),
+
   /**
    * css 문법 지연 로딩
    */
   css: () => import("@shikijs/langs/css"),
+
   /**
    * html 문법 지연 로딩
    */
   html: () => import("@shikijs/langs/html"),
+
   /**
    * markdown 문법 지연 로딩
    */
@@ -108,6 +122,7 @@ const aliases: Record<string, HighlightLanguage> = {
  * 공유 코드 강조기 초기화 작업
  */
 let highlighterPromise: Promise<HighlighterCore> | null = null;
+
 /**
  * 언어별 문법 로딩 작업
  */
@@ -168,6 +183,7 @@ function sourceLines(code: string): {
    * 원문의 각 줄
    */
   lines: string[];
+
   /**
    * 원문의 줄 구분자
    */

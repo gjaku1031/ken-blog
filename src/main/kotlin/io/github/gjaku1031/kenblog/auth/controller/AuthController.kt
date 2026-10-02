@@ -35,6 +35,7 @@ class AuthController(
      * 로그아웃 시 CSRF 토큰 제거
      */
     private val csrfLogoutHandler = CsrfLogoutHandler(csrfRepository)
+
     /**
      * 로그아웃 시 세션·인증 컨텍스트 제거
      */

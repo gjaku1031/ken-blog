@@ -23,10 +23,12 @@ export function listbox(anchor: HTMLElement, list: HTMLElement, render: () => vo
   let opened = false;
   let active = -1;
   let listeners: AbortController | undefined;
+
   /**
    * 선택 가능한 목록 항목 조회
    */
   const options = () => [...list.querySelectorAll<HTMLButtonElement>('[role=option]')];
+
   /**
    * 키보드 탐색 중인 항목과 접근성 상태 갱신
    */
@@ -39,6 +41,7 @@ export function listbox(anchor: HTMLElement, list: HTMLElement, render: () => vo
     } else anchor.removeAttribute('aria-activedescendant');
   }
   // 화면 공간에 맞춰 위·아래 팝업 배치
+
   /**
    * 화면 여백에 맞춰 선택 목록의 위치·높이 계산
    */
@@ -53,6 +56,7 @@ export function listbox(anchor: HTMLElement, list: HTMLElement, render: () => vo
     list.style.left = `${Math.max(12, Math.min(rect.left, innerWidth - width - 12))}px`;
     list.style.top = `${up ? Math.max(12, rect.top - list.offsetHeight - 6) : rect.bottom + 6}px`;
   }
+
   /**
    * 선택 목록을 닫고 임시 이벤트 구독 해제
    */
@@ -61,6 +65,7 @@ export function listbox(anchor: HTMLElement, list: HTMLElement, render: () => vo
     opened = false; list.hidePopover(); listeners?.abort();
     anchor.setAttribute('aria-expanded', 'false'); anchor.removeAttribute('aria-activedescendant');
   }
+
   /**
    * 선택 목록과 활성 항목·표시 위치 갱신
    */
@@ -68,6 +73,7 @@ export function listbox(anchor: HTMLElement, list: HTMLElement, render: () => vo
     render(); highlight(-1); if (opened) position();
   }
   // 선택 항목·활성 상태를 복원하고 종료 이벤트 구독
+
   /**
    * 선택 목록을 열고 현재 선택·종료 이벤트 연결
    */
@@ -109,6 +115,7 @@ export function listbox(anchor: HTMLElement, list: HTMLElement, render: () => vo
     }
   });
   return { open, close, refresh, toggle: () => opened ? close() : open(),
+
   /**
    * 현재 활성 선택 항목의 인덱스
    */
@@ -132,6 +139,7 @@ export function styleChoice(select: HTMLSelectElement, label: HTMLLabelElement, 
   // 라벨을 실제 표시·조작하는 선택 버튼에 연결
   trigger.id = `choice-${++sequence}`; label.htmlFor = trigger.id;
   const list = document.createElement('div'); label.append(trigger, list);
+
   /**
    * 선택 값·입력 제약을 보이는 선택 버튼에 반영
    */

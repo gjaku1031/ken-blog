@@ -14,10 +14,12 @@ data class PostAttachmentContent(
      * MIME 타입
      */
     val contentType: String,
+
     /**
      * 파일 크기, 바이트 단위
      */
     val byteSize: Long,
+
     /**
      * 호출자가 닫아야 하는 파일 입력 스트림
      */
@@ -33,6 +35,7 @@ class PostAttachmentDeliveryService(
      * 게시글 메타데이터 조회기
      */
     private val queries: io.github.gjaku1031.kenblog.post.repository.PostQueries,
+
     /**
      * 로컬 이미지 저장소
      */

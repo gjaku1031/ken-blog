@@ -28,10 +28,12 @@ class SlugGenerationIntegrationTest(
      * 시리즈 문서 목록
      */
     @Autowired private val posts: PostService,
+
     /**
      * 시리즈 저장소
      */
     @Autowired private val series: SeriesService,
+
     /**
      * JSON 직렬화기
      */

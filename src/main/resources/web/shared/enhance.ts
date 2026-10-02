@@ -9,14 +9,17 @@ const pendingMermaid = new WeakMap<HTMLElement, {
    * 렌더 테마
    */
   theme: string;
+
   /**
    * 원문
    */
   source: string;
+
   /**
    * 작업 취소 제어기
    */
   controller: AbortController;
+
   /**
    * 진행 중인 비동기 작업
    */

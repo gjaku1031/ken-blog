@@ -23,6 +23,7 @@ import org.hibernate.annotations.OnDeleteAction
 ])
 class PostTagEntity protected constructor() {
     // DB 외래 키와 삭제 규칙 저장은 기존 ID 필드를 사용
+
     /**
      * 게시글 FK 매핑
      */

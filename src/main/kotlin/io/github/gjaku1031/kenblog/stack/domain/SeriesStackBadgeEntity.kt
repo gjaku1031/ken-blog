@@ -23,6 +23,7 @@ data class SeriesStackBadgeId(
      * 시리즈 ID
      */
     @Column(name = "series_id") var seriesId: Long = 0,
+
     /**
      * 기술 뱃지 ID
      */
@@ -38,6 +39,7 @@ data class SeriesStackBadgeId(
 ])
 class SeriesStackBadgeEntity protected constructor() {
     // DB 외래 키와 삭제 규칙 저장은 기존 ID 필드를 사용
+
     /**
      * 프로젝트 시리즈 FK 매핑
      */

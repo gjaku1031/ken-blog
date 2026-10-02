@@ -6,23 +6,28 @@ type Csrf = {
    * CSRF 토큰 요청 헤더명
    */
   headerName: string;
+
   /**
    * 세션별 CSRF 토큰
    */
   token: string
 };
+
 /**
  * 관리자 API 기준 URL
  */
 const apiBase = document.body.dataset.apiBase ?? '';
+
 /**
  * 현재 세션의 CSRF 토큰
  */
 let csrf: Csrf | null = null;
+
 /**
  * 현재 세션의 CSRF 토큰 캐시 제거
  */
 export function clearCsrf() { csrf = null; }
+
 /**
  * HTTP 상태를 보존하는 관리자 요청 오류
  */
@@ -36,6 +41,7 @@ export class HttpError extends Error {
      */
     readonly status: number, message: string) { super(message); }
 }
+
 /**
  * CSRF·세션 쿠키를 포함한 API 요청과 오류 변환
  *
@@ -72,6 +78,7 @@ export async function request<T>(path: string, method = 'GET', body?: object): P
          * 오류 상세 설명
          */
         detail?: unknown;
+
         /**
          * 제목
          */
@@ -87,6 +94,7 @@ export async function request<T>(path: string, method = 'GET', body?: object): P
   if (response.status === 204) return undefined as T;
   return await response.json() as T;
 }
+
 /**
  * 현재 세션의 CSRF 토큰 갱신
  */
@@ -94,6 +102,7 @@ export async function refreshCsrf(): Promise<void> {
   csrf = await request<Csrf>('/auth/csrf');
   if (!csrf || !csrf.headerName || !csrf.token) throw new Error('로그인 보호 토큰을 받지 못했습니다.');
 }
+
 /**
  * 관리자 변경 요청, CSRF 거부 시 토큰 캐시 제거 후 오류 전달
  */

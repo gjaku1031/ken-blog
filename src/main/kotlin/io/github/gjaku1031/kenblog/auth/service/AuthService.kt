@@ -25,10 +25,12 @@ class AuthService(
      * 로그인 검증·실패 제한 서비스
      */
     private val attempts: AdminLoginAttemptService,
+
     /**
      * 로그인 성공 시 세션 교체 전략
      */
     private val sessionStrategy: SessionAuthenticationStrategy,
+
     /**
      * 세션 인증 컨텍스트 저장소
      */
@@ -105,22 +107,27 @@ class AuthService(
          * 세션 인증 증명 속성명
          */
         const val AUTH_PROOF_ATTRIBUTE = "KENBLOG_ADMIN_PASSWORD_PROOF"
+
         /**
          * 세션 인증 버전 속성명
          */
         const val AUTH_VERSION_ATTRIBUTE = "KENBLOG_ADMIN_AUTH_VERSION"
+
         /**
          * 로그인 유지 세션 속성명
          */
         const val REMEMBER_LOGIN_ATTRIBUTE = "KENBLOG_REMEMBER_LOGIN"
+
         /**
          * 영속 세션 쿠키 기록 요청 속성명
          */
         const val REMEMBER_COOKIE_REQUEST_ATTRIBUTE = "KENBLOG_REMEMBER_COOKIE"
+
         /**
          * 일반 로그인 세션 비활동 한도, 초 단위
          */
         const val AUTHENTICATED_SESSION_TIMEOUT_SECONDS = 8 * 60 * 60
+
         /**
          * 유지 로그인 세션 비활동 한도, 초 단위
          */

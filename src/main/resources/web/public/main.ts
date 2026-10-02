@@ -16,10 +16,12 @@ import { connectImageZoom } from "../shared/image-zoom";
  * 현재 URL의 조회 조건
  */
 const query = new URLSearchParams(location.search);
+
 /**
  * 현재 화면 경로 종류
  */
 const route = document.body.dataset.route;
+
 /**
  * 검색 입력창
  */
@@ -44,6 +46,7 @@ document.addEventListener("click", (event) => {
  * 기존 slug 쿼리 주소를 생성된 정적 경로로 옮김
  */
 const slug = query.get("slug");
+
 /**
  * 공개 주소 식별자 형식 검사
  */
@@ -65,10 +68,12 @@ if (validSlug(slug)) {
 
 // 현재 목록의 카테고리·태그·검색 조건만 DOM에서 좁힘
 if (search && route === "search") search.value = query.get("q") ?? "";
+
 /**
  * 검색·분류·태그 필터 대상 카드
  */
 const cards = Array.from(document.querySelectorAll<HTMLElement>("[data-search-card]"));
+
 /**
  * 카테고리·태그·검색어에 맞는 카드와 결과 수 갱신
  */
@@ -119,6 +124,7 @@ for (const button of document.querySelectorAll<HTMLButtonElement>('[data-categor
     button.setAttribute('aria-expanded', String(!children.hidden));
   });
 }
+
 /**
  * 현재 URL의 분류 필터
  */

@@ -24,14 +24,17 @@ class PublicPostService(
      * 게시글 메타데이터 조회기
      */
     private val queries: PostQueries,
+
     /**
      * 분류 저장소
      */
     private val categories: CategoryRepository,
+
     /**
      * 분류·태그 조회기
      */
     private val taxonomy: PostTaxonomyMetadata,
+
     /**
      * 시리즈 저장소
      */
@@ -66,6 +69,7 @@ class PublicPostService(
         return PublicPostDetailResponse(row.id, row.title, row.slug, row.summary, row.publishedDate(),
             row.series?.kind ?: SeriesKind.TECH, view.category, view.tags, navigation, related, row.legacyPath, publishedAt = row.publishedAt)
     }
+
     /**
      * UTC 출간 시각을 한국 날짜로 변환
      */

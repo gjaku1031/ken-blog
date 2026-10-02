@@ -23,6 +23,7 @@ export function connectTableOfContents(): void {
   let scheduled = false;
   let active: HTMLAnchorElement | null = null;
   // 헤더 높이·제목 위치·문서 끝을 반영해 현재 절 계산
+
   /**
    * 현재 읽는 제목과 목차의 활성 항목 갱신
    */
@@ -52,6 +53,7 @@ export function connectTableOfContents(): void {
       else if (linkBounds.bottom > bounds.bottom) rail.scrollTop += linkBounds.bottom - bounds.bottom + 8;
     }
   };
+
   /**
    * 프레임당 한 번만 목차 갱신 예약
    */

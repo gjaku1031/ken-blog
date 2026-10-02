@@ -11,23 +11,28 @@ export type WikiLinkCandidate = {
    * 제목
    */
   title: string;
+
   /**
    * 표시 문구
    */
   label: string;
+
   /**
    * 원문
    */
   raw: string;
+
   /**
    * 구간 시작 위치
    */
   start: number;
+
   /**
    * 구간 끝 위치
    */
   end: number
 };
+
 /**
  * 원문 치환 구간
  */
@@ -36,15 +41,18 @@ type Replacement = WikiLinkCandidate & {
    * 충돌 방지용 치환 마커
    */
   marker: string;
+
   /**
    * 치환 후 시작 위치
    */
   transformedStart: number;
+
   /**
    * 치환 후 끝 위치
    */
   transformedEnd: number
 };
+
 /**
  * 원문 위치를 가진 AST 노드
  */
@@ -53,14 +61,17 @@ type PositionedNode = {
    * 종류
    */
   type: string;
+
   /**
    * 노드 값
    */
   value?: string;
+
   /**
    * 하위 AST 노드
    */
   children?: PositionedNode[];
+
   /**
    * 문서 내 위치
    */
@@ -74,6 +85,7 @@ type PositionedNode = {
        */
       offset?: number
     };
+
     /**
      * 구간 끝 위치
      */
@@ -84,6 +96,7 @@ type PositionedNode = {
       offset?: number
     }
   };
+
   /**
    * AST 렌더 보조 정보
    */
@@ -94,22 +107,27 @@ type PositionedNode = {
  * 파싱 원문 바이트 상한
  */
 const MAX_SOURCE_BYTES = 1024 * 1024;
+
 /**
  * 문법 후보 개수 상한
  */
 const MAX_CANDIDATES = 512;
+
 /**
  * 위키 제목 코드 포인트 수 상한
  */
 const MAX_TITLE_CODEPOINTS = 200;
+
 /**
  * 위키 표시명 코드 포인트 수 상한
  */
 const MAX_LABEL_CODEPOINTS = 2048;
+
 /**
  * 위키 문법을 해석하지 않는 노드 종류
  */
 const EXCLUDED = new Set(["code", "inlineCode", "html", "definition", "image", "imageReference", "link"]);
+
 /**
  * 제목·표시명에 허용하지 않는 문자
  */
@@ -129,15 +147,18 @@ function excludedMask(source: string): Uint8Array {
      * 구간 시작 위치
      */
     start: number;
+
     /**
      * 구간 끝 위치
      */
     end: number
   }> = [];
+
   /**
    * 파싱 제외 구간 표시
    */
   const cover = (start: number, end: number) => mask.fill(1, start, end);
+
   /**
    * 현재 노드와 하위 노드 순회
    */
@@ -167,6 +188,7 @@ function excludedMask(source: string): Uint8Array {
      * 이름
      */
     name: string;
+
     /**
      * 구간 시작 위치
      */
@@ -291,10 +313,12 @@ function point(starts: readonly number[], offset: number): {
    * 행 번호
    */
   line: number;
+
   /**
    * 열 번호
    */
   column: number;
+
   /**
    * 원문 오프셋
    */
@@ -357,6 +381,7 @@ export function parseWikiMarkdown(source: string, maximum = MAX_CANDIDATES): Roo
   const root = parseAnnotationMarkdown(modified);
   const starts = lineStarts(source);
   const expression = new RegExp(`${prefix}([0-9]+)END`, "g");
+
   /**
    * 원문 위치 또는 텍스트 노드 복원
    */
@@ -386,6 +411,7 @@ export function parseWikiMarkdown(source: string, maximum = MAX_CANDIDATES): Roo
     node.children = children;
   };
   restore(root as PositionedNode);
+
   /**
    * 치환된 노드 위치를 원문 위치로 변환
    */
@@ -417,6 +443,7 @@ export function collectWikiTitles(root: Root, items: AnnotationItem[]): {
   const titles: string[] = [];
   const seen = new Set<string>();
   let count = 0;
+
   /**
    * 하위 노드에서 조회 대상을 수집
    */

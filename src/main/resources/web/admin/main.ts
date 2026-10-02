@@ -18,19 +18,23 @@ type Page<T> = {
    * 조회 결과 목록
    */
   items: T[];
+
   /**
    * 0 기반 페이지 번호
    */
   page: number;
+
   /**
    * 전체 결과 수
    */
   totalElements: number;
+
   /**
    * 전체 페이지 수
    */
   totalPages: number
 };
+
 /**
  * 분류 참조
  */
@@ -39,23 +43,28 @@ type CategoryRef = {
    * ID
    */
   id: number;
+
   /**
    * 분류 경로
    */
   path: string;
+
   /**
    * 이름
    */
   name: string;
+
   /**
    * 분류 깊이
    */
   depth: number;
+
   /**
    * 정렬 순서
    */
   sortOrder: number
 };
+
 /**
  * 시리즈 참조
  */
@@ -64,19 +73,23 @@ type SeriesRef = {
    * ID
    */
   id: number;
+
   /**
    * 이름
    */
   name: string;
+
   /**
    * 공개 주소 식별자
    */
   slug: string;
+
   /**
    * 시리즈 종류
    */
   kind: 'TECH' | 'PROJECT'
 };
+
 /**
  * 게시글 메타데이터
  */
@@ -85,59 +98,73 @@ type Post = {
    * 수정 시각
    */
   updatedAt: string;
+
   /**
    * 최초 출간 시각
    */
   publishedAt: string | null;
+
   /**
    * ID
    */
   id: number;
+
   /**
    * 제목
    */
   title: string;
+
   /**
    * 공개 주소 식별자
    */
   slug: string;
+
   /**
    * 탐색 구획
    */
   section: 'TECH' | 'PROJECT';
+
   /**
    * 상태
    */
   status: 'DRAFT' | 'PUBLISHED';
+
   /**
    * 공개 범위
    */
   visibility: 'PUBLIC' | 'PRIVATE';
+
   /**
    * 요약
    */
   summary: string;
+
   /**
    * 분류
    */
   category: CategoryRef | null;
+
   /**
    * 태그 목록
    */
   tags: string[];
+
   /**
    * 시리즈
    */
   series: SeriesRef | null;
+
   /**
    * 시리즈 내 정렬 순서
    */
   seriesOrder: number | null;
+
   /**
    * 관련 프로젝트 시리즈 ID
    */
   relatedSeriesId: number | null
 };
+
 /**
  * 게시글 상세와 첨부·위키 선언
  */
@@ -146,11 +173,13 @@ type PostDetail = Post & {
    * 첨부 ID 목록
    */
   attachmentIds: number[];
+
   /**
    * 위키 대상 제목 목록
    */
   wikiTargets: string[]
 };
+
 /**
  * 관리자 화면 조회 데이터
  */
@@ -159,18 +188,22 @@ type AdminData = {
    * 게시글 목록
    */
   posts: Page<Post>;
+
   /**
    * 시리즈
    */
   series: Series[];
+
   /**
    * 분류 목록
    */
   categories: Category[];
+
   /**
    * 기술 목록
    */
   badges: Badge[];
+
   /**
    * 태그 목록
    */
@@ -181,55 +214,68 @@ type AdminData = {
  * 초기화 상태 영역
  */
 const boot = get('boot');
+
 /**
  * 로그인 화면
  */
 const login = get('login');
+
 /**
  * 관리자 화면
  */
 const dashboard = get('dashboard');
+
 /**
  * 로그인 결과 메시지 영역
  */
 const loginMessage = get('login-message');
+
 /**
  * 관리자 작업 결과 메시지 영역
  */
 const dashboardMessage = get('dashboard-message');
+
 /**
  * 로그인 폼
  */
 const loginForm = get('login-form') as HTMLFormElement;
+
 /**
  * 현재 글 목록 페이지
  */
 let postPage = 0;
+
 /**
  * 관리자 세션 확인 여부
  */
 let sessionReady = false;
+
 /**
  * 요청한 편집 화면 종류
  */
 const editorMode = document.body.dataset.editor ?? '';
+
 /**
  * 메타데이터 편집 대화상자
  */
 const dialog = get('edit-dialog') as HTMLDialogElement;
+
 /**
  * 마지막 관리자 조회 결과
  */
 let latestData: AdminData;
+
 /**
  * 편집 대상으로 선택한 프로젝트 ID
  */
 let selectedProject: number | null = null;
+
 /**
  * URL로 지정한 편집기를 아직 열지 않았는지 여부
  */
 let linkedEditorPending = true;
 get('dialog-close').addEventListener('click', () => dialog.close());
+
 /**
  * 제목·내용을 설정하고 편집 대화상자 열기
  */
@@ -240,6 +286,7 @@ function openDialog(title: string, content: HTMLElement) {
   dialog.classList.toggle('project-edit-dialog', !!content.querySelector('.project-form-columns'));
   dialog.showModal();
 }
+
 /**
  * 선택한 관리 구간과 탐색 상태 표시
  */
@@ -262,6 +309,7 @@ function get(id: string): HTMLElement {
   if (!found) throw new Error(`화면 요소 누락: ${id}`);
   return found;
 }
+
 /**
  * 관리자 목록과 결과 메시지 비움
  */
@@ -269,6 +317,7 @@ function clearDashboard() {
   for (const id of ['post-list', 'post-pages', 'category-create', 'category-list', 'series-create', 'series-list', 'editor-content', 'dialog-content']) document.getElementById(id)?.replaceChildren();
   dialog.close();
 }
+
 /**
  * 관리자 상태를 비우고 로그인 화면 표시
  */
@@ -282,6 +331,7 @@ function showLogin(message = '') {
   login.hidden = false;
   setMessage(loginMessage, message, !!message);
 }
+
 /**
  * 인증 후 관리자 화면 표시
  */
@@ -292,6 +342,7 @@ function showDashboard() {
   dashboard.hidden = false;
   setMessage(loginMessage, '');
 }
+
 /**
  * 관리 작업 수행 후 목록 갱신·결과 표시, 세션 만료 시 로그인 전환
  */
@@ -308,6 +359,7 @@ async function action(operation: () => Promise<unknown>, success: string) {
     else setMessage(dialog.open ? message : dashboardMessage, error instanceof Error ? error.message : '요청에 실패했습니다.', true);
   }
 }
+
 /**
  * 제출 데이터를 비동기 작업에 연결한 폼 생성
  *
@@ -328,6 +380,7 @@ function form(onSubmit: (data: FormData) => Promise<unknown>, success: string): 
   });
   return item;
 }
+
 /**
  * 선택 숫자 입력 변환, 빈 값이면 null
  */
@@ -335,6 +388,7 @@ function optionalNumber(data: FormData, name: string): number | null {
   const raw = value(data, name);
   return raw ? Number(raw) : null;
 }
+
 /**
  * 목록 항목의 제목·보조 설명 생성
  */
@@ -344,6 +398,7 @@ function itemHeading(title: string, detail = '') {
   if (detail) heading.append(el('span', 'pill', detail));
   return heading;
 }
+
 /**
  * 비동기 관리 동작을 연결한 버튼 생성
  */
@@ -437,6 +492,7 @@ async function openLinkedEditor(data: AdminData): Promise<void> {
     } else setMessage(dashboardMessage, error instanceof Error ? error.message : '수정할 항목을 불러오지 못했습니다.', true);
   }
 }
+
 /**
  * 조회 결과로 관리자 목록 렌더
  */
@@ -445,6 +501,7 @@ function render(data: AdminData) {
   if (editorMode) renderEditor(data);
   else { renderPosts(data); renderCategories(data); renderSeries(data); }
 }
+
 /**
  * 글 목록·편집·발행 동작과 페이지 이동 구성
  *
@@ -484,6 +541,7 @@ function renderPosts(data: AdminData) {
   }
   // 이전·다음 페이지 버튼 구성, 조회 실패 시 기존 페이지 복원
   const pages = get('post-pages'); pages.replaceChildren();
+
   /**
    * 지정 페이지로 이동하는 버튼 생성
    */
@@ -508,6 +566,7 @@ function renderPosts(data: AdminData) {
   pages.append(el('span', '', `${data.posts.page + 1} / ${Math.max(1, data.posts.totalPages)}`));
   if (data.posts.page + 1 < data.posts.totalPages) pageButton('다음', data.posts.page + 1);
 }
+
 /**
  * 글 메타데이터 편집 폼 구성
  *
@@ -597,6 +656,7 @@ function postDeclarations(post: Post): HTMLDetailsElement {
   panel.append(content);
   let loaded = false;
   let loading = false;
+
   /**
    * 펼친 글의 상세 정보를 한 번 조회해 편집 폼 구성
    */
@@ -641,10 +701,12 @@ function postDeclarations(post: Post): HTMLDetailsElement {
   panel.addEventListener('toggle', () => { void load(); });
   return panel;
 }
+
 /**
  * 접어 둔 분류 ID
  */
 const collapsedCategories = new Set<number>();
+
 /**
  * 분류 생성·정렬·삭제 화면 렌더
  *
@@ -656,6 +718,7 @@ function renderCategories(data: AdminData) {
   get('category-create').replaceChildren();
   const list = get('category-list'); list.replaceChildren();
   // 대분류·소분류 생성 폼과 입력 규칙 구성
+
   /**
    * 부모 경로를 이어 새 분류 생성 폼 열기
    */
@@ -669,6 +732,7 @@ function renderCategories(data: AdminData) {
     submit(create, '추가'); openDialog(parent ? '새 소분류' : '새 대분류', create);
   };
   // 분류 순서·삭제 관리 동작 구성
+
   /**
    * 선택 분류의 관리 대화상자 열기
    */
@@ -683,10 +747,12 @@ function renderCategories(data: AdminData) {
       `${category.path} 분류를 삭제할까요? 글은 상위 분류로 이동합니다.`);
     content.append(actions); openDialog('분류 관리', content);
   };
+
   /**
    * 분류의 직접 글과 하위 글 수 합산
    */
   const count = (category: Category): number => category.totalCount ?? category.directCount + category.children.reduce((sum, child) => sum + count(child), 0);
+
   /**
    * 분류 추가 버튼 생성
    */
@@ -695,6 +761,7 @@ function renderCategories(data: AdminData) {
     button.addEventListener('click', () => addCategory(parent)); return button;
   };
   // 접힘 상태를 유지하며 대분류·소분류 재귀 렌더
+
   /**
    * 대분류·소분류 트리와 관리 동작 구성
    */
@@ -742,6 +809,7 @@ function seriesFields(parent: HTMLElement, data: AdminData, selected: number | n
   field(parent, '문서 순서 (비우면 마지막)', 'order', String(order ?? ''), { type: 'number' }).min = '1';
   choice(parent, '관련 프로젝트', 'relatedSeriesId', [['', '없음'], ...data.series.filter(item => item.kind === 'PROJECT').map(item => [String(item.id), item.name] as [string, string])], String(related ?? ''));
 }
+
 /**
  * 일반 시리즈·프로젝트 생성 또는 수정 폼 구성
  */
@@ -758,6 +826,7 @@ function createSeriesForm(data: AdminData, project: boolean, item?: Series) {
     },
   });
 }
+
 /**
  * 시리즈·프로젝트 목록과 편집 동작 구성
  */
@@ -826,6 +895,7 @@ loginForm.addEventListener('submit', async event => {
   } finally { if (button) button.disabled = false; }
 });
 connectHeader({ onLogout: () => showLogin(), onError: error => setMessage(dashboardMessage, error.message, true) });
+
 /**
  * CSRF·현재 계정 확인 후 로그인 또는 관리자 화면 초기화
  */

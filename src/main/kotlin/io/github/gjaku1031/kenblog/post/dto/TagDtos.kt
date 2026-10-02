@@ -8,6 +8,7 @@ data class TagCountResponse(
      * 이름
      */
     val name: String,
+
     /**
      * 개수
      */
@@ -22,10 +23,12 @@ data class PostTagRow(
      * 게시글 ID
      */
     val postId: Long,
+
     /**
      * 입력 순서의 0 기반 위치
      */
     val position: Int,
+
     /**
      * 이름
      */

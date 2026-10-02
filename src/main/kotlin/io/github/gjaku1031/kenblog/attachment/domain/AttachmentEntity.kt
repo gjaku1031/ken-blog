@@ -22,10 +22,12 @@ enum class AttachmentStatus {
      * 처리 대기
      */
     PENDING,
+
     /**
      * 조회 가능
      */
     READY,
+
     /**
      * 삭제 처리 중
      */

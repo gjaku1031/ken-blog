@@ -9,14 +9,17 @@ export type ImageAlt = {
    * 다크 테마 첨부 ID
    */
   darkAttachmentId?: number;
+
   /**
    * 이미지 설명
    */
   caption: string;
+
   /**
    * 이미지 너비 비율
    */
   width: number;
+
   /**
    * 이미지 정렬
    */
@@ -31,18 +34,22 @@ type ImageNode = {
    * 종류
    */
   type: string;
+
   /**
    * 대상 URL
    */
   url?: string;
+
   /**
    * 이미지 대체 텍스트
    */
   alt?: string;
+
   /**
    * 참조 정의 식별자
    */
   identifier?: string;
+
   /**
    * 하위 AST 노드
    */
@@ -53,10 +60,12 @@ type ImageNode = {
  * 내부 첨부 주소 패턴
  */
 const attachmentUrl = /^attachment:([1-9]\d*)$/;
+
 /**
  * 이미지 너비·정렬 메타데이터 패턴
  */
 const metadata = /^([\s\S]*)\|w=(20|[2-9]\d|100)\|a=(left|center|right)$/;
+
 /**
  * 다크 이미지·너비·정렬 메타데이터 패턴
  */

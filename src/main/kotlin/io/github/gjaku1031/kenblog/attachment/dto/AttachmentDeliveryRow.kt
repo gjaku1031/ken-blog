@@ -8,10 +8,12 @@ data class AttachmentDeliveryRow(
      * 저장 루트 기준 객체 경로
      */
     val objectKey: String,
+
     /**
      * MIME 타입
      */
     val contentType: String,
+
     /**
      * 파일 크기, 바이트 단위
      */

@@ -8,6 +8,7 @@ import { runInNewContext } from "node:vm";
  * 생성된 정적 사이트 경로
  */
 const site = new URL("../../build/site/", import.meta.url);
+
 /**
  * 하위 디렉터리의 HTML 파일 목록 수집
  */
@@ -41,6 +42,7 @@ test("every generated document initializes its theme before styles, modules and 
  * 생성된 글 목록 HTML
  */
 const html = await readFile(new URL("posts/index.html", site), "utf8");
+
 /**
  * 첫 페인트 전 테마 초기화 스크립트
  */
@@ -57,6 +59,7 @@ for (const system of ["light", "dark"]) {
  * 저장된 테마 조회 또는 저장소 접근 오류 재현
  */
 getItem(key) { assert.equal(key, "ken-blog-theme"); return saved; } },
+
         /**
          * 시스템 테마 조회 조건과 결과 재현
          */
@@ -73,6 +76,7 @@ getItem(key) { assert.equal(key, "ken-blog-theme"); return saved; } },
       const context = {
         document: { documentElement: root },
         matchMedia: () => ({ matches: system === "dark" }),
+
         /**
          * 테마 저장소 접근 거부 재현
          */

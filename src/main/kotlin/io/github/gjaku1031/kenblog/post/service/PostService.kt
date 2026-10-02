@@ -41,30 +41,37 @@ class PostService(
      * 게시글 저장소
      */
     private val repository: PostRepository,
+
     /**
      * 분류 저장소
      */
     private val categories: CategoryRepository,
+
     /**
      * 게시글 태그 저장소
      */
     private val tags: PostTagRepository,
+
     /**
      * 분류·태그 조회기
      */
     private val taxonomy: PostTaxonomyMetadata,
+
     /**
      * 첨부 연결 서비스
      */
     private val attachmentLinks: AttachmentLinkService,
+
     /**
      * 위키 선언 관리 서비스
      */
     private val wikiLinks: WikiLinkMetadata,
+
     /**
      * 시리즈 저장소
      */
     private val series: SeriesRepository,
+
     /**
      * 게시글 메타데이터 조회기
      */

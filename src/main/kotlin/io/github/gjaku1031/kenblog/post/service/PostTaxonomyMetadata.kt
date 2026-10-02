@@ -15,6 +15,7 @@ class PostTaxonomyMetadata(
      * 분류 저장소
      */
     private val categories: CategoryRepository,
+
     /**
      * 게시글 태그 저장소
      */
@@ -60,6 +61,7 @@ data class PostTaxonomyView(
      * 분류
      */
     val category: CategoryRefResponse?,
+
     /**
      * 태그 목록
      */

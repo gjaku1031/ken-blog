@@ -16,6 +16,7 @@ open class BusinessException(
      * HTTP 상태
      */
     val status: HttpStatus,
+
     /**
      * 외부에 공개할 오류 설명
      */

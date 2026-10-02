@@ -10,18 +10,22 @@ interface Navigation {
    * ID
    */
   id: number;
+
   /**
    * 공개 주소 식별자
    */
   slug: string;
+
   /**
    * 제목
    */
   title: string;
+
   /**
    * 표시 순서
    */
   order: number }
+
 /**
  * 시리즈 참조
  */
@@ -30,18 +34,22 @@ interface SeriesRef {
    * ID
    */
   id: number;
+
   /**
    * 공개 주소 식별자
    */
   slug: string;
+
   /**
    * 이름
    */
   name: string;
+
   /**
    * 시리즈 종류
    */
   kind: "TECH" | "PROJECT" }
+
 /**
  * 게시글 메타데이터
  */
@@ -50,38 +58,47 @@ interface Post {
    * ID
    */
   id: number;
+
   /**
    * 공개 주소 식별자
    */
   slug: string;
+
   /**
    * 제목
    */
   title: string;
+
   /**
    * 요약
    */
   summary: string;
+
   /**
    * 탐색 구획
    */
   section: "TECH" | "PROJECT";
+
   /**
    * 최초 출간 시각
    */
   publishedAt: string;
+
   /**
    * 한국 시간 기준 출간 날짜
    */
   publishedDate: string;
+
   /**
    * 태그 목록
    */
   tags: string[];
+
   /**
    * 이전 공개 경로
    */
   legacyPath: string | null;
+
   /**
    * 분류
    */
@@ -91,6 +108,7 @@ interface Post {
      */
     path: string
   } | null;
+
   /**
    * 시리즈
    */
@@ -99,15 +117,18 @@ interface Post {
      * 조회 결과 목록
      */
     items: Navigation[];
+
     /**
      * 문서 내 위치
      */
     position: number
   }) | null;
+
   /**
    * 관련 프로젝트 시리즈
    */
   relatedSeries: SeriesRef | null;
+
   /**
    * 본문 렌더 결과
    */
@@ -116,6 +137,7 @@ interface Post {
      * 렌더된 HTML
      */
     html: string;
+
     /**
      * 목차 항목
      */
@@ -124,25 +146,30 @@ interface Post {
        * ID
        */
       id: string;
+
       /**
        * 표시 문구
        */
       label: string;
+
       /**
        * 분류 깊이
        */
       depth: number
     }[];
+
     /**
      * 위키 대상 제목 목록
      */
     wikiTargets: string[]
   };
+
   /**
    * 검색용 본문 텍스트
    */
   searchBody?: string;
 }
+
 /**
  * 시리즈 속성과 기술 목록
  */
@@ -151,30 +178,37 @@ interface Series extends SeriesRef {
    * 정렬 순서
    */
   sortOrder: number;
+
   /**
    * 첫 출간 문서, 없으면 null
    */
   cover: Navigation;
+
   /**
    * 설명
    */
   description: string;
+
   /**
    * 문서 수
    */
   postCount: number;
+
   /**
    * 프로젝트 진행 상태
    */
   projectStatus: string | null;
+
   /**
    * 시작 연월
    */
   startPeriod: string | null;
+
   /**
    * 종료 연월
    */
   endPeriod: string | null;
+
   /**
    * 선택 순서의 기술 뱃지 목록
    */
@@ -183,16 +217,19 @@ interface Series extends SeriesRef {
      * ID
      */
     id: number;
+
     /**
      * 이름
      */
     name: string;
+
     /**
      * 공개 이미지 URL
      */
     imageUrl: string
   }[];
 }
+
 /**
  * 정적 사이트 생성 입력
  */
@@ -205,15 +242,18 @@ interface Input {
      * 스냅샷 계약 버전
      */
     version: number;
+
     /**
      * 게시글 목록
      */
     posts: Post[];
+
     /**
      * 시리즈
      */
     series: Series[]
   };
+
   /**
    * 공개 화면 자산 경로
    */
@@ -222,15 +262,18 @@ interface Input {
      * CSS 자산 경로
      */
     css: string;
+
     /**
      * JavaScript 자산 경로
      */
     js: string
   };
+
   /**
    * 관리자 화면 주소
    */
   adminHref: string;
+
   /**
    * 관리자 화면 연결·자산 정보
    */
@@ -239,28 +282,34 @@ interface Input {
      * API 기준 URL
      */
     apiBase: string;
+
     /**
      * CSS 자산 경로
      */
     css: string;
+
     /**
      * JavaScript 자산 경로
      */
     js: string
   };
 }
+
 /**
  * 사이트 기준 경로
  */
 const BASE = "/ken-blog/";
+
 /**
  * 공개 사이트 출처
  */
 const ORIGIN = "https://gjaku1031.github.io";
+
 /**
  * 사이트 기준 경로 결합
  */
 const route = (path = "") => BASE + path;
+
 /**
  * 공개 주소 식별자 형식 검사
  */
@@ -268,6 +317,7 @@ function slug(value: string): string {
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value)) throw new Error("공개 slug 형식 오류");
   return value;
 }
+
 /**
  * 검증된 글 주소 생성
  */
@@ -277,22 +327,27 @@ const postPath = (post: {
    */
   slug: string
 }) => route(`post/${slug(post.slug)}/`);
+
 /**
  * 날짜 표시 형식 변환
  */
 const date = (value: string) => value.slice(0, 10).replaceAll("-", ".");
+
 /**
  * 탐색 구획 표시명
  */
 const label = (section: string) => section === "PROJECT" ? "Projects" : "Posts";
+
 /**
  * 빈 값과 중복을 제거하고 정렬
  */
 const unique = (values: string[]) => [...new Set(values.filter(Boolean))].sort();
+
 /**
  * 출간 시각·ID 오름차순 비교
  */
 const chronological = (a: Post, b: Post) => a.publishedAt.localeCompare(b.publishedAt) || a.id - b.id;
+
 /**
  * 위키 제목의 대소문자 비교 키 생성
  */
@@ -310,6 +365,7 @@ function searchText(html: string): string {
     return number >= 32 && number <= 0x10ffff && !(number >= 0xd800 && number <= 0xdfff) ? String.fromCodePoint(number) : " ";
   }).replace(/\s+/g, " ").trim();
 }
+
 /**
  * 프로젝트 시작·종료 연월 표시
  */
@@ -319,6 +375,7 @@ function period(project: Series): string {
   if (!end) return project.projectStatus === "DONE" ? start : `${start} – 현재`;
   return start === end ? start : `${start} – ${end}`;
 }
+
 /**
  * 분류 경로를 누적 경로·표시 이름으로 분리
  */
@@ -326,6 +383,7 @@ function categoryTrail(path: string) {
   const parts = path.split('/').filter(Boolean);
   return parts.map((name, index) => ({ name, path: parts.slice(0, index + 1).join('/') }));
 }
+
 /**
  * 공개 글 수를 집계한 대분류·소분류 탐색 트리 생성
  */
@@ -335,14 +393,17 @@ function categoryTree(posts: Post[]) {
      * 이름
      */
     name: string;
+
     /**
      * 분류 경로
      */
     path: string;
+
     /**
      * 분류의 직접 글과 하위 글 수 합산
      */
     count: number;
+
     /**
      * 하위 분류 목록
      */
@@ -351,10 +412,12 @@ function categoryTree(posts: Post[]) {
        * 이름
        */
       name: string;
+
       /**
        * 분류 경로
        */
       path: string;
+
       /**
        * 분류의 직접 글과 하위 글 수 합산
        */
@@ -377,6 +440,7 @@ function categoryTree(posts: Post[]) {
   for (const root of sorted) root.children.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
   return sorted;
 }
+
 /**
  * 공개 글을 목록 카드 데이터로 변환
  */
@@ -409,6 +473,7 @@ export async function generateSite(payload: Input, output: string) {
   });
   engine.addFilter("query", (value: string) => encodeURIComponent(value));
   const pages: string[] = [];
+
   /**
    * 출력 경로의 디렉터리 준비 후 파일 기록
    */
@@ -417,6 +482,7 @@ export async function generateSite(payload: Input, output: string) {
     await mkdir(dirname(file), { recursive: true });
     await writeFile(file, content, "utf8");
   };
+
   /**
    * 화면 종류에 맞는 공통 헤더 데이터 구성
    */
@@ -429,6 +495,7 @@ export async function generateSite(payload: Input, output: string) {
   await write("manage/index.html", engine.render("manage.njk", { apiBase: admin.apiBase, adminCss: admin.css, adminJs: admin.js, editor: "", ...header("Manage") }));
   for (const [path, editor] of [["posts", "post"], ["projects", "project"]])
     await write(`${path}/new/index.html`, engine.render("manage.njk", { apiBase: admin.apiBase, adminCss: admin.css, adminJs: admin.js, editor, ...header(editor === "project" ? "Projects" : "Posts") }));
+
   /**
    * 공통 레이아웃과 화면 템플릿으로 HTML 생성
    */
@@ -447,6 +514,7 @@ export async function generateSite(payload: Input, output: string) {
     }));
     if (sitemap) pages.push(path);
   }
+
   /**
    * 글 목록 페이지 생성
    */
@@ -470,10 +538,12 @@ export async function generateSite(payload: Input, output: string) {
      * 이동 주소
      */
     href: string;
+
     /**
      * 제목
      */
     title: string;
+
     /**
      * 탐색 구획
      */

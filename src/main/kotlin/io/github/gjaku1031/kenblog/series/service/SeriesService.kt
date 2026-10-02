@@ -25,10 +25,12 @@ class SeriesService(
      * 시리즈 저장소
      */
     private val series: SeriesRepository,
+
     /**
      * 게시글 메타데이터 조회기
      */
     private val queries: PostQueries,
+
     /**
      * 기술 뱃지 서비스
      */
@@ -54,6 +56,7 @@ class SeriesService(
             SeriesPostResponse(it.id, it.title, it.slug, it.seriesOrder, it.status == PostStatus.PUBLISHED && it.visibility == PostVisibility.PUBLIC)
         })
     }
+
     /**
      * 시리즈 생성
      *
@@ -77,6 +80,7 @@ class SeriesService(
         if (entity.kind == SeriesKind.PROJECT) badges.replaceSeriesStack(entity.id!!, value.stackBadgeNames)
         return response(entity, true)
     }
+
     /**
      * 기존 수정 시각을 확인하고 시리즈 속성 변경
      *
@@ -97,6 +101,7 @@ class SeriesService(
         if (entity.kind == SeriesKind.PROJECT) badges.replaceSeriesStack(id, value.stackBadgeNames)
         return response(entity, true)
     }
+
     /**
      * 시리즈 표시 순서 저장
      */
@@ -107,6 +112,7 @@ class SeriesService(
         entity.reorder(order); series.saveAndFlush(entity)
         return response(entity, true)
     }
+
     /**
      * 시리즈 속성·첫 공개 문서·기술 뱃지를 응답에 결합
      */
@@ -119,6 +125,7 @@ class SeriesService(
             if (admin) queries.seriesPosts(id, false).size else publicPosts.size,
             if (entity.kind == SeriesKind.PROJECT) badges.listForSeries(id) else emptyList())
     }
+
     /**
      * 마이크로초 정밀도의 현재 UTC 시각
      */

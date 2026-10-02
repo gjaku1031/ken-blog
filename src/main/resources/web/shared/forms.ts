@@ -1,4 +1,5 @@
 import { listbox, styleChoice } from './dropdown';
+
 /**
  * 기술 뱃지
  */
@@ -7,15 +8,18 @@ export type Badge = {
    * ID
    */
   id: number;
+
   /**
    * 이름
    */
   name: string;
+
   /**
    * 공개 이미지 URL
    */
   imageUrl: string
 };
+
 /**
  * 시리즈 편집에 필요한 메타데이터
  */
@@ -24,31 +28,38 @@ export type SeriesMetadata = {
    * 이름
    */
   name: string;
+
   /**
    * 설명
    */
   description: string;
+
   /**
    * 정렬 순서
    */
   sortOrder: number;
+
   /**
    * 프로젝트 진행 상태
    */
   projectStatus: string | null;
+
   /**
    * 시작 연월
    */
   startPeriod: string | null;
+
   /**
    * 종료 연월
    */
   endPeriod: string | null;
+
   /**
    * 선택 순서의 기술 뱃지 목록
    */
   stackBadges: Badge[]
 };
+
 /**
  * 관리자 API 기준 URL
  */
@@ -63,6 +74,7 @@ export function el<K extends keyof HTMLElementTagNameMap>(tag: K, className = ''
   if (text) item.textContent = text;
   return item;
 }
+
 /**
  * 결과 메시지와 오류 표시 갱신
  */
@@ -81,18 +93,22 @@ export function field(form: HTMLElement, title: string, name: string, value = ''
    * 필수 입력 여부
    */
   required?: boolean;
+
   /**
    * 입력 길이 상한
    */
   max?: number;
+
   /**
    * 종류
    */
   type?: string;
+
   /**
    * 넓은 입력 영역 여부
    */
   wide?: boolean;
+
   /**
    * 입력 안내 문구
    */
@@ -110,6 +126,7 @@ export function field(form: HTMLElement, title: string, name: string, value = ''
   form.append(label);
   return input;
 }
+
 /**
  * 여러 줄 입력 필드 생성
  */
@@ -120,6 +137,7 @@ export function area(form: HTMLElement, title: string, name: string, value = '',
   label.append(input); form.append(label);
   return input;
 }
+
 /**
  * 선택 목록 생성
  */
@@ -137,6 +155,7 @@ export function choice(form: HTMLElement, title: string, name: string, options: 
   styleChoice(input, label, title);
   return input;
 }
+
 /**
  * 폼 제출 버튼 추가
  */
@@ -147,6 +166,7 @@ export function submit(form: HTMLFormElement, title: string) {
   row.append(button);
   form.append(row);
 }
+
 /**
  * 폼 입력의 앞뒤 공백 제거
  */
@@ -181,6 +201,7 @@ export function stackPicker(parent: HTMLElement, badges: Badge[], initial: strin
   const list = el('div');
   const values = el('div');
   // 검색어와 선택 개수 제한에 맞는 후보 구성
+
   /**
    * 검색어에 맞는 미선택 기술 후보 표시
    */
@@ -201,6 +222,7 @@ export function stackPicker(parent: HTMLElement, badges: Badge[], initial: strin
     if (selected.length >= 30) list.replaceChildren(el('p', 'stack-empty', '기술 스택은 최대 30개까지 선택할 수 있습니다.'));
   }
   // 선택 기술 칩·제출 값을 함께 갱신
+
   /**
    * 선택 기술을 칩·숨김 폼 값으로 갱신
    */
@@ -222,6 +244,7 @@ export function stackPicker(parent: HTMLElement, badges: Badge[], initial: strin
   input.addEventListener('focus', popup.open); input.addEventListener('input', popup.open);
   input.addEventListener('keydown', event => { if (event.key === 'Enter' && !event.isComposing) event.preventDefault(); });
 }
+
 /**
  * 선택한 기술 이름 목록 조회
  */
@@ -235,6 +258,7 @@ export function seriesMetadata(input: FormData, project: boolean) {
     ...(project ? { projectStatus: value(input, 'projectStatus'), startPeriod: value(input, 'startPeriod'),
       endPeriod: value(input, 'endPeriod') || null, stackBadgeNames: badgeNames(input) } : {}) };
 }
+
 /**
  * 시리즈 공통 항목과 프로젝트 전용 상태·기간·기술 입력 구성
  */

@@ -9,18 +9,22 @@ export type AnnotationItem = {
    * 문서 내 순번
    */
   index: number;
+
   /**
    * 표시 문구
    */
   label: string;
+
   /**
    * 본문 내용
    */
   content: string;
+
   /**
    * 첫 참조 순번
    */
   firstRef: number;
+
   /**
    * 참조 순번 목록
    */
@@ -31,6 +35,7 @@ export type AnnotationItem = {
  * 본문 주석 후보 종류
  */
 type CandidateKind = "anonymous" | "definition" | "reference" | "raw";
+
 /**
  * 본문 주석 원문 후보
  */
@@ -39,39 +44,48 @@ type Candidate = {
    * 구간 시작 위치
    */
   start: number;
+
   /**
    * 구간 끝 위치
    */
   end: number;
+
   /**
    * 원문
    */
   raw: string;
+
   /**
    * 문법 후보 종류
    */
   kind: CandidateKind;
+
   /**
    * 이름
    */
   name?: string;
+
   /**
    * 본문 내용
    */
   content?: string;
+
   /**
    * 충돌 방지용 치환 마커
    */
   marker: string;
+
   /**
    * 치환 후 시작 위치
    */
   transformedStart: number;
+
   /**
    * 치환 후 끝 위치
    */
   transformedEnd: number
 };
+
 /**
  * 본문 주석 후보 AST 노드
  */
@@ -80,22 +94,27 @@ type CandidateNode = {
    * 종류
    */
   type: "kenAnnotationCandidate";
+
   /**
    * 원문
    */
   raw: string;
+
   /**
    * 문법 후보 종류
    */
   kind: CandidateKind;
+
   /**
    * 이름
    */
   name?: string;
+
   /**
    * 본문 내용
    */
   content?: string;
+
   /**
    * AST 렌더 보조 정보
    */
@@ -104,10 +123,12 @@ type CandidateNode = {
      * 변환할 HTML 태그명
      */
     hName: string;
+
     /**
      * 변환할 HTML 속성
      */
     hProperties?: Record<string, unknown>;
+
     /**
      * 변환할 HTML 하위 노드
      */
@@ -116,12 +137,14 @@ type CandidateNode = {
        * 종류
        */
       type: "text";
+
       /**
        * 노드 값
        */
       value: string
     }>
   };
+
   /**
    * 문서 내 위치
    */
@@ -135,6 +158,7 @@ type CandidateNode = {
        */
       offset?: number
     };
+
     /**
      * 구간 끝 위치
      */
@@ -146,6 +170,7 @@ type CandidateNode = {
     }
   }
 };
+
 /**
  * 원문 위치를 가진 AST 노드
  */
@@ -154,6 +179,7 @@ type PositionedNode = {
    * 종류
    */
   type: string;
+
   /**
    * 문서 내 위치
    */
@@ -167,6 +193,7 @@ type PositionedNode = {
        */
       offset?: number
     };
+
     /**
      * 구간 끝 위치
      */
@@ -177,6 +204,7 @@ type PositionedNode = {
       offset?: number
     }
   };
+
   /**
    * 하위 AST 노드
    */
@@ -187,14 +215,17 @@ type PositionedNode = {
  * 본문 주석 파싱 원문 바이트 상한
  */
 const MAX_SOURCE = 1024 * 1024;
+
 /**
  * 문법 후보 개수 상한
  */
 const MAX_CANDIDATES = 512;
+
 /**
  * 주석 본문 길이 상한
  */
 const MAX_CONTENT = 2048;
+
 /**
  * 주석 이름 코드 포인트 수 상한
  */
@@ -221,15 +252,18 @@ function excludedMask(source: string, root: Root): Uint8Array {
      * 구간 시작 위치
      */
     start: number;
+
     /**
      * 구간 끝 위치
      */
     end: number
   }> = [];
+
   /**
    * 파싱 제외 구간 표시
    */
   const cover = (start: number, end: number) => mask.fill(1, start, end);
+
   /**
    * 현재 노드와 하위 노드 순회
    */
@@ -259,6 +293,7 @@ function excludedMask(source: string, root: Root): Uint8Array {
      * 이름
      */
     name: string;
+
     /**
      * 구간 시작 위치
      */
@@ -440,10 +475,12 @@ function sourcePoint(starts: number[], offset: number): {
    * 행 번호
    */
   line: number;
+
   /**
    * 열 번호
    */
   column: number;
+
   /**
    * 원문 오프셋
    */
@@ -482,6 +519,7 @@ function candidateNode(candidate: Candidate, starts: number[]): RootContent {
 function restoreCandidates(root: Root, found: Candidate[], starts: number[], prefix: string): void {
   // 후보 번호를 읽을 마커 패턴 준비
   const marker = new RegExp(`${prefix}([0-9]+)END`, "g");
+
   /**
    * 현재 노드와 하위 노드 순회
    */
@@ -493,6 +531,7 @@ function restoreCandidates(root: Root, found: Candidate[], starts: number[], pre
          * 노드 값
          */
         value?: string;
+
         /**
          * 하위 AST 노드
          */
@@ -588,6 +627,7 @@ function validContent(content: string): boolean {
   if (!content || content.length > MAX_CONTENT || /\r|\n/.test(content)) return false;
   const root = parseMathMarkdown(content);
   if (root.children.length !== 1 || root.children[0].type !== "paragraph") return false;
+
   /**
    * 현재 노드와 하위 노드 순회
    */
@@ -616,6 +656,7 @@ function validContent(content: string): boolean {
  */
 export function resolveAnnotationDocument(root: Root): AnnotationItem[] {
   const nodes: CandidateNode[] = [];
+
   /**
    * 현재 노드와 하위 노드 순회
    */

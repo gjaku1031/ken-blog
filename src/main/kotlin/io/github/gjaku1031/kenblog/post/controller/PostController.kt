@@ -37,6 +37,7 @@ class PostController(
      * 게시글 서비스
      */
     private val service: PostService,
+
     /**
      * 위키 제목 조회 서비스
      */

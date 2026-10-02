@@ -83,6 +83,7 @@ class SecurityConfig {
     @Bean
     fun accountSessionValidationRegistration(filter: AccountSessionValidationFilter): FilterRegistrationBean<AccountSessionValidationFilter> =
         FilterRegistrationBean(filter).apply { isEnabled = false }
+
     /**
      * `{bcrypt}` 저장 형식에 맞는 비밀번호 검증기를 제공
      *

@@ -27,6 +27,7 @@ object TagNames {
         // 최초 입력 순서의 표시 이름 반환
         return names.values.toList()
     }
+
     /**
      * 앞뒤 공백 제거·ROOT 소문자화 후 1~40 Unicode 문자 및 제어 문자 금지를 확인
      *

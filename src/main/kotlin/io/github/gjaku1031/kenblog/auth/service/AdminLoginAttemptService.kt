@@ -22,14 +22,17 @@ class AdminLoginAttemptService(
      * JDBC 쿼리 실행기
      */
     private val jdbc: JdbcTemplate,
+
     /**
      * 계정 조회 저장소
      */
     private val accounts: AccountRepository,
+
     /**
      * 비밀번호 검증기
      */
     private val encoder: PasswordEncoder,
+
     /**
      * 단일 관리자 설정
      */
@@ -153,14 +156,17 @@ class AdminLoginAttemptService(
          * 관리자 설정 지문
          */
         var fingerprint: String,
+
         /**
          * 인증 설정 버전
          */
         var authVersion: Long,
+
         /**
          * 누적 로그인 실패 횟수
          */
         var failureCount: Int,
+
         /**
          * 로그인 잠금 만료 시각
          */
@@ -175,10 +181,12 @@ class AdminLoginAttemptService(
          * 관리자 미설정 상태의 지문
          */
         const val UNCONFIGURED_FINGERPRINT = "0000000000000000000000000000000000000000000000000000000000000000"
+
         /**
          * 로그인 실패 허용 횟수
          */
         const val MAX_FAILURES = 5
+
         /**
          * 로그인 잠금 기간, 초 단위
          */
@@ -198,19 +206,23 @@ sealed interface AdminLoginResult {
          * 계정명
          */
         val username: String,
+
         /**
          * 세션 인증 증명
          */
         val proof: String,
+
         /**
          * 인증 버전
          */
         val version: Long
     ) : AdminLoginResult
+
     /**
      * 잘못된 자격 증명 또는 불완전한 서버 설정
      */
     data object Denied : AdminLoginResult
+
     /**
      * 공유된 로그인 실패 한도에 도달했거나 잠금 중임
      */

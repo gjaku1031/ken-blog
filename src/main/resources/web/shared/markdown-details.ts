@@ -8,6 +8,7 @@ import { parseWikiMarkdown, wikiSourceMask } from "./wiki-link-syntax";
  * 접기·요약 태그 경계 종류
  */
 type Boundary = "details-open" | "details-close" | "summary-open" | "summary-close";
+
 /**
  * 원문 치환 구간
  */
@@ -16,19 +17,23 @@ type Replacement = {
    * 구간 시작 위치
    */
   start: number;
+
   /**
    * 구간 끝 위치
    */
   end: number;
+
   /**
    * 접기 태그 경계 종류
    */
   boundary?: Boundary;
+
   /**
    * 해석 실패 시 표시할 원문
    */
   fallback?: string
 };
+
 /**
  * 치환 전후 위치 대응
  */
@@ -37,19 +42,23 @@ type OffsetShift = {
    * 원문 시작 위치
    */
   originalStart: number;
+
   /**
    * 원문 끝 위치
    */
   originalEnd: number;
+
   /**
    * 수정된 문자열의 시작 위치
    */
   modifiedStart: number;
+
   /**
    * 수정된 문자열의 끝 위치
    */
   modifiedEnd: number
 };
+
 /**
  * 원문 위치를 가진 AST 노드
  */
@@ -67,6 +76,7 @@ type PositionedNode = {
        */
       offset?: number
     };
+
     /**
      * 구간 끝 위치
      */
@@ -77,11 +87,13 @@ type PositionedNode = {
       offset?: number
     }
   };
+
   /**
    * 하위 AST 노드
    */
   children?: PositionedNode[]
 };
+
 /**
  * 접기 태그 중첩 상태
  */
@@ -90,15 +102,18 @@ type Frame = {
    * 요약 태그 확인 여부
    */
   summarySeen: boolean;
+
   /**
    * 요약 태그 열림 여부
    */
   summaryOpen: boolean;
+
   /**
    * 접기 내용 시작 위치
    */
   contentStart: number
 };
+
 /**
  * 검증된 접기 AST 노드
  */
@@ -107,6 +122,7 @@ type SafeNode = RootContent & {
    * 하위 AST 노드
    */
   children: RootContent[];
+
   /**
    * AST 렌더 보조 정보
    */
@@ -122,10 +138,12 @@ type SafeNode = RootContent & {
  * 접기 중첩 깊이 상한
  */
 const MAX_DEPTH = 8;
+
 /**
  * 접기 경계 개수 상한
  */
 const MAX_BOUNDARIES = 2048;
+
 /**
  * 제목 없는 접기의 기본 표시 문구
  */
@@ -145,6 +163,7 @@ function codeMask(source: string): Uint8Array {
      * 구분 문자
      */
     character: string;
+
     /**
      * 길이
      */
@@ -181,10 +200,12 @@ function codeMask(source: string): Uint8Array {
        * 구간 시작 위치
        */
       start: number;
+
       /**
        * 구간 끝 위치
        */
       end: number;
+
       /**
        * 길이
        */
@@ -259,10 +280,12 @@ function readGroup(source: string, start: number, mask: Uint8Array): {
    * 구간 끝 위치
    */
   end: number;
+
   /**
    * 허용 구조 여부
    */
   safe: boolean;
+
   /**
    * 태그 경계 목록
    */
@@ -415,10 +438,12 @@ function sourcePoint(starts: number[], offset: number): {
    * 행 번호
    */
   line: number;
+
   /**
    * 열 번호
    */
   column: number;
+
   /**
    * 원문 오프셋
    */
@@ -441,6 +466,7 @@ function sourcePoint(starts: number[], offset: number): {
  */
 function restoreSourcePositions(root: Root, source: string, shifts: OffsetShift[]): void {
   const starts = lineStarts(source);
+
   /**
    * 현재 노드와 하위 노드 순회
    */
@@ -471,32 +497,39 @@ function groupNodes(root: Root, replacements: Replacement[], prefix: string, sou
      * 현재 접기 노드
      */
     details: SafeNode;
+
     /**
      * 노드 추가 대상
      */
     target: RootContent[];
+
     /**
      * 부모 노드 목록
      */
     parent: RootContent[];
+
     /**
      * 구간 시작 위치
      */
     start: number;
+
     /**
      * 유효하지 않은 구조 여부
      */
     invalid: boolean;
+
     /**
      * 접기 요약 노드
      */
     summary?: RootContent[];
+
     /**
      * 요약 시작 위치
      */
     summaryStart?: number
   }[] = [];
   const starts = lineStarts(source);
+
   /**
    * 현재 접기 프레임 또는 최상위 결과에 노드 추가
    */
@@ -636,6 +669,7 @@ export function parseAnnotationDocument(source: string): {
    * 문서 AST 루트
    */
   root: Root;
+
   /**
    * 조회 결과 목록
    */

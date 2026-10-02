@@ -20,11 +20,13 @@ export type RenderOptions = {
    * 첨부 ID의 공개 주소 해석기
    */
   attachmentUrl?: (id: number) => string | null;
+
   /**
    * 위키 제목의 이동 주소 해석기
    */
   wikiUrl?: (title: string) => string | null
 };
+
 /**
  * 목차 항목
  */
@@ -33,19 +35,23 @@ export type TocItem = {
    * ID
    */
   id: string;
+
   /**
    * 표시 문구
    */
   label: string;
+
   /**
    * 분류 깊이
    */
   depth: number;
+
   /**
    * 행 번호
    */
   line: number
 };
+
 /**
  * 본문 HTML·목차·첨부·위키 렌더 결과
  */
@@ -54,14 +60,17 @@ export type RenderResult = {
    * 렌더된 HTML
    */
   html: string;
+
   /**
    * 목차 항목
    */
   headings: TocItem[];
+
   /**
    * 첨부 ID 목록
    */
   attachmentIds: number[];
+
   /**
    * 위키 대상 제목 목록
    */
@@ -76,22 +85,27 @@ type Positioned = {
    * 종류
    */
   type: string;
+
   /**
    * 노드 값
    */
   value?: string;
+
   /**
    * 분류 깊이
    */
   depth?: number;
+
   /**
    * 이미지 대체 텍스트
    */
   alt?: string;
+
   /**
    * 대상 URL
    */
   url?: string;
+
   /**
    * AST 렌더 보조 정보
    */
@@ -100,10 +114,12 @@ type Positioned = {
      * 변환할 HTML 태그명
      */
     hName?: string;
+
     /**
      * 변환할 HTML 속성
      */
     hProperties?: Record<string, unknown>;
+
     /**
      * 변환할 HTML 하위 노드
      */
@@ -114,6 +130,7 @@ type Positioned = {
       value?: string
     }>
   };
+
   /**
    * 문서 내 위치
    */
@@ -128,6 +145,7 @@ type Positioned = {
       line: number
     }
   };
+
   /**
    * 하위 AST 노드
    */
@@ -138,6 +156,7 @@ type Positioned = {
  * 경로 이동·인코딩 변형 없는 내부 주소 검사
  */
 const safeLocal = (url: string): boolean => /^\/(?!\/)[a-zA-Z0-9/_~.?=-]*$/.test(url) && !url.includes("..") && !url.includes("%") && !url.includes("\\");
+
 /**
  * 일반 Markdown 상대 경로와 유니코드 앵커를 URL 파서로 검사함
  */
@@ -150,14 +169,17 @@ function safeLink(url: string): boolean {
     return /^[a-z][a-z\d+.-]*:/i.test(url) || parsed.origin === "https://ken-blog.invalid";
   } catch { return false; }
 }
+
 /**
  * 내부 주소 또는 HTTPS 이미지 주소 검사
  */
 const safeImage = (url: string): boolean => safeLocal(url) || /^https:\/\/[^\s<>"'\\]+$/i.test(url);
+
 /**
  * HTML 요소 노드 생성
  */
 const element = (tagName: string, properties: Element["properties"], children: ElementContent[] = []): Element => ({ type: "element", tagName, properties, children });
+
 /**
  * HTML 텍스트 노드 생성
  */
@@ -181,6 +203,7 @@ function headingsOf(root: Root): TocItem[] {
   const counts = new Map<string, number>();
   const used = new Set<string>();
   const result: TocItem[] = [];
+
   /**
    * 현재 노드와 하위 노드 순회
    */
@@ -216,14 +239,17 @@ async function decorate(tree: HtmlRoot, options: RenderOptions, headings: TocIte
    * 문서 내 순번
    */
   index:number;
+
   /**
    * 표시 문구
    */
   label:string;
+
   /**
    * 본문 내용
    */
   content:string;
+
   /**
    * 참조 순번 목록
    */
@@ -231,6 +257,7 @@ async function decorate(tree: HtmlRoot, options: RenderOptions, headings: TocIte
 }>): Promise<void> {
   // 원문 행 기준 제목·목차 대응 준비
   const headingByLine = new Map(headings.map((item) => [item.line, item]));
+
   /**
    * 현재 노드와 하위 노드 순회
    */
@@ -357,6 +384,7 @@ export async function renderMarkdown(source: string, options: RenderOptions = {}
     a: ["href", "target", "rel", "className", "ariaLabel", "dataAnnotationReturn"], img: ["src", "alt", "loading", "decoding", "className", "dataDarkSrc"], span: ["className", "style", "id", "role", "tabIndex", "ariaLabel", "dataAnnotationIndex", "dataKatexHtml"],
     figure: ["className", "style", "dataWidth", "dataAlign"], input: ["type", "checked", "disabled"], button: ["type", "className"], th: ["align"], td: ["align"] },
     protocols: { ...defaultSchema.protocols, href: ["http", "https", "mailto"], src: ["http", "https"] } };
+
   /**
    * 출처 검증·정화 후 HTML 직렬화
    */
@@ -365,6 +393,7 @@ export async function renderMarkdown(source: string, options: RenderOptions = {}
   // dataKatexHtml은 신뢰된 KaTeX 출력만 담고 사용자 HTML 속성에서 유래하지 않음
   const inserts = new Map<string, string>();
   let serial = 0;
+
   /**
    * 최종 HTML 노드의 렌더 속성 정리
    */

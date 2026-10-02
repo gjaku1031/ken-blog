@@ -8,10 +8,12 @@ data class StackBadgeResponse(
      * ID
      */
     val id: Long,
+
     /**
      * 이름
      */
     val name: String,
+
     /**
      * 공개 이미지 URL
      */

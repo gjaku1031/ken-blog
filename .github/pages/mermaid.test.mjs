@@ -48,6 +48,7 @@ test("role text remains readable on dark fills and Mermaid alternating rows", ()
   const luminance = hex => [1, 3, 5].map(offset => parseInt(hex.slice(offset, offset + 2), 16) / 255)
     .map(value => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4)
     .reduce((total, value, index) => total + value * [0.2126, 0.7152, 0.0722][index], 0);
+
   /**
    * 두 색상의 명암 대비 계산
    */

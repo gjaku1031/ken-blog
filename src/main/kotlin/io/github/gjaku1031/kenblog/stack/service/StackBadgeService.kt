@@ -24,14 +24,17 @@ class StackBadgeService(
      * 기술 뱃지 저장소
      */
     private val badges: StackBadgeRepository,
+
     /**
      * 시리즈·기술 연결 저장소
      */
     private val links: SeriesStackBadgeRepository,
+
     /**
      * 시리즈 저장소
      */
     private val projects: SeriesRepository,
+
     /**
      * 로컬 이미지 저장소
      */

@@ -23,14 +23,17 @@ export function connectHeader(options: {
    * 검색어에 맞춘 현재 목록 갱신 콜백
    */
   onSearch?: () => void;
+
   /**
    * 테마 변경 반영 콜백
    */
   onThemeChange?: (theme: 'light' | 'dark') => void;
+
   /**
    * 로그아웃 후 화면 갱신 콜백
    */
   onLogout?: () => void;
+
   /**
    * 작업 실패 안내 콜백
    */
@@ -69,6 +72,7 @@ export function connectHeader(options: {
   let searchComposing = false;
 
   // 검색 기록·페이지 이동·빈 검색어 처리를 화면에 맞춰 선택
+
   /**
    * 검색 화면에서는 주소만 바꾸고, 다른 화면에서는 전체 검색 결과로 이동함
    */

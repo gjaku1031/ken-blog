@@ -26,14 +26,17 @@ class CategoryService(
      * 분류 저장소
      */
     private val categories: CategoryRepository,
+
     /**
      * 게시글 저장소
      */
     private val posts: PostRepository,
+
     /**
      * 콘텐츠 집합 잠금 저장소
      */
     private val state: ContentStateRepository,
+
     /**
      * 게시글 메타데이터 조회기
      */
@@ -163,6 +166,7 @@ class CategoryService(
             .associate { it.categoryId to it.count }
         // 부모별 분류 묶음 구성
         val children = all.groupBy { it.parentId }
+
         /**
          * 초안을 포함한 직접 글 수와 자손 글 수를 합산해 분류 노드 구성
          */
@@ -212,6 +216,7 @@ class CategoryService(
          * 이름
          */
         val name: String,
+
         /**
          * 공개 주소 식별자
          */
@@ -231,6 +236,7 @@ class CategoryService(
          * 분류 표시 이름 패턴
          */
         val DISPLAY_PATTERN = Regex("[\\p{L}\\p{N}]+(?:[ -][\\p{L}\\p{N}]+)*")
+
         /**
          * 주소 식별자 패턴
          */

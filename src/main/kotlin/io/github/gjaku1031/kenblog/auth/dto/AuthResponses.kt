@@ -15,6 +15,7 @@ class LoginRequest(
      * 원문 비밀번호
      */
     val password: String,
+
     /**
      * 30일 비활동 만료·브라우저 쿠키 사용 여부, 생략하면 일반 로그인
      */
@@ -36,6 +37,7 @@ class CsrfResponse(
      * CSRF 토큰 요청 헤더명
      */
     val headerName: String,
+
     /**
      * 세션별 CSRF 토큰
      */
@@ -57,6 +59,7 @@ data class CurrentUserResponse(
      * 계정명
      */
     val username: String,
+
     /**
      * 계정 권한
      */

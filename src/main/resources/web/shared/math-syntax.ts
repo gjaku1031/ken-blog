@@ -11,30 +11,37 @@ type MathRange = {
    * 구간 시작 위치
    */
   start: number;
+
   /**
    * 구간 끝 위치
    */
   end: number;
+
   /**
    * 노드 값
    */
   value: string;
+
   /**
    * 블록 수식 여부
    */
   display: boolean;
+
   /**
    * 충돌 방지용 치환 마커
    */
   marker: string;
+
   /**
    * 원문 표시 여부
    */
   raw?: boolean;
+
   /**
    * 치환 후 시작 위치
    */
   transformedStart: number;
+
   /**
    * 치환 후 끝 위치
    */
@@ -49,6 +56,7 @@ type PositionedNode = {
    * 종류
    */
   type: string;
+
   /**
    * 문서 내 위치
    */
@@ -62,6 +70,7 @@ type PositionedNode = {
        */
       offset?: number
     };
+
     /**
      * 구간 끝 위치
      */
@@ -72,6 +81,7 @@ type PositionedNode = {
       offset?: number
     }
   };
+
   /**
    * 하위 AST 노드
    */
@@ -82,6 +92,7 @@ type PositionedNode = {
  * 공유 GFM Markdown 파서
  */
 const parser = unified().use(remarkParse).use(remarkGfm);
+
 /**
  * 독립된 블록 수식 구분자 패턴
  */
@@ -99,10 +110,12 @@ function excludedMasks(source: string): {
    * 인라인 문법 제외 구간
    */
   inline: Uint8Array;
+
   /**
    * 블록 문법 제외 구간
    */
   block: Uint8Array;
+
   /**
    * 치환 전 AST
    */
@@ -117,15 +130,18 @@ function excludedMasks(source: string): {
      * 구간 시작 위치
      */
     start: number;
+
     /**
      * 구간 끝 위치
      */
     end: number
   }> = [];
+
   /**
    * 파싱 제외 구간 표시
    */
   const cover = (start: number, end: number) => { mask.fill(1, start, end); blockMask.fill(1, start, end); };
+
   /**
    * 현재 노드와 하위 노드 순회
    */
@@ -167,6 +183,7 @@ function excludedMasks(source: string): {
      * 이름
      */
     name: string;
+
     /**
      * 구간 시작 위치
      */
@@ -198,14 +215,17 @@ function lines(source: string): Array<{
    * 구간 시작 위치
    */
   start: number;
+
   /**
    * 구간 끝 위치
    */
   end: number;
+
   /**
    * 다음 탐색 위치
    */
   next: number;
+
   /**
    * 표시 텍스트
    */
@@ -216,14 +236,17 @@ function lines(source: string): Array<{
      * 구간 시작 위치
      */
     start: number;
+
     /**
      * 구간 끝 위치
      */
     end: number;
+
     /**
      * 다음 탐색 위치
      */
     next: number;
+
     /**
      * 표시 텍스트
      */
@@ -299,6 +322,7 @@ function mathRanges(source: string, masks: {
    * 인라인 문법 제외 구간
    */
   inline: Uint8Array;
+
   /**
    * 블록 문법 제외 구간
    */
@@ -410,10 +434,12 @@ function sourcePoint(starts: number[], offset: number): {
    * 행 번호
    */
   line: number;
+
   /**
    * 열 번호
    */
   column: number;
+
   /**
    * 원문 오프셋
    */
@@ -459,6 +485,7 @@ function restoreNodes(root: Root, ranges: MathRange[], starts: number[]): void {
   // 마커별 수식 범위 조회 준비
   const byMarker = new Map(ranges.map((range) => [range.marker, range]));
   const markers = ranges.length ? new RegExp([...byMarker.keys()].map((value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|"), "g") : null;
+
   /**
    * 현재 노드와 하위 노드 순회
    */
@@ -470,6 +497,7 @@ function restoreNodes(root: Root, ranges: MathRange[], starts: number[]): void {
          * 노드 값
          */
         value?: string;
+
         /**
          * 하위 AST 노드
          */

@@ -20,6 +20,7 @@ class PagesSnapshotService(
      * 공개 글 메타데이터 서비스
      */
     private val posts: PublicPostService,
+
     /**
      * 시리즈 서비스
      */
@@ -29,6 +30,7 @@ class PagesSnapshotService(
      * 게시글 메타데이터 조회기
      */
     private val queries: PostQueries,
+
     /**
      * JSON 직렬화기
      */

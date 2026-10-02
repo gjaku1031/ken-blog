@@ -13,38 +13,47 @@ data class PostMetadataCreateRequest(
      * 제목
      */
     val title: String,
+
     /**
      * 공개 주소 식별자, 생략하면 서버에서 생성
      */
     val slug: String? = null,
+
     /**
      * 요약
      */
     val summary: String = "",
+
     /**
      * 분류 ID
      */
     val categoryId: Long? = null,
+
     /**
      * 태그 목록
      */
     val tags: List<String> = emptyList(),
+
     /**
      * 시리즈 ID
      */
     val seriesId: Long? = null,
+
     /**
      * 표시 순서
      */
     val order: Int? = null,
+
     /**
      * 관련 프로젝트 시리즈 ID
      */
     val relatedSeriesId: Long? = null,
+
     /**
      * 첨부 ID 목록
      */
     val attachmentIds: List<Long> = emptyList(),
+
     /**
      * 위키 대상 제목 목록
      */
@@ -79,17 +88,20 @@ data class PostMetadataCreateRequest(
                 AttachmentIds.parse(node.get("attachmentIds")) ?: emptyList(),
                 WikiDeclarations.parse(node.get("wikiTargets")) ?: emptyList())
         }
+
         /**
          * 필수 JSON 문자열 조회, 누락·다른 타입이면 입력 오류
          */
         private fun requiredString(node: JsonNode, name: String): String = node.get(name)?.takeIf { it.isTextual }
             ?.textValue() ?: throw InvalidPostRequestException()
+
         /**
          * 선택 JSON 문자열 조회, 다른 타입이면 입력 오류
          */
         private fun optionalString(node: JsonNode, name: String): String? = node.get(name)?.let {
             if (it.isNull) null else if (it.isTextual) it.textValue() else throw InvalidPostRequestException()
         }
+
         /**
          * 선택 Long 정수 조회, 범위 초과·다른 타입이면 입력 오류
          */
@@ -97,6 +109,7 @@ data class PostMetadataCreateRequest(
             if (it.isNull) null else if (it.isIntegralNumber && it.canConvertToLong()) it.longValue()
             else throw InvalidPostRequestException()
         }
+
         /**
          * 선택 Int 정수 조회, 범위 초과·다른 타입이면 입력 오류
          */

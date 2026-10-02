@@ -12,34 +12,42 @@ import { pathToFileURL } from "node:url";
  * 저장소 루트
  */
 const root = resolve(import.meta.dirname, "../..");
+
 /**
  * 배포 전 임시 사이트 디렉터리
  */
 const staging = join(root, "build/site-staging");
+
 /**
  * 완성 사이트 출력 디렉터리
  */
 const output = join(root, "build/site");
+
 /**
  * 사이트 기준 경로
  */
 const basePath = "/ken-blog/";
+
 /**
  * 공개 주소 식별자 패턴
  */
 const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
 /**
  * 사이트 기준 경로 결합
  */
 const route = (path = "") => `${basePath}${path}`;
+
 /**
  * 공개 주소 식별자의 타입·길이·형식 검사
  */
 const checkedSlug = (value) => { if (typeof value !== "string" || value.length > 160 || !slugPattern.test(value)) throw new Error("공개 slug 형식 오류"); return value; };
+
 /**
  * 검증된 글 주소 생성
  */
 const postPath = post => route(`post/${checkedSlug(post.slug)}/`);
+
 /**
  * 위키 제목의 대소문자 비교 키 생성
  */
@@ -161,6 +169,7 @@ async function checkArtifact() {
   for (const name of await readdir(staging)) if (!allowed.has(name)) throw new Error(`허용되지 않은 Pages 산출물: ${name}`);
   let bytes = 0; let files = 0;
   // 하위 파일의 개수·크기·링크·내부 파일 유출 검사
+
   /**
    * 디렉터리를 순회하며 파일 내용과 경로 검사
    */

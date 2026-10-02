@@ -16,59 +16,73 @@ data class SeriesResponse(
      * ID
      */
     val id: Long,
+
     /**
      * 공개 주소 식별자
      */
     val slug: String,
+
     /**
      * 이름
      */
     val name: String,
+
     /**
      * 시리즈 종류
      */
     val kind: SeriesKind,
+
     /**
      * 설명
      */
     val description: String,
+
     /**
      * 공개 범위
      */
     val visibility: PostVisibility,
+
     /**
      * 프로젝트 진행 상태
      */
     val projectStatus: ProjectStatus?,
+
     /**
      * 시작 연월
      */
     val startPeriod: String?,
+
     /**
      * 종료 연월
      */
     val endPeriod: String?,
+
     /**
      * 정렬 순서
      */
     val sortOrder: Long,
+
     /**
      * 수정 시각
      */
     val updatedAt: LocalDateTime,
+
     /**
      * 첫 출간 문서, 없으면 null
      */
     val cover: PostSeriesItem?,
+
     /**
      * 문서 수
      */
     val postCount: Int,
+
     /**
      * 선택 순서의 기술 뱃지 목록
      */
     val stackBadges: List<StackBadgeResponse>,
 )
+
 /**
  * 본문 없는 시리즈 메타데이터와 같은 규칙으로 정렬한 글 목록
  */
@@ -77,11 +91,13 @@ data class SeriesDetailResponse(
      * 시리즈
      */
     val series: SeriesResponse,
+
     /**
      * 시리즈 문서 목록
      */
     val posts: List<SeriesPostResponse>
     )
+
 /**
  * 관리자에게는 미출간 문서도 포함하며 공개 상세에는 출간 문서만 포함
  */
@@ -90,23 +106,28 @@ data class SeriesPostResponse(
      * ID
      */
     val id: Long,
+
     /**
      * 제목
      */
     val title: String,
+
     /**
      * 공개 주소 식별자
      */
     val slug: String,
+
     /**
      * 표시 순서
      */
     val order: Int?,
+
     /**
      * 공개 출간 여부
      */
     val published: Boolean
     )
+
 /**
  * 변경할 시리즈 속성
  * 종류와 주소 변경은 허용하지 않음
@@ -116,31 +137,38 @@ data class SeriesMetadataRequest(
      * 이름
      */
     val name: String,
+
     /**
      * 설명
      */
     val description: String = "",
+
     /**
      * 프로젝트 진행 상태
      */
     val projectStatus: ProjectStatus? = null,
+
     /**
      * 시작 연월
      */
     val startPeriod: String? = null,
+
     /**
      * 종료 연월
      */
     val endPeriod: String? = null,
+
     /**
      * 선택한 기술 이름 목록
      */
     val stackBadgeNames: List<String> = emptyList(),
+
     /**
      * 수정 충돌 확인용 기존 수정 시각
      */
     val baseUpdatedAt: LocalDateTime? = null,
 )
+
 /**
  * 시리즈 생성은 문서 생성과 독립적이며 첫 출간 전에는 공개 목록에 나오지 않음
  */
@@ -149,10 +177,12 @@ data class SeriesCreateRequest(
      * 공개 주소 식별자, 생략하면 서버에서 생성
      */
     val slug: String? = null,
+
     /**
      * 시리즈 종류
      */
     val kind: SeriesKind,
+
     /**
      * 시리즈 속성 입력
      */
@@ -193,6 +223,7 @@ object SeriesRequests {
             optionalText(node, "description") ?: "", status, optionalText(node, "startPeriod"),
             optionalText(node, "endPeriod"), badges, base)
     }
+
     /**
      * 시리즈 생성
      *
@@ -209,6 +240,7 @@ object SeriesRequests {
         // 주소 생략을 허용하고 종류별 메타데이터 검증
         return SeriesCreateRequest(optionalText(node, "slug"), kind, metadata(node.get("metadata")))
     }
+
     /**
      * 종류별 속성·기술 목록·기간 범위 검사
      *
@@ -235,12 +267,14 @@ object SeriesRequests {
         // 정규화한 이름·설명으로 입력 반환
         return input.copy(name = name, description = description)
     }
+
     /**
      * 선택 문자열의 null·타입 검사
      */
     private fun optionalText(node: JsonNode, name: String): String? = node.get(name)?.let {
         if (it.isNull) null else if (it.isTextual) it.textValue() else throw InvalidSeriesRequestException()
     }
+
     /**
      * 연월 입력 패턴
      */

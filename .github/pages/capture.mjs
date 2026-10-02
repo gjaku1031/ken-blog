@@ -2,10 +2,12 @@
  * 공개 주소 식별자 패턴
  */
 const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
 /**
  * 스냅샷 SHA-256 형식
  */
 const revisionPattern = /^[a-f0-9]{64}$/;
+
 /**
  * 공개 스냅샷 API 경로
  */
@@ -17,6 +19,7 @@ const snapshotPath = "/api/v1/pages/snapshot";
 function requireValue(condition, context) {
   if (!condition) throw new Error(`Invalid public API response: ${context}`);
 }
+
 /**
  * 입력이 객체인지 검사
  */
@@ -24,6 +27,7 @@ const object = (value, context) => {
   requireValue(value !== null && typeof value === "object" && !Array.isArray(value), context);
   return value;
 };
+
 /**
  * 문자열 타입과 빈 값 허용 여부 검사
  */
@@ -31,10 +35,12 @@ const string = (value, context, allowEmpty = false) => {
   requireValue(typeof value === "string" && (allowEmpty || value.length > 0), context);
   return value;
 };
+
 /**
  * null을 허용하는 문자열 검사
  */
 const nullableString = (value, context) => value == null ? null : string(value, context, true);
+
 /**
  * 안전 정수와 최솟값 검사
  */
@@ -42,6 +48,7 @@ const integer = (value, context, minimum = 0) => {
   requireValue(Number.isSafeInteger(value) && value >= minimum, context);
   return value;
 };
+
 /**
  * 부호 있는 안전 정수 검사
  */
@@ -49,6 +56,7 @@ const signedInteger = (value, context) => {
   requireValue(Number.isSafeInteger(value), context);
   return value;
 };
+
 /**
  * 공개 주소 식별자 형식 검사
  */
@@ -57,6 +65,7 @@ const slug = (value, context) => {
   requireValue(value.length <= 160 && slugPattern.test(value), context);
   return value;
 };
+
 /**
  * 배열 입력 검사
  */
@@ -110,11 +119,13 @@ export function normalizeSnapshot(raw, fixture = false) {
   // 스냅샷 형태·버전·revision 검사
   object(raw, "snapshot");
   requireValue(raw.version === 2 && (fixture || revisionPattern.test(raw.revision ?? "")), "snapshot version/revision");
+
   /**
    * 검증한 문서 이동 정보 생성
    */
   const navigation = row => ({ id: integer(row.id, "navigation id", 1), slug: slug(row.slug, "navigation slug"),
     title: string(row.title, "navigation title"), order: integer(row.order, "navigation order", 1) });
+
   /**
    * 선택 시리즈 참조의 필드 검사
    */

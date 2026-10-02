@@ -10,35 +10,43 @@ export type Category = {
    * ID
    */
   id: number;
+
   /**
    * 분류 경로
    */
   path: string;
+
   /**
    * 이름
    */
   name: string;
+
   /**
    * 분류 깊이
    */
   depth: number;
+
   /**
    * 정렬 순서
    */
   sortOrder: number;
+
   /**
    * 초안을 포함한 해당 분류와 모든 하위 분류의 글 수
    */
   totalCount?: number;
+
   /**
    * 초안을 포함한 해당 분류의 직접 글 수
    */
   directCount: number;
+
   /**
    * 하위 분류 목록
    */
   children: Category[]
 };
+
 /**
  * 태그 이름과 사용 건수
  */
@@ -47,11 +55,13 @@ export type Tag = {
    * 이름
    */
   name: string;
+
   /**
    * 분류의 직접 글과 하위 글 수 합산
    */
   count: number
 };
+
 /**
  * 글 작성에 사용할 분류·태그·시리즈 목록
  */
@@ -60,10 +70,12 @@ export type PostOptions = {
    * 분류 목록
    */
   categories: Category[];
+
   /**
    * 태그 목록
    */
   tags: Tag[];
+
   /**
    * 시리즈
    */
@@ -79,10 +91,12 @@ export function categoryPicker(parent: HTMLElement, categories: Category[], sele
   const major = choice(group, '대분류', 'categoryRoot', [['', '분류 없음'], ...categories.map(item => [String(item.id), item.name] as [string, string])], String(root?.id ?? ''));
   const minor = choice(group, '소분류', 'categoryChild', []);
   const hidden = el('input'); hidden.type = 'hidden'; hidden.name = 'categoryId'; group.append(hidden);
+
   /**
    * 소분류 우선으로 제출할 분류 ID 갱신
    */
   const sync = () => { hidden.value = minor.value || major.value; };
+
   /**
    * 선택한 대분류의 소분류 목록 갱신
    */
@@ -115,10 +129,12 @@ export function tagPicker(parent: HTMLElement, tags: Tag[], initial: string[] = 
   const input = el('input'); input.type = 'text'; input.placeholder = '기존 태그 검색 또는 새 태그 입력'; input.autocomplete = 'off'; input.maxLength = 80;
   input.setAttribute('aria-label', '태그 검색'); input.setAttribute('aria-autocomplete', 'list');
   const list = el('div');
+
   /**
    * 대소문자와 무관하게 이미 선택한 태그인지 확인
    */
   const has = (name: string) => selected.some(tag => tag.toLowerCase() === name.toLowerCase());
+
   /**
    * 선택 태그 칩과 제출할 폼 값 갱신
    */
@@ -132,6 +148,7 @@ export function tagPicker(parent: HTMLElement, tags: Tag[], initial: string[] = 
     }
   }
   // 길이·개수·대소문자 중복 검사 후 추가
+
   /**
    * 유효한 태그를 중복 없이 선택 목록에 추가
    */
@@ -147,6 +164,7 @@ export function tagPicker(parent: HTMLElement, tags: Tag[], initial: string[] = 
   const popup = listbox(input, list, () => {
     list.replaceChildren(); const term = input.value.trim().replace(/^#/, '');
     const matches = tags.filter(tag => !has(tag.name) && tag.name.toLocaleLowerCase().includes(term.toLocaleLowerCase()));
+
     /**
      * 이름·표시 문구·사용 건수로 태그 후보 생성
      */
@@ -184,6 +202,7 @@ export function taxonomyFields(parent: HTMLElement, data: PostOptions, post?: {
      */
     id: number
   } | null;
+
   /**
    * 태그 목록
    */
@@ -206,10 +225,12 @@ export function postCreateFields(parent: HTMLElement, data: PostOptions, project
   field(parent, '문서 순서 (비우면 마지막)', 'order', '', { type: 'number' }).min = '1';
   if (!project) choice(parent, '관련 프로젝트', 'relatedSeriesId', [['', '없음'], ...data.series.filter(item => item.kind === 'PROJECT').map(item => [String(item.id), item.name] as [string, string])]);
 }
+
 /**
  * 폼에서 순서대로 선택한 태그 이름 수집
  */
 export const postTags = (data: FormData) => data.getAll('tags').map(String);
+
 /**
  * 글 작성 폼을 메타데이터 생성 요청으로 변환
  */

@@ -20,6 +20,7 @@ class AdminAuthSettings(
      */
     fun configured(): ConfiguredAdminAuth? = if (Regex("[a-z][a-z0-9_-]{2,63}").matches(username))
         ConfiguredAdminAuth(username, sha256("admin-password-v2\u0000$username")) else null
+
     /**
      * 공통 상수·도우미
      */
@@ -32,6 +33,7 @@ class AdminAuthSettings(
             .joinToString("") { "%02x".format(it.toInt() and 0xff) }
     }
 }
+
 /**
  * 검증된 단일 관리자 설정
  */
@@ -40,6 +42,7 @@ class ConfiguredAdminAuth(
      * 계정명
      */
     val username: String,
+
     /**
      * 관리자 설정 지문
      */

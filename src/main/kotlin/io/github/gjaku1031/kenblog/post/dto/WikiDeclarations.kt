@@ -81,22 +81,27 @@ data class WikiNavigationItem(
      * ID
      */
     val id: Long,
+
     /**
      * 제목
      */
     val title: String,
+
     /**
      * 공개 주소 식별자
      */
     val slug: String,
+
     /**
      * 탐색 구획
      */
     val section: String = "TECH",
+
     /**
      * 시리즈 주소 식별자
      */
     val seriesSlug: String? = null,
+
     /**
      * 시리즈 이름
      */
@@ -111,6 +116,7 @@ data class WikiTitleSearchResponse(
      * 조회 결과 목록
      */
     val items: List<WikiNavigationItem>,
+
     /**
      * 제목 정확 일치 결과
      */

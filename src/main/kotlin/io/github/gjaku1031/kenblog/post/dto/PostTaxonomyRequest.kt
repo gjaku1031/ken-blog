@@ -12,6 +12,7 @@ data class PostTaxonomyRequest(
      * 분류 ID, 명시 null이면 분류 해제
      */
     val categoryId: Long?,
+
     /**
      * 순서를 보존할 태그 목록, 빈 배열이면 모두 해제
      */

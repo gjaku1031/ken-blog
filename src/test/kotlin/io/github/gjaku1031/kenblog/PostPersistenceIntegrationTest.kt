@@ -33,10 +33,12 @@ class PostPersistenceIntegrationTest(
      * 게시글 서비스
      */
     @Autowired private val service: PostService,
+
     /**
      * JDBC 쿼리 실행기
      */
     @Autowired private val jdbc: JdbcTemplate,
+
     /**
      * 테스트 트랜잭션 관리자
      */
