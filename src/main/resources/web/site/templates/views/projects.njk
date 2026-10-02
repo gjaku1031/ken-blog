@@ -1,6 +1,6 @@
 <main id="main-content" class="page-container projects-page">
   <div class="projects-heading">
-    <h1>Projects</h1><a class="write-button" data-admin-write href="{{ base }}projects/new/" hidden>글쓰기</a>
+    <h1>Projects</h1><button class="write-button" type="button" data-admin-write data-post-create="PROJECT" hidden>글쓰기</button>
   </div>
   <div class="projects-grid">
     {% for project in projects %}<article class="project-card card hv">
@@ -19,7 +19,7 @@
     <button id="new-project" class="project-create-card" type="button" data-admin-write hidden><span aria-hidden="true">+</span>새 프로젝트</button>
   </div>
   {% if not projects | length %}<p class="projects-empty">아직 출간된 프로젝트가 없습니다.</p>{% endif %}
-  <dialog id="project-dialog" class="edit-dialog" aria-labelledby="project-dialog-title">
+  <dialog id="project-dialog" class="edit-dialog project-edit-dialog" aria-labelledby="project-dialog-title">
     <div class="dialog-heading"><h2 id="project-dialog-title">새 프로젝트</h2><button id="project-dialog-close" class="project-dialog-close" type="button" aria-label="닫기">×</button></div>
     <p id="project-dialog-message" class="notice" role="status" hidden></p><div id="project-dialog-content"></div>
   </dialog>

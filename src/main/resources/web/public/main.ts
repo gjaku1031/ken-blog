@@ -5,6 +5,7 @@ import "@fontsource/ibm-plex-mono/400.css";
 import "katex/dist/katex.min.css";
 import "./style.css";
 import "../shared/header.css";
+import "../shared/category-tree.css";
 import { connectHeader, updateHeaderSession } from "../shared/header";
 import { request } from "../shared/admin-api";
 import { enhanceMarkdown } from "../shared/enhance";
@@ -66,7 +67,7 @@ function filterCards(): void {
 connectHeader({
   onSearch: filterCards,
   onThemeChange: theme => document.querySelectorAll<HTMLElement>('.markdown-body').forEach(root => { void enhanceMarkdown(root, { theme }); }),
-  onLogout: () => document.querySelector<HTMLDialogElement>('#project-dialog')?.close(),
+  onLogout: () => document.querySelectorAll<HTMLDialogElement>('dialog.edit-dialog').forEach(dialog => dialog.close()),
   onError: error => window.alert(error.message),
 });
 filterCards();
@@ -90,3 +91,7 @@ if (document.getElementById('new-project')) {
 }
 
 connectTableOfContents();
+
+if (document.querySelector('[data-post-create]')) {
+  void import('./post-create').then(({ connectPostCreator }) => connectPostCreator());
+}

@@ -4,7 +4,6 @@ import io.github.gjaku1031.kenblog.series.domain.*
 import io.github.gjaku1031.kenblog.series.dto.*
 import io.github.gjaku1031.kenblog.series.repository.SeriesRepository
 import io.github.gjaku1031.kenblog.post.repository.PostQueries
-import io.github.gjaku1031.kenblog.post.repository.PostRepository
 import io.github.gjaku1031.kenblog.post.domain.PostVisibility
 import io.github.gjaku1031.kenblog.post.domain.PostStatus
 import io.github.gjaku1031.kenblog.post.dto.PostSeriesItem
@@ -17,9 +16,9 @@ import java.time.ZoneOffset
 import java.util.Locale
 import java.util.UUID
 
-/** 시리즈 메타데이터 저장과 첫 공개 글 대문 계산. 글과 파일은 시리즈 삭제로 지우지 않음. */
+/** 시리즈 메타데이터 저장과 첫 공개 글 대문 계산. */
 @Service
-class SeriesService(private val series: SeriesRepository, private val posts: PostRepository,
+class SeriesService(private val series: SeriesRepository,
     private val queries: PostQueries, private val badges: StackBadgeService) {
     @Transactional(readOnly = true)
     fun list(admin: Boolean): List<SeriesResponse> = series.findAll()
@@ -64,12 +63,6 @@ class SeriesService(private val series: SeriesRepository, private val posts: Pos
         val entity = series.findLockedById(id) ?: throw SeriesNotFoundException()
         entity.reorder(order); series.saveAndFlush(entity)
         return response(entity, true)
-    }
-    @Transactional
-    fun delete(id: Long) {
-        val entity = series.findLockedById(id) ?: throw SeriesNotFoundException()
-        if (posts.existsBySeriesId(id)) throw SeriesConflictException()
-        series.delete(entity); series.flush()
     }
     private fun response(entity: SeriesEntity, admin: Boolean): SeriesResponse {
         val id = entity.id!!

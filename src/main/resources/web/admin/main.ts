@@ -3,18 +3,19 @@ import "../shared/stack-icons.css";
 import './style.css';
 import '../shared/header.css';
 import '../shared/forms.css';
+import '../shared/category-tree.css';
 import { connectHeader, updateHeaderSession } from '../shared/header';
 import { request, mutate, refreshCsrf, clearCsrf, HttpError } from '../shared/admin-api';
-import { el, setMessage, field, area, choice, submit, value, seriesMetadata, projectFields, type Badge } from '../shared/forms';
+import { el, setMessage, field, area, choice, submit, value, type Badge } from '../shared/forms';
+import { seriesEditor, type Series } from '../shared/series-editor';
+import { taxonomyFields, postCreateFields, postPayload, postTags, type Category, type Tag } from '../shared/post-fields';
 
 type Page<T> = { items: T[]; page: number; totalElements: number; totalPages: number };
 type CategoryRef = { id: number; path: string; name: string; depth: number; sortOrder: number };
-type Category = CategoryRef & { totalCount?: number; directCount: number; children: Category[] };
 type SeriesRef = { id: number; name: string; slug: string; kind: 'TECH' | 'PROJECT' };
-type Series = { id: number; name: string; slug: string; kind: 'TECH' | 'PROJECT'; description: string; projectStatus: string | null; startPeriod: string | null; endPeriod: string | null; updatedAt: string; sortOrder: number; stackBadges: Badge[] };
 type Post = { updatedAt: string; publishedAt: string | null; id: number; title: string; slug: string; section: 'TECH' | 'PROJECT'; status: 'DRAFT' | 'PUBLISHED'; visibility: 'PUBLIC' | 'PRIVATE'; summary: string; category: CategoryRef | null; tags: string[]; series: SeriesRef | null; seriesOrder: number | null; relatedSeriesId: number | null };
 type PostDetail = Post & { attachmentIds: number[]; wikiTargets: string[] };
-type AdminData = { posts: Page<Post>; series: Series[]; categories: Category[]; badges: Badge[] };
+type AdminData = { posts: Page<Post>; series: Series[]; categories: Category[]; badges: Badge[]; tags: Tag[] };
 
 const boot = get('boot');
 const login = get('login');
@@ -33,10 +34,11 @@ function openDialog(title: string, content: HTMLElement) {
   get('dialog-title').textContent = title;
   get('dialog-content').replaceChildren(content);
   setMessage(get('dialog-message'), '');
+  dialog.classList.toggle('project-edit-dialog', !!content.querySelector('.project-form-columns'));
   dialog.showModal();
 }
 function selectPanel() {
-  const name = ['posts', 'categories', 'series', 'deployment'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'posts';
+  const name = ['posts', 'categories', 'series'].includes(location.hash.slice(1)) ? location.hash.slice(1) : 'posts';
   document.querySelectorAll<HTMLElement>('[data-panel]').forEach(panel => { panel.hidden = panel.id !== name; });
   document.querySelectorAll<HTMLElement>('[data-panel-link]').forEach(link => {
     if (link.dataset.panelLink === name) link.setAttribute('aria-current', 'page');
@@ -101,11 +103,6 @@ function optionalNumber(data: FormData, name: string): number | null {
   const raw = value(data, name);
   return raw ? Number(raw) : null;
 }
-function tags(data: FormData): string[] { return value(data, 'tags').split(',').map(item => item.trim()).filter(Boolean); }
-function categoryOptions(categories: Category[]): Array<[string, string]> {
-  return [['', '분류 없음'], ...flatten(categories).map(item => [String(item.id), item.path] as [string, string])];
-}
-function flatten(nodes: Category[]): Category[] { return nodes.flatMap(item => [item, ...flatten(item.children ?? [])]); }
 function itemHeading(title: string, detail = '') {
   const heading = el('div', 'item-title');
   heading.append(el('h3', '', title));
@@ -132,9 +129,10 @@ async function loadDashboard() {
     request<Series[]>('/admin/series'),
     request<Category[]>('/admin/categories'),
     request<Badge[]>('/admin/stack-badges'),
+    request<Tag[]>('/admin/tags'),
   ]);
   if (!sessionReady) return;
-  render({ posts: data[0], series: data[1], categories: data[2], badges: data[3] });
+  render({ posts: data[0], series: data[1], categories: data[2], badges: data[3], tags: data[4] });
   showDashboard();
 }
 function render(data: AdminData) {
@@ -197,12 +195,11 @@ function editPost(post: Post, data: AdminData) {
   content.append(el('p', 'source-path mono', `content/posts/${post.slug}.md`));
   const edit = form(input => mutate(`/admin/posts/${post.id}/metadata`, 'PATCH', {
     title: value(input, 'title'), summary: value(input, 'summary'),
-    categoryId: optionalNumber(input, 'categoryId'), tags: tags(input),
+    categoryId: optionalNumber(input, 'categoryId'), tags: postTags(input),
   }), '글 메타데이터를 저장했습니다.');
   field(edit, '제목', 'title', post.title, { required: true, max: 200 });
   field(edit, '요약', 'summary', post.summary, { max: 120 });
-  choice(edit, '분류', 'categoryId', categoryOptions(data.categories), String(post.category?.id ?? ''));
-  field(edit, '태그 (쉼표 구분)', 'tags', post.tags.join(', '));
+  taxonomyFields(edit, data, post);
   submit(edit, '메타데이터 저장'); content.append(edit);
   const membership = form(input => mutate(`/admin/posts/${post.id}/series`, 'PUT', {
     seriesId: optionalNumber(input, 'seriesId'), relatedSeriesId: optionalNumber(input, 'relatedSeriesId'), order: optionalNumber(input, 'order'),
@@ -224,36 +221,24 @@ function renderEditor(data: AdminData) {
       for (const [key, title] of [['', '프로젝트 선택'], ...data.series.filter(item => item.kind === 'PROJECT').map(item => [String(item.id), item.name])]) {
         const option = el('option', '', title); option.value = key; select.append(option);
       }
-      select.value = current; selectedProject = null;
+      select.value = current; select.dispatchEvent(new Event('change')); selectedProject = null;
     }
     return;
   }
   const create = form(async input => {
-    const post = await mutate<Post>('/admin/posts', 'POST', {
-      title: value(input, 'title'), summary: value(input, 'summary'),
-      categoryId: optionalNumber(input, 'categoryId'), tags: tags(input),
-      seriesId: optionalNumber(input, 'seriesId'), relatedSeriesId: optionalNumber(input, 'relatedSeriesId'), order: optionalNumber(input, 'order'),
-    });
+    const post = await mutate<Post>('/admin/posts', 'POST', postPayload(input));
     const done = el('div', 'creation-complete');
     done.append(el('h2', '', '글 정보가 저장되었습니다.'), el('p', '', post.title), el('p', 'source-path mono', `content/posts/${post.slug}.md`));
     const back = el('a', 'button primary', '목록으로'); back.href = `/ken-blog/${editorMode === 'project' ? 'projects' : 'posts'}/`;
     const manage = el('a', 'button ghost', '글 관리'); manage.href = '/ken-blog/manage/#posts'; done.append(back, manage);
     container.replaceChildren(done);
   }, '미발행 글로 저장했습니다.');
-  field(create, '제목', 'title', '', { required: true, max: 200, wide: true });
-  area(create, '요약', 'summary', '', 120);
-  choice(create, '분류', 'categoryId', categoryOptions(data.categories));
-  field(create, '태그 (쉼표 구분)', 'tags');
   const project = editorMode === 'project';
-  const select = choice(create, project ? '프로젝트' : '시리즈', 'seriesId', [['', project ? '프로젝트 선택' : '없음'], ...data.series.filter(item => item.kind === (project ? 'PROJECT' : 'TECH')).map(item => [String(item.id), item.name] as [string, string])]);
-  select.required = project;
-  const requestedProject = new URLSearchParams(location.search).get('project');
-  if (project && requestedProject && data.series.some(item => item.kind === 'PROJECT' && String(item.id) === requestedProject)) select.value = requestedProject;
-  field(create, '문서 순서 (비우면 마지막)', 'order', '', { type: 'number' }).min = '1';
+  postCreateFields(create, data, project, new URLSearchParams(location.search).get('project') ?? '');
   if (project) {
     const add = el('button', 'text-button new-project', '+ 새 프로젝트'); add.type = 'button';
     add.addEventListener('click', () => openDialog('새 프로젝트', createSeriesForm(latestData, true))); create.append(add);
-  } else choice(create, '관련 프로젝트', 'relatedSeriesId', [['', '없음'], ...data.series.filter(item => item.kind === 'PROJECT').map(item => [String(item.id), item.name] as [string, string])]);
+  }
   submit(create, '글 정보 저장'); container.append(create);
 }
 
@@ -332,10 +317,10 @@ function renderCategories(data: AdminData) {
     button.addEventListener('click', () => addCategory(parent)); return button;
   };
   const tree = (categories: Category[], parent: Category | null): HTMLUListElement => {
-    const ul = el('ul', 'admin-category-tree');
+    const ul = el('ul', 'category-tree');
     for (const category of categories) {
       const li = el('li');
-      const row = el('div', 'admin-category-line');
+      const row = el('div', 'category-line');
       const children = category.depth < 2 ? tree(category.children, category) : null;
       const toggle = el('button', 'category-expand'); toggle.type = 'button';
       if (children) {
@@ -372,17 +357,18 @@ function seriesFields(parent: HTMLElement, data: AdminData, selected: number | n
   field(parent, '문서 순서 (비우면 마지막)', 'order', String(order ?? ''), { type: 'number' }).min = '1';
   choice(parent, '관련 프로젝트', 'relatedSeriesId', [['', '없음'], ...data.series.filter(item => item.kind === 'PROJECT').map(item => [String(item.id), item.name] as [string, string])], String(related ?? ''));
 }
-function createSeriesForm(data: AdminData, project: boolean) {
-  const create = form(async input => {
-    const created = await mutate<Series>('/admin/series', 'POST', {
-      kind: project ? 'PROJECT' : 'TECH', metadata: seriesMetadata(input, project),
-    });
-    if (project) selectedProject = created.id;
-  }, project ? '프로젝트를 만들었습니다.' : '시리즈를 만들었습니다.');
-  field(create, '이름', 'name', '', { required: true, max: 200, wide: true });
-  area(create, '개요', 'description', '', 1000);
-  if (project) projectFields(create, data.badges);
-  submit(create, project ? '프로젝트 만들기' : '시리즈 만들기'); return create;
+function createSeriesForm(data: AdminData, project: boolean, item?: Series) {
+  return seriesEditor({ project, badges: data.badges, item,
+    onSaving: () => setMessage(get('dialog-message'), ''),
+    onSaved: async created => {
+      if (project && !item) selectedProject = created.id;
+      dialog.close(); await loadDashboard(); setMessage(dashboardMessage, '저장했습니다.');
+    },
+    onError: error => {
+      if (error instanceof HttpError && error.status === 401) showLogin(error.message);
+      else setMessage(get('dialog-message'), error instanceof Error ? error.message : '저장하지 못했습니다.', true);
+    },
+  });
 }
 function renderSeries(data: AdminData) {
   const add = el('button', 'button ghost', '+ 시리즈'); add.type = 'button';
@@ -397,17 +383,8 @@ function renderSeries(data: AdminData) {
     if (item.stackBadges.length) { const stacks = el('div', 'stack-chips'); for (const badge of item.stackBadges) stacks.append(el('span', 'stack-chip', badge.name)); info.append(stacks); }
     const button = el('button', 'text-button', '수정'); button.type = 'button';
     button.addEventListener('click', () => {
-      const content = el('div');
-      const edit = form(input => mutate(`/admin/series/${item.id}/metadata`, 'PUT', {
-        ...seriesMetadata(input, item.kind === 'PROJECT'), baseUpdatedAt: item.updatedAt,
-      }), '시리즈 메타데이터를 저장했습니다.');
-      field(edit, '이름', 'name', item.name, { required: true, max: 200, wide: true }); area(edit, '개요', 'description', item.description, 1000);
-      if (item.kind === 'PROJECT') projectFields(edit, data.badges, item);
-      submit(edit, '저장'); content.append(edit);
-      const order = form(input => mutate(`/admin/series/${item.id}/order`, 'PUT', { order: Number(value(input, 'order')) }), '시리즈 순서를 저장했습니다.');
-      field(order, '카드 순서', 'order', String(item.sortOrder), { type: 'number' }); submit(order, '순서 저장'); content.append(order);
-      smallAction(content, '빈 시리즈 삭제', () => mutate(`/admin/series/${item.id}`, 'DELETE'), '시리즈를 삭제했습니다.', `${item.name} 시리즈를 삭제할까요? 연결된 글이 있으면 삭제할 수 없습니다.`);
-      openDialog(item.kind === 'PROJECT' ? '프로젝트 수정' : '시리즈 수정', content);
+      const edit = createSeriesForm(data, item.kind === 'PROJECT', item);
+      openDialog(item.kind === 'PROJECT' ? '프로젝트 수정' : '시리즈 수정', edit);
     });
     article.append(info, button); list.append(article);
   }

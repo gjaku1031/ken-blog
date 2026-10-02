@@ -32,10 +32,5 @@ class SeriesController(private val service: SeriesService) {
         return noStore(service.setOrder(id, input.get("order").longValue()))
     }
 
-    @DeleteMapping("/{id}")
-    fun delete(@PathVariable id: Long): ResponseEntity<Void> {
-        service.delete(id); return ResponseEntity.noContent().cacheControl(CacheControl.noStore()).build()
-    }
-
     private fun <T : Any> noStore(value: T): ResponseEntity<T> = ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(value)
 }

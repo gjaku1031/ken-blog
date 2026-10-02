@@ -1,5 +1,6 @@
+import { listbox, styleChoice } from './dropdown';
 export type Badge = { id: number; name: string; imageUrl: string };
-type ProjectMetadata = { projectStatus: string | null; startPeriod: string | null; endPeriod: string | null; stackBadges: Badge[] };
+export type SeriesMetadata = { name: string; description: string; sortOrder: number; projectStatus: string | null; startPeriod: string | null; endPeriod: string | null; stackBadges: Badge[] };
 const apiBase = document.body.dataset.apiBase ?? '';
 
 export function el<K extends keyof HTMLElementTagNameMap>(tag: K, className = '', text = ''): HTMLElementTagNameMap[K] {
@@ -46,6 +47,7 @@ export function choice(form: HTMLElement, title: string, name: string, options: 
   }
   input.value = value;
   label.append(input); form.append(label);
+  styleChoice(input, label, title);
   return input;
 }
 export function submit(form: HTMLFormElement, title: string) {
@@ -57,7 +59,6 @@ export function submit(form: HTMLFormElement, title: string) {
 }
 export function value(data: FormData, name: string): string { return String(data.get(name) ?? '').trim(); }
 
-let pickerId = 0;
 export function stackPicker(parent: HTMLElement, badges: Badge[], initial: string[] = []) {
   const group = el('fieldset', 'wide stack-picker');
   group.append(el('legend', '', '기술 스택'));
@@ -65,35 +66,29 @@ export function stackPicker(parent: HTMLElement, badges: Badge[], initial: strin
   const chips = el('div', 'stack-chips');
   const input = el('input', 'stack-search');
   input.type = 'search'; input.placeholder = '기술 스택 검색'; input.autocomplete = 'off';
-  input.setAttribute('aria-label', '기술 스택 검색'); input.setAttribute('role', 'combobox');
-  input.setAttribute('aria-autocomplete', 'list'); input.setAttribute('aria-expanded', 'false');
-  const list = el('div', 'stack-options'); list.id = `stack-options-${++pickerId}`;
-  list.setAttribute('role', 'listbox'); list.setAttribute('aria-label', '등록된 기술 스택'); list.hidden = true;
-  input.setAttribute('aria-controls', list.id);
+  input.setAttribute('aria-label', '기술 스택 검색'); input.setAttribute('aria-autocomplete', 'list');
+  const list = el('div');
   const values = el('div');
-  let active = -1;
   function icon(badge: Badge) {
     const image = el('img'); image.src = new URL(`/api/v1/stack-badges/${badge.id}/image`, apiBase).href;
     image.width = 20; image.height = 20; image.alt = ''; image.dataset.stackName = badge.name; image.addEventListener('error', () => { image.hidden = true; });
     return image;
   }
-  function close() { list.hidden = true; input.setAttribute('aria-expanded', 'false'); input.removeAttribute('aria-activedescendant'); active = -1; }
   function options() {
-    list.replaceChildren(); active = -1; input.removeAttribute('aria-activedescendant');
+    list.replaceChildren();
     const matches = badges.filter(b => !selected.includes(b.name) && b.name.toLocaleLowerCase().includes(input.value.trim().toLocaleLowerCase()));
     for (const badge of matches) {
-      const option = el('button', 'stack-option'); option.type = 'button'; option.tabIndex = -1;
-      option.id = `${list.id}-${badge.id}`; option.setAttribute('role', 'option'); option.setAttribute('aria-selected', 'false');
+      const option = el('button', 'picker-option stack-option'); option.type = 'button'; option.tabIndex = -1;
+      option.setAttribute('role', 'option'); option.setAttribute('aria-selected', 'false');
       option.append(icon(badge), document.createTextNode(badge.name));
       option.addEventListener('mousedown', event => event.preventDefault());
       option.addEventListener('click', () => {
         if (selected.length >= 30) return;
-        selected.push(badge.name); input.value = ''; render(); input.focus(); options();
+        selected.push(badge.name); input.value = ''; render(); input.focus(); popup.refresh();
       }); list.append(option);
     }
     if (!matches.length) list.append(el('p', 'stack-empty', badges.length ? '선택할 기술 스택이 없습니다.' : '등록된 기술 스택이 없습니다.'));
     if (selected.length >= 30) list.replaceChildren(el('p', 'stack-empty', '기술 스택은 최대 30개까지 선택할 수 있습니다.'));
-    list.hidden = false; input.setAttribute('aria-expanded', 'true');
   }
   function render() {
     chips.replaceChildren(); values.replaceChildren();
@@ -102,28 +97,15 @@ export function stackPicker(parent: HTMLElement, badges: Badge[], initial: strin
       const badge = badges.find(b => b.name === name); if (badge) chip.append(icon(badge));
       chip.append(document.createTextNode(name));
       const remove = el('button', 'chip-remove', '×'); remove.type = 'button'; remove.setAttribute('aria-label', `${name} 선택 해제`);
-      remove.addEventListener('click', () => { selected = selected.filter(item => item !== name); render(); input.focus(); options(); });
+      remove.addEventListener('click', () => { selected = selected.filter(item => item !== name); render(); input.focus(); popup.refresh(); });
       chip.append(remove); chips.append(chip);
       const hidden = el('input'); hidden.type = 'hidden'; hidden.name = 'stackBadgeNames'; hidden.value = name; values.append(hidden);
     }
   }
-  input.addEventListener('focus', options); input.addEventListener('input', options);
-  input.addEventListener('keydown', event => {
-    if (event.isComposing) return;
-    if (event.key === 'Escape' && !list.hidden) { event.preventDefault(); event.stopPropagation(); close(); return; }
-    if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-      event.preventDefault(); if (list.hidden) options();
-      const buttons = [...list.querySelectorAll<HTMLButtonElement>('button')];
-      if (!buttons.length) return;
-      active = (active + (event.key === 'ArrowDown' ? 1 : -1) + buttons.length) % buttons.length;
-      buttons.forEach((button, index) => button.setAttribute('aria-selected', String(index === active)));
-      input.setAttribute('aria-activedescendant', buttons[active].id); buttons[active].scrollIntoView({ block: 'nearest' });
-    } else if (event.key === 'Enter') {
-      event.preventDefault(); if (!list.hidden && active >= 0) list.querySelectorAll<HTMLButtonElement>('button')[active]?.click();
-    }
-  });
-  group.addEventListener('focusout', event => { if (!(event.relatedTarget instanceof Node) || !group.contains(event.relatedTarget)) close(); });
   group.append(chips, input, list, values); parent.append(group); render();
+  const popup = listbox(input, list, options);
+  input.addEventListener('focus', popup.open); input.addEventListener('input', popup.open);
+  input.addEventListener('keydown', event => { if (event.key === 'Enter' && !event.isComposing) event.preventDefault(); });
 }
 function badgeNames(data: FormData): string[] { return data.getAll('stackBadgeNames').map(String); }
 
@@ -132,12 +114,22 @@ export function seriesMetadata(input: FormData, project: boolean) {
     ...(project ? { projectStatus: value(input, 'projectStatus'), startPeriod: value(input, 'startPeriod'),
       endPeriod: value(input, 'endPeriod') || null, stackBadgeNames: badgeNames(input) } : {}) };
 }
-export function projectFields(parent: HTMLElement, badges: Badge[], item?: ProjectMetadata) {
-  choice(parent, '상태', 'projectStatus', [['PLAN', '기획'], ['DEV', '개발'], ['MAINT', '유지보수'], ['DONE', '완료']], item?.projectStatus ?? 'PLAN');
-  const start = field(parent, '시작 기간', 'startPeriod', item?.startPeriod ?? '', { required: true, placeholder: 'YYYY.MM', max: 7 });
+export function seriesFormFields(parent: HTMLElement, badges: Badge[], project: boolean, item?: SeriesMetadata) {
+  const layout = el('div', project ? 'wide project-form-columns' : 'wide series-form-basic');
+  const main = el('div', 'project-form-main');
+  field(main, '이름', 'name', item?.name ?? '', { required: true, max: 200 });
+  area(main, '개요', 'description', item?.description ?? '', 1000);
+  const order = field(main, '카드 순서', 'order', String(item?.sortOrder ?? 0), { type: 'number', required: true });
+  order.min = '-2147483648'; order.max = '2147483647';
+  layout.append(main); parent.append(layout);
+  if (!project) return;
+  const details = el('div', 'project-form-details'); layout.append(details);
+  const period = el('fieldset', 'project-period-fields'); period.append(el('legend', '', '기간'));
+  const start = field(period, '시작', 'startPeriod', item?.startPeriod ?? '', { required: true, placeholder: 'YYYY.MM', max: 7 });
   start.pattern = '[0-9]{4}\\.(0[1-9]|1[0-2])';
-  const end = field(parent, '종료 기간', 'endPeriod', item?.endPeriod ?? '', { placeholder: 'YYYY.MM', max: 7 });
+  const end = field(period, '종료', 'endPeriod', item?.endPeriod ?? '', { placeholder: '현재', max: 7 });
   end.pattern = start.pattern;
-  stackPicker(parent, badges, item?.stackBadges.map(b => b.name) ?? []);
+  details.append(period);
+  choice(details, '상태', 'projectStatus', [['PLAN', '기획'], ['DEV', '개발'], ['MAINT', '유지보수'], ['DONE', '완료']], item?.projectStatus ?? 'PLAN');
+  stackPicker(details, badges, item?.stackBadges.map(b => b.name) ?? []);
 }
-
