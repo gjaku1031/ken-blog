@@ -1,4 +1,5 @@
 import { renderMermaid } from "./mermaid-render";
+import { connectImageZoom } from "./image-zoom";
 
 /**
  * 노드별 진행 중인 도식 렌더 작업
@@ -25,12 +26,12 @@ const pendingMermaid = new WeakMap<HTMLElement, {
 /**
  * 정적 본문 HTML에 이미지 확대·복사·주석·Mermaid 상호작용을 연결함
  *
- * 1. 테마별 이미지 전환·키보드 확대 연결
- * 2. 코드 복사 동작을 중복 없이 연결
- * 3. 주석 팝업과 마지막 참조 위치로의 복귀 연결
- * 4. Mermaid 블록별 작업 공유·취소·세대 관리
- * 5. 현재 화면의 결과만 Blob 이미지로 표시하고 로드 후 URL 해제
- * 6. 성공·실패·취소 모두 분리 감시와 대기 작업 정리
+ * 1. 테마별 이미지 선택과 공통 확대 창 연결
+ * 2. 중복 연결 없이 코드 복사 동작 구성
+ * 3. 본문 주석 팝업과 복귀 위치 연결
+ * 4. 도식별 작업 공유, 테마·원문 변경 시 이전 작업 취소
+ * 5. 현재 세대의 SVG만 표시하고 확대 시 사용할 원문 보존
+ * 6. 성공·실패·취소 모두 분리 감시와 작업 참조 해제
  */
 export async function enhanceMarkdown(root: HTMLElement, options: {
   /**
@@ -40,33 +41,13 @@ export async function enhanceMarkdown(root: HTMLElement, options: {
 } = {}): Promise<void> {
   const theme = options.theme ?? (document.documentElement.dataset.theme === "dark" ? "dark" : "light");
   if (!root.isConnected) return;
-  // 테마별 이미지 전환·키보드 확대 연결
+  // 테마별 이미지 선택과 공통 확대 창 연결
   for (const image of root.querySelectorAll<HTMLImageElement>("img.ken-attachment")) {
     if (!image.dataset.lightSrc) image.dataset.lightSrc = image.src;
     if (image.dataset.darkSrc) image.src = theme === "dark" ? image.dataset.darkSrc : image.dataset.lightSrc;
-    if (image.dataset.enhanced) continue;
-    image.dataset.enhanced = "1";
-    image.tabIndex = 0;
-    image.setAttribute("role", "button");
-    image.setAttribute("aria-label", `${image.alt || "이미지"} 확대`);
-    /**
-     * 이미지 확대 표시와 닫기 동작 연결
-     */
-    const zoom = () => {
-      const dialog = document.createElement("dialog");
-      dialog.className = "ken-image-zoom";
-      const large = document.createElement("img");
-      large.src = image.src; large.alt = image.alt;
-      const close = document.createElement("button");
-      close.type = "button"; close.textContent = "닫기"; close.addEventListener("click", () => dialog.close());
-      dialog.append(close, large); document.body.append(dialog);
-      dialog.addEventListener("close", () => dialog.remove(), { once: true });
-      if (image.isConnected) dialog.showModal(); else dialog.remove();
-    };
-    image.addEventListener("click", zoom);
-    image.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); zoom(); } });
+    connectImageZoom(image);
   }
-  // 코드 복사 동작을 중복 없이 연결
+  // 중복 연결 없이 코드 복사 동작 구성
   for (const button of root.querySelectorAll<HTMLButtonElement>(".code-copy")) {
     if (button.dataset.enhanced) continue;
     button.dataset.enhanced = "1";
@@ -77,7 +58,7 @@ export async function enhanceMarkdown(root: HTMLElement, options: {
       catch { button.textContent = "복사 실패"; }
     });
   }
-  // 주석 팝업과 마지막 참조 위치로의 복귀 연결
+  // 본문 주석 팝업과 복귀 위치 연결
   for (const ref of root.querySelectorAll<HTMLElement>(".ken-annotation-ref")) {
     if (ref.dataset.enhanced) continue;
     ref.dataset.enhanced = "1";
@@ -101,7 +82,7 @@ export async function enhanceMarkdown(root: HTMLElement, options: {
       if (back) back.href = `#${ref.id}`;
     });
   }
-  // Mermaid 블록별 작업 공유·취소·세대 관리
+  // 도식별 작업 공유, 테마·원문 변경 시 이전 작업 취소
   const work = Array.from(root.querySelectorAll<HTMLElement>(".ken-mermaid")).map(async (block) => {
     const source = block.dataset.mermaidSource;
     if (!source || !block.isConnected || (block.dataset.enhanced === theme && block.dataset.enhancedSource === source)) return;
@@ -128,14 +109,15 @@ export async function enhanceMarkdown(root: HTMLElement, options: {
     const detachedCheck = globalThis.setInterval(() => { if (!block.isConnected) controller.abort(); }, 50);
     // 테마 전환으로 취소된 노드도 현재 테마의 원문을 다시 렌더해야 함
     const task = (async () => { try {
+      // 현재 세대의 SVG만 표시하고 확대 시 사용할 원문 보존
       const svg = await renderMermaid(source, theme, controller.signal);
       if (controller.signal.aborted || !block.isConnected || block.dataset.generation !== generation) return;
-      // 현재 화면의 결과만 Blob 이미지로 표시하고 로드 후 URL 해제
       const url = URL.createObjectURL(new Blob([svg], { type: "image/svg+xml" }));
       const image = document.createElement("img");
       image.alt = "Mermaid 도식"; image.src = url;
       image.addEventListener("load", () => URL.revokeObjectURL(url), { once: true });
       image.addEventListener("error", () => URL.revokeObjectURL(url), { once: true });
+      connectImageZoom(image, { source: () => new Blob([svg], { type: "image/svg+xml" }) });
       diagram.append(image);
       block.dataset.enhanced = theme;
       block.dataset.enhancedSource = source;
@@ -147,7 +129,7 @@ export async function enhanceMarkdown(root: HTMLElement, options: {
         block.dataset.enhancedSource = source;
       }
     } finally {
-      // 성공·실패·취소 모두 분리 감시와 대기 작업 정리
+      // 성공·실패·취소 모두 분리 감시와 작업 참조 해제
       globalThis.clearInterval(detachedCheck);
       if (pendingMermaid.get(block)?.controller === controller) pendingMermaid.delete(block);
     } })();

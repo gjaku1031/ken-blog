@@ -14,9 +14,9 @@ data class PostMetadataCreateRequest(
      */
     val title: String,
     /**
-     * 공개 주소 식별자
+     * 공개 주소 식별자, 생략하면 서버에서 생성
      */
-    val slug: String,
+    val slug: String? = null,
     /**
      * 요약
      */
@@ -57,16 +57,14 @@ data class PostMetadataCreateRequest(
         /**
          * 본문·이전 대문/회차 필드와 알 수 없는 입력을 거부
          *
-         * 1. 본문·알 수 없는 필드를 제외한 허용 키 검사
-         * 2. 태그 배열의 크기와 문자열 타입 검사
-         * 3. 필수·선택 필드와 첨부·위키 선언을 검증해 입력 객체 생성
+         * 1. 허용 입력 키·태그 배열 검사
+         * 2. 주소 생략은 자동 생성 신호로 유지하고 메타데이터·선언 검증
          */
         fun fromJson(node: JsonNode): PostMetadataCreateRequest {
-            // 본문·알 수 없는 필드를 제외한 허용 키 검사
+            // 허용 입력 키·태그 배열 검사
             val allowed = setOf("title", "slug", "summary", "categoryId", "tags", "seriesId", "order",
                 "relatedSeriesId", "attachmentIds", "wikiTargets")
             if (!node.isObject || node.properties().any { it.key !in allowed }) throw InvalidPostRequestException()
-            // 태그 배열의 크기와 문자열 타입 검사
             val tags = node.get("tags")?.let {
                 if (!it.isArray || it.size() > 100) throw InvalidPostRequestException()
                 (0 until it.size()).map { index ->
@@ -74,8 +72,8 @@ data class PostMetadataCreateRequest(
                     it[index].textValue()
                 }
             } ?: emptyList()
-            // 필수·선택 필드와 첨부·위키 선언을 검증해 입력 객체 생성
-            return PostMetadataCreateRequest(requiredString(node, "title"), requiredString(node, "slug"),
+            // 주소 생략은 자동 생성 신호로 유지하고 메타데이터·선언 검증
+            return PostMetadataCreateRequest(requiredString(node, "title"), optionalString(node, "slug"),
                 optionalString(node, "summary") ?: "", optionalLong(node, "categoryId"), tags,
                 optionalLong(node, "seriesId"), optionalInt(node, "order"), optionalLong(node, "relatedSeriesId"),
                 AttachmentIds.parse(node.get("attachmentIds")) ?: emptyList(),

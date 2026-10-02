@@ -36,35 +36,33 @@ class PublicPostService(
      * 시리즈 저장소
      */
     private val series: SeriesRepository
-) {
+    ) {
     /**
      * 공개 글 메타데이터와 시리즈·분류 탐색 정보 조립
      *
-     * 1. 공개 조건을 만족하는 글과 분류·태그 조회
-     * 2. 시리즈 탐색 우선, 없으면 3단계 분류 탐색 구성
-     * 3. 출간 문서가 있는 공개 프로젝트만 관련 링크로 노출
-     * 4. 한국 날짜와 공개 메타데이터 응답 조립
+     * 1. 공개 글과 분류·태그 조회
+     * 2. 시리즈 탐색 우선, 없으면 소분류의 공개 글로 탐색 구성
+     * 3. 출간 문서가 있는 공개 관련 프로젝트만 노출
      */
     @Transactional(readOnly = true)
     fun detailMetadata(slug: String): PublicPostDetailResponse {
-        // 공개 조건을 만족하는 글과 분류·태그 조회
+        // 공개 글과 분류·태그 조회
         val row = queries.publicBySlug(slug.trim().lowercase(Locale.ROOT)) ?: throw PostNotFoundException()
         val view = taxonomy.one(row.id, row.categoryId)
-        // 시리즈 탐색 우선, 없으면 3단계 분류 탐색 구성
+        // 시리즈 탐색 우선, 없으면 소분류의 공개 글로 탐색 구성
         val navigation = row.series?.let { ref ->
             val siblings = queries.seriesPosts(ref.id, true)
             PostSeriesResponse(ref.id, ref.slug, ref.name, ref.kind, siblings.mapIndexed { i, p ->
                 PostSeriesItem(p.id, p.slug, p.title, i + 1) }, siblings.indexOfFirst { it.id == row.id } + 1)
-        } ?: row.categoryId?.let { id -> categories.findByIdOrNull(id)?.takeIf { it.depth == 3 }?.let { category ->
+        } ?: row.categoryId?.let { id -> categories.findByIdOrNull(id)?.takeIf { it.depth == 2 }?.let { category ->
             val siblings = queries.categoryPosts(id)
             PostSeriesResponse(id, category.path, category.name, SeriesKind.TECH, siblings.mapIndexed { i, p ->
                 PostSeriesItem(p.id, p.slug, p.title, i + 1) }, siblings.indexOfFirst { it.id == row.id } + 1)
         } }
-        // 출간 문서가 있는 공개 프로젝트만 관련 링크로 노출
+        // 출간 문서가 있는 공개 관련 프로젝트만 노출
         val related = row.relatedSeriesId?.let { id -> series.findByIdOrNull(id)?.takeIf {
             it.kind == SeriesKind.PROJECT && it.visibility == PostVisibility.PUBLIC && queries.seriesPosts(id, true).isNotEmpty()
         }?.let { SeriesRef(it.id!!, it.slug, it.name, it.kind) } }
-        // 한국 날짜와 공개 메타데이터 응답 조립
         return PublicPostDetailResponse(row.id, row.title, row.slug, row.summary, row.publishedDate(),
             row.series?.kind ?: SeriesKind.TECH, view.category, view.tags, navigation, related, row.legacyPath, publishedAt = row.publishedAt)
     }

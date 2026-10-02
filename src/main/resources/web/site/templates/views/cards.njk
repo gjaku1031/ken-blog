@@ -1,6 +1,6 @@
-{# 글별 검색 메타데이터를 포함한 목록 카드 #}{% for card in cards %}<article class="post-card card" data-search-card data-search-text="{{ card.searchText }}" data-category="{{ card.categoryPath }}" data-tags="{{ card.tagText }}">
+{# 분류·관련 프로젝트·요약·태그를 담은 글 카드 #}{# 글별 검색 메타데이터를 포함한 목록 카드 #}{% for card in cards %}<article class="post-card card" data-search-card data-search-text="{{ card.searchText }}" data-category="{{ card.categoryPath }}" data-tags="{{ card.tagText }}">
     <div class="card-meta">
-      <strong>{{ card.label }}</strong>{% if card.categoryPath %}<span>· {{ card.categoryPath }}</span>{% endif %}{% if card.context %}<span>· {{ card.context }}</span>{% endif %}
+      <strong>{{ card.label }}</strong>{% if card.categoryPath %}<span aria-hidden="true">·</span><span class="category-breadcrumb">{% for part in card.categoryTrail %}{% if not loop.first %}<span aria-hidden="true">›</span>{% endif %}<a href="{{ base + 'posts/?category=' + (part.path | query) }}">{{ part.name }}</a>{% endfor %}</span>{% endif %}{% if card.context %}<span>· {{ card.context }}</span>{% endif %}
     </div>
     {# 일반 글의 관련 프로젝트 참조 #}{% if card.section == 'TECH' and card['relatedSeries'] %}<div class="card-related-project">
       <span>[연관 프로젝트]</span>{{ card.relatedSeries.name }}
@@ -11,11 +11,11 @@
       </h2>
     </div>
     {% if card.summary %}<p class="post-summary">{{ card.summary }}</p>{% endif %}
-    <div class="card-bottom">
+    {% if card.tags | length or card.section != 'PROJECT' %}<div class="card-bottom">
       <div class="tag-list">
-        {% for tag in card.tags %}<a href="{{ '?tag=' + (tag | query) }}">#{{ tag }}</a>{% endfor %}
+        {% for tag in card.tags %}<a href="{{ base + 'posts/?tag=' + (tag | query) }}">#{{ tag }}</a>{% endfor %}
       </div>
-      <time class="mono" datetime="{{ card.publishedDate }}">{{ card.displayDate }}</time>
-    </div>
+      {% if card.section != 'PROJECT' %}<time class="mono" datetime="{{ card.publishedDate }}">{{ card.displayDate }}</time>{% endif %}
+    </div>{% endif %}
   </article>{% endfor %}
   {# 빈 공개 글 목록 안내 #}{% if not cards | length %}<p class="message-card card">아직 공개된 글이 없습니다.</p>{% endif %}

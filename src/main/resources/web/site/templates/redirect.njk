@@ -1,1 +1,6 @@
-{# 이전 공개 주소에서 검증된 현재 주소로 이동 #}<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta http-equiv="refresh" content="0;url={{ target }}"><link rel="canonical" href="{{ canonical }}"><title>페이지 이동</title></head><body><a href="{{ target }}">글로 이동</a></body></html>
+{# 검증된 이전 주소의 현재 경로 이동 #}<!doctype html><html lang="ko"><head><meta charset="utf-8">{% include "theme-init.njk" %}{% if preserveQuery %}<noscript><meta http-equiv="refresh" content="0;url={{ target }}"></noscript>{% else %}<meta http-equiv="refresh" content="0;url={{ target }}">{% endif %}<link rel="canonical" href="{{ canonical }}"><title>페이지 이동</title></head><body><a id="redirect-target" href="{{ target }}">글로 이동</a>{% if preserveQuery %}<script>
+const destination = new URL(document.getElementById('redirect-target').href);
+destination.search = location.search;
+destination.hash = location.hash;
+location.replace(destination.href);
+</script>{% endif %}</body></html>

@@ -1,0 +1,20 @@
+/* 대분류·소분류 트리와 관리 동작 */
+/* 분류 트리·접기·건수 */
+.category-tree{list-style:none;margin:0;padding:0}
+.category-tree .category-tree{margin-left:9px;padding-left:10px;border-left:1px solid var(--line2)}
+.category-line{display:flex;align-items:center;gap:6px;min-height:34px}
+.category-expand,.category-expand-spacer{display:inline-grid;place-items:center;width:16px;flex:0 0 16px}
+.category-expand{padding:0;border:0;background:transparent;color:var(--text2);font-size:20px;line-height:1;transform:rotate(0deg)}
+.category-expand[aria-expanded=true]{transform:rotate(90deg)}
+.category-name{font-family:inherit;display:flex;align-items:center;gap:8px;min-width:0;flex:1;border:0;background:none;padding:5px 0;color:var(--text);text-align:left;font-size:14px;overflow-wrap:anywhere}
+.category-name svg{flex-shrink:0;color:var(--muted)}
+.category-name:hover{color:var(--accent-d)}
+.category-total{color:var(--muted);font-size:12px;margin-left:12px}
+
+.category-name[aria-current=page]{color:var(--accent-d);background:var(--tint);border-radius:4px}
+.category-label{min-width:0;flex:1;overflow-wrap:anywhere}
+.category-name .category-total{flex-shrink:0;font-weight:400}
+.feed-sidebar .category-name{font-size:11px;font-weight:400;gap:7px;padding:5px 8px}
+.feed-sidebar .category-total{font-size:11px;margin-left:4px}
+/* 분류 트리·접기·건수 */
+.category-line:hover{background:var(--soft);border-radius:4px}

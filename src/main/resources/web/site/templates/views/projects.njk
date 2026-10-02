@@ -1,6 +1,6 @@
-{# 공개 프로젝트 목록 #}<main id="main-content" class="page-container projects-page">
+{# 공개 프로젝트 목록·작성 진입 #}{# 공개 프로젝트 목록 #}<main id="main-content" class="page-container projects-page">
   <div class="projects-heading">
-    <h1>Projects</h1>
+    <h1>Projects</h1><button class="write-button" type="button" data-admin-write data-post-create="PROJECT" hidden>글쓰기</button>
   </div>
   <div class="projects-grid">
     {# 정렬된 프로젝트 카드 #}{% for project in projects %}<article class="project-card card hv">
@@ -11,10 +11,12 @@
         <a href="{{ project.href }}">{{ project.name }}</a>
       </h2>
       <p>{{ project.description }}</p>
-      {% if project.stackBadges | length %}<div class="stack-badges" aria-label="기술 배지">
-        {% for badge in project.stackBadges %}<span><img alt="" width="22" height="22" src="{{ badge.imageUrl }}">{{ badge.name }}</span>{% endfor %}
-      </div>{% endif %}
-      <div class="project-card-counts">문서 {{ project.postCount }}개</div>
+      <div class="project-card-footer">
+        {% if project.stackBadges | length %}<div class="stack-badges" aria-label="기술 배지">
+          {% for badge in project.stackBadges %}<span><img alt="" width="22" height="22" src="{{ badge.imageUrl }}" data-stack-name="{{ badge.name }}">{{ badge.name }}</span>{% endfor %}
+        </div>{% endif %}
+        <div class="project-card-counts">문서 {{ project.postCount }}개</div>
+      </div>
     </article>{% endfor %}
   </div>
   {# 출간된 프로젝트가 없는 경우 안내 #}{% if not projects | length %}<p class="projects-empty">아직 출간된 프로젝트가 없습니다.</p>{% endif %}

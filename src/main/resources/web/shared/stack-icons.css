@@ -1,0 +1,16 @@
+/* 테마별 기술 아이콘과 공통 배지 */
+/* 투명 아이콘에는 별도 바탕을 넣지 않는다. */
+img[data-stack-name] { background: transparent; }
+
+/* 이 두 등록 이미지는 흰 바탕을 포함한다. 현재 화면의 배경과 합성한다. */
+img[data-stack-name="Neo4j"], img[data-stack-name="Proxmox"] { mix-blend-mode: multiply; }
+:root[data-theme="dark"] img[data-stack-name="Neo4j"],
+:root[data-theme="dark"] img[data-stack-name="Proxmox"] {
+  filter: invert(1) hue-rotate(180deg);
+  mix-blend-mode: screen;
+}
+
+/* AWS의 투명 이미지에 있는 어두운 글자도 다크 모드에서 읽을 수 있게 한다. */
+:root[data-theme="dark"] img[data-stack-name="AWS"] { filter: invert(1) hue-rotate(180deg); }
+/* 가는 파란 선으로 된 MySQL 로고는 어두운 바탕에서 명도를 보완한다. */
+:root[data-theme="dark"] img[data-stack-name="MySQL"] { filter: brightness(1.8); }

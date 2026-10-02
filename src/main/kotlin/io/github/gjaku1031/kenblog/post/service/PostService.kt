@@ -26,6 +26,7 @@ import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
 import java.util.Locale
+import java.util.UUID
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
@@ -73,16 +74,15 @@ class PostService(
      * 본문 없이 등록함
      * 출간은 별도 상태 변경이며 원고 파일은 Git에서 직접 만듦
      *
-     * 1. 제목·주소·분류·태그·소속 입력 검증
-     * 2. 빈 호환 본문으로 새 글 메타데이터 구성
-     * 3. 글을 먼저 저장하고 주소 중복 충돌 변환
-     * 4. 태그·첨부·위키 선언 저장, 실패 시 글 생성도 롤백
+     * 1. 입력 정규화, 주소가 없으면 UUID 기반 주소 생성
+     * 2. 글 메타데이터 저장 후 주소 중복 충돌 변환
+     * 3. 태그·첨부·위키 선언까지 같은 트랜잭션에 저장
      */
     @Transactional
     fun createMetadata(request: PostMetadataCreateRequest): PostDetailResponse {
-        // 제목·주소·분류·태그·소속 입력 검증
+        // 입력 정규화, 주소가 없으면 UUID 기반 주소 생성
         val title = validTitle(request.title)
-        val slug = validSlug(request.slug)
+        val slug = validSlug(request.slug ?: "post-${UUID.randomUUID()}")
         val summary = validSummary(request.summary)
         val normalizedTags = TagNames.displayAll(request.tags)
         if (request.categoryId != null) validCategory(request.categoryId)
@@ -92,19 +92,18 @@ class PostService(
         request.relatedSeriesId?.let {
             if (it <= 0 || series.findLockedById(it)?.kind != SeriesKind.PROJECT) throw InvalidPostRequestException()
         }
-        // 빈 호환 본문으로 새 글 메타데이터 구성
         val now = now()
         val post = PostEntity(title, slug, "", now)
         post.replaceMetadata(title, summary, now)
         post.changeCategory(request.categoryId, now)
         post.assignSeries(request.seriesId, request.order, request.relatedSeriesId, now)
-        // 글을 먼저 저장하고 주소 중복 충돌 변환
+        // 글 메타데이터 저장 후 주소 중복 충돌 변환
         val saved = try { repository.saveAndFlush(post) }
         catch (ex: DataIntegrityViolationException) {
             if (ex.isDuplicateSlugConstraint()) throw DuplicatePostSlugException(ex)
             throw ex
         }
-        // 태그·첨부·위키 선언 저장, 실패 시 글 생성도 롤백
+        // 태그·첨부·위키 선언까지 같은 트랜잭션에 저장
         val id = saved.id ?: error("Persisted post has no ID")
         if (normalizedTags.isNotEmpty())
             tags.saveAllAndFlush(normalizedTags.mapIndexed { index, name -> PostTagEntity(id, index, name) })
@@ -338,6 +337,5 @@ class PostService(
         /**
          * 주소 식별자 패턴
          */
-        val SLUG_PATTERN = Regex("[a-z0-9]+(?:-[a-z0-9]+)*")
-    }
+        val SLUG_PATTERN = Regex("[a-z0-9]+(?:-[a-z0-9]+)*") }
 }

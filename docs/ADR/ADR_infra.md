@@ -286,3 +286,17 @@ OCI API 키 인증 복구 후 기존 외부 MySQL의 ACTIVE 상태 확인. 이�
 기존 DB 백업·원고 추출·Post/Series 이관 후 OCI 이미지 78개를 로컬 디스크로 복사하고 길이·제공된 MD5·SHA-256 대조. 공개 원고만 Git 반영, 기존 객체·DB 본문·편집본·백업 삭제 없음. 검증한 ARM64 JVM 이미지를 새 운영 Compose로 기동하고 기존 Caddy 인증서 볼륨의 복사본으로 HTTPS 전환. 이전 시험 스택은 컨테이너와 볼륨을 보존한 채 중지. 새 API에는 이미지 읽기 전용 마운트만 있으며 원고 마운트 없음.
 
 공개 API 주소는 `https://158.101.158.194`, GitHub Pages의 `BLOG_API_BASE_URL`도 같은 주소로 변경. 외부 TLS 검증·Actuator UP·공개 snapshot의 글 7개/시리즈 6개 및 실제 API를 사용한 Node 사이트 생성 확인. 기존 계정·원고·첨부·기술의 데이터 해시 보존, 인증 상태 행은 새 로그인 정책에 따라 갱신. main push 및 [Pages 37007598432](https://github.com/gjaku1031/ken-blog/actions/runs/37007598432) 성공. 공개 홈·프로젝트 6개·이미지·새 API로 연결된 관리자 로그인 화면을 Chromium에서 확인. 운영 비밀번호 입력을 사용한 로그인/쓰기 검사는 수행하지 않고 기존 계정/해시 보존과 격리 인증 검증으로 구분. 운영 snapshot 2개 동시 요청 60회 오류 0, 외부 왕복 포함 p95 약 344ms. 측정 직후 API 약 393MiB·Caddy 약 15MiB, 4GB 호스트 가용 약 2.7GiB. 장기/최대 부하 보장은 아닌 시점 측정. [CI 37007598395](https://github.com/gjaku1031/ken-blog/actions/runs/37007598395)의 기존 백엔드 검사와 ARM64 Buildpacks 이미지 생성·실행·HTTP 검증 모두 성공. 프로젝트 ID 보정 후 [최종 Pages 37008106440](https://github.com/gjaku1031/ken-blog/actions/runs/37008106440) 재발행 성공. 운영 코드·원고 반영과 공개 접속 확인 완료.
+
+## 주소 자동 발급·관리 화면·QA 원고 배포 — 2026-10-02
+
+백엔드 변경 승인 후 `24dd81f`의 Linux ARM64 이미지 `ken-blog-api:jvm-24dd81fb5d300733152d52c08c44957236a3f453`로 운영 API 교체. [CI 37017979174](https://github.com/gjaku1031/ken-blog/actions/runs/37017979174)의 34개 검사와 Buildpacks 이미지 기동·인증/메타데이터 HTTP 검증 성공. 배포 전 아카이브 SHA-256 대조, 기존 이미지와 환경 파일 보관. 기존 Compose의 포트·Caddy·인증서·DB·읽기 전용 이미지 디스크 구성 유지. 운영 내부 포트 18084와 외부 HTTPS의 Actuator UP, 교체 전후 공개 snapshot 전체 동일성 확인.
+
+QA 글 30편·일반 시리즈 3개를 추가했고 기존 글 7편은 보존. 공개 snapshot은 글 37개·시리즈 9개이며 원고 커밋 `a470faf` 반영 후 QA 메타데이터 공개. 관리자 주소 입력 제거, 분류 트리와 읽기 화면 보완은 `bc048ec` 및 [Pages 37019084401](https://github.com/gjaku1031/ken-blog/actions/runs/37019084401)으로 발행 성공. 주소 생성과 화면 동작의 계약·검증은 애플리케이션 ADR 참조. 운영 관리자 비밀번호를 이용한 인증 쓰기 검증은 별도로 수행하지 않음.
+
+## 분류 2단계 이관·배포 — 2026-10-02
+
+사용자 승인 후 `ffae0f1`의 API 이미지로 교체. [CI 37020063871](https://github.com/gjaku1031/ken-blog/actions/runs/37020063871)의 검사 38개 및 ARM64 JVM HTTP 검증 성공, 이미지 아카이브 SHA-256 대조와 운영 health UP 확인. 기존 환경과 이미지 설정은 `/srv/ken-blog-live/releases/ffae0f1`에 보관.
+
+분류 행과 글의 기존 분류 연결·분류 외 모든 열의 해시를 백업하고, 이관 SQL을 트랜잭션 안에서 시험 실행 후 롤백하여 확인. 운영 반영은 분류 트리·글 행 잠금과 백업 상태 일치 조건을 검사하는 단일 트랜잭션으로 수행. 3단계 분류 8개를 정리하고 글 30편을 해당 부모로 이동. 결과는 대분류 4개·소분류 7개, 전체 글 37편과 명시 시리즈 9개 유지. 모든 글의 분류 외 열 해시 및 시리즈 메타데이터 동일성 확인, 소분류로 합쳐진 Markdown 글 2편의 읽기 목록 확인. 분류 백업과 복구 SQL은 같은 릴리스 디렉터리에 제한 권한으로 보관.
+
+관리자 2단계 트리와 분류 이름 검증은 `31e757e` 및 [Pages 37020947026](https://github.com/gjaku1031/ken-blog/actions/runs/37020947026)으로 발행 성공. DB 스키마·원고·글 주소·출간 상태 변경 없음.

@@ -343,24 +343,15 @@ async function decorate(tree: HtmlRoot, options: RenderOptions, headings: TocIte
 
 /**
  * 단일 Markdown 계약으로 파싱·안전 변환·첨부 수집·목차 생성을 수행함
- *
- * 1. 원문 타입·크기 검사
- * 2. 문법 파싱 후 목차·위키 대상 수집과 HTML 변환
- * 3. 허용 태그·속성·프로토콜로 HTML 정제
- * 4. 각주 본문도 같은 검증·변환을 거쳐 문서 끝에 추가
- * 5. HTML·목차·첨부 ID·위키 대상 반환
  */
 export async function renderMarkdown(source: string, options: RenderOptions = {}): Promise<RenderResult> {
-  // 원문 타입·크기 검사
   if (typeof source !== "string") throw new TypeError("Markdown 원문이 필요합니다.");
   if (new TextEncoder().encode(source).byteLength > 1024 * 1024) throw new RangeError("Markdown 원문이 1 MiB를 넘습니다.");
-  // 문법 파싱 후 목차·위키 대상 수집과 HTML 변환
   const parsed = parseAnnotationDocument(source);
   const headings = headingsOf(parsed.root);
   const wikiTargets = new Set(collectWikiTitles(parsed.root, parsed.items).titles);
   const tree = toHast(parsed.root, { allowDangerousHtml: false }) as HtmlRoot;
   await decorate(tree, options, headings, wikiTargets, parsed.items);
-  // 허용 태그·속성·프로토콜로 HTML 정제
   const schema = { ...defaultSchema, clobberPrefix: "", tagNames: [...(defaultSchema.tagNames ?? []), "figure", "figcaption", "button", "details", "summary"], attributes: { ...defaultSchema.attributes,
     "*": ["className", "id", "title", "dataWidth", "dataAlign", "dataDarkSrc", "dataLanguage", "dataMermaidSource", "dataAnnotationIndex", "dataWikiTitle", "dataKatexHtml", "role", "ariaLabel", "tabIndex"],
     a: ["href", "target", "rel", "className", "ariaLabel", "dataAnnotationReturn"], img: ["src", "alt", "loading", "decoding", "className", "dataDarkSrc"], span: ["className", "style", "id", "role", "tabIndex", "ariaLabel", "dataAnnotationIndex", "dataKatexHtml"],
@@ -392,7 +383,6 @@ export async function renderMarkdown(source: string, options: RenderOptions = {}
     return html;
   };
   let html = await serialize(tree);
-  // 각주 본문도 같은 검증·변환을 거쳐 문서 끝에 추가
   if (parsed.items.length) {
     const notes = await Promise.all(parsed.items.map(async (item) => {
       const noteTree = toHast(parseWikiMarkdown(item.content), { allowDangerousHtml: false }) as HtmlRoot;
@@ -407,11 +397,10 @@ export async function renderMarkdown(source: string, options: RenderOptions = {}
         content = await serialize(noteTree);
       }
       const first = item.refs[0];
-      return `<li id="annotation-${item.index}"><a href="#annotation-ref-${first}" data-annotation-return="1" aria-label="주석 ${escapeHtml(item.label)} 본문으로 돌아가기">${escapeHtml(item.label)}</a> ${content} ${item.refs.map((ref) => `<a href="#annotation-ref-${ref}" aria-label="본문으로 돌아가기">↩</a>`).join(" ")}</li>`;
+      return `<li id="annotation-${item.index}"><a href="#annotation-ref-${first}" data-annotation-return="1" aria-label="주석 ${escapeHtml(item.label)} 본문으로 돌아가기">${escapeHtml(item.label)}</a> ${content}</li>`;
     }));
-    html += `<section class="ken-annotations"><h2>주석</h2><ol>${notes.join("")}</ol></section>`;
+    html += `<section class="ken-annotations"><h2>주석</h2><ol role="list">${notes.join("")}</ol></section>`;
   }
-  // HTML·목차·첨부 ID·위키 대상 반환
   return { html, headings, attachmentIds: collectAttachmentIds(source), wikiTargets: [...wikiTargets] };
 }
 

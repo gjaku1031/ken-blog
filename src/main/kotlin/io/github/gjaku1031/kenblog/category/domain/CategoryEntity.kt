@@ -18,7 +18,8 @@ import jakarta.persistence.UniqueConstraint
 @Table(name = "categories", uniqueConstraints = [
     UniqueConstraint(name = "uk_categories_path", columnNames = ["path"]),
 ])
-class CategoryEntity protected constructor() {
+class CategoryEntity protected constructor(
+    ) {
     // DB 외래 키와 삭제 규칙 저장은 기존 ID 필드를 사용
     /**
      * 부모 분류 FK 매핑
@@ -76,7 +77,7 @@ class CategoryEntity protected constructor() {
      * @param parentId 기존 부모 또는 대분류의 `null`
      * @param path 중복되지 않는 전체 경로
      * @param name 표시 이름
-     * @param depth 1~3 깊이
+     * @param depth 1~2 깊이
      * @param sortOrder 같은 부모의 마지막에 배치할 양수 순서
      */
     internal constructor(parentId: Long?, path: String, name: String, depth: Int, sortOrder: Int) : this() {

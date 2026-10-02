@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, writeFile, copyFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import nunjucks from "nunjucks";
 
@@ -320,12 +320,71 @@ function period(project: Series): string {
   return start === end ? start : `${start} – ${end}`;
 }
 /**
+ * 분류 경로를 누적 경로·표시 이름으로 분리
+ */
+function categoryTrail(path: string) {
+  const parts = path.split('/').filter(Boolean);
+  return parts.map((name, index) => ({ name, path: parts.slice(0, index + 1).join('/') }));
+}
+/**
+ * 공개 글 수를 집계한 대분류·소분류 탐색 트리 생성
+ */
+function categoryTree(posts: Post[]) {
+  const roots = new Map<string, {
+    /**
+     * 이름
+     */
+    name: string;
+    /**
+     * 분류 경로
+     */
+    path: string;
+    /**
+     * 분류의 직접 글과 하위 글 수 합산
+     */
+    count: number;
+    /**
+     * 하위 분류 목록
+     */
+    children: {
+      /**
+       * 이름
+       */
+      name: string;
+      /**
+       * 분류 경로
+       */
+      path: string;
+      /**
+       * 분류의 직접 글과 하위 글 수 합산
+       */
+      count: number
+    }[]
+  }>();
+  for (const post of posts) {
+    const [parent, child] = categoryTrail(post.category?.path ?? '');
+    if (!parent) continue;
+    let root = roots.get(parent.path);
+    if (!root) { root = { ...parent, count: 0, children: [] }; roots.set(parent.path, root); }
+    root.count++;
+    if (child) {
+      let item = root.children.find(item => item.path === child.path);
+      if (!item) { item = { ...child, count: 0 }; root.children.push(item); }
+      item.count++;
+    }
+  }
+  const sorted = [...roots.values()].sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+  for (const root of sorted) root.children.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+  return sorted;
+}
+/**
  * 공개 글을 목록 카드 데이터로 변환
  */
 function card(post: Post) {
-  const categoryPath = post.category?.path ?? "", context = post.series?.name ?? "";
-  return { ...post, href: postPath(post), categoryPath, context, tagText: post.tags.join("|"), label: label(post.section),
-    searchText: `${post.title} ${post.summary} ${categoryPath} ${post.tags.join(" ")} ${context} ${post.searchBody ?? ""}`,
+  const categoryPath = post.category?.path ?? "", context = post.series && post.series.slug !== categoryPath ? post.series.name : "";
+  const tags = post.section === "PROJECT" ? [] : post.tags;
+  return { ...post, tags, href: postPath(post), categoryPath, categoryTrail: categoryTrail(categoryPath), context, tagText: tags.join("|"), label: label(post.section),
+    searchText: `${post.title} ${post.summary} ${categoryPath} ${tags.join(" ")} ${context} ${post.searchBody ?? ""}`,
     displayDate: date(post.publishedDate) };
 }
 
@@ -333,17 +392,18 @@ function card(post: Post) {
  * 검증·렌더링된 공개 데이터만 받아 완성 문서를 생성
  * DB·Spring 실행 의존성 없음
  *
- * 1. 스냅샷 버전 확인과 자동 이스케이프 템플릿 준비
- * 2. 최초 출간 글을 위키 대표 대상으로 정하고 역링크 집계
- * 3. 홈·글 목록·프로젝트·검색 페이지 생성
- * 4. 글별 목차·시리즈 탐색·역링크를 본문과 결합
- * 5. 이전 공개 주소를 현재 글로 연결
- * 6. 404·검색 엔진 메타데이터·경로 목록 기록
+ * 1. 스냅샷 검증과 프로필 자산·공통 템플릿 준비
+ * 2. 관리·작성 전용 페이지 생성
+ * 3. 위키 대표 대상과 역링크 구성
+ * 4. 공개 목록·검색·프로젝트·글 상세 생성
+ * 5. 과거 주소 이동과 사이트맵·경로 목록 생성
  */
 export async function generateSite(payload: Input, output: string) {
-  // 스냅샷 버전 확인과 자동 이스케이프 템플릿 준비
+  // 스냅샷 검증과 프로필 자산·공통 템플릿 준비
   const { snapshot, assets, admin } = payload;
   if (snapshot.version !== 2) throw new Error("공개 스냅샷 버전 오류");
+  await mkdir(join(output, "assets"), { recursive: true });
+  await copyFile(join(import.meta.dirname, "../public/profile-placeholder.svg"), join(output, "assets/profile-placeholder.svg"));
   const engine = new nunjucks.Environment(new nunjucks.FileSystemLoader(join(import.meta.dirname, "templates")), {
     autoescape: true, throwOnUndefined: true,
   });
@@ -357,33 +417,34 @@ export async function generateSite(payload: Input, output: string) {
     await mkdir(dirname(file), { recursive: true });
     await writeFile(file, content, "utf8");
   };
+  /**
+   * 화면 종류에 맞는 공통 헤더 데이터 구성
+   */
+  const header = (section: string) => ({
+    base: BASE, section, adminHref: payload.adminHref,
+    nav: [["posts/", "Posts"], ["projects/", "Projects"]].map(([href, label]) => ({ href: route(href), label, active: label === section })),
+  });
   // 관리자 데이터는 포함하지 않고 로그인 화면과 API·자산 주소만 전달
-  await write("manage/index.html", engine.render("manage.njk", { apiBase: admin.apiBase, adminCss: admin.css, adminJs: admin.js }));
+  // 관리·작성 전용 페이지 생성
+  await write("manage/index.html", engine.render("manage.njk", { apiBase: admin.apiBase, adminCss: admin.css, adminJs: admin.js, editor: "", ...header("Manage") }));
+  for (const [path, editor] of [["posts", "post"], ["projects", "project"]])
+    await write(`${path}/new/index.html`, engine.render("manage.njk", { apiBase: admin.apiBase, adminCss: admin.css, adminJs: admin.js, editor, ...header(editor === "project" ? "Projects" : "Posts") }));
   /**
    * 공통 레이아웃과 화면 템플릿으로 HTML 생성
-   *
-   * 1. 페이지별 제목·요약·대표 주소 구성
-   * 2. 공통 탐색과 본문 뷰를 렌더해 기록
-   * 3. 검색 대상 페이지만 사이트맵에 추가
    */
   async function page(path: string, view: string, section: string, title: string, description: string,
     data: Record<string, unknown> = {}, sitemap = true) {
-    // 페이지별 제목·요약·대표 주소 구성
     const canonical = ORIGIN + route(path === "404.html" ? path : path ? `${path}/` : "");
-    const documentTitle = section === "Home" ? "ken.blog | Posts·Projects" : section === "Search" ? "ken.blog" : `${title} | ken.blog`;
-    const summary = section === "Home" ? "기술 글과 프로젝트, 학습 기록을 모아 둔 ken.blog" :
-      section === "Search" ? "일반 글과 프로젝트 기록을 읽는 ken.blog" : description;
+    const documentTitle = section === "Search" ? "ken.blog" : `${title} | ken.blog`;
+    const summary = section === "Search" ? "일반 글과 프로젝트 기록을 읽는 ken.blog" : description;
     const article = ["Post", "Project"].includes(section) && !!path;
-    const active = ({ Post: "Posts", Project: "Projects", Search: "Home" } as Record<string, string>)[section] ?? section;
-    const nav = [["", "Home"], ["posts/", "Posts"], ["projects/", "Projects"]].map(([href, label]) =>
-      ({ href: route(href), label, active: label === active }));
-    // 공통 탐색과 본문 뷰를 렌더해 기록
+    const active = ({ Post: "Posts", Project: "Projects" } as Record<string, string>)[section] ?? section;
+    const nav = header(active).nav;
     await write(path === "404.html" ? path : join(path, "index.html"), engine.render("page.njk", {
       view, section, documentTitle, socialTitle: article ? title : documentTitle, summary, canonical,
       ogType: article ? "article" : "website", base: BASE, assetsCss: route(`assets/${assets.css}`), assetsJs: route(`assets/${assets.js}`),
-      adminHref: payload.adminHref, nav, year: new Date().getUTCFullYear(), github: "https://github.com/gjaku1031/ken-blog", ...data,
+      adminHref: payload.adminHref, apiBase: admin.apiBase, nav, year: new Date().getUTCFullYear(), github: "https://github.com/gjaku1031/ken-blog", ...data,
     }));
-    // 검색 대상 페이지만 사이트맵에 추가
     if (sitemap) pages.push(path);
   }
   /**
@@ -391,25 +452,16 @@ export async function generateSite(payload: Input, output: string) {
    */
   async function listing(path: string, section: string, title: string, rows: Post[]) {
     const cards = rows.map(card);
-    const groups = new Map<string, {
-      /**
-       * 이름
-       */
-      name: string;
-      /**
-       * 이동 주소
-       */
-      href: string
-    }>();
-    if (section === "Posts") for (const post of rows) if (post.series)
-      groups.set(post.series.slug, { name: post.series.name, href: postPath(post.series.items[0]) });
     await page(path, "listing", section, title, `${title} 공개 글 목록`, {
       heading: section === "Search" ? "최근 글" : title, cards,
-      categories: unique(cards.map(c => c.categoryPath)), tags: unique(cards.flatMap(c => c.tags)),
-      searching: section === "Search", groups: [...groups.values()],
+      categories: categoryTree(rows), tags: unique(cards.flatMap(c => c.tags)),
+      sidebarSeries: snapshot.series.filter(s => s.kind === "TECH")
+        .sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id)
+        .map(s => ({ name: s.name, count: s.postCount, href: postPath(s.cover) })),
+      searching: section === "Search",
     });
   }
-  // 최초 출간 글을 위키 대표 대상으로 정하고 역링크 집계
+  // 위키 대표 대상과 역링크 구성
   const allPosts = snapshot.posts;
   const targets = new Map<string, Post>();
   for (const post of [...allPosts].sort(chronological)) if (!targets.has(wikiKey(post.title))) targets.set(wikiKey(post.title), post);
@@ -434,12 +486,8 @@ export async function generateSite(payload: Input, output: string) {
     refs.push({ href: postPath(source), title: source.title, section: label(source.section) });
     backlinks.set(postPath(target), refs);
   }
-  // 홈·글 목록·프로젝트·검색 페이지 생성
-  const feed = [...allPosts].sort((a, b) => chronological(b, a)), home = feed.slice(0, 12);
-  await page("", "home", "Home", "Home", "Ken Blog", {
-    cards: home.map(card),
-    categories: unique(home.map(p => p.category?.path ?? "")), tags: unique(home.flatMap(p => p.tags)),
-  });
+  // 공개 목록·검색·프로젝트·글 상세 생성
+  const feed = [...allPosts].sort((a, b) => chronological(b, a));
   await listing("posts", "Posts", "Posts", feed.filter(p => p.section === "TECH"));
   const status: Record<string, string> = { PLAN: "기획 중", DEV: "개발 중", MAINT: "유지보수 중", DONE: "완료" };
   const projects = snapshot.series.filter(s => s.kind === "PROJECT").sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id)
@@ -447,21 +495,23 @@ export async function generateSite(payload: Input, output: string) {
       statusClass: (p.projectStatus ?? "").toLowerCase(), period: period(p) }));
   await page("projects", "projects", "Projects", "Projects", "공개 프로젝트 목록", { projects });
   await listing("search", "Search", "Search", feed.map(p => ({ ...p, searchBody: searchText(p.rendered.html) })));
-  // 글별 목차·시리즈 탐색·역링크를 본문과 결합
   for (const post of allPosts) {
     const navigation = post.series;
     const series = (navigation?.items ?? []).map(item => ({ ...item, href: postPath(item), current: item.id === post.id }));
+    const currentIndex = series.findIndex(item => item.current);
+    const previousPost = currentIndex > 0 ? series[currentIndex - 1] : null;
+    const nextPost = currentIndex >= 0 ? series[currentIndex + 1] ?? null : null;
     const project = projects.find(p => p.id === navigation?.id && p.slug === navigation?.slug) ?? null;
     const relatedProject = projects.find(p => p.id === post.relatedSeries?.id) ?? null;
     await page(`post/${slug(post.slug)}`, "post", post.section === "PROJECT" ? "Project" : "Post", post.title, post.summary, {
-      post: { ...post, displayDate: date(post.publishedDate), relatedProject }, project, html: post.rendered.html,
+      post: { ...post, categoryTrail: categoryTrail(post.category?.path ?? ""), displayDate: date(post.publishedDate), relatedProject }, project, html: post.rendered.html,
       toc: post.rendered.headings.filter(h => h.depth === 2 || h.depth === 3), backlinks: backlinks.get(postPath(post)) ?? [],
-      series, seriesName: navigation?.name ?? "", seriesPosition: navigation?.position ?? 0,
+      series, previousPost, nextPost, seriesName: navigation?.name ?? "", seriesPosition: navigation?.position ?? 0,
     });
   }
   // 공개 대상에 한해 옛 주소를 생성하고 프로젝트 루트는 현재 첫 글로 연결
-  // 이전 공개 주소를 현재 글로 연결
-  const aliases = new Map([["tech", route("posts/")], ["post", route("posts/")], ["project", route("projects/")],
+  // 과거 주소 이동과 사이트맵·경로 목록 생성
+  const aliases = new Map([["", route("posts/")], ["tech", route("posts/")], ["post", route("posts/")], ["project", route("projects/")],
     ["notes", route("posts/")], ["course", route("posts/")]]);
   for (const group of snapshot.series) {
     const target = postPath(group.cover);
@@ -477,9 +527,8 @@ export async function generateSite(payload: Input, output: string) {
   }
   for (const [path, target] of aliases) {
     if (!/^\/ken-blog\/(?:posts|projects|post\/[a-z0-9-]+)\/$/.test(target)) throw new Error("이동 대상 경로 오류");
-    await write(`${path}/index.html`, engine.render("redirect.njk", { target, canonical: ORIGIN + target }));
+    await write(join(path, "index.html"), engine.render("redirect.njk", { target, canonical: ORIGIN + target, preserveQuery: path === "" }));
   }
-  // 404·검색 엔진 메타데이터·경로 목록 기록
   await page("404.html", "missing", "", "페이지 없음", "페이지를 찾을 수 없습니다.", {}, false);
   await write("robots.txt", `User-agent: *\nAllow: /ken-blog/\nSitemap: ${ORIGIN}${route("sitemap.xml")}\n`);
   await write("sitemap.xml", `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${

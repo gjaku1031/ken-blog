@@ -238,6 +238,23 @@ class AuthHttpIntegrationTest {
     }
 
     /**
+     * 삭제 기능을 제거한 뒤에도 생성·조회는 가능하며 기존 삭제 요청은 데이터를 지우지 않음
+     */
+    @Test
+    @Order(6)
+    fun seriesDeletionIsNotAvailable() {
+        val client = newClient().first
+        assertEquals(200, send(client, "POST", "/api/v1/auth/login", csrf = csrfToken(client), body = loginBody(TEST_PASSWORD)).statusCode())
+        val token = csrfToken(client)
+        val created = send(client, "POST", "/api/v1/admin/series", csrf = token,
+            body = """{"kind":"TECH","metadata":{"name":"삭제 없는 시리즈"}}""")
+        assertEquals(200, created.statusCode())
+        val id = mapper.readTree(created.body()).path("id").asLong()
+        assertEquals(405, send(client, "DELETE", "/api/v1/admin/series/$id", csrf = token).statusCode())
+        assertEquals(200, send(client, "GET", "/api/v1/admin/series/$id").statusCode())
+    }
+
+    /**
      * 테스트마다 독립적인 브라우저 쿠키 저장소와 HTTP 클라이언트를 생성
      */
     private fun newClient(): Pair<HttpClient, CookieManager> {

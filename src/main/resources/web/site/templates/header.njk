@@ -1,0 +1,17 @@
+{# 공통 브랜드·탐색·검색·테마·관리 동작 #}<header class="site-header">
+        <div class="header-inner">
+          <a class="brand" aria-label="ken.blog Posts" href="{{ base + 'posts/' }}"><svg width="32" height="32" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><g transform="rotate(-45 24 24)"><path d="M8 12.5 L45 24 L8 35.5 Z"></path><path d="M14 14.4 Q17.5 24 14 33.6 M22 16.9 Q24.8 24 22 31.1 M30 19.4 Q32 24 30 28.6 M37 21.6 Q38.2 24 37 26.4"></path></g></svg><span>ken<span class="brand-dot">.</span>blog</span></a>
+          <nav class="main-nav" aria-label="주 메뉴">
+            {% for item in nav %}<a href="{{ item.href }}"{% if item.active %} aria-current="page"{% endif %}>{{ item.label }}</a>{% endfor %}
+          </nav>
+          <div class="header-actions">
+            <div class="header-search-unit {{ 'is-open' if section == 'Search' else '' }}">
+              <button id="header-search-toggle" type="button" class="header-search-toggle" aria-controls="site-search" aria-label="{{ '검색 닫기' if section == 'Search' else '검색 열기' }}" aria-expanded="{{ 'true' if section == 'Search' else 'false' }}"><svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"></circle><path d="m16 16 5 5"></path></svg></button>
+              <form class="header-search" role="search" action="{{ base + 'search/' }}" aria-hidden="{{ 'true' if section != 'Search' else 'false' }}"{% if section != "Search" %} inert{% endif %}>
+                <label class="sr-only" for="site-search">글 검색</label><input id="site-search" name="q" type="search" placeholder="제목 · 본문 · 태그 검색"><button id="header-search-close" type="button" class="header-search-close" aria-label="검색 닫기">×</button>
+              </form>
+            </div>
+            <button id="theme-toggle" type="button" class="theme-switch" role="switch" aria-checked="false" aria-label="다크 모드" title="다크 모드 꺼짐"><span class="theme-switch-track"><span class="theme-switch-thumb"><span class="theme-icon-sun"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2m0 16v2M4.93 4.93l1.42 1.42m11.3 11.3 1.42 1.42M2 12h2m16 0h2M4.93 19.07l1.42-1.42"></path></svg></span><span class="theme-icon-moon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20.6 14.1A8.6 8.6 0 0 1 9.9 3.4 8.6 8.6 0 1 0 20.6 14.1Z"></path></svg></span></span></span></button>{% if adminHref %}<a id="admin-link" class="header-text-button" href="{{ adminHref }}"{% if section == "Manage" %} aria-current="page"{% endif %}>관리자</a><button id="logout" class="header-text-button" type="button" hidden>로그아웃</button>{% endif %}
+          </div>
+        </div>
+      </header>

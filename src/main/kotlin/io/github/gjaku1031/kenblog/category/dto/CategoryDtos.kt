@@ -40,7 +40,7 @@ data class CategoryOrderRequest(
      * 표시 순서
      */
     val order: Long
-)
+    )
 
 /**
  * 글과 분류 생성 응답에서 공유하는 저장 분류 참조
@@ -59,14 +59,14 @@ data class CategoryRefResponse(
      */
     val name: String,
     /**
-     * 분류 깊이, 1~3단계
+     * 분류 깊이, 1~2단계
      */
     val depth: Int,
     /**
      * 정렬 순서
      */
     val sortOrder: Int
-)
+    )
 
 /**
  * 직접 글 수와 모든 하위 글 수를 구분한 분류 트리 노드
@@ -85,7 +85,7 @@ data class CategoryTreeResponse(
      */
     val name: String,
     /**
-     * 분류 깊이, 1~3단계
+     * 분류 깊이, 1~2단계
      */
     val depth: Int,
     /**
@@ -118,7 +118,7 @@ data class CategoryPostCountRow(
      * 개수
      */
     val count: Long
-)
+    )
 
 /**
  * 저장 분류에서 만든 공개 가능한 참조 DTO

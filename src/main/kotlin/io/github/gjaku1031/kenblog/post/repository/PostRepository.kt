@@ -14,11 +14,6 @@ import org.springframework.data.repository.query.Param
  */
 interface PostRepository : JpaRepository<PostEntity, Long> {
     /**
-     * 시리즈에 소속된 글 존재 여부
-     */
-    fun existsBySeriesId(seriesId: Long): Boolean
-
-    /**
      * ID로 조회하며 변경용 배타 잠금 취득
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)

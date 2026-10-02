@@ -1,18 +1,31 @@
-{# 분류·태그 탐색 사이드바 #}<aside class="feed-sidebar" aria-label="글 탐색">
+{# 소개·대분류·소분류·태그 탐색 #}{# 분류·태그 탐색 사이드바 #}<aside class="feed-sidebar" aria-label="글 탐색">
+  {% if section == "Posts" %}{% include "views/about.njk" %}{% endif %}
   <section class="side-card card">
     <h2>분류</h2>
     <ul class="category-tree">
       {% for category in categories %}<li>
         <div class="category-line">
-          <a href="{{ '?category=' + (category | query) }}"><span>{{ category }}</span></a>
+          {% if category.children | length %}<button class="category-expand" type="button" data-category-toggle aria-controls="category-children-{{ loop.index }}" aria-expanded="true" aria-label="{{ category.name }} 하위 분류">›</button>{% else %}<span class="category-expand-spacer"></span>{% endif %}
+          <a class="category-name" data-category-link="{{ category.path }}" href="{{ base + 'posts/?category=' + (category.path | query) }}"><svg viewBox="0 0 20 20" width="15" height="15" aria-hidden="true"><path d="M3 5h5l2 2h7v9H3Z" fill="none" stroke="currentColor" stroke-linejoin="round"/></svg><span class="category-label">{{ category.name }}</span><span class="category-total mono">{{ category.count }}</span></a>
         </div>
+        {% if category.children | length %}<ul id="category-children-{{ loop.index }}" class="category-tree">
+          {% for child in category.children %}<li><div class="category-line"><span class="category-expand-spacer"></span><a class="category-name" data-category-link="{{ child.path }}" href="{{ base + 'posts/?category=' + (child.path | query) }}"><svg viewBox="0 0 20 20" width="15" height="15" aria-hidden="true"><path d="M3 5h5l2 2h7v9H3Z" fill="none" stroke="currentColor" stroke-linejoin="round"/></svg><span class="category-label">{{ child.name }}</span><span class="category-total mono">{{ child.count }}</span></a></div></li>{% endfor %}
+        </ul>{% endif %}
       </li>{% endfor %}
     </ul>
+    {% if not categories | length %}<p class="meta">아직 분류가 없습니다.</p>{% endif %}
+  </section>
+  <section class="side-card card">
+    <h2>시리즈</h2>
+    <ul class="sidebar-series-list">
+      {% for item in sidebarSeries %}<li><a class="sidebar-series-link" href="{{ item.href }}"><svg viewBox="0 0 20 20" width="15" height="15" aria-hidden="true"><path d="M5 3h11v14H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm-2 12a2 2 0 0 1 2-2h11M7 3v10" fill="none" stroke="currentColor" stroke-linejoin="round"/></svg><span>{{ item.name }}</span><span class="sidebar-series-count mono" aria-label="{{ item.count }}개 글">{{ item.count }}</span></a></li>{% endfor %}
+    </ul>
+    {% if not sidebarSeries | length %}<p class="side-empty">아직 시리즈가 없습니다.</p>{% endif %}
   </section>
   <section class="side-card card">
     <h2>태그</h2>
     <div class="tag-cloud">
-      {% for tag in tags %}<a href="{{ '?tag=' + (tag | query) }}">#{{ tag }}</a>{% endfor %}
+      {% for tag in tags %}<a href="{{ base + 'posts/?tag=' + (tag | query) }}">#{{ tag }}</a>{% endfor %}
     </div>
   </section>
 </aside>

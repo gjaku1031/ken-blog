@@ -1,5 +1,5 @@
 /**
- * Mermaid 문법과 SVG를 브라우저의 외부 자원 경계 안에 제한함
+ * Mermaid 밝은·어두운 테마
  */
 
 export type MermaidTheme = "light" | "dark";
@@ -54,7 +54,56 @@ const FRAGMENT_URL = /^url\(\s*['"]?#[-\w:.]+['"]?\s*\)$/i;
 const ANY_URL = /url\s*\([^)]*\)/gi;
 
 /**
- * 지원 도식의 원문 크기와 외부 자원·설정·스타일 기능을 검사하고 실패 이유를 반환함
+ * 단순한 클래스 이름, 6자리 색상, 제한된 선 두께만 읽음
+ */
+function colorClass(line: string): {
+  /**
+   * 이름
+   */
+  name: string;
+  /**
+   * 역할별 Mermaid 클래스 스타일
+   */
+  styles: Record<string, string>
+} | null {
+  const match = /^[ \t]*classDef[ \t]+([A-Za-z][\w-]{0,31})[ \t]+([^;\r\n]+);?[ \t]*$/.exec(line);
+  if (!match) return null;
+  const declarations = match[2].split(",").map(value => value.trim());
+  if (declarations.length > 4 || !declarations.every(value =>
+    /^(?:fill|stroke|color)[ \t]*:[ \t]*#[0-9a-fA-F]{6}$/.test(value) ||
+    /^stroke-width[ \t]*:[ \t]*[1-4]px$/.test(value))) return null;
+  return { name: match[1], styles: Object.fromEntries(declarations.map(value => value.split(":").map(part => part.trim()))) };
+}
+
+/**
+ * 기준 색상과 지정 비율로 혼합한 색상 생성
+ */
+function mixColor(color: string, base: string, weight: number): string {
+  return "#" + [1, 3, 5].map(offset => Math.round(
+    parseInt(color.slice(offset, offset + 2), 16) * weight +
+    parseInt(base.slice(offset, offset + 2), 16) * (1 - weight),
+  ).toString(16).padStart(2, "0")).join("");
+}
+
+/**
+ * 다크 테마의 교차 행·그룹에서도 읽히도록 검증된 색상 선언만 조정함
+ */
+export function mermaidThemeSource(source: string, theme: MermaidTheme): string {
+  if (theme === "light") return source;
+  return source.split(/\r\n|\r|\n/).map(line => {
+    const definition = colorClass(line);
+    if (!definition) return line;
+    const { styles } = definition;
+    const fill = styles.stroke ?? styles.fill;
+    if (styles.fill) styles.fill = mixColor(fill, "#111827", 0.18);
+    if (styles.stroke) styles.stroke = mixColor(styles.stroke, "#ffffff", 0.7);
+    if (styles.color) styles.color = mixColor(styles.color, "#ffffff", 0.15);
+    return `classDef ${definition.name} ${Object.entries(styles).map(([key, value]) => `${key}:${value}`).join(",")}`;
+  }).join("\n");
+}
+
+/**
+ * 지원 도식의 크기를 제한하고, 색상 classDef 이외의 설정·CSS·외부 참조를 거부함
  */
 export function mermaidSourceError(source: string): string | null {
   const lines = source.split(/\r\n|\r|\n/);
@@ -65,8 +114,8 @@ export function mermaidSourceError(source: string): string | null {
     return "지원하지 않는 Mermaid 도식은 원문으로 표시합니다.";
   if (/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/.test(source))
     return "제어 문자가 있는 도식은 원문으로 표시합니다.";
-  // Mermaid의 strict 설정은 소스 directive, image shape, 사용자 CSS 자체를 제거하지 않음
-  if (/%%\s*\{|^\s*---(?:\s|$)|@\s*\{|(?:^|[;\r\n])\s*(?:click|callback|link|links|style|classDef|linkStyle|cssClass)\b/im.test(source) ||
+  // Mermaid strict만으로는 설정·CSS를 제한할 수 없음 검증된 단색 선언만 예외로 허용함
+  if (/%%\s*\{|^\s*---(?:\s|$)|@\s*\{|(?:^|[;\r\n])\s*(?:click|callback|link|links|style|classDef|linkStyle|cssClass)\b/im.test(lines.map(line => colorClass(line) ? "" : line).join("\n")) ||
     /(?:\b(?:https?|ftp|file|data|blob|javascript):|\/\/|url\s*\(|@import\b|@font-face\b|\b(?:-webkit-)?image-set\s*\(|\bcross-fade\s*\(|\bpaint\s*\(|\b(?:src|href|img|image|icon)\s*[:=]|\bfa:|!\[|<\s*\/?\s*[a-z!]|&#|&(?:lt|gt|amp|quot|apos);)/i.test(source))
     return "외부 자원이나 사용자 설정이 포함된 도식은 원문으로 표시합니다.";
   return null;
@@ -91,13 +140,8 @@ function withoutFixedAnimations(value: string): string {
 
 /**
  * Mermaid 출력의 XML 요소·속성·CSS를 검증하고 외부 참조가 없는 SVG만 돌려줌
- *
- * 1. XML 크기·선언·루트 요소 검사
- * 2. 허용한 요소·속성·CSS만 통과시키고 내부 참조 수집
- * 3. 실제 SVG 요소의 모든 참조 ID 존재 확인
  */
 export function sanitizeMermaidSvg(svg: string): string {
-  // XML 크기·선언·루트 요소 검사
   if (svg.length > 512 * 1024 || /<!DOCTYPE|<!ENTITY|<\?xml-stylesheet/i.test(svg)) throw new Error("도식 SVG 크기 또는 선언 오류");
   const doc = new DOMParser().parseFromString(svg, "image/svg+xml");
   if (doc.querySelector("parsererror") || doc.documentElement.namespaceURI !== SVG_NS || doc.documentElement.localName !== "svg")
@@ -106,7 +150,6 @@ export function sanitizeMermaidSvg(svg: string): string {
   const references: string[] = [];
   const elements = [doc.documentElement, ...Array.from(doc.documentElement.querySelectorAll("*"))];
   if (elements.length > 4000) throw new Error("도식 SVG 복잡도 초과");
-  // 허용한 요소·속성·CSS만 통과시키고 내부 참조 수집
   for (const element of elements) {
     if (element.namespaceURI !== SVG_NS || !SVG_TAGS.has(element.localName)) throw new Error("도식 SVG 요소 오류");
     if (element.localName === "style") {
@@ -137,8 +180,14 @@ export function sanitizeMermaidSvg(svg: string): string {
   }
   // 고정 테마 CSS에는 현재 look에서 쓰지 않는 내부 gradient 규칙도 포함됨
   // CSS 자체는 내부 #fragment만 허용하며, 실제 SVG 요소의 참조만 존재 여부를 검사함
-  // 실제 SVG 요소의 모든 참조 ID 존재 확인
   if (references.some((id) => !ids.has(id))) throw new Error("도식 SVG 참조 오류");
+  // Mermaid의 width="100%"는 <img> 안에서 본문 너비만큼 확대됨
+  // viewBox의 실제 치수를 주어 좁은 세로 도식도 원래 글자 크기로 표시함
+  const bounds = doc.documentElement.getAttribute("viewBox")?.trim().split(/[\s,]+/).map(Number);
+  if (!bounds || bounds.length !== 4 || bounds.some(value => !Number.isFinite(value)) || bounds[2] <= 0 || bounds[3] <= 0)
+    throw new Error("도식 SVG 크기 오류");
+  doc.documentElement.setAttribute("width", String(bounds[2]));
+  doc.documentElement.setAttribute("height", String(bounds[3]));
   // Blob 이미지 문서의 ID는 도식별로 격리되며 모든 fragment는 같은 SVG 안에서만 해석됨
   return new XMLSerializer().serializeToString(doc.documentElement);
 }
@@ -188,19 +237,11 @@ let sequence = 0;
 
 /**
  * Mermaid 전역 설정을 직렬화하고 해제된 화면의 대기 작업을 건너뜀
- *
- * 1. 전역 Mermaid 설정이 겹치지 않도록 단일 소비자 유지
- * 2. 취소된 작업을 건너뛰고 대기 순서대로 처리
- * 3. 외부 자원·사용자 설정을 제한한 렌더 환경 구성
- * 4. 격리 컨테이너에서 렌더 후 SVG 재검증
- * 5. 실패·취소도 컨테이너·리스너·원문 해제
  */
 async function drainQueue(): Promise<void> {
-  // 전역 Mermaid 설정이 겹치지 않도록 단일 소비자 유지
   if (running) return;
   running = true;
   try {
-    // 취소된 작업을 건너뛰고 대기 순서대로 처리
     while (jobs.length) {
       const job = jobs.shift()!;
       if (job.signal.aborted) {
@@ -212,10 +253,11 @@ async function drainQueue(): Promise<void> {
       try {
         const { default: mermaid } = await import("mermaid");
         if (job.signal.aborted) continue;
-        // 외부 자원·사용자 설정을 제한한 렌더 환경 구성
         mermaid.initialize({ startOnLoad: false, securityLevel: "strict", htmlLabels: false,
           suppressErrorRendering: true, maxTextSize: MAX_MERMAID_LENGTH, maxEdges: MAX_MERMAID_EDGES,
-          theme: job.theme === "dark" ? "dark" : "default", layout: "dagre", look: "classic",
+          theme: job.theme === "dark" ? "dark" : "default",
+          // 그룹과 교차 FK가 있는 ERD는 ELK로 배치하고 다른 도식의 배치는 유지함
+          layout: /^\s*erDiagram\b/.test(job.source) ? "elk" : "dagre", look: "classic",
           fontFamily: "Arial, sans-serif", arrowMarkerAbsolute: false,
           secure: ["securityLevel", "startOnLoad", "maxTextSize", "maxEdges", "suppressErrorRendering", "theme",
             "themeVariables", "themeCSS", "htmlLabels", "fontFamily", "layout", "look", "arrowMarkerAbsolute"] });
@@ -224,13 +266,11 @@ async function drainQueue(): Promise<void> {
         container.setAttribute("aria-hidden", "true");
         document.body.appendChild(container);
         const id = `ken_mermaid_${++sequence}_${crypto.randomUUID().replaceAll("-", "")}`;
-        // 격리 컨테이너에서 렌더 후 SVG 재검증
-        const result = await mermaid.render(id, job.source, container);
+        const result = await mermaid.render(id, mermaidThemeSource(job.source, job.theme), container);
         if (!job.signal.aborted) job.resolve(sanitizeMermaidSvg(result.svg));
       } catch {
         if (!job.signal.aborted) job.reject(new Error("도식을 표시할 수 없습니다."));
       } finally {
-        // 실패·취소도 컨테이너·리스너·원문 해제
         container?.remove();
         job.signal.removeEventListener("abort", job.onAbort);
         job.source = "";

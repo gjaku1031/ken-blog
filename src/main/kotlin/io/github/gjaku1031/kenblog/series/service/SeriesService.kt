@@ -4,7 +4,6 @@ import io.github.gjaku1031.kenblog.series.domain.*
 import io.github.gjaku1031.kenblog.series.dto.*
 import io.github.gjaku1031.kenblog.series.repository.SeriesRepository
 import io.github.gjaku1031.kenblog.post.repository.PostQueries
-import io.github.gjaku1031.kenblog.post.repository.PostRepository
 import io.github.gjaku1031.kenblog.post.domain.PostVisibility
 import io.github.gjaku1031.kenblog.post.domain.PostStatus
 import io.github.gjaku1031.kenblog.post.dto.PostSeriesItem
@@ -15,10 +14,10 @@ import org.springframework.dao.DataIntegrityViolationException
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.util.Locale
+import java.util.UUID
 
 /**
  * 시리즈 메타데이터 저장과 첫 공개 글 대문 계산
- * 글과 파일은 시리즈 삭제로 지우지 않음
  */
 @Service
 class SeriesService(
@@ -27,10 +26,6 @@ class SeriesService(
      */
     private val series: SeriesRepository,
     /**
-     * 게시글 저장소
-     */
-    private val posts: PostRepository,
-    /**
      * 게시글 메타데이터 조회기
      */
     private val queries: PostQueries,
@@ -38,7 +33,7 @@ class SeriesService(
      * 기술 뱃지 서비스
      */
     private val badges: StackBadgeService
-) {
+    ) {
     /**
      * 시리즈 목록 조회
      */
@@ -62,22 +57,23 @@ class SeriesService(
     /**
      * 시리즈 생성
      *
-     * 1. 주소와 종류별 입력 검증
-     * 2. 시리즈 저장, 고유 제약 충돌은 업무 오류로 변환
-     * 3. 프로젝트이면 기술 선택도 같은 트랜잭션에 저장
+     * 1. 종류별 접두사 선택, 주소 생략 시 UUID 기반 주소 생성
+     * 2. 메타데이터 저장, 고유 제약 충돌을 업무 오류로 변환
+     * 3. 프로젝트 기술 선택도 같은 트랜잭션에 저장
      */
     @Transactional
     fun create(input: SeriesCreateRequest): SeriesResponse {
-        // 주소와 종류별 입력 검증
-        val slug = input.slug.trim().lowercase(Locale.ROOT)
+        // 종류별 접두사 선택, 주소 생략 시 UUID 기반 주소 생성
+        val prefix = if (input.kind == SeriesKind.PROJECT) "project" else "series"
+        val slug = (input.slug ?: "$prefix-${UUID.randomUUID()}").trim().lowercase(Locale.ROOT)
         if (slug.length > 160 || !Regex("[a-z0-9]+(?:-[a-z0-9]+)*").matches(slug) || input.metadata.baseUpdatedAt != null)
             throw InvalidSeriesRequestException()
         val value = SeriesRequests.validate(input.kind, input.metadata)
-        // 시리즈 저장, 고유 제약 충돌은 업무 오류로 변환
+        // 메타데이터 저장, 고유 제약 충돌을 업무 오류로 변환
         val entity = try { series.saveAndFlush(SeriesEntity(slug, input.kind, value.name, value.description,
             value.projectStatus, value.startPeriod, value.endPeriod, now())) }
         catch (_: DataIntegrityViolationException) { throw SeriesConflictException() }
-        // 프로젝트이면 기술 선택도 같은 트랜잭션에 저장
+        // 프로젝트 기술 선택도 같은 트랜잭션에 저장
         if (entity.kind == SeriesKind.PROJECT) badges.replaceSeriesStack(entity.id!!, value.stackBadgeNames)
         return response(entity, true)
     }
@@ -110,22 +106,6 @@ class SeriesService(
         val entity = series.findLockedById(id) ?: throw SeriesNotFoundException()
         entity.reorder(order); series.saveAndFlush(entity)
         return response(entity, true)
-    }
-    /**
-     * 문서가 없는 시리즈 삭제
-     *
-     * 1. 삭제할 시리즈 잠금
-     * 2. 문서가 남아 있으면 삭제 거부
-     * 3. 빈 시리즈만 삭제
-     */
-    @Transactional
-    fun delete(id: Long) {
-        // 삭제할 시리즈 잠금
-        val entity = series.findLockedById(id) ?: throw SeriesNotFoundException()
-        // 문서가 남아 있으면 삭제 거부
-        if (posts.existsBySeriesId(id)) throw SeriesConflictException()
-        // 빈 시리즈만 삭제
-        series.delete(entity); series.flush()
     }
     /**
      * 시리즈 속성·첫 공개 문서·기술 뱃지를 응답에 결합

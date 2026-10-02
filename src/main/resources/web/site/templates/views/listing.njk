@@ -1,15 +1,12 @@
-{# 검색·글 목록과 필터 #}<main id="main-content" class="page-container {{ 'search-page' if searching else 'tech-page' }}">
+{# 글 목록·검색·분류 필터와 작성 진입 #}<main id="main-content" class="page-container {{ 'search-page' if searching else 'tech-page posts-page' }}">
   <div class="content-grid">
     <section class="feed-column">
       <div class="section-heading">
         <h1>{{ heading }}</h1>
-        <span id="filter-count" class="mono feed-total"></span>
+        {% if section == "Posts" %}<button class="write-button" type="button" data-admin-write data-post-create="TECH" hidden>글쓰기</button>{% endif %}
       </div>
       {# 현재 검색어·결과 건수 표시 위치 #}{% if searching %}<p id="search-filter" class="active-filters">
       </p>{% endif %}
-      {# 시리즈 대문 탐색 #}{% if groups | length %}<nav class="tag-list" aria-label="시리즈와 소분류 대문">
-        {% for group in groups %}<a href="{{ group.href }}">{{ group.name }}</a>{% endfor %}
-      </nav>{% endif %}
       <div class="post-list">{% include "views/cards.njk" %}</div>
       <p id="filter-empty" class="message-card card" hidden>검색 결과가 없습니다.</p>
     </section>

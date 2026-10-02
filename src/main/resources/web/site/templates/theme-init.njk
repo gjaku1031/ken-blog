@@ -1,0 +1,17 @@
+{# 첫 페인트 전 테마와 기본 배경 결정 #}{# 외부 CSS·모듈보다 먼저 실행함 저장소에는 사용자가 토글한 선택만 기록함 #}
+<script id="theme-init">
+  (function () {
+    var theme;
+    try { theme = localStorage.getItem("ken-blog-theme"); } catch (_) {}
+    if (theme !== "light" && theme !== "dark") {
+      theme = matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+    }
+    document.documentElement.dataset.theme = theme;
+    document.documentElement.style.colorScheme = theme;
+  })();
+</script>
+{# CSS를 아직 받지 못한 문서와 CSS 없는 리다이렉트도 같은 배경을 사용함 #}
+<style id="theme-canvas">
+  :root { background: #f8f9fa; color: #212529; }
+  :root[data-theme="dark"] { background: #121417; color: #e9ecef; }
+</style>

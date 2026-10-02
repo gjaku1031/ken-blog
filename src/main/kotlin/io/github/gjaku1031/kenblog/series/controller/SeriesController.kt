@@ -18,7 +18,7 @@ class SeriesController(
      * 시리즈 서비스
      */
     private val service: SeriesService
-) {
+    ) {
     /**
      * 시리즈 목록 조회
      */
@@ -52,14 +52,6 @@ class SeriesController(
         if (!input.isObject || input.size() != 1 || !input.path("order").isIntegralNumber || !input.path("order").canConvertToLong())
             throw InvalidSeriesRequestException()
         return noStore(service.setOrder(id, input.get("order").longValue()))
-    }
-
-    /**
-     * 문서가 없는 시리즈 삭제
-     */
-    @DeleteMapping("/{id}")
-    fun delete(@PathVariable id: Long): ResponseEntity<Void> {
-        service.delete(id); return ResponseEntity.noContent().cacheControl(CacheControl.noStore()).build()
     }
 
     /**

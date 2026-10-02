@@ -81,7 +81,7 @@ data class SeriesDetailResponse(
      * 시리즈 문서 목록
      */
     val posts: List<SeriesPostResponse>
-)
+    )
 /**
  * 관리자에게는 미출간 문서도 포함하며 공개 상세에는 출간 문서만 포함
  */
@@ -106,7 +106,7 @@ data class SeriesPostResponse(
      * 공개 출간 여부
      */
     val published: Boolean
-)
+    )
 /**
  * 변경할 시리즈 속성
  * 종류와 주소 변경은 허용하지 않음
@@ -146,9 +146,9 @@ data class SeriesMetadataRequest(
  */
 data class SeriesCreateRequest(
     /**
-     * 공개 주소 식별자
+     * 공개 주소 식별자, 생략하면 서버에서 생성
      */
-    val slug: String,
+    val slug: String? = null,
     /**
      * 시리즈 종류
      */
@@ -157,7 +157,7 @@ data class SeriesCreateRequest(
      * 시리즈 속성 입력
      */
     val metadata: SeriesMetadataRequest
-)
+    )
 
 /**
  * JSON 타입·문자열·기간·종류별 메타데이터를 검사
@@ -195,13 +195,19 @@ object SeriesRequests {
     }
     /**
      * 시리즈 생성
+     *
+     * 1. 허용 키와 종류·메타데이터 필수 입력 검사
+     * 2. 주소 생략을 허용하고 종류별 메타데이터 검증
      */
     fun create(node: JsonNode): SeriesCreateRequest {
-        if (!node.isObject || node.size() != 3 || !node.path("slug").isTextual || !node.path("kind").isTextual || !node.has("metadata"))
+        // 허용 키와 종류·메타데이터 필수 입력 검사
+        val allowed = setOf("slug", "kind", "metadata")
+        if (!node.isObject || node.properties().any { it.key !in allowed } || !node.path("kind").isTextual || !node.has("metadata"))
             throw InvalidSeriesRequestException()
         val kind = SeriesKind.entries.firstOrNull { it.name == node.get("kind").textValue() }
             ?: throw InvalidSeriesRequestException()
-        return SeriesCreateRequest(node.get("slug").textValue(), kind, metadata(node.get("metadata")))
+        // 주소 생략을 허용하고 종류별 메타데이터 검증
+        return SeriesCreateRequest(optionalText(node, "slug"), kind, metadata(node.get("metadata")))
     }
     /**
      * 종류별 속성·기술 목록·기간 범위 검사

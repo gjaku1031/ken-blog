@@ -38,7 +38,7 @@ class CategoryService(
      * 게시글 메타데이터 조회기
      */
     private val queries: io.github.gjaku1031.kenblog.post.repository.PostQueries
-) {
+    ) {
     /**
      * 경로의 기존 중간 폴더를 잠가 재사용하고 없는 단계를 한 트랜잭션에서 생성
      *
@@ -46,7 +46,7 @@ class CategoryService(
      * 2. 트리 잠금으로 형제 집합 변경 직렬화
      * 3. 기존 중간 분류 재사용, 없는 단계는 형제의 마지막 순서로 생성
      *
-     * @param path 슬래시 구분 1~3단계 입력
+     * @param path 슬래시 구분 1~2단계 입력
      * @return 새 마지막 폴더의 [CategoryRefResponse]
      * @throws InvalidCategoryRequestException 깊이·이름·기호가 잘못되었을 때
      * @throws CategoryConflictException 마지막 경로 중복 또는 동시 FK·잠금 충돌일 때
@@ -180,26 +180,24 @@ class CategoryService(
     /**
      * 단계별 표시명과 대소문자 비민감 경로 조각을 분리하고 잘못된 기호·제어 문자를 거부
      *
-     * 1. 슬래시 기준 분리 후 깊이 상한 검사
-     * 2. 단계별 표시 이름·문자 범위 확인
-     * 3. 소문자·하이픈 경로로 변환 후 패턴 재검사
+     * 1. 대분류·소분류 1~2단계 입력만 허용
+     * 2. 단계별 문자·길이·이름 정규화 후 경로 검사
      *
      * @param rawPath 사용자가 입력한 슬래시 경로
-     * @return 순서대로 검증된 1~3단계 조각
+     * @return 순서대로 검증된 1~2단계 조각
      * @throws InvalidCategoryRequestException 단계·길이·문자 계약 위반
      */
     private fun normalizePath(rawPath: String): List<PathSegment> {
-        // 슬래시 기준 분리 후 깊이 상한 검사
+        // 대분류·소분류 1~2단계 입력만 허용
         val raw = rawPath.split('/')
-        if (raw.size !in 1..3) throw InvalidCategoryRequestException()
-        // 단계별 표시 이름·문자 범위 확인
+        if (raw.size !in 1..2) throw InvalidCategoryRequestException()
+        // 단계별 문자·길이·이름 정규화 후 경로 검사
         return raw.map { segment ->
             if (segment.any { Character.isISOControl(it) }) throw InvalidCategoryRequestException()
             val name = segment.trim().replace(Regex(" +"), " ")
             if (name.codePointCount(0, name.length) !in 1..60 || !DISPLAY_PATTERN.matches(name)) {
                 throw InvalidCategoryRequestException()
             }
-            // 소문자·하이픈 경로로 변환 후 패턴 재검사
             val slug = name.lowercase(Locale.ROOT).replace(' ', '-')
             if (!SLUG_PATTERN.matches(slug)) throw InvalidCategoryRequestException()
             PathSegment(name, slug)
@@ -218,7 +216,7 @@ class CategoryService(
          * 공개 주소 식별자
          */
         val slug: String
-    )
+        )
 
     /**
      * 분류 생성·삭제·순서 변경의 형제 집합 검증에 쓸 전역 잠금 행을 먼저 취득
