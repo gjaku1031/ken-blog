@@ -76,8 +76,9 @@ function categoryTree(posts: Post[]) {
 }
 function card(post: Post) {
   const categoryPath = post.category?.path ?? "", context = post.series && post.series.slug !== categoryPath ? post.series.name : "";
-  return { ...post, href: postPath(post), categoryPath, categoryTrail: categoryTrail(categoryPath), context, tagText: post.tags.join("|"), label: label(post.section),
-    searchText: `${post.title} ${post.summary} ${categoryPath} ${post.tags.join(" ")} ${context} ${post.searchBody ?? ""}`,
+  const tags = post.section === "PROJECT" ? [] : post.tags;
+  return { ...post, tags, href: postPath(post), categoryPath, categoryTrail: categoryTrail(categoryPath), context, tagText: tags.join("|"), label: label(post.section),
+    searchText: `${post.title} ${post.summary} ${categoryPath} ${tags.join(" ")} ${context} ${post.searchBody ?? ""}`,
     displayDate: date(post.publishedDate) };
 }
 

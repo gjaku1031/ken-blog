@@ -74,15 +74,15 @@ export function tagPicker(parent: HTMLElement, tags: Tag[], initial: string[] = 
   group.append(chips, input, list, values); parent.append(group); render();
 }
 
-export function taxonomyFields(parent: HTMLElement, data: PostOptions, post?: { category: { id: number } | null; tags: string[] }) {
+export function taxonomyFields(parent: HTMLElement, data: PostOptions, post?: { category: { id: number } | null; tags: string[] }, includeTags = true) {
   categoryPicker(parent, data.categories, post?.category?.id);
-  tagPicker(parent, data.tags, post?.tags);
+  if (includeTags) tagPicker(parent, data.tags, post?.tags);
 }
 
 export function postCreateFields(parent: HTMLElement, data: PostOptions, project: boolean, projectId = '') {
   field(parent, '제목', 'title', '', { required: true, max: 200, wide: true });
   area(parent, '요약', 'summary', '', 120);
-  taxonomyFields(parent, data);
+  taxonomyFields(parent, data, undefined, !project);
   const groups = data.series.filter(item => item.kind === (project ? 'PROJECT' : 'TECH'));
   const select = choice(parent, project ? '프로젝트' : '시리즈', 'seriesId', [['', project ? '프로젝트 선택' : '없음'], ...groups.map(item => [String(item.id), item.name] as [string, string])], groups.some(item => String(item.id) === projectId) ? projectId : '');
   select.required = project;

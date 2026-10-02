@@ -195,11 +195,11 @@ function editPost(post: Post, data: AdminData) {
   content.append(el('p', 'source-path mono', `content/posts/${post.slug}.md`));
   const edit = form(input => mutate(`/admin/posts/${post.id}/metadata`, 'PATCH', {
     title: value(input, 'title'), summary: value(input, 'summary'),
-    categoryId: optionalNumber(input, 'categoryId'), tags: postTags(input),
+    categoryId: optionalNumber(input, 'categoryId'), tags: post.section === 'PROJECT' ? [] : postTags(input),
   }), '글 메타데이터를 저장했습니다.');
   field(edit, '제목', 'title', post.title, { required: true, max: 200 });
   field(edit, '요약', 'summary', post.summary, { max: 120 });
-  taxonomyFields(edit, data, post);
+  taxonomyFields(edit, data, post, post.section !== 'PROJECT');
   submit(edit, '메타데이터 저장'); content.append(edit);
   const membership = form(input => mutate(`/admin/posts/${post.id}/series`, 'PUT', {
     seriesId: optionalNumber(input, 'seriesId'), relatedSeriesId: optionalNumber(input, 'relatedSeriesId'), order: optionalNumber(input, 'order'),

@@ -4,7 +4,7 @@
     <div class="post-overline">
       <a href="{{ base + ('projects/' if project else 'posts/') }}">{{ 'Projects' if project else 'Posts' }}</a>{% if post.category %}<span> · </span>{% endif %}{% if post.category %}<span class="category-breadcrumb">{% for part in post.categoryTrail %}{% if not loop.first %}<span aria-hidden="true">›</span>{% endif %}<a href="{{ base + 'posts/?category=' + (part.path | query) }}">{{ part.name }}</a>{% endfor %}</span>{% endif %}
     </div>
-    <h1>{{ post.title }}</h1>
+    <h1>{{ project.name if project else post.title }}</h1>
     {% if project %}<div class="project-overview">
       <div class="project-card-top"><span class="project-status project-status-{{ project.statusClass }}"><span aria-hidden="true"></span>{{ project.statusLabel }}</span>{% if project.period %}<span class="mono project-period">{{ project.period }}</span>{% endif %}</div>
       {% if project.description %}<p class="project-description">{{ project.description }}</p>{% endif %}
@@ -16,11 +16,12 @@
     {% if post.section != 'PROJECT' %}<div class="detail-meta">
       <time class="mono" datetime="{{ post.publishedDate }}">{{ post.displayDate }}</time>
     </div>{% endif %}
-    {% if post.tags | length %}<div class="tag-list detail-tags">
+    {% if post.section != 'PROJECT' and post.tags | length %}<div class="tag-list detail-tags">
       {% for tag in post.tags %}<a href="{{ base + 'posts/?tag=' + (tag | query) }}">#{{ tag }}</a>{% endfor %}
     </div>{% endif %}
     <div class="post-reading-layout {{ 'has-toc' if (toc | length) or (series | length) else '' }}">
       <div class="post-main-content">
+        {% if project and project.cover.id != post.id %}<h2 class="project-document-title">{{ post.title }}</h2>{% endif %}
         <div class="markdown-body">{{ html | safe }}</div>
         {% include "views/backlinks.njk" %}
         {% if previousPost or nextPost %}<nav class="series-previous-next" aria-label="이전·다음 글">
