@@ -1,6 +1,0 @@
-{
-  "resources": [
-    {"module": "java.desktop", "glob": "sun/awt/resources/awt_en.properties"},
-    {"module": "java.desktop", "glob": "sun/awt/resources/awt_en_US.properties"}
-  ]
-}

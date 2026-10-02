@@ -55,18 +55,18 @@ jobs:
           test -s build/site/index.html
           test -s build/site/manage/index.html
 
-  native-image:
+  jvm-image:
     needs: verify
     runs-on: ubuntu-24.04-arm
-    timeout-minutes: 120
+    timeout-minutes: 45
     services:
       mysql:
         image: mysql:8.4.11
         env:
-          MYSQL_DATABASE: ken_blog_native_ci
-          MYSQL_USER: ci_native
-          MYSQL_PASSWORD: ci_native_ephemeral_only
-          MYSQL_ROOT_PASSWORD: ci_native_root_ephemeral_only
+          MYSQL_DATABASE: ken_blog_jvm_ci
+          MYSQL_USER: ci_jvm
+          MYSQL_PASSWORD: ci_jvm_ephemeral_only
+          MYSQL_ROOT_PASSWORD: ci_jvm_root_ephemeral_only
         ports:
           - 13308:3306
         options: >-
@@ -75,7 +75,7 @@ jobs:
           --health-timeout 3s
           --health-retries 20
     env:
-      IMAGE_NAME: ken-blog-api:native-${{ github.sha }}
+      IMAGE_NAME: ken-blog-api:jvm-${{ github.sha }}
     steps:
       - uses: actions/checkout@v7.0.1
       - uses: actions/setup-java@v6.0.1
@@ -83,79 +83,96 @@ jobs:
           distribution: temurin
           java-version: '25'
       - uses: gradle/actions/setup-gradle@v4
-      - name: Build Linux ARM64 GraalVM image with Cloud Native Buildpacks
+      - name: Build Linux ARM64 JVM image with Cloud Native Buildpacks
         run: |
           test "$(uname -m)" = aarch64
           ./gradlew --no-daemon -PskipWeb=true bootBuildImage \
             --imageName="$IMAGE_NAME" \
-            --environment BP_NATIVE_IMAGE=true \
             --environment BP_JVM_VERSION=25
-      - name: Verify and archive native image
+      - name: Verify and archive JVM image
         run: |
           test "$(docker image inspect --format '{{.Os}}/{{.Architecture}}' "$IMAGE_NAME")" = linux/arm64
           image_user=$(docker image inspect --format '{{.Config.User}}' "$IMAGE_NAME")
           case "$image_user" in
-            ''|root|root:*|0|0:*) echo 'Native image must declare a non-root user' >&2; exit 1 ;;
+            ''|root|root:*|0|0:*) echo 'JVM image must declare a non-root user' >&2; exit 1 ;;
           esac
-          mkdir -p "$RUNNER_TEMP/ken-blog-native-image"
+          mkdir -p "$RUNNER_TEMP/ken-blog-jvm-image"
           docker image inspect --format '{{ index .Config.Labels "io.buildpacks.build.metadata" }}' "$IMAGE_NAME" \
-            > "$RUNNER_TEMP/ken-blog-native-image/buildpacks.json"
-          jq -e '.buildpacks | any(.id == "paketo-buildpacks/native-image")' \
-            "$RUNNER_TEMP/ken-blog-native-image/buildpacks.json" >/dev/null
-          docker save "$IMAGE_NAME" | gzip -1 > "$RUNNER_TEMP/ken-blog-native-image/image.tar.gz"
-          cd "$RUNNER_TEMP/ken-blog-native-image"
+            > "$RUNNER_TEMP/ken-blog-jvm-image/buildpacks.json"
+          jq -e '(.buildpacks | any(.id == "paketo-buildpacks/bellsoft-liberica")) and
+            (.buildpacks | all(.id != "paketo-buildpacks/native-image"))' \
+            "$RUNNER_TEMP/ken-blog-jvm-image/buildpacks.json" >/dev/null
+          docker save "$IMAGE_NAME" | gzip -1 > "$RUNNER_TEMP/ken-blog-jvm-image/image.tar.gz"
+          cd "$RUNNER_TEMP/ken-blog-jvm-image"
           sha256sum image.tar.gz > image.tar.gz.sha256
           printf 'image=%s\nsource_sha=%s\nplatform=linux/arm64\ndefault_user=%s\n' \
             "$IMAGE_NAME" "$GITHUB_SHA" "$image_user" > image.txt
-      - name: Start native image with production storage identity
+      - name: Start JVM image with production storage identity
         run: |
-          sudo install -d -o 10001 -g 1001 -m 0750 "$RUNNER_TEMP/ken-blog-native-assets"
-          sudo install -d -o 10001 -g 1001 -m 0750 "$RUNNER_TEMP/ken-blog-native-content"
-          sudo install -d -o 10001 -g 1001 -m 0750 "$RUNNER_TEMP/ken-blog-native-content/posts"
-          docker run -d --name ken-blog-native-ci --network host --user 10001:1001 \
+          sudo install -d -o 10001 -g 1001 -m 0750 "$RUNNER_TEMP/ken-blog-jvm-assets"
+          sudo install -d -o 10001 -g 1001 -m 0750 "$RUNNER_TEMP/ken-blog-jvm-content"
+          sudo install -d -o 10001 -g 1001 -m 0750 "$RUNNER_TEMP/ken-blog-jvm-content/posts"
+          docker run -d --name ken-blog-jvm-ci --network host --user 10001:1001 --memory 1536m --cpus 1 \
+            -e BPL_JVM_HEAD_ROOM=10 \
+            -e JAVA_TOOL_OPTIONS=-XX:MaxMetaspaceSize=256m \
             -e SPRING_PROFILES_ACTIVE=caddy \
-            -e DB_URL=jdbc:mysql://127.0.0.1:13308/ken_blog_native_ci \
-            -e DB_USERNAME=ci_native -e DB_PASSWORD=ci_native_ephemeral_only \
-            -e BOOTSTRAP_ADMIN_USERNAME=ci_native_admin \
-            -e 'BOOTSTRAP_ADMIN_PASSWORD_HASH={bcrypt}$2b$10$EJqDJenc5ZUn8Jk6tx/.ZuLJGLmLPghnFRE10HV3/1bFZNK54uZT.' \
-            -e ADMIN_USERNAME=ci_native_admin \
+            -e DB_URL=jdbc:mysql://127.0.0.1:13308/ken_blog_jvm_ci \
+            -e DB_USERNAME=ci_jvm -e DB_PASSWORD=ci_jvm_ephemeral_only \
+            -e BOOTSTRAP_ADMIN_USERNAME=ci_jvm_admin \
+            -e 'BOOTSTRAP_ADMIN_PASSWORD_HASH={bcrypt}$2b$10$4FBi6otvIFtcNbMAYerE3O1eSZAmB9sw3r4iEgU2ovjbUuSVcfivG' \
+            -e ADMIN_USERNAME=ci_jvm_admin \
             -e SESSION_COOKIE_SECURE=false -e SESSION_COOKIE_SAME_SITE=lax -e SESSION_COOKIE_PARTITIONED=false \
             -e APP_MCP_ENABLED=true \
             -e APP_MCP_ALLOWED_HOSTS=127.0.0.1:8080 \
             -e APP_MCP_ALLOWED_PEERS=127.0.0.1,::1 \
             -e APP_ASSETS_DIRECTORY=/var/lib/ken-blog/assets \
             -e APP_CONTENT_DIRECTORY=/app/content \
-            --mount "type=bind,source=$RUNNER_TEMP/ken-blog-native-assets,target=/var/lib/ken-blog/assets" \
-            --mount "type=bind,source=$RUNNER_TEMP/ken-blog-native-content,target=/app/content,readonly" \
+            --mount "type=bind,source=$RUNNER_TEMP/ken-blog-jvm-assets,target=/var/lib/ken-blog/assets" \
+            --mount "type=bind,source=$RUNNER_TEMP/ken-blog-jvm-content,target=/app/content,readonly" \
             "$IMAGE_NAME"
-          trap 'docker rm -f ken-blog-native-ci >/dev/null 2>&1 || true' EXIT
+          cleanup() {
+            result=$?
+            if [ "$result" -ne 0 ]; then
+              docker logs ken-blog-jvm-ci || true
+              docker inspect --format '{{.State.Status}} OOMKilled={{.State.OOMKilled}} ExitCode={{.State.ExitCode}}' ken-blog-jvm-ci || true
+            fi
+            docker rm -f ken-blog-jvm-ci >/dev/null 2>&1 || true
+            exit "$result"
+          }
+          trap cleanup EXIT
           for attempt in $(seq 1 60); do
             if curl -fsS --connect-timeout 2 --max-time 5 http://127.0.0.1:8080/actuator/health 2>/dev/null \
               | jq -e '.status == "UP"' >/dev/null; then
               break
             fi
-            if [ "$(docker inspect --format '{{.State.Running}}' ken-blog-native-ci)" != true ]; then
-              docker logs ken-blog-native-ci
+            if [ "$(docker inspect --format '{{.State.Running}}' ken-blog-jvm-ci)" != true ]; then
+              docker logs ken-blog-jvm-ci
               exit 1
             fi
             sleep 2
           done
           if ! curl -fsS --max-time 5 http://127.0.0.1:8080/actuator/health \
             | jq -e '.status == "UP"'; then
-            docker logs ken-blog-native-ci
+            docker logs ken-blog-jvm-ci
             exit 1
           fi
           if ! curl -fsS --max-time 5 http://127.0.0.1:8080/api/v1/status \
             | jq -e '.status == "UP"'; then
-            docker logs ken-blog-native-ci
+            docker logs ken-blog-jvm-ci
             exit 1
           fi
           if ! curl -fsS --max-time 5 http://127.0.0.1:8080/api/v1/auth/csrf \
             | jq -e '.headerName == "X-CSRF-TOKEN" and (.token | type == "string" and length > 0)'; then
-            docker logs ken-blog-native-ci
+            docker logs ken-blog-jvm-ci
             exit 1
           fi
-          # Native Image의 MCP 리플렉션과 ImageIO JNI 누락을 아카이브 업로드 전에 확인.
+          java_executable=$(docker exec ken-blog-jvm-ci readlink /proc/1/exe)
+          case "$java_executable" in
+            */bin/java) ;;
+            *) echo 'API PID 1 must be the JVM' >&2; exit 1 ;;
+          esac
+          docker exec ken-blog-jvm-ci "$java_executable" -version
+          # 실제 JVM 컨테이너에서 MCP·이미지·인증·jOOQ 기능을 산출물 업로드 전에 확인.
           python3 - <<'PY'
           import base64
           import hashlib
@@ -220,7 +237,7 @@ jobs:
           rpc('initialize', {
               'protocolVersion': '2025-03-26',
               'capabilities': {},
-              'clientInfo': {'name': 'native-image-ci', 'version': '1'},
+              'clientInfo': {'name': 'jvm-image-ci', 'version': '1'},
           })
           rpc('notifications/initialized', notification=True)
           tools = {item['name'] for item in rpc('tools/list')['tools']}
@@ -234,7 +251,7 @@ jobs:
           assert contents and len(contents[0]['text']) > 100
           prompt = rpc('prompts/get', {
               'name': 'plan_ken_blog_article',
-              'arguments': {'topic': 'Native Image', 'section': 'TECH'},
+              'arguments': {'topic': 'JVM Image', 'section': 'TECH'},
           })
           assert prompt['messages']
 
@@ -251,7 +268,7 @@ jobs:
               uploaded = tool('blog_upload_image', {'image': image})
               assert uploaded['id'], (label, uploaded)
               badge = tool('blog_create_stack_badge', {
-                  'input': {'name': 'Native CI ' + label, 'image': image},
+                  'input': {'name': 'JVM CI ' + label, 'image': image},
               })
               assert badge['id'], (label, badge)
               request = urllib.request.Request(
@@ -267,15 +284,15 @@ jobs:
               assert struct.unpack('>II', normalized[16:24]) == (64, 64), label
 
           series = tool('blog_create_series', {'input': {
-              'slug': 'native-ci-series', 'kind': 'PROJECT',
-              'metadata': {'name': 'Native CI Project', 'projectStatus': 'PLAN',
-                           'startPeriod': '2026.10', 'stackBadgeNames': ['Native CI PNG']},
+              'slug': 'jvm-ci-series', 'kind': 'PROJECT',
+              'metadata': {'name': 'JVM CI Project', 'projectStatus': 'PLAN',
+                           'startPeriod': '2026.10', 'stackBadgeNames': ['JVM CI PNG']},
           }})
           assert series['kind'] == 'PROJECT' and series.get('cover') is None, series
           assert series['startPeriod'] == '2026.10' and len(series['stackBadges']) == 1, series
-          slug = 'native-ci-project'
+          slug = 'jvm-ci-project'
           registered = tool('blog_register_post', {'input': {
-              'title': 'Native CI Project', 'slug': slug, 'seriesId': series['id'], 'order': 1,
+              'title': 'JVM CI Project', 'slug': slug, 'seriesId': series['id'], 'order': 1,
           }})
           assert registered['sourcePath'] == 'content/posts/' + slug + '.md', registered
           post = registered['post']
@@ -283,14 +300,14 @@ jobs:
           assert post['section'] == 'PROJECT' and post['status'] == 'DRAFT', post
           assert post['body'] == '' and post['seriesOrder'] == 1, post
 
-          source = os.path.join(os.environ['RUNNER_TEMP'], 'ken-blog-native-content', 'posts', slug + '.md')
+          source = os.path.join(os.environ['RUNNER_TEMP'], 'ken-blog-jvm-content', 'posts', slug + '.md')
           assert subprocess.run(['sudo', 'test', '!', '-e', source], check=False).returncode == 0, source
           detail = tool('blog_get_series', {'id': series['id']})
           assert detail['series']['id'] == series['id'], detail
           assert detail['series'].get('cover') is None, detail
           assert len(detail['posts']) == 1 and detail['posts'][0]['id'] == post['id'], detail
 
-          body = '# Native CI Project\n\nRepository Markdown fixture.\n'
+          body = '# JVM CI Project\n\nRepository Markdown fixture.\n'
           subprocess.run(['sudo', 'tee', source], input=body.encode(), stdout=subprocess.DEVNULL, check=True)
           subprocess.run(['sudo', 'chown', '10001:1001', source], check=True)
           subprocess.run(['sudo', 'chmod', '0640', source], check=True)
@@ -313,7 +330,7 @@ jobs:
           assert snapshot['series'][0]['cover']['id'] == post['id'], snapshot
           assert snapshot['posts'][0]['section'] == 'PROJECT', snapshot
           tool('blog_list_posts', {'page': 0, 'size': 20})
-          tool('blog_search_posts', {'query': 'Native', 'page': 0, 'size': 20})
+          tool('blog_search_posts', {'query': 'JVM', 'page': 0, 'size': 20})
           tool('blog_set_post_publication', {'postId': post['id'], 'published': False})
 
           auth = urllib.request.build_opener(urllib.request.ProxyHandler({}),
@@ -321,12 +338,12 @@ jobs:
           with auth.open(base + '/api/v1/auth/csrf') as response:
               csrf = json.load(response)['token']
           login = urllib.request.Request(base + '/api/v1/auth/login',
-              json.dumps({'password': 'native-ci-ephemeral-only', 'rememberMe': True}).encode(),
+              json.dumps({'password': 'jvm-ci-ephemeral-only', 'rememberMe': True}).encode(),
               headers={'Content-Type': 'application/json', 'X-CSRF-TOKEN': csrf})
           with auth.open(login) as response:
               assert response.status == 200
           with auth.open(base + '/api/v1/auth/me') as response:
-              assert json.load(response)['username'] == 'ci_native_admin'
+              assert json.load(response)['username'] == 'ci_jvm_admin'
           with auth.open(base + '/api/v1/auth/csrf') as response:
               csrf = json.load(response)['token']
           logout = urllib.request.Request(base + '/api/v1/auth/logout', data=b'',
@@ -334,13 +351,13 @@ jobs:
           with auth.open(logout) as response:
               assert response.status == 204
 
-          print('PASS password-only login/logout and native MCP metadata, 24 tools, series/post jOOQ reads, resource, prompt, PNG/JPEG uploads, 64px badges and Pages v2 visibility')
+          print('PASS password-only login/logout and jvm MCP metadata, 24 tools, series/post jOOQ reads, resource, prompt, PNG/JPEG uploads, 64px badges and Pages v2 visibility')
           PY
       - name: Upload reviewed image archive
         uses: actions/upload-artifact@v7.0.1
         with:
-          name: ken-blog-native-arm64-${{ github.sha }}-${{ github.run_attempt }}
-          path: ${{ runner.temp }}/ken-blog-native-image/
+          name: ken-blog-jvm-arm64-${{ github.sha }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/ken-blog-jvm-image/
           if-no-files-found: error
           compression-level: 0
           retention-days: 90

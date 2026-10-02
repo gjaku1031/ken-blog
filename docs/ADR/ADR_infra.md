@@ -2,7 +2,7 @@
 
 기준일: 2026-10-02. 인프라 변경 시 구현과 함께 갱신하는 결정 원본 문서.
 
-**코드의 구성과 실제 운영 적용 상태를 구분하는 원칙.** 새 서버의 별도 테스트 DB로 Native API·Caddy 배포와 공개 HTTPS 검증 완료. 기존 운영 DB·원고·OCI 첨부 이관 및 실제 GitHub Pages 전환·push는 미완료. 아래 과거 검증 기록은 당시 상태이며 최신 배포·용량 결과는 문서 후반 참조. 애플리케이션 및 영속성 결정은 [ADR 목록](README.md)에서 연결.
+**코드의 구성과 실제 운영 적용 상태를 구분하는 원칙.** 코드의 기본 런타임은 일반 JVM이며 새 서버의 별도 테스트 DB로 API·Caddy 검증 수행. 기존 운영 DB·원고·OCI 첨부 이관 및 실제 GitHub Pages 전환·push는 미완료. 아래 과거 검증 기록은 당시 상태이며 최신 배포·용량 결과는 문서 후반 참조. 애플리케이션 및 영속성 결정은 [ADR 목록](README.md)에서 연결.
 
 ## 서비스 배치
 
@@ -10,7 +10,7 @@
 flowchart LR
     browser["브라우저"] --> pages["GitHub Pages<br/>공개·관리자 정적 HTML"]
     pages -->|"관리자 HTTPS 요청"| caddy["OCI VM · Caddy"]
-    caddy -->|"내부 HTTP 8080"| api["Spring Boot API<br/>GraalVM Native Image"]
+    caddy -->|"내부 HTTP 8080"| api["Spring Boot API<br/>Java 25 JVM"]
     api --> db["기존 외부 MySQL"]
     api --> disk["영속 로컬 이미지"]
     source["Git 저장소 Markdown"] --> actions["GitHub Actions"]
@@ -28,52 +28,23 @@ flowchart LR
 | MySQL/JDBC 세션, 단일 관리자 비밀번호, CSRF 유지 | 사용자 승인에 따라 MFA 제거, 로그인 실패 제한과 계정 변경 시 세션 해제 유지 | Post·Series 통합 브랜치 JVM 검증 완료; 아래 병합 검증 기록 참조 |
 | 원고는 저장소 Markdown, 이미지는 영속 로컬 파일 | 본문 웹 편집·S3/Redis 의존 제거 | 소스 구현 완료, 기존 자료 이관 전 |
 | Dockerfile 대신 CI의 `bootBuildImage` | 이미지 빌드 정의를 Gradle·Cloud Native Buildpacks로 통합 | 로컬 ARM64 이미지 빌드·CI 동일 검사 완료 |
-| GraalVM Native Image·Linux ARM64 | OCI ARM 서버 호환과 실행 시 JVM 메모리 부담 감소 목적 | 격리 Native 기능 검증 및 메모리 감소 실측 완료 |
+| 일반 JVM·Linux ARM64 | OCI ARM 서버 호환과 동적 기능의 유지보수 단순화 | 아래 JVM 전환 검증 기록 참조 |
 
 Caddy는 운영 Compose에서 `caddy run`으로 직접 실행하는 선택. 고정 IP의 단일 VM에서 중간 실행 스크립트의 필요성이 낮아 `deploy/start-caddy.sh`와 연결 마운트·entrypoint 제거. 공인 IP와 사설 NIC bind IP는 Compose 필수 입력이며, 실제 값의 적합성은 운영 준비 단계에서 확인하는 계약. 인증서 발급·갱신은 Caddy 자체 기능으로 유지.
 
-## 이미지 빌드와 배포
+## JVM 이미지 빌드와 배포 — 2026-10-02 결정
 
-선택: GitHub Actions CI의 기본 검사 성공 후 ARM64 작업에서 `./gradlew -PskipWeb=true bootBuildImage` 실행. Spring Boot의 GraalVM 플러그인과 `BP_NATIVE_IMAGE=true`로 Native Image 생성. JVM 이미지로 조용히 대체하는 fallback은 허용하지 않는 구성. [Spring Boot Native Image 안내](https://docs.spring.io/spring-boot/how-to/native-image/developing-your-first-application.html)
+상시 실행하는 1코어·RAM 4GB 개인 블로그의 기본 런타임을 Java 25 일반 JVM으로 변경. Native의 기동 시간·메모리 이득보다 Spring/JPA·jOOQ·MCP·ImageIO의 동적 기능 호환과 유지보수 단순성을 우선하는 선택. 이전 같은 조건의 JVM 실측은 유휴 647.4MiB, 조회 120회 후 684.4MiB였으며, 4GB 서버에서 JVM을 배제할 근거가 부족하다는 판단. 이 과거 값은 현재 코드의 최대 부하 상한이 아님.
 
-빌더 내부에서 컴파일하며 CI의 Java 설치는 Gradle·Spring AOT 실행용. Pages 생성기는 기존 JVM으로 실행하며 Node는 TS/CSS·Markdown·정적 사이트 빌드용. Node 실행 서버 추가 없음.
+이미지 생성은 기존 `bootBuildImage`·Cloud Native Buildpacks 유지. GraalVM Gradle 플러그인, `processAot` 환경 설정, Native 컴파일 옵션, `NativeRuntimeHints.kt` 및 ImageIO 전용 reachability metadata 제거. Spring 빈과 MCP 활성 여부는 일반 JVM의 실행 환경에서 결정. JPA 기반 jOOQ 빌드 코드 생성은 런타임 AOT와 별개이므로 유지.
 
-선택한 버전은 Spring Boot 4.1.1, GraalVM Build Tools 1.1.14, Java 25. 빌더 `paketobuildpacks/ubuntu-noble-builder:latest`와 실행 이미지 `paketobuildpacks/ubuntu-noble-run:latest` 사용. Native 컴파일은 Paketo가 공급하는 GraalVM 기반 Liberica Native Image Kit로 수행하며, `--no-fallback -J-Xmx6g -J-XX:-UseParallelGC -J-XX:+UseG1GC -march=compatibility`로 JVM fallback 금지·빌드 힙 상한·빌드 GC 선택·ARM CPU 호환성 확보. [Paketo 빌더 구성](https://paketo.io/docs/reference/builders-reference/)
+Spring Boot 4.1.1·Java 25 및 `paketobuildpacks/ubuntu-noble-builder:latest`/`ubuntu-noble-run:latest` 유지. Java desktop 이미지 처리에 필요한 시스템 라이브러리를 포함한 실행 이미지 사용. CI의 ARM64 작업은 Liberica JVM buildpack 포함·Native buildpack 미포함, 실제 Java 실행, 비루트 사용자와 운영 UID 10001/GID 1001의 파일 접근을 검증하는 구성. [Spring Boot 이미지 빌드](https://docs.spring.io/spring-boot/gradle-plugin/packaging-oci-image.html)
 
-이미지 처리에 `ImageIO`·`Graphics2D` 사용 중이므로 가장 작은 실행 이미지보다 필요한 시스템 라이브러리를 포함하는 빌더·실행 이미지 선택. 로그인·JDBC 세션 직렬화·JPA·MCP·PNG/JPEG 처리까지 실제 Native 실행으로 검증해야 하는 조건. [Spring Boot 이미지 설정](https://docs.spring.io/spring-boot/gradle-plugin/packaging-oci-image.html), [Paketo Native Image 구성](https://paketo.io/docs/howto/java/#build-an-app-as-a-graalvm-native-image-application)
+API 컨테이너 기본 메모리 한도 `1536m`, 운영 CPU 한도 1코어. `BPL_JVM_HEAD_ROOM=10`으로 JVM 외 작업에 10% 여유를 예약하고, 나머지에서 메타스페이스·코드 캐시·스레드 스택을 뺀 힙 크기는 Paketo 메모리 계산기에 위임. 최초 기본 계산의 메타스페이스 약 139MiB에서는 MCP 이미지 도구 실행 중 `OutOfMemoryError: Metaspace`와 종료 코드 3 확인. `JAVA_TOOL_OPTIONS=-XX:MaxMetaspaceSize=256m`으로 클래스 정보 공간을 확보하고 그만큼 힙을 줄여 전체 한도 유지. 컨테이너 한도 전체를 `-Xmx`로 지정하지 않는 기준. Caddy·OS 및 테스트 MySQL의 메모리는 별도. [Paketo 메모리 계산기](https://paketo.io/docs/reference/java-reference/#memory-calculator)
 
-CI는 전용 빈 DB에 일회성 더미 관리자 계정을 초기화한 뒤, 생성 이미지를 운영과 같은 UID 10001/GID 1001로 격리 MySQL에 연결하여 health·status·CSRF, MCP 초기화·도구 목록·문서·프롬프트, PNG/JPEG 업로드와 64px 배지 변환, 프로젝트 메타데이터 생성·Markdown 조회·미출간 원고를 제외한 공개 스냅샷을 확인한 뒤 산출물 업로드. 본문 fixture는 CI가 호스트 파일로 작성하며 API 컨테이너의 content 마운트는 읽기 전용 유지. 로컬 Compose의 일회성 `assets-init`은 named volume 루트만 10001:1001/0750으로 준비하며 기존 첨부 파일의 내용·소유권·권한은 보존. 운영 bind mount는 기존 `ops/prepare-local-storage.py` 계약 유지.
+CI의 기존 health·status·CSRF·MCP 24개 도구/문서/프롬프트·PNG/JPEG 업로드·64px 배지·Series/Post·jOOQ 조회·비밀번호 로그인/로그아웃·공개 스냅샷 v2 검사를 JVM 이미지에서도 유지. fixture 원고는 호스트에만 작성하고 CI 컨테이너에는 읽기 전용 마운트. 기능 검사를 통과한 이미지·SHA-256을 커밋별 artifact로 90일 보관. 빌더의 `latest`는 변경 가능하므로 실제 이미지 ID와 아카이브 해시가 산출물 식별 기준. Compose는 검증된 이미지를 받아 실행하며 자동 운영 배포·레지스트리 공개는 없는 구성.
 
-산출물은 커밋 SHA가 포함된 이미지 태그와 압축 이미지 파일·SHA-256을 CI artifact로 90일 보관. 빌더·실행 이미지의 `latest` 태그는 변경 가능하므로 소스 SHA만으로 동일 바이너리를 보장하지 않으며, 실제 보관 이미지의 SHA-256으로 식별·대조하는 기준. Compose는 검증된 이미지 이름을 받으며 서버에서 소스 이미지를 다시 빌드하지 않는 구성. 자동 운영 배포·레지스트리 공개는 이번 변경 범위에 포함하지 않은 상태.
-
-대안: 기존 Dockerfile/JVM 이미지는 디버깅과 동적 라이브러리 호환이 쉬우나 실행 메모리 감소 목적과 이미지 빌드 관리 통합 요구를 만족하지 않아 신규 기본 경로에서 제외. JVM의 일반 `bootJar`는 기존 검사와 Pages 생성 준비를 위해 유지.
-
-## 메모리와 호환성 기준
-
-Native Image의 목표는 실행 메모리 감소이며, 컴파일에 필요한 CI 메모리는 별도 문제. 현재 공개 저장소의 `ubuntu-24.04-arm` runner는 ARM64·4 CPU·16GB RAM으로 선택. 비공개 저장소로 바꾸면 같은 label의 RAM은 8GB이므로 빌드 메모리 재검토 필요. [GitHub runner 사양](https://docs.github.com/en/actions/reference/runners/github-hosted-runners) 이번 로컬 검증에서 기본 Parallel GC의 old generation이 가득 차며 빌드 GC 시간이 증가한 상태 관측. 최종 설정은 빌드 JVM의 Parallel GC를 명시 해제하고 G1로 변경하되 6GB 힙 상한 유지. `-J` 옵션은 빌드 JVM에 전달되며 생성된 API 실행 파일의 GC를 바꾸는 설정이 아님. [GraalVM 빌드 메모리 설정](https://www.graalvm.org/dev/reference-manual/native-image/overview/BuildConfiguration/#memory-configuration-for-native-image-build) 이미지 빌드의 시간·메모리 증가와 reflection/resource/serialization 설정 관리가 도입 비용. 최종 로컬 ARM64 이미지 빌드 15분 22초, Native 컴파일 13분 37초·빌드 프로세스 최대 RSS 7.71GB 관측. 현재 환경의 수치이며 GitHub runner나 다른 소스의 빌드 시간·메모리 상한을 보장하는 값은 아님.
-
-고정 감소율을 가정하지 않고 같은 DB·기능·요청 조건에서 JVM과 Native 컨테이너의 실행 메모리를 비교하는 기준. 기본 컨테이너 제한은 검증 결과 없이 급격히 낮추지 않으며 환경 설정으로 조정 가능한 형태 유지. 관측 수치는 대기 상태·기능 요청 후 상태와 측정 방법을 함께 기록하는 원칙.
-
-### 실행 메모리 실측
-
-같은 최종 애플리케이션 JAR를 사용하는 Java 25 JVM과 해당 JAR에서 컴파일한 Native API 비교. Linux ARM64·1 CPU·1GiB 한도, 같은 DB·환경 변수·원고·이미지·인증 세션·요청 조건. 두 API 재기동·health 확인 후 30초 대기, 단계마다 2초 간격 5회 측정값의 중앙값 사용. Linux cgroup v2의 `memory.current - inactive_file` 값으로 Docker CLI의 메모리 표시 방식 적용.
-
-| API 상태 | JVM | Native | 관측 감소율 |
-| --- | --- | --- | --- |
-| 기동 후 대기 | 647.4MiB | 143.8MiB | 77.8% |
-| 동일 읽기 요청 120회 후 | 684.4MiB | 136.3MiB | 80.1% |
-
-읽기 요청은 health·status·공개 스냅샷·인증한 글 목록·프로필 이미지·본문 첨부 조회. 작은 시험 데이터의 API 컨테이너 실측이며 MySQL·Caddy·호스트 전체 메모리나 최대 동시 요청·큰 이미지 변환의 상한을 나타내는 값은 아님. GC·캐시 상태에 따라 요청 후 값이 대기 값보다 낮아질 수 있으므로 일정한 감소율을 보장하는 지표로 사용하지 않는 기준. 기본 `API_MEMORY_LIMIT=1g` 유지, 실제 운영 부하를 확인한 뒤 제한 조정.
-
-Spring AOT 시점의 조건부 기능은 실행 시점의 환경 설정만 바꿔 복구할 수 없으므로 MCP 관련 빈이 생성될 조건을 빌드 때 확보. 빌드용 DB 설정은 가짜 값만 사용하고 실제 DB 연결·인증 정보를 이미지에 포함하지 않는 원칙. [Spring AOT 제약](https://docs.spring.io/spring-boot/reference/packaging/native-image/introducing-graalvm-native-images.html)
-
-Spring AI 2.0.1의 MCP annotation AOT 처리는 도구 클래스만 등록하므로 MCP 전용 입력·출력 DTO에는 별도의 binding hints 등록. 중첩 DTO까지 포함하고 MCP 작성 문서의 resource hints 및 JDBC 인증·CSRF 객체의 serialization hints 유지. 실제 Native MCP 연결에서 Kotlin reflection이 SDK의 중첩 Java record를 찾지 못한 오류를 확인하여 선언 클래스 `McpSchema`의 멤버 목록 힌트 추가. SDK가 제공한 중첩 타입 힌트는 그대로 사용. Kotlin reflection이 Java record를 조회할 때 호출하는 `RecordComponent` 접근자와 네 가지 `Class` 메서드에도 호출 힌트 추가. Native에서 누락된 Spring JDBC의 `sql-error-codes.xml`과 XML 설정·스키마 리소스도 포함하여 DB 공급자별 오류 분류 및 오프라인 설정 해석 보존.
-
-Native 이미지의 PNG/JPEG 읽기와 `Graphics2D` 리사이즈에서 JDK 내부 raster 필드·JPEG 접근 메서드의 JNI 누락 오류 확인. 현재 빌더의 Java 25 추적 에이전트로 실제 처리 경로를 수집하여 52개 타입의 필요한 필드·메서드만 등록하고, AWT 모듈의 지역화 리소스 포함. JDK·Native Image Kit 변경 시 내부 이름·시그니처가 달라질 수 있으므로 CI 이미지 처리 검사를 유지하고 필요하면 다시 수집하는 관리 비용. [GraalVM JNI·리소스 메타데이터](https://www.graalvm.org/jdk25/reference-manual/native-image/metadata/)
-
-프로젝트 생성에서는 Jackson의 Kotlin 모듈이 빈 목록 타입을 동적으로 찾지 못하는 오류도 확인. 전체 JVM 요청을 추적하여 표준 빈 `List/Set/Map` 싱글턴과 `buildList()` 구현 관련 총 8개 타입을 이름 조회 대상으로 등록. JVM 추적에서 실제 호출된 MCP 검색 응답 `ContentFeedItem/Page`의 25개 getter에도 binding hints 추가. 존재하지 않는 Kotlin 타입 별칭이나 JVM management·추적 에이전트 전용 JNI를 신규 API 설정에 섞지 않는 기준.
-
-AOT 분석은 `caddy` 프로필로 수행하며 해당 프로필의 쿠키·CORS 설정은 환경 변수로 재정의 가능한 형태. 운영 기본값은 Secure/SameSite=None/Partitioned와 정확한 Pages origin을 유지하고, 로컬 Compose는 기존 개발용 쿠키 설정 사용. 인증·origin 경계를 완화하기 위한 설정 변경은 별도 운영 판단 대상.
+실서버 적용 및 새 용량 검증 결과는 문서 후반의 JVM 전환 기록 참조. 기존 외부 DB 연결·자료 이관·Pages 전환은 별도 잔여 작업이며 테스트 DB의 성공을 운영 완료로 간주하지 않는 원칙.
 
 ## 루트 파일 정리
 
@@ -97,7 +68,11 @@ AOT 분석은 `caddy` 프로필로 수행하며 해당 프로필의 쿠키·CORS
 
 도구를 지우기 위해 실제 원고·첨부·계정·DB·비밀 파일·기존 운영 인증서를 삭제하지 않는 원칙. 폴더 이름 변경이나 이관을 끝내는 작업은 별도 범위.
 
-## Native Image 최초 전환 검증과 당시 남은 작업
+## 과거 Native Image 검증 이력 — JVM 결정으로 대체
+
+아래 Native 설정·메모리·배포 기록은 과거 선택의 이력이며 현재 기본 런타임이나 현재 코드의 용량 측정 결과가 아님.
+
+### Native Image 최초 전환 검증과 당시 남은 작업
 
 - 기존 Caddy/Pages 변경: 기존35개 검사, TS, 정적 사이트 생성, 시험 인증서를 통한 HTTPS/IP URL, 관리자 브라우저와 API 재시작 검증 완료.
 - 이번 변경의 기존35개 검사: 실패·오류·건너뜀 없이 통과. TS 검사와 빈 fixture의 공개·관리자 Pages HTML 생성 통과. 로컬 볼륨 준비의 최상위 권한과 기존 파일 보존 검증 통과.
@@ -107,7 +82,7 @@ AOT 분석은 `caddy` 프로필로 수행하며 해당 프로필의 쿠키·CORS
 - 운영 잔여: 기존 DB 원고 추출·공개 Markdown 반영, OCI 이미지 로컬 이관·해시 확인, 운영 API/env·권한·방화벽·이미지 선택·Caddy 전환 후 Pages 배포.
 - 당시 운영 이관 전 push·실서버 전환·실제 공개 인증서 발급은 보류 상태. 이후 별도 테스트 DB의 실서버 배포와 인증서 검증은 아래 2026-10-02 기록 참조.
 
-## Post·Series 통합 병합 — 2026-10-02
+### Post·Series 통합 병합 — 2026-10-02
 
 메인의 Native Image·Buildpacks·ARM64 CI·Caddy 구성을 유지한 채 Post·Series와 jOOQ 변경을 병합한다. JPA는 저장·단일 조회·잠금, jOOQ는 목록·검색·태그·위키·공개 첨부 조회를 담당한다. 병합 당시 jOOQ 3.21.8의 Kotlin 테이블 코드는 저장소 DDL로 생성했다. 이후 수동 DDL을 제거하고 JPA 엔티티에서 빌드 중 자동 생성하도록 변경했다([영속성 ADR](ADR_persistence.md)). 코드 생성과 AOT는 운영 DB에 연결하지 않는다. 본문은 Markdown 정본을 유지하고 기존 DB 원문·ID·slug·비공개 상태를 보존하는 명시적 `ops/unify-post-series.py` 이관 도구를 제공한다.
 
@@ -122,7 +97,7 @@ Native 힌트는 삭제된 Course·ContentFeedItem 대신 Series와 공통 Post 
 CI 원고 fixture는 API와 동일한 10001:1001 소유자 및 0640 권한을 명시하여 runner의 umask에 따른 읽기 실패를 막는다. 운영 파일의 권한은 이 검사에서 변경하지 않는다.
 
 
-## 2026-10-02 새 서버 배포·용량 검증 준비
+### 2026-10-02 Native 서버 배포·용량 검증 준비
 
 사용자가 배포 대상을 SSH `oci-blog`로 확정했다. 실제 서버는 ARM Neoverse-N1 1코어, RAM 약 3.8GiB이며 Docker와 Compose를 사용할 수 있다. 운영용 API는 기존과 같이 Native Image·1GiB 메모리 제한을 유지하고, Caddy가 TLS를 종료한다. Post·Series 통합에서 누락된 Caddy 관리자 경로를 `/api/v1/admin/series`로 정합화하고 폐기된 courses/projects 경로는 제거했다.
 
@@ -131,7 +106,7 @@ CI 원고 fixture는 API와 동일한 10001:1001 소유자 및 0640 권한을 �
 실제 공인 IP에 Caddy의 shortlived 인증서 발급과 CA 검증 HTTPS 접속이 성공했다. 비밀번호 로그인·CSRF·시리즈/글 메타데이터·PNG 업로드/배지 변환·공개 이미지 해시·Pages 스냅샷 v2를 확인했다. Chromium에서 실제 GitHub Pages 출처의 CORS/쿠키를 통해 새 API 로그인·관리자 조회가 성공했고, 새 API를 입력으로 한 정적 Pages 생성도 통과했다. 테스트 산출물은 공개 Pages에 배포하지 않는다. 운영 최적화 이미지의 최종 부하 결과는 아래와 같다.
 
 
-### 운영 최적화 Native 이미지 실서버 측정
+#### 운영 최적화 Native 이미지 실서버 측정
 
 실제 실행 이미지의 소스는 `7b0b471`, 이미지 ID는 `sha256:3d4bef282cdbafc69fbcf7a25f1ea6fa1ca65c1d059006e5826a335649993c64`이다. 기본 운영 최적화 옵션을 사용했으며 `-Ob`를 사용하지 않았다. 로컬 빌드 16분 55초 성공 후 압축 아카이브 SHA-256을 전송 전후 대조하고 서버 컨테이너의 이미지 ID까지 확인했다. 처음 배포 준비에 사용한 `-Ob` 이미지는 최종 측정 전에 교체했다.
 
@@ -152,3 +127,34 @@ CI 원고 fixture는 API와 동일한 10001:1001 소유자 및 0640 권한을 �
 새 이미지의 최초 유휴 상태에서 API+Caddy 약 165MiB, 전체 스트레스 테스트 중 두 프로세스 합계 최대 314.9MiB였다. 같은 시점 기준 MySQL까지 합산한 스택 최대 538.8MiB, 호스트의 최소 가용 메모리 2528.8MiB였다. 공개/관리자 요청을 분리한 두 번째 측정에서는 API+Caddy 최대 144.0MiB였으며, 이전 고부하 후 회수가 일어나 메모리가 계속 증가하지 않았다. 두 측정에서 OOM 및 자동 컨테이너 재시작은 0회였다. 마지막 수동 API 재시작 후에도 JDBC 브라우저 세션, 글 100개·시리즈 10개, jOOQ 관리자 조회가 유지됐다.
 
 판단: 현재 정적 Pages 중심의 개인 블로그 구조에서는 1코어·4GB를 유지할 근거가 있다. 공개 HTML·복사된 이미지는 GitHub Pages가 처리하므로 방문자 수와 API 요청률을 동일시하지 않는다. RAM보다 CPU가 먼저 제한되며, 관리자 요청을 한 세션에 집중시키는 부하는 한계가 있다. 외부 운영 MySQL의 지연·실제 데이터·대량 이미지 변환과 장기 부하는 이번 검증 범위 밖이다. 운영 DB 연결 및 OCI 인증 복구, 원본 원고/첨부 이관, Pages 변수·시크릿 정리와 실제 사이트 전환은 여전히 남아 있다.
+
+
+## JVM 전환 검증 — 2026-10-02
+
+`clean test bootBuildImage` 성공, 기존 35개 검사 실패·오류·건너뜀 0. 깨끗이 생성한 API JAR에 애플리케이션 Native 힌트·reachability metadata·AOT 클래스 미포함 확인. ARM64 이미지의 Liberica JVM buildpack, 비루트 기본 사용자와 실제 PID 1의 Java 25.0.4 실행 확인. 최종 런타임 설정으로 1 CPU/1536MiB 제한을 적용한 CI 동일 검사에서 MCP 24개 도구·문서·프롬프트·PNG/JPEG·64px 배지·Series/Post·jOOQ·스냅샷 v2·비밀번호 로그인/로그아웃 통과. 두 Compose의 실제 해석 결과와 CI YAML·shell·Python 구문 검사 통과. GitHub Actions 자체 실행은 push 전이므로 미수행.
+
+최종 메모리 계산은 `-Xmx641433K`(약 626.4MiB), 메타스페이스 최대 256MiB, 코드 캐시 240MiB, 직접 버퍼 10MiB, 스레드 스택 1MiB×계산용 250개, headroom 10%. 힙과 메타스페이스 값은 상한이며 시작 즉시 전체를 사용하는 값이 아님. 메모리 영역 배분 수정 후 이미지 처리까지 통과했으며, 최초 메타스페이스 실패를 호스트 4GB 부족이나 컨테이너 OOM kill로 해석하지 않는 기준.
+
+
+새 서버의 기존 테스트 스택을 JVM 이미지 `sha256:b77377d093ed40d472c03caaa0c8692280dd5130e67f99e2ab5c4b8eb8acd025`로 교체. 아카이브 SHA-256 송수신 대조와 컨테이너 이미지 ID 확인 완료. API만 교체하고 Caddy 인증서·테스트 MySQL 유지. 이전 이미지·환경·Compose와 테스트 DB 백업 보존. 실제 서버의 기동 시간 약 27초 관측.
+
+공인 HTTPS의 CA 검증·HTTP 리다이렉트·허용/거부 CORS·CSRF·쿠키 속성·비밀번호 로그인/로그아웃·외부 MCP 404 검증 통과. Native에서 생성한 기존 JDBC 로그인 세션으로 JVM 관리자 jOOQ 조회 성공. 테스트 글 100개·시리즈 10개의 공개 스냅샷과 원고·첨부 SHA-256 교체 전후 일치. 실제 운영 외부 DB·원고·Pages 변수·GitHub 시크릿에는 변경 없음.
+
+
+### JVM 실서버 부하·메모리 측정
+
+ARM 1코어·RAM 3894MiB 서버, API 제한 1 CPU/1536MiB, Caddy와 테스트 MySQL도 같은 서버에서 실행. 별도 같은 리전 VM에서 공인 HTTPS/HTTP 1.1 keep-alive의 고정 도착률 요청 생성. 공개 요청에는 로그인 쿠키 미전송. 1초 간격 cgroup v2 `memory.current - inactive_file` 측정. CPU는 MySQL·OS를 포함한 호스트 전체 값. 기동 후 기능 검사를 완료한 JVM의 짧은 부하 검증이며 장기 안정성·최대 수용량·실제 운영 DB 지연 보장은 아님.
+
+| 시나리오 | 요청률 | 시간 | p95 | 오류 | 호스트 평균 CPU |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 공개 상태 30% + 배지 70%, 쿠키 없음 | 10/s | 30초 | 23.55ms | 0/300 | 18.4% |
+| 공개 상태 30% + 배지 70%, 쿠키 없음 | 50/s | 30초 | 15.2ms | 0/1,500 | 43.6% |
+| 공개 상태 30% + 배지 70%, 쿠키 없음 | 100/s | 30초 | 10.17ms | 0/3,000 | 57.5% |
+| 공개 상태 30% + 배지 70%, 쿠키 없음 | 200/s | 30초 | 33.41ms | 0/6,000 | 88.4% |
+| 공개 첨부 약 192KiB | 20/s | 30초 | 15.04ms | 0/600 | 26.5% |
+| 글 100개 Pages 스냅샷 | 1/s | 15초 | 772.14ms | 0/15 | 55.6% |
+| 인증한 관리자 글·시리즈 조회 | 10/s | 30초 | 68.1ms | 0/300 | 48.4% |
+
+유휴 API 중앙값 400.2MiB. 전체 측정 중 API 최대 474.5MiB, API+Caddy 동시 합계 최대 506.5MiB, 테스트 MySQL까지 합산한 스택 최대 749.0MiB. 호스트 최소 가용 메모리 2361.4MiB. OOM·자동 재시작 0회, 부하 종료 후 기존 JDBC 세션·jOOQ 조회·공개 스냅샷 보존 확인.
+
+판단: 현재 검증한 개인 블로그 부하에서 일반 JVM과 Caddy를 RAM 4GB 서버에 유지할 근거 확보. 최대 힙 약 626MiB와 API 전체 한도 1.5GiB 안에서 운영하는 구성. 공개 200/s에서 CPU 평균 88.4%이므로 이 수치를 장기 처리량 보장으로 해석하지 않는 기준. Native 전용 호환 설정을 다시 도입할 필요 없이 일반 JVM 선택 유지. 실제 운영 DB 연결·원고/첨부 이관·GitHub Pages 전환 및 push는 기존 보류 상태 유지.

@@ -3,7 +3,7 @@
 services:
   api:
     # 검증된 CI 이미지 아카이브를 먼저 docker load 하고 SHA 태그를 지정.
-    image: ${KEN_BLOG_API_IMAGE:?Reviewed native image tag is required}
+    image: ${KEN_BLOG_API_IMAGE:?Reviewed JVM image tag is required}
     user: "10001:1001"
     restart: unless-stopped
     env_file:
@@ -21,6 +21,10 @@ services:
       APP_AUTH_CORS_ALLOWED_ORIGINS: https://gjaku1031.github.io
       APP_ASSETS_DIRECTORY: /var/lib/ken-blog/assets
       APP_CONTENT_DIRECTORY: /app/content
+      # 이미지 처리 등 JVM 외 메모리를 위해 10% 여유 확보. 힙은 Paketo가 계산.
+      BPL_JVM_HEAD_ROOM: ${BPL_JVM_HEAD_ROOM:-10}
+      # Kotlin/MCP·jOOQ 동적 클래스 로딩을 위한 메타스페이스. 힙은 남은 공간에서 계산.
+      JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS:--XX:MaxMetaspaceSize=256m}
       APP_MCP_ALLOWED_HOSTS: 127.0.0.1:${API_PORT:-18081}
     ports:
       - "127.0.0.1:${API_PORT:-18081}:8080"
@@ -35,8 +39,8 @@ services:
         target: /app/content
         bind:
           create_host_path: false
-    # 실제 사용량 측정 전까지 기존 한도를 기본값으로 유지.
-    mem_limit: ${API_MEMORY_LIMIT:-1g}
+    # JVM 힙 외 메모리를 포함한 컨테이너 전체 한도.
+    mem_limit: ${API_MEMORY_LIMIT:-1536m}
     cpus: 1.0
 
   caddy:

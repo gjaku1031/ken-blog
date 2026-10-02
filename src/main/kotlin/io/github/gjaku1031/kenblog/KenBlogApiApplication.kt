@@ -1,7 +1,6 @@
 package io.github.gjaku1031.kenblog
 
 import io.github.gjaku1031.kenblog.status.controller.StatusController
-import org.springframework.context.annotation.ImportRuntimeHints
 import org.springframework.boot.autoconfigure.SpringBootApplication
 import org.springframework.boot.runApplication
 
@@ -12,7 +11,6 @@ import org.springframework.boot.runApplication
  * [main]이 이 클래스를 사용해 애플리케이션 컨텍스트 생성.
  */
 @SpringBootApplication
-@ImportRuntimeHints(NativeRuntimeHints::class)
 class KenBlogApiApplication
 
 /**

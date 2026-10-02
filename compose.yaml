@@ -27,8 +27,8 @@ services:
     - ken_blog_assets:/assets
     restart: "no"
   api:
-    # 로컬에서 ./gradlew bootBuildImage --imageName=ken-blog-api:native 로 생성.
-    image: ${KEN_BLOG_API_IMAGE:-ken-blog-api:native}
+    # 로컬에서 ./gradlew bootBuildImage --imageName=ken-blog-api:jvm 로 생성.
+    image: ${KEN_BLOG_API_IMAGE:-ken-blog-api:jvm}
     user: "10001:1001"
     depends_on:
       mysql:
@@ -51,6 +51,10 @@ services:
       APP_ASSETS_DIRECTORY: /var/lib/ken-blog/assets
       APP_ASSETS_KEY_PREFIX: ${APP_ASSETS_KEY_PREFIX:-ken-blog/attachments}
       APP_CONTENT_DIRECTORY: /app/content
+      # 이미지 처리 등 JVM 외 메모리를 위해 10% 여유 확보. 힙은 Paketo가 계산.
+      BPL_JVM_HEAD_ROOM: ${BPL_JVM_HEAD_ROOM:-10}
+      # Kotlin/MCP·jOOQ 동적 클래스 로딩을 위한 메타스페이스. 힙은 남은 공간에서 계산.
+      JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS:--XX:MaxMetaspaceSize=256m}
       APP_MCP_ALLOWED_PEERS: ${APP_MCP_ALLOWED_PEERS:-127.0.0.1,::1}
       APP_MCP_ALLOWED_HOSTS: ${APP_MCP_ALLOWED_HOSTS:-127.0.0.1:18081}
     ports:
@@ -62,7 +66,7 @@ services:
       target: /app/content
       bind:
         create_host_path: false
-    mem_limit: ${API_MEMORY_LIMIT:-1g}
+    mem_limit: ${API_MEMORY_LIMIT:-1536m}
 volumes:
   ken_blog_mysql_data: null
   ken_blog_assets: null
