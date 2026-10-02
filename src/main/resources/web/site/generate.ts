@@ -97,7 +97,7 @@ export async function generateSite(payload: Input, output: string) {
   };
   const header = (section: string) => ({
     base: BASE, section, adminHref: payload.adminHref,
-    nav: [["", "Home"], ["posts/", "Posts"], ["projects/", "Projects"]].map(([href, label]) => ({ href: route(href), label, active: label === section })),
+    nav: [["posts/", "Posts"], ["projects/", "Projects"]].map(([href, label]) => ({ href: route(href), label, active: label === section })),
   });
   // 관리자 데이터는 포함하지 않고 로그인 화면과 API·자산 주소만 전달.
   await write("manage/index.html", engine.render("manage.njk", { apiBase: admin.apiBase, adminCss: admin.css, adminJs: admin.js, editor: "", ...header("Manage") }));
@@ -106,11 +106,10 @@ export async function generateSite(payload: Input, output: string) {
   async function page(path: string, view: string, section: string, title: string, description: string,
     data: Record<string, unknown> = {}, sitemap = true) {
     const canonical = ORIGIN + route(path === "404.html" ? path : path ? `${path}/` : "");
-    const documentTitle = section === "Home" ? "ken.blog | Posts·Projects" : section === "Search" ? "ken.blog" : `${title} | ken.blog`;
-    const summary = section === "Home" ? "기술 글과 프로젝트, 학습 기록을 모아 둔 ken.blog" :
-      section === "Search" ? "일반 글과 프로젝트 기록을 읽는 ken.blog" : description;
+    const documentTitle = section === "Search" ? "ken.blog" : `${title} | ken.blog`;
+    const summary = section === "Search" ? "일반 글과 프로젝트 기록을 읽는 ken.blog" : description;
     const article = ["Post", "Project"].includes(section) && !!path;
-    const active = ({ Post: "Posts", Project: "Projects", Search: "Home" } as Record<string, string>)[section] ?? section;
+    const active = ({ Post: "Posts", Project: "Projects" } as Record<string, string>)[section] ?? section;
     const nav = header(active).nav;
     await write(path === "404.html" ? path : join(path, "index.html"), engine.render("page.njk", {
       view, section, documentTitle, socialTitle: article ? title : documentTitle, summary, canonical,
@@ -124,6 +123,9 @@ export async function generateSite(payload: Input, output: string) {
     await page(path, "listing", section, title, `${title} 공개 글 목록`, {
       heading: section === "Search" ? "최근 글" : title, cards,
       categories: categoryTree(rows), tags: unique(cards.flatMap(c => c.tags)),
+      sidebarSeries: snapshot.series.filter(s => s.kind === "TECH")
+        .sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id)
+        .map(s => ({ name: s.name, count: s.postCount, href: postPath(s.cover) })),
       searching: section === "Search",
     });
   }
@@ -138,11 +140,7 @@ export async function generateSite(payload: Input, output: string) {
     refs.push({ href: postPath(source), title: source.title, section: label(source.section) });
     backlinks.set(postPath(target), refs);
   }
-  const feed = [...allPosts].sort((a, b) => chronological(b, a)), home = feed.filter(p => p.section === "TECH").slice(0, 12);
-  await page("", "home", "Home", "Home", "Ken Blog", {
-    cards: home.map(card),
-    categories: categoryTree(feed.filter(p => p.section === "TECH")), tags: unique(feed.filter(p => p.section === "TECH").flatMap(p => p.tags)),
-  });
+  const feed = [...allPosts].sort((a, b) => chronological(b, a));
   await listing("posts", "Posts", "Posts", feed.filter(p => p.section === "TECH"));
   const status: Record<string, string> = { PLAN: "기획 중", DEV: "개발 중", MAINT: "유지보수 중", DONE: "완료" };
   const projects = snapshot.series.filter(s => s.kind === "PROJECT").sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id)
@@ -165,7 +163,7 @@ export async function generateSite(payload: Input, output: string) {
     });
   }
   // 공개 대상에 한해 옛 주소를 생성하고 프로젝트 루트는 현재 첫 글로 연결.
-  const aliases = new Map([["tech", route("posts/")], ["post", route("posts/")], ["project", route("projects/")],
+  const aliases = new Map([["", route("posts/")], ["tech", route("posts/")], ["post", route("posts/")], ["project", route("projects/")],
     ["notes", route("posts/")], ["course", route("posts/")]]);
   for (const group of snapshot.series) {
     const target = postPath(group.cover);
@@ -181,7 +179,7 @@ export async function generateSite(payload: Input, output: string) {
   }
   for (const [path, target] of aliases) {
     if (!/^\/ken-blog\/(?:posts|projects|post\/[a-z0-9-]+)\/$/.test(target)) throw new Error("이동 대상 경로 오류");
-    await write(`${path}/index.html`, engine.render("redirect.njk", { target, canonical: ORIGIN + target }));
+    await write(join(path, "index.html"), engine.render("redirect.njk", { target, canonical: ORIGIN + target, preserveQuery: path === "" }));
   }
   await page("404.html", "missing", "", "페이지 없음", "페이지를 찾을 수 없습니다.", {}, false);
   await write("robots.txt", `User-agent: *\nAllow: /ken-blog/\nSitemap: ${ORIGIN}${route("sitemap.xml")}\n`);

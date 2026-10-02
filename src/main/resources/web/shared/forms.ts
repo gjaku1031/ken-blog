@@ -59,6 +59,12 @@ export function submit(form: HTMLFormElement, title: string) {
 }
 export function value(data: FormData, name: string): string { return String(data.get(name) ?? '').trim(); }
 
+export function stackIcon(badge: Badge) {
+  const image = el('img'); image.src = new URL(`/api/v1/stack-badges/${badge.id}/image`, apiBase).href;
+  image.width = 20; image.height = 20; image.alt = ''; image.dataset.stackName = badge.name; image.addEventListener('error', () => { image.hidden = true; });
+  return image;
+}
+
 export function stackPicker(parent: HTMLElement, badges: Badge[], initial: string[] = []) {
   const group = el('fieldset', 'wide stack-picker');
   group.append(el('legend', '', '기술 스택'));
@@ -69,18 +75,13 @@ export function stackPicker(parent: HTMLElement, badges: Badge[], initial: strin
   input.setAttribute('aria-label', '기술 스택 검색'); input.setAttribute('aria-autocomplete', 'list');
   const list = el('div');
   const values = el('div');
-  function icon(badge: Badge) {
-    const image = el('img'); image.src = new URL(`/api/v1/stack-badges/${badge.id}/image`, apiBase).href;
-    image.width = 20; image.height = 20; image.alt = ''; image.dataset.stackName = badge.name; image.addEventListener('error', () => { image.hidden = true; });
-    return image;
-  }
   function options() {
     list.replaceChildren();
     const matches = badges.filter(b => !selected.includes(b.name) && b.name.toLocaleLowerCase().includes(input.value.trim().toLocaleLowerCase()));
     for (const badge of matches) {
       const option = el('button', 'picker-option stack-option'); option.type = 'button'; option.tabIndex = -1;
       option.setAttribute('role', 'option'); option.setAttribute('aria-selected', 'false');
-      option.append(icon(badge), document.createTextNode(badge.name));
+      option.append(stackIcon(badge), document.createTextNode(badge.name));
       option.addEventListener('mousedown', event => event.preventDefault());
       option.addEventListener('click', () => {
         if (selected.length >= 30) return;
@@ -94,7 +95,7 @@ export function stackPicker(parent: HTMLElement, badges: Badge[], initial: strin
     chips.replaceChildren(); values.replaceChildren();
     for (const name of selected) {
       const chip = el('span', 'stack-chip');
-      const badge = badges.find(b => b.name === name); if (badge) chip.append(icon(badge));
+      const badge = badges.find(b => b.name === name); if (badge) chip.append(stackIcon(badge));
       chip.append(document.createTextNode(name));
       const remove = el('button', 'chip-remove', '×'); remove.type = 'button'; remove.setAttribute('aria-label', `${name} 선택 해제`);
       remove.addEventListener('click', () => { selected = selected.filter(item => item !== name); render(); input.focus(); popup.refresh(); });

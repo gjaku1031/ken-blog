@@ -1,5 +1,5 @@
 <aside class="feed-sidebar" aria-label="글 탐색">
-  {% if view == "home" %}{% include "views/about.njk" %}{% endif %}
+  {% if section == "Posts" %}{% include "views/about.njk" %}{% endif %}
   <section class="side-card card">
     <h2>분류</h2>
     <ul class="category-tree">
@@ -14,6 +14,13 @@
       </li>{% endfor %}
     </ul>
     {% if not categories | length %}<p class="meta">아직 분류가 없습니다.</p>{% endif %}
+  </section>
+  <section class="side-card card">
+    <h2>시리즈</h2>
+    <ul class="sidebar-series-list">
+      {% for item in sidebarSeries %}<li><a class="sidebar-series-link" href="{{ item.href }}"><svg viewBox="0 0 20 20" width="15" height="15" aria-hidden="true"><path d="M5 3h11v14H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm-2 12a2 2 0 0 1 2-2h11M7 3v10" fill="none" stroke="currentColor" stroke-linejoin="round"/></svg><span>{{ item.name }}</span><span class="sidebar-series-count mono" aria-label="{{ item.count }}개 글">{{ item.count }}</span></a></li>{% endfor %}
+    </ul>
+    {% if not sidebarSeries | length %}<p class="side-empty">아직 시리즈가 없습니다.</p>{% endif %}
   </section>
   <section class="side-card card">
     <h2>태그</h2>

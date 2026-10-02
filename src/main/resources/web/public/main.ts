@@ -59,7 +59,7 @@ function filterCards(): void {
     card.hidden = !match; if (match) visible++;
   }
   const active = document.querySelector<HTMLElement>("#search-filter");
-  if (active) active.innerHTML = term ? `<span class="search-filter"></span><span class="mono feed-total">${visible}편</span><a href="/ken-blog/">필터 해제</a>` : "";
+  if (active) active.innerHTML = term ? `<span class="search-filter"></span><span class="mono feed-total">${visible}편</span><a href="/ken-blog/posts/">필터 해제</a>` : "";
   if (active && term) active.querySelector<HTMLElement>(".search-filter")!.textContent = `검색: ${search?.value.trim() ?? ""}`;
   const empty = document.querySelector<HTMLElement>("#filter-empty");
   if (empty) empty.hidden = visible > 0 || cards.length === 0;

@@ -30,7 +30,7 @@ export function connectHeader(options: {
   /** 원본 헤더 검색 UI를 정적 결과 주소와 연결한다. */
   const route = document.body.dataset.route;
   const searchPath = "/ken-blog/search/";
-  const homePath = "/ken-blog/";
+  const homePath = "/ken-blog/posts/";
   const searchUnit = document.querySelector<HTMLElement>(".header-search-unit");
   const searchToggle = document.querySelector<HTMLButtonElement>("#header-search-toggle");
   const searchClose = document.querySelector<HTMLButtonElement>("#header-search-close");

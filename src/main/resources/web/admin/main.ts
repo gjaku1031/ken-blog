@@ -6,7 +6,7 @@ import '../shared/forms.css';
 import '../shared/category-tree.css';
 import { connectHeader, updateHeaderSession } from '../shared/header';
 import { request, mutate, refreshCsrf, clearCsrf, HttpError } from '../shared/admin-api';
-import { el, setMessage, field, area, choice, submit, value, type Badge } from '../shared/forms';
+import { el, setMessage, field, area, choice, submit, value, stackIcon, type Badge } from '../shared/forms';
 import { seriesEditor, type Series } from '../shared/series-editor';
 import { taxonomyFields, postCreateFields, postPayload, postTags, type Category, type Tag } from '../shared/post-fields';
 
@@ -380,7 +380,13 @@ function renderSeries(data: AdminData) {
     const article = el('article', 'item series-row');
     const info = el('div'); info.append(itemHeading(item.name, item.kind === 'PROJECT' ? 'Projects' : 'Posts'));
     if (item.description) info.append(el('p', 'muted', item.description));
-    if (item.stackBadges.length) { const stacks = el('div', 'stack-chips'); for (const badge of item.stackBadges) stacks.append(el('span', 'stack-chip', badge.name)); info.append(stacks); }
+    if (item.stackBadges.length) {
+      const stacks = el('div', 'stack-chips');
+      for (const badge of item.stackBadges) {
+        const chip = el('span', 'stack-chip'); chip.append(stackIcon(badge), document.createTextNode(badge.name)); stacks.append(chip);
+      }
+      info.append(stacks);
+    }
     const button = el('button', 'text-button', '수정'); button.type = 'button';
     button.addEventListener('click', () => {
       const edit = createSeriesForm(data, item.kind === 'PROJECT', item);

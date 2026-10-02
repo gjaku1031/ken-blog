@@ -72,8 +72,6 @@ h1, h2, h3 { word-break: keep-all; line-height: 1.35; }
 .site-footer { min-height: 72px; padding: 20px 32px; border-top: 1px solid var(--line); background: var(--card); color: var(--muted); display: flex; align-items: center; justify-content: space-between; gap: 16px; font-size: 13px; }
 .site-footer > div { display: flex; gap: 20px; }
 .site-footer a:first-child { color: var(--accent-d); }
-.home-page { padding-top: 34px; padding-bottom: 60px; }
-.home-title { margin: 0 0 15px; font-size: 25px; }
 .eyebrow { color: var(--accent-d); font-size: 13px; font-weight: 700; letter-spacing: .04em; margin: 0 0 5px; }
 .tech-page { padding-top: 36px; padding-bottom: 64px; }
 .content-grid { display: grid; align-items: start; grid-template-columns: minmax(0, 1fr) 220px; gap: 56px; }
@@ -95,7 +93,13 @@ h1, h2, h3 { word-break: keep-all; line-height: 1.35; }
 .tag-list a:hover, .tag-cloud a:hover, .tag-list a.selected, .tag-cloud a.selected { color: var(--accent-d); }
 .active-filters { display: flex; flex-wrap: wrap; align-items: center; color: var(--muted); min-height: 23px; margin: -8px 0 16px; gap: 8px; font-size: 13px; }
 .active-filters a { padding: 3px 8px; border: 1px solid var(--line2); border-radius: 6px; color: var(--accent-d); }
-.feed-sidebar { position: sticky; display: grid; max-height: calc(100vh - 106px); overflow: auto; top: 88px; gap: 16px; }
+.feed-sidebar { display: grid; gap: 16px; }
+.sidebar-series-list { list-style: none; padding: 0; margin: 0; }
+.sidebar-series-link { display: flex; align-items: center; gap: 7px; padding: 7px 8px; border-radius: 4px; color: var(--text2); font-size: 13px; }
+.sidebar-series-link:hover { background: var(--soft); color: var(--accent-d); }
+.sidebar-series-link svg { flex: 0 0 15px; color: var(--muted); }
+.sidebar-series-link > span:first-of-type { min-width: 0; flex: 1; overflow-wrap: anywhere; }
+.sidebar-series-count { flex-shrink: 0; color: var(--muted); font-size: 11px; }
 .side-card { min-width: 0; padding: 18px; }
 .side-card h2 { margin: 0 0 10px; margin-bottom: 12px; color: var(--muted); font-size: 12.5px; font-weight: 700; letter-spacing: .04em; }
 .side-count { flex-shrink: 0; }
@@ -335,7 +339,7 @@ button:disabled { cursor: not-allowed; opacity: .6; }
 .coming-card a { color: var(--accent-d); font-weight: 700; }
 @media (max-width: 1080px) {
   .content-grid { grid-template-columns: minmax(0, 1fr); }
-  .feed-sidebar { position: static; max-height: none; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .feed-sidebar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .projects-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 860px) {
@@ -351,7 +355,7 @@ button:disabled { cursor: not-allowed; opacity: .6; }
 }
 @media (max-width: 760px) {
   .page-container { width: min(100% - 28px, var(--page-width-standard)); }
-  .home-page, .tech-page { padding-top: 24px; }
+  .tech-page { padding-top: 24px; }
   .feed-sidebar { grid-template-columns: 1fr; }
   .post-page { padding-top: 22px; }
   .project-main { padding: 20px 17px; }
@@ -392,7 +396,7 @@ button:disabled { cursor: not-allowed; opacity: .6; }
 
 /* 원본 공개 화면의 카드·탐색·읽기 화면 치수 */
 .card.hv:hover, .post-card:hover, .project-card:hover{ border-color: var(--line3); box-shadow: var(--shadow2); }
-.home-page, .tech-page, .search-page { max-width: var(--page-width-standard); padding-top: 40px; }
+.tech-page, .search-page { max-width: var(--page-width-standard); padding-top: 40px; }
 .feed-sort a, .feed-sort span { display: inline-flex; align-items: center; gap: 5px; height: 34px; padding: 0 10px;
   border-radius: 6px; color: var(--muted); font-size: 14px; font-weight: 500; }
 .feed-sort a:hover { color: var(--text); }
@@ -494,9 +498,9 @@ button:disabled { cursor: not-allowed; opacity: .6; }
 .mermaid-edges { padding: 0 16px 12px; color: var(--muted); font-size: 12px; line-height: 1.5; }
 @media (max-width: 1080px) {
   .content-grid { grid-template-columns: minmax(0, 1fr); }
-  .feed-sidebar { position: static; max-height: none; grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .home-page .feed-sidebar { display: contents; }
-  .home-page .about-card { order: -1; }
+  .feed-sidebar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .posts-page .feed-sidebar { display: contents; }
+  .posts-page .about-card { order: -1; }
   .post-page article:has(> .post-reading-layout.has-toc) { grid-template-columns: minmax(0, 1fr); }
   .post-page article .post-reading-layout.has-toc .post-side-rail { grid-column: 1; grid-row: auto;
     position: static; max-height: none; margin-top: 24px; }
