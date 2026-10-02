@@ -362,20 +362,17 @@ button:disabled { cursor: not-allowed; opacity: .6; }
   .site-footer { padding: 18px 14px; }
   .login-card { padding: 25px; }
 }
-.home-page .home-summary { grid-template-columns:minmax(0,648px); }
 @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } .post-card { transition: none; } }
 
 /* 홈, 관리 화면 */
 .plain-button { border: 0; background: transparent; cursor: pointer; }
-.home-summary { display: grid; gap: 18px; margin: 0 0 32px; grid-template-columns: minmax(0, 1fr) 426px; margin-bottom: 38px; }
-.about-card { min-width: 0; min-height: 210px; padding: 22px 24px; }
-.about-card { display: flex; flex-direction: column; }
-.about-head { display: flex; align-items: center; gap: 15px; }
-.about-avatar { width: 64px; height: 64px; flex: 0 0 64px; display: grid; place-items: center; border-radius: 50%; overflow: hidden; font-size: 26px; font-weight: 700; border: 1px solid var(--line); background: var(--soft); color: var(--text2); }
-.about-head h2 { margin: 0; font-size: 20px; }
+.about-card { display: flex; flex-direction: column; min-width: 0; padding: 16px; }
+.about-head { display: flex; align-items: center; gap: 12px; }
+.about-avatar { width: 48px; height: 48px; flex: 0 0 48px; display: grid; place-items: center; border-radius: 50%; overflow: hidden; font-size: 22px; font-weight: 700; border: 1px solid var(--line); background: var(--soft); color: var(--text2); }
+.about-head h2 { margin: 0; font-size: 18px; }
 .about-head p { margin: 0; color: var(--muted); font-size: 13px; }
-.about-intro { margin: 16px 0 10px; color: var(--text2); white-space: pre-line; font-size: 14.5px; line-height: 1.7; }
-.about-links { display: flex; flex-wrap: wrap; gap: 5px 16px; margin-top: auto; color: var(--accent-d); font-size: 13px; }
+.about-intro { margin: 12px 0 0; color: var(--text2); white-space: pre-line; font-size: 14px; line-height: 1.7; }
+.about-links { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin-top: 16px; color: var(--accent-d); font-size: 13px; }
 .feed-sort { display: flex; color: var(--muted); align-items: center; gap: 4px; margin-left: auto; font-size: 14px; }
 .feed-sort a[aria-current="page"] { color: var(--text); font-weight: 700; }
 .post-summary { margin: 0 0 9px; color: var(--text2); font-size: 15px; line-height: 1.7; }
@@ -392,7 +389,6 @@ button:disabled { cursor: not-allowed; opacity: .6; }
 .projects-grid .project-card .stack-badges img { flex: 0 0 14px; width: 14px; height: 14px; }
 .search-main-form { display: flex; gap: 8px; margin-bottom: 22px; }
 .search-main-form input { flex: 1; }
-@media (max-width: 1080px) { .home-summary { grid-template-columns: 1fr; } }
 
 /* 원본 공개 화면의 카드·탐색·읽기 화면 치수 */
 .card.hv:hover, .post-card:hover, .project-card:hover{ border-color: var(--line3); box-shadow: var(--shadow2); }
@@ -499,6 +495,8 @@ button:disabled { cursor: not-allowed; opacity: .6; }
 @media (max-width: 1080px) {
   .content-grid { grid-template-columns: minmax(0, 1fr); }
   .feed-sidebar { position: static; max-height: none; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .home-page .feed-sidebar { display: contents; }
+  .home-page .about-card { order: -1; }
   .post-page article:has(> .post-reading-layout.has-toc) { grid-template-columns: minmax(0, 1fr); }
   .post-page article .post-reading-layout.has-toc .post-side-rail { grid-column: 1; grid-row: auto;
     position: static; max-height: none; margin-top: 24px; }
@@ -506,7 +504,6 @@ button:disabled { cursor: not-allowed; opacity: .6; }
 }
 @media (max-width: 860px) {
   :root { --article-title-size: 28px; --heading-1-size: 26px; --heading-2-size: 22px; --heading-3-size: 19px; }
-  .home-summary { grid-template-columns: 1fr; }
   .projects-grid{ grid-template-columns: minmax(0,1fr); }
   .project-layout { grid-template-columns: minmax(0,1fr); gap: 18px; }
   .project-sidebar { position: static; max-height: none; }

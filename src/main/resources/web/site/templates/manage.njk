@@ -19,7 +19,7 @@
     <a class="text-link" href="/ken-blog/">블로그로 돌아가기</a>
   </section>
   <div id="dashboard" class="{{ 'editor-layout' if editor else 'admin-layout' }}" hidden>
-    {% if not editor %}<aside class="admin-sidebar"><nav aria-label="관리 메뉴"><a href="#posts" data-panel-link="posts">글 관리</a><a href="#categories" data-panel-link="categories">분류 관리</a><a href="#series" data-panel-link="series">시리즈·프로젝트</a><a class="admin-deploy" href="https://github.com/gjaku1031/ken-blog/actions/workflows/pages.yml" target="_blank" rel="noopener noreferrer">GitHub Pages 배포 ↗</a></nav></aside>{% endif %}
+    {% if not editor %}<aside class="admin-sidebar"><nav aria-label="관리 메뉴"><a href="#posts" data-panel-link="posts">글 관리</a><a href="#categories" data-panel-link="categories">분류 관리</a><a href="#series" data-panel-link="series">시리즈·프로젝트</a><a class="admin-deploy button primary" href="https://github.com/gjaku1031/ken-blog/actions/workflows/pages.yml" target="_blank" rel="noopener noreferrer">GitHub Pages 배포 ↗</a></nav></aside>{% endif %}
     <main id="content" tabindex="-1">
       <p id="dashboard-message" class="notice" role="status" hidden></p>
       {% if editor %}

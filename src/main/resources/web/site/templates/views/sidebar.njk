@@ -1,4 +1,5 @@
 <aside class="feed-sidebar" aria-label="글 탐색">
+  {% if view == "home" %}{% include "views/about.njk" %}{% endif %}
   <section class="side-card card">
     <h2>분류</h2>
     <ul class="category-tree">
