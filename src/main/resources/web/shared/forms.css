@@ -20,9 +20,9 @@
 .stack-picker{position:relative;min-width:0;border:0;padding:0;margin:0}
 .stack-picker legend{font-size:12px;color:var(--text2);font-weight:500;margin-bottom:9px}
 .stack-chips{display:flex;gap:6px;flex-wrap:wrap}
-.stack-chip{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:600;border:1px solid var(--line2);border-radius:6px;padding:4px 7px;background:var(--card);color:var(--text2)}
+.stack-chip{display:inline-flex;align-items:center;gap:7px;min-width:0;max-width:100%;overflow-wrap:anywhere;font-size:12px;font-weight:600;border:1px solid var(--line2);border-radius:6px;padding:4px 7px;background:var(--card);color:var(--text2)}
 .stack-chip img,.stack-option img{object-fit:contain;border-radius:4px;flex-shrink:0}
-.chip-remove{border:0;background:transparent;color:var(--muted);font-size:17px;line-height:1;padding:0 2px}
+.chip-remove{flex-shrink:0;border:0;background:transparent;color:var(--muted);font-size:17px;line-height:1;padding:0 2px}
 .stack-empty{font-size:12px;color:var(--muted);padding:8px;margin:0}
 @media(max-width:640px){.field-grid{grid-template-columns:1fr}.edit-dialog{padding:22px 20px;max-height:90vh}}
 
