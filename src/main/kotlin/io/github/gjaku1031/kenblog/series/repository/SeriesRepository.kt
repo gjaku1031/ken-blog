@@ -9,8 +9,6 @@ import org.springframework.data.repository.query.Param
 
 /** 시리즈의 저장과 변경 경합을 직렬화하는 행 잠금. 복잡한 읽기는 jOOQ로 수행. */
 interface SeriesRepository : JpaRepository<SeriesEntity, Long> {
-    fun findBySlug(slug: String): SeriesEntity?
-
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select s from SeriesEntity s where s.id = :id")
     fun findLockedById(@Param("id") id: Long): SeriesEntity?

@@ -9,9 +9,6 @@ import org.springframework.data.repository.query.Param
 
 /** 분류 FK 행의 경로 조회와 생성·삭제에 필요한 안정된 잠금 순서를 제공. */
 interface CategoryRepository : JpaRepository<CategoryEntity, Long> {
-    /** @return 정규화된 전체 경로의 행, 없으면 `null`. */
-    fun findByPath(path: String): CategoryEntity?
-
     /** @return 생성 시 부모로 사용하거나 삭제할 경로의 잠긴 행, 없으면 `null`. */
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("select c from CategoryEntity c where c.path = :path")

@@ -4,7 +4,7 @@
 
 ## 결정과 배경
 
-JPA는 저장·단일 조회·잠금, jOOQ는 목록·검색·집계·위키·공개 첨부 조회 담당. 영속 모델의 원본은 JPA 엔티티이며 jOOQ를 위해 별도 SQL 스키마를 수동 관리하지 않는 결정. 기존 `src/jooq/schema.sql`은 엔티티와 변경을 이중 관리해야 하므로 제거.
+JPA는 저장·단일 조회·변경 잠금, jOOQ는 목록·검색·집계·위키·공개 첨부 조회와 연결 검증용 첨부 상태 잠금 담당. 영속 모델의 원본은 JPA 엔티티이며 jOOQ를 위해 별도 SQL 스키마를 수동 관리하지 않는 결정. 기존 `src/jooq/schema.sql`은 엔티티와 변경을 이중 관리해야 하므로 제거.
 
 빌드 순서는 다음과 같음.
 
@@ -13,7 +13,7 @@ JPA는 저장·단일 조회·잠금, jOOQ는 목록·검색·집계·위키·�
   → build/generated/jooq/schema.sql → jooqCodegen → compileKotlin
 ```
 
-빌드 전용 `jpaModel` 소스셋에서 `src/main/kotlin`의 원본 도메인 클래스와 도메인 예외의 공통 부모 `global/error/BusinessException`만 먼저 컴파일. HTTP·MCP 응답 변환기와 서비스는 제외. 생성 로직은 `build.gradle.kts`의 `generateJpaSchema` 태스크에 통합하고 별도 `src/jooq/kotlin` 생성기 파일은 제거. Gradle의 빌드용 Hibernate 의존성도 앱과 같은 Spring Boot BOM으로 관리. 앱과 동일한 Hibernate 버전·MySQL dialect·snake_case 물리 이름 정책으로 JPA 매핑을 읽어 DDL 출력. JDBC 메타데이터 접근과 DB schema action은 비활성화. jOOQ `DDLDatabase`가 생성된 DDL을 읽고 Kotlin 테이블 타입 생성.
+빌드 전용 `jpaModel` 소스셋에서 `src/main/kotlin`의 원본 도메인 클래스와 도메인 예외의 공통 부모 `global/error/BusinessException`만 먼저 컴파일. HTTP 응답 변환기와 서비스는 제외. 생성 로직은 `build.gradle.kts`의 `generateJpaSchema` 태스크에 통합하고 별도 `src/jooq/kotlin` 생성기 파일은 제거. Gradle의 빌드용 Hibernate 의존성도 앱과 같은 Spring Boot BOM으로 관리. 앱과 동일한 Hibernate 버전·MySQL dialect·snake_case 물리 이름 정책으로 JPA 매핑을 읽어 DDL 출력. JDBC 메타데이터 접근과 DB schema action은 비활성화. jOOQ `DDLDatabase`가 생성된 DDL을 읽고 Kotlin 테이블 타입 생성.
 
 `build/`의 DDL과 테이블 코드는 재생성 가능한 Git 제외 산출물. 엔티티를 수정하면 Gradle 의존 관계에 따라 재생성하며 개발·CI에서 실제 DB 접속 불필요. 도메인을 별도 저장소나 모듈로 옮기지 않고 먼저 컴파일하여 앱 컴파일과 jOOQ 생성 간 순환 의존을 해소. 태스크는 전용 클래스 로더로 엔티티를 읽고 종료 시 레지스트리·로더 정리. Spring 앱을 기동하지 않으며 빌드 전용 클래스 출력은 API JAR에 포함하지 않음.
 
@@ -31,11 +31,15 @@ MySQL enum 열은 jOOQ 조회 경계에서 문자열 타입으로 매핑하여 J
 
 ## 프로필 영속 모델 제거
 
-홈 소개의 정적 HTML 전환으로 HomeProfileEntity와 Repository 제거. 다음 clean 빌드에서 프로필 테이블 DDL·jOOQ 타입도 생성 대상에서 제외. 기존 운영 테이블·행·사진은 DROP 또는 파일 삭제 없이 보존. 격리 DB에 기존 home_profile 행을 둔 상태로 새 JVM을 기동하여 행 보존 확인. 기존 DB/OCI 자료 추출 도구의 프로필 사진 참조는 과거 자료 이관을 위한 용도.
+홈 소개의 정적 HTML 전환으로 HomeProfileEntity와 Repository 제거. 다음 clean 빌드에서 프로필 테이블 DDL·jOOQ 타입도 생성 대상에서 제외. 기존 운영 테이블·행·사진은 DROP 또는 파일 삭제 없이 보존. 격리 DB에 기존 home_profile 행을 둔 상태로 새 JVM을 기동하여 행 보존 확인. 후속 운영 도구 제거 결정으로 DB/OCI 자료 추출 스크립트도 삭제. 기존 테이블·행·사진을 실제 삭제하는 변경 없음.
 
 ## 원고 접근 제거 후 보존 모델
 
 MCP·RepositoryMarkdown 제거 후에도 옛 Post body/body_sha256 매핑과 PostBodyHash의 빈 값 초기화는 기존 스키마 호환을 위해 유지. 파일 접근·API 본문 조회·원고 해시 충돌 검사와 별개이며 기존 DB 열 삭제·본문 덮어쓰기 없음. 위키 선언 테이블과 관리자 교체 트랜잭션·조회 쿼리도 유지. 아래 MCP 검증은 제거 전 이력이며 현재 API는 관리자 HTTP와 Node Pages 빌드로 검증.
+
+## 첨부 쓰기 제거의 영속성 경계 — 2026-10-02
+
+첨부 CRUD Repository와 엔티티 생성·상태 전환 메서드 제거. `AttachmentEntity`와 `PostAttachmentEntity`의 기존 열·상태 enum·FK는 읽기와 코드 생성의 원본으로 유지하며 운영 자료/스키마 삭제 없음. 글 연결 교체 시 필요한 ID별 READY 확인은 기존 `PostQueries.lockAttachmentStatus`의 단일 상태 열 `FOR UPDATE` 조회로 이전. 부모 글→정렬된 첨부 ID 순서·Spring 공유 트랜잭션·JPA 연결 쓰기를 유지하여 외부 DB 상태 변경과 검증/연결 사이의 경합을 방지. 생성 DDL은 변경 전과 바이트 동일. 격리 DB의 외부 상태 변경 잠금에 대기한 연결 요청이 변경 상태를 확인해 409를 반환하며 기존 연결 보존 확인. 잘못된 첨부를 포함한 글 생성은 같은 트랜잭션에서 롤백 확인.
 
 ## 검증과 적용 범위
 

@@ -9,14 +9,11 @@ import io.github.gjaku1031.kenblog.category.dto.CategoryRefResponse
 import io.github.gjaku1031.kenblog.category.dto.CategoryTreeResponse
 import io.github.gjaku1031.kenblog.category.dto.reference
 import io.github.gjaku1031.kenblog.category.repository.CategoryRepository
-import io.github.gjaku1031.kenblog.post.domain.PostStatus
-import io.github.gjaku1031.kenblog.post.domain.PostVisibility
 import io.github.gjaku1031.kenblog.post.repository.PostRepository
 import io.github.gjaku1031.kenblog.post.repository.ContentStateRepository
 import java.util.Locale
 import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.dao.PessimisticLockingFailureException
-import org.springframework.security.core.Authentication
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
@@ -109,16 +106,14 @@ class CategoryService(private val categories: CategoryRepository, private val po
     }
 
     /**
-     * 모든 빈 분류를 보존하고 현재 역할로 읽을 수 있는 글만 직접/하위 건수에 반영.
+     * 모든 빈 분류를 보존하고 초안을 포함한 글을 직접/하위 건수에 반영.
      *
-     * @param admin 관리자 집계이면 초안까지 포함
-     * @param authentication 공개 조회의 ADMIN 권한 검사 대상
      * @return 대분류부터 이어지는 [CategoryTreeResponse] 목록
      */
     @Transactional(readOnly = true)
-    fun tree(admin: Boolean, authentication: Authentication?): List<CategoryTreeResponse> {
+    fun tree(): List<CategoryTreeResponse> {
         val all = categories.findAllByOrderByDepthAscSortOrderAscIdAsc()
-        val direct = queries.categoryCounts(admin)
+        val direct = queries.categoryCounts()
             .associate { it.categoryId to it.count }
         val children = all.groupBy { it.parentId }
         /** 현재 폴더와 모든 자손의 권한별 글 수를 합산한 트리 노드를 구성. */

@@ -109,11 +109,10 @@ jobs:
           docker run -d --name ken-blog-jvm-ci --network host --user 10001:1001 --memory 1536m --cpus 1 \
             -e BPL_JVM_HEAD_ROOM=10 \
             -e JAVA_TOOL_OPTIONS=-XX:MaxMetaspaceSize=256m \
-            -e SPRING_PROFILES_ACTIVE=caddy \
+            -e APP_CORS_ALLOWED_ORIGINS=https://gjaku1031.github.io \
+            -e APP_AUTH_CORS_ALLOWED_ORIGINS=https://gjaku1031.github.io \
             -e DB_URL=jdbc:mysql://127.0.0.1:13308/ken_blog_jvm_ci \
             -e DB_USERNAME=ci_jvm -e DB_PASSWORD=ci_jvm_ephemeral_only \
-            -e BOOTSTRAP_ADMIN_USERNAME=ci_jvm_admin \
-            -e 'BOOTSTRAP_ADMIN_PASSWORD_HASH={bcrypt}$2b$10$4FBi6otvIFtcNbMAYerE3O1eSZAmB9sw3r4iEgU2ovjbUuSVcfivG' \
             -e ADMIN_USERNAME=ci_jvm_admin \
             -e SESSION_COOKIE_SECURE=false -e SESSION_COOKIE_SAME_SITE=lax -e SESSION_COOKIE_PARTITIONED=false \
             -e APP_ASSETS_DIRECTORY=/var/lib/ken-blog/assets \
@@ -145,6 +144,11 @@ jobs:
             docker logs ken-blog-jvm-ci
             exit 1
           fi
+          # 기동 완료 후 CI 전용 DB에만 관리자 직접 등록. 운영 초기화와 분리.
+          docker exec -i '${{ job.services.mysql.id }}' sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" exec mysql --user="$MYSQL_USER" "$MYSQL_DATABASE"' <<'SQL'
+          INSERT INTO users (username, password_hash, role, created_at, enabled)
+          VALUES ('ci_jvm_admin', '{bcrypt}$2b$10$4FBi6otvIFtcNbMAYerE3O1eSZAmB9sw3r4iEgU2ovjbUuSVcfivG', 'ADMIN', UTC_TIMESTAMP(6), true);
+          SQL
           if ! curl -fsS --max-time 5 http://127.0.0.1:8080/api/v1/auth/csrf \
             | jq -e '.headerName == "X-CSRF-TOKEN" and (.token | type == "string" and length > 0)'; then
             docker logs ken-blog-jvm-ci
@@ -193,13 +197,6 @@ jobs:
                       assert b'secret-marker' not in body
                   return json.loads(body) if 'json' in response.headers.get_content_type() else body
 
-          def upload(path, filename, mime, image, expected=201):
-              boundary = 'ken-blog-ci-boundary'
-              payload = b''
-              payload += ('--' + boundary + '\r\nContent-Disposition: form-data; name="file"; filename="' + filename +
-                  '"\r\nContent-Type: ' + mime + '\r\n\r\n').encode() + image + ('\r\n--' + boundary + '--\r\n').encode()
-              return request('POST', path, payload, expected, content_type='multipart/form-data; boundary=' + boundary)
-
           def metadata(post):
               assert 'body' not in post and 'bodySha256' not in post, post
               return post
@@ -242,12 +239,23 @@ jobs:
               request('GET', path, expected=404)
               request('POST', path, {}, expected=404)
 
-          uploaded_ids = []
-          for label, mime, filename, image in [('PNG', 'image/png', 'fixture.png', png), ('JPEG', 'image/jpeg', 'fixture.jpg', jpeg)]:
-              uploaded = upload('/api/v1/admin/attachments', filename, mime, image)
-              assert uploaded['id'] > 0 and uploaded['status'] == 'READY', uploaded
-              uploaded_ids.append(uploaded['id'])
-              assert request('GET', '/api/v1/admin/attachments/' + str(uploaded['id']))['id'] == uploaded['id']
+          # 본문 이미지도 격리 DB·디스크에 직접 준비. 앱 업로드/삭제 경로 없음.
+          attachment_ids = []
+          for index, (mime, extension, image) in enumerate([('image/png', 'png', png), ('image/jpeg', 'jpg', jpeg)], 101):
+              filename = f'00000000-0000-4000-8000-{index:012d}.{extension}'
+              temporary.write_bytes(image)
+              subprocess.run(['sudo', 'install', '-o', '10001', '-g', '1001', '-m', '0600', str(temporary), str(icon_dir / filename)], check=True)
+              sql = ("INSERT INTO attachments (object_key,original_filename,content_type,byte_size,uploaded_by,status,pending_cleanup,created_at,updated_at) "
+                     f"SELECT 'ken-blog/attachments/{filename}','fixture.{extension}','{mime}',{len(image)},id,'READY',false,UTC_TIMESTAMP(6),UTC_TIMESTAMP(6) "
+                     "FROM users WHERE username='ci_jvm_admin'; SELECT LAST_INSERT_ID();")
+              result = subprocess.run(['docker', 'exec', '-i', '${{ job.services.mysql.id }}', 'sh', '-c',
+                          'MYSQL_PWD="$MYSQL_PASSWORD" exec mysql -N -u"$MYSQL_USER" "$MYSQL_DATABASE"'],
+                         input=sql, text=True, capture_output=True, check=True)
+              attachment_ids.append(int(result.stdout.strip()))
+          for path in ['/api/v1/admin/attachments', '/api/v1/admin/attachments/1', '/api/v1/admin/attachments/1/content']:
+              request('GET', path, expected=404)
+              request('POST', path, {}, expected=404)
+              request('DELETE', path, expected=404)
           badges = request('GET', '/api/v1/admin/stack-badges')
           assert [badge['name'] for badge in badges] == ['JVM CI PNG', 'JVM CI Local']
           for badge in badges:
@@ -273,7 +281,7 @@ jobs:
           assert metadata(request('PATCH', post_path + '/metadata', {
               'title': 'JVM CI Project', 'summary': 'HTTP metadata only', 'categoryId': category['id'], 'tags': ['Spring'],
           }))['tags'] == ['Spring']
-          assert metadata(request('PUT', post_path + '/attachments', {'attachmentIds': uploaded_ids}))['attachmentIds'] == uploaded_ids
+          assert metadata(request('PUT', post_path + '/attachments', {'attachmentIds': attachment_ids}))['attachmentIds'] == attachment_ids
           assert metadata(request('PUT', post_path + '/wiki-links', {'wikiTargets': ['Target', 'Target']}))['wikiTargets'] == ['Target']
           request('PUT', post_path + '/wiki-links', {'expectedBodySha256': '0' * 64, 'wikiTargets': []}, 400)
           request('PUT', post_path + '/wiki-links', {'wikiTargets': ['secret-marker\ninvalid']}, 400)
@@ -292,8 +300,8 @@ jobs:
           assert snapshot['series'][0]['cover']['id'] == post['id']
           assert metadata(snapshot['posts'][0])['section'] == 'PROJECT'
           assert request('GET', '/api/v1/admin/posts/wiki-titles?q=JVM')['items'][0]['id'] == post['id']
-          for image_id in uploaded_ids:
-              assert request('GET', '/api/v1/posts/' + str(post['id']) + '/attachments/' + str(image_id) + '/content', authenticated=False)
+          for image_id, original in zip(attachment_ids, [png, jpeg]):
+              assert request('GET', '/api/v1/posts/' + str(post['id']) + '/attachments/' + str(image_id) + '/content', authenticated=False) == original
           metadata(request('PUT', post_path + '/publication', {'published': False}))
           assert request('GET', '/api/v1/pages/snapshot', authenticated=False)['posts'] == []
           request('POST', '/api/v1/auth/logout', expected=204)

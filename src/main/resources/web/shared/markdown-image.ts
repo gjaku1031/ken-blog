@@ -1,13 +1,10 @@
 import type { Root } from "mdast";
 import { parseAnnotationDocument } from "./markdown-details";
 
-/** 내부 첨부 이미지의 대체 설명·상대 너비·정렬과 선택적 다크 테마 첨부를 담는 문서 값. */
-export type ImageData = {
-  attachmentId: number; darkAttachmentId?: number; caption: string; width: number; align: "left" | "center" | "right";
+/** 이미지 설명에서 읽은 대체 텍스트·너비·정렬·선택적 다크 테마 이미지. */
+export type ImageAlt = {
+  darkAttachmentId?: number; caption: string; width: number; align: "left" | "center" | "right";
 };
-
-/** 이미지 설명에서 읽어 들인 메타데이터; 설명은 대체 텍스트와 캡션에 함께 사용한다. */
-export type ImageAlt = Pick<ImageData, "caption" | "width" | "align" | "darkAttachmentId">;
 
 type ImageNode = {
   type: string; url?: string; alt?: string; identifier?: string; children?: ImageNode[];
@@ -16,7 +13,6 @@ type ImageNode = {
 const attachmentUrl = /^attachment:([1-9]\d*)$/;
 const metadata = /^([\s\S]*)\|w=(20|[2-9]\d|100)\|a=(left|center|right)$/;
 const pairedMetadata = /^([\s\S]*)\|dark=([1-9]\d*)\|w=(20|[2-9]\d|100)\|a=(left|center|right)$/;
-const markdownPunctuation = /[!"#$%'()*+,\-./:;=?@\[\]^_`{|}~]/;
 
 /** 정확한 내부 주소의 양수 안전 정수 ID만 허용하며 외부 URL·인코딩 변형은 거부한다. */
 export function parseAttachmentId(url: string): number | null {
@@ -38,27 +34,11 @@ export function parseImageAlt(alt: string): ImageAlt | null {
     if (!paired || paired[1].includes("|dark=")) return null;
     const darkAttachmentId = Number(paired[2]);
     if (!Number.isSafeInteger(darkAttachmentId) || darkAttachmentId <= 0) return null;
-    return { caption: paired[1], darkAttachmentId, width: Number(paired[3]), align: paired[4] as ImageData["align"] };
+    return { caption: paired[1], darkAttachmentId, width: Number(paired[3]), align: paired[4] as ImageAlt["align"] };
   }
   const match = metadata.exec(alt);
   if (!match) return null;
-  return { caption: match[1], width: Number(match[2]), align: match[3] as ImageData["align"] };
-}
-
-/**
- * 새 이미지 블록은 언제나 명시적 메타 suffix로 출력한다.
- * 설명의 Markdown 구분자와 HTML 문자 참조를 이스케이프하여 다시 읽을 때 같은 설명을 얻는다.
- */
-export function serializeImageBlock(image: ImageData): string {
-  const caption = Array.from(image.caption.replace(/\r\n?|\n/g, " "), (character) => {
-    if (character === "&") return "&amp;";
-    if (character === "<") return "&lt;";
-    if (character === ">") return "&gt;";
-    if (character === "\\" || markdownPunctuation.test(character)) return `\\${character}`;
-    return character;
-  }).join("");
-  const dark = image.darkAttachmentId === undefined ? "" : `|dark=${image.darkAttachmentId}`;
-  return `![${caption}${dark}|w=${image.width}|a=${image.align}](attachment:${image.attachmentId})`;
+  return { caption: match[1], width: Number(match[2]), align: match[3] as ImageAlt["align"] };
 }
 
 /** CommonMark 참조 정의의 대소문자와 연속 공백을 같은 키로 맞춘다. */
@@ -73,11 +53,11 @@ function walk(node: ImageNode, visit: (node: ImageNode) => void): void {
 }
 
 /**
- * 실제로 표시 가능한 내부 Markdown 이미지 노드만 모아 서버의 전체 연결 선언에 사용한다.
+ * 실제로 표시 가능한 내부 Markdown 이미지 노드만 모아 Pages 빌드의 이미지 다운로드에 사용한다.
  * 읽기와 같은 안전 접기·주석 변환 후 imageReference 정의를 풀며, 코드·Mermaid·수식·주석·일반 링크 목적지·차단된 HTML은 세지 않는다.
  * 링크 안에 들어 있는 실제 이미지 노드는 읽기 화면에도 표시되므로 포함한다.
  *
- * @return 중복을 제거한 첨부 ID 오름차순 목록; 100개 상한은 저장 UI가 검사한다.
+ * @return 중복을 제거한 첨부 ID 오름차순 목록.
  */
 export function collectAttachmentIds(body: string): number[] {
   const root = parseAnnotationDocument(body).root as Root;

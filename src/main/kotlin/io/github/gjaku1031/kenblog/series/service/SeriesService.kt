@@ -21,17 +21,16 @@ import java.util.Locale
 class SeriesService(private val series: SeriesRepository, private val posts: PostRepository,
     private val queries: PostQueries, private val badges: StackBadgeService) {
     @Transactional(readOnly = true)
-    fun list(admin: Boolean, kind: SeriesKind? = null): List<SeriesResponse> = series.findAll()
-        .filter { (kind == null || it.kind == kind) && (admin || it.visibility == PostVisibility.PUBLIC) }
+    fun list(admin: Boolean): List<SeriesResponse> = series.findAll()
+        .filter { admin || it.visibility == PostVisibility.PUBLIC }
         .sortedWith(compareBy<SeriesEntity> { it.sortOrder }.thenBy { it.id })
         .map { response(it, admin) }.filter { admin || it.cover != null }
 
     @Transactional(readOnly = true)
-    fun detail(id: Long, admin: Boolean): SeriesDetailResponse {
+    fun detail(id: Long): SeriesDetailResponse {
         val entity = series.findById(id).orElseThrow { SeriesNotFoundException() }
-        val response = response(entity, admin)
-        if (!admin && (entity.visibility != PostVisibility.PUBLIC || response.cover == null)) throw SeriesNotFoundException()
-        return SeriesDetailResponse(response, queries.seriesPosts(id, !admin).map {
+        val response = response(entity, true)
+        return SeriesDetailResponse(response, queries.seriesPosts(id, false).map {
             SeriesPostResponse(it.id, it.title, it.slug, it.seriesOrder, it.status == PostStatus.PUBLISHED && it.visibility == PostVisibility.PUBLIC)
         })
     }

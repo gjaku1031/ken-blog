@@ -4,11 +4,9 @@ import io.github.gjaku1031.kenblog.attachment.domain.AttachmentFailure
 import io.github.gjaku1031.kenblog.attachment.storage.LocalAssetStorage
 import java.nio.file.Files
 import java.nio.file.Path
-import java.nio.file.attribute.PosixFilePermissions
 import org.junit.jupiter.api.Assertions.assertArrayEquals
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import org.junit.jupiter.api.assertThrows
@@ -20,46 +18,43 @@ class LocalAssetStorageTest {
     @TempDir
     lateinit var directory: Path
 
-    /** 저장소 객체를 다시 만들어도 DB key로 같은 바이트를 읽고 반복 삭제할 수 있음. */
+    /** 외부에서 준비한 파일을 저장소 객체 재생성 후에도 같은 DB key로 조회. */
     @Test
-    fun `files survive storage recreation and deletion is idempotent`() {
+    fun `externally prepared files survive storage recreation`() {
         val root = directory.resolve("storage")
         Files.createDirectory(root)
-        val storage = LocalAssetStorage(root.toString(), "ken-blog/attachments")
-        val key = storage.newKey("png")
+        val key = "ken-blog/attachments/123e4567-e89b-12d3-a456-426614174000.png"
         val bytes = byteArrayOf(1, 2, 3)
-        storage.put(key, bytes, "image/png")
-        val reopened = LocalAssetStorage(root.toString(), "ken-blog/attachments")
+        Files.createDirectories(root.resolve(key).parent)
+        Files.write(root.resolve(key), bytes)
+        val reopened = LocalAssetStorage(root.toString())
         reopened.open(key).use { assertArrayEquals(bytes, it.readAllBytes()) }
-        reopened.delete(key)
-        reopened.delete(key)
+        Files.delete(root.resolve(key))
         assertFalse(Files.exists(root.resolve(key)))
         assertEquals(HttpStatus.SERVICE_UNAVAILABLE, assertThrows<AttachmentFailure> { reopened.open(key) }.status)
     }
 
-    /** 기존 DB의 접두사 key는 새 파일 생성 접두사와 달라도 그대로 조회 가능. */
+    /** 기존 DB의 접두사 key를 별도 접두사 설정 없이 조회 가능. */
     @Test
-    fun `existing keys remain readable after prefix changes`() {
+    fun `existing keys remain readable without prefix configuration`() {
         val root = directory.resolve("storage")
         val key = "ken-blog/attachments/123e4567-e89b-12d3-a456-426614174000.jpg"
         Files.createDirectory(root)
-        val storage = LocalAssetStorage(root.toString(), "new-prefix")
-        storage.put(key, byteArrayOf(4), "image/jpeg")
+        val storage = LocalAssetStorage(root.toString())
+        Files.createDirectories(root.resolve(key).parent)
+        Files.write(root.resolve(key), byteArrayOf(4))
         storage.open(key).use { assertArrayEquals(byteArrayOf(4), it.readAllBytes()) }
-        assertTrue(storage.newKey("jpg").startsWith("new-prefix/"))
     }
 
-    /** 잘못된 DB key도 루트 밖 파일의 조회·생성·삭제에 사용할 수 없음. */
+    /** 잘못된 DB key도 루트 밖 파일의 조회에 사용할 수 없음. */
     @Test
     fun `path traversal and absolute paths cannot reach outside files`() {
         Files.createDirectory(directory.resolve("storage"))
-        val storage = LocalAssetStorage(directory.resolve("storage").toString(), "attachments")
+        val storage = LocalAssetStorage(directory.resolve("storage").toString())
         val outside = directory.resolve("outside.png")
         Files.write(outside, byteArrayOf(5))
         for (key in listOf("../outside.png", outside.toString(), "attachments/../../outside.png", "attachments\\outside.png")) {
             assertThrows<AttachmentFailure> { storage.open(key) }
-            assertThrows<AttachmentFailure> { storage.put(key, byteArrayOf(6), "image/png") }
-            assertThrows<AttachmentFailure> { storage.delete(key) }
         }
         assertArrayEquals(byteArrayOf(5), Files.readAllBytes(outside))
     }
@@ -70,7 +65,7 @@ class LocalAssetStorageTest {
         assumeTrue(directory.fileSystem.supportedFileAttributeViews().contains("posix"))
         val root = directory.resolve("storage")
         Files.createDirectory(root)
-        val storage = LocalAssetStorage(root.toString(), "attachments")
+        val storage = LocalAssetStorage(root.toString())
         val outside = directory.resolve("outside")
         Files.createDirectory(outside)
         val filename = "123e4567-e89b-12d3-a456-426614174000.png"
@@ -80,45 +75,16 @@ class LocalAssetStorageTest {
         Files.createSymbolicLink(root.resolve("attachments").resolve(filename), outside.resolve(filename))
         for (key in listOf("linked/$filename", "attachments/$filename")) {
             assertThrows<AttachmentFailure> { storage.open(key) }
-            assertThrows<AttachmentFailure> { storage.put(key, byteArrayOf(8), "image/png") }
-            assertThrows<AttachmentFailure> { storage.delete(key) }
         }
         assertArrayEquals(byteArrayOf(7), Files.readAllBytes(outside.resolve(filename)))
     }
 
-    /** key 중복 실패는 기존 파일을 훼손하거나 업로드 임시 파일을 남기지 않음. */
-    @Test
-    fun `a duplicate write preserves the existing file and leaves no temporary files`() {
-        val root = directory.resolve("storage")
-        Files.createDirectory(root)
-        val storage = LocalAssetStorage(root.toString(), "attachments")
-        val key = storage.newKey("png")
-        storage.put(key, byteArrayOf(9), "image/png")
-        assertThrows<AttachmentFailure> { storage.put(key, byteArrayOf(10), "image/png") }
-        assertArrayEquals(byteArrayOf(9), Files.readAllBytes(root.resolve(key)))
-        Files.list(root.resolve("attachments")).use { assertEquals(1L, it.count()) }
-    }
-
-    /** Linux에서 새 저장 디렉터리와 파일은 서버 사용자만 접근 가능. */
-    @Test
-    fun `new files and directories have owner only permissions`() {
-        assumeTrue(directory.fileSystem.supportedFileAttributeViews().contains("posix"))
-        val root = directory.resolve("storage")
-        Files.createDirectory(root, PosixFilePermissions.asFileAttribute(PosixFilePermissions.fromString("rwx------")))
-        val storage = LocalAssetStorage(root.toString(), "attachments")
-        val key = storage.newKey("png")
-        storage.put(key, byteArrayOf(11), "image/png")
-        assertEquals(PosixFilePermissions.fromString("rwx------"), Files.getPosixFilePermissions(root))
-        assertEquals(PosixFilePermissions.fromString("rwx------"), Files.getPosixFilePermissions(root.resolve("attachments")))
-        assertEquals(PosixFilePermissions.fromString("rw-------"), Files.getPosixFilePermissions(root.resolve(key)))
-    }
-
-    /** 저장소 루트 자체가 링크인 설정은 기동 시 거부. */
+    /** 저장소 루트 자체가 링크인 설정은 파일 조회 전에 거부. */
     @Test
     fun `a symlink storage root is rejected`() {
         assumeTrue(directory.fileSystem.supportedFileAttributeViews().contains("posix"))
         val link = directory.resolve("storage")
         Files.createSymbolicLink(link, directory)
-        assertThrows<AttachmentFailure> { LocalAssetStorage(link.toString(), "attachments").requireConfigured() }
+        assertThrows<AttachmentFailure> { LocalAssetStorage(link.toString()).requireConfigured() }
     }
 }

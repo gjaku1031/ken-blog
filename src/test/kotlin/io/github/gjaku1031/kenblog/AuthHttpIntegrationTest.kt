@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertNotEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.TestMethodOrder
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation
 import org.junit.jupiter.api.Order
@@ -52,6 +53,15 @@ class AuthHttpIntegrationTest {
 
     @Autowired
     private lateinit var sessions: SessionRepository<*>
+
+    /** 운영 자동 생성에 의존하지 않고 격리 테스트 DB에만 관리자 행 준비. */
+    @BeforeEach
+    fun prepareAdmin() {
+        jdbc.update(
+            "INSERT IGNORE INTO users (username, password_hash, role, created_at, enabled) VALUES (?, ?, 'ADMIN', UTC_TIMESTAMP(6), true)",
+            "testadmin", TEST_HASH,
+        )
+    }
 
     /** 익명 경로와 인증 경로의 CORS·쿠키 정책 및 ProblemDetail을 실제 HTTP로 검증. */
     @Test
@@ -233,12 +243,10 @@ class AuthHttpIntegrationTest {
         const val TEST_PASSWORD = "sample-secret"
         val TEST_HASH = "{bcrypt}" + BCryptPasswordEncoder(10).encode(TEST_PASSWORD)
 
-        /** 테스트 전용 관리자만 외부 설정으로 준비함. */
+        /** 인증에서 선택할 테스트 관리자 이름만 지정. 계정은 테스트 DB에 직접 등록. */
         @JvmStatic
         @DynamicPropertySource
         fun adminProperties(registry: DynamicPropertyRegistry) {
-            registry.add("app.bootstrap.admin.username") { "testadmin" }
-            registry.add("app.bootstrap.admin.password-hash") { TEST_HASH }
             registry.add("app.auth.admin.username") { "testadmin" }
         }
     }

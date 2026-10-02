@@ -42,7 +42,7 @@
 	}
 	@admin {
 		method GET POST PUT PATCH DELETE OPTIONS
-		path /api/v1/admin/attachments /api/v1/admin/attachments/* /api/v1/admin/categories /api/v1/admin/categories/* /api/v1/admin/posts /api/v1/admin/posts/* /api/v1/admin/series /api/v1/admin/series/* /api/v1/admin/tags /api/v1/admin/tags/*
+		path /api/v1/admin/categories /api/v1/admin/categories/* /api/v1/admin/posts /api/v1/admin/posts/* /api/v1/admin/series /api/v1/admin/series/* /api/v1/admin/tags /api/v1/admin/tags/*
 	}
 
 	handle @public_read {

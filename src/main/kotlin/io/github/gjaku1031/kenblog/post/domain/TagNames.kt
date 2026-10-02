@@ -30,19 +30,4 @@ object TagNames {
         return name
     }
 
-    /**
-     * 정규화 중복을 제거하고 최초 입력 순서를 보존한 최대 16개 태그를 반환.
-     *
-     * @param rawNames PATCH에서 받은 문자열 배열
-     * @return 0~16개의 정규화된 이름
-     * @throws InvalidPostRequestException 태그 수 또는 각 이름이 계약을 벗어날 때
-     */
-    fun normalizeAll(rawNames: List<String>): List<String> {
-        val names = LinkedHashSet<String>()
-        for (raw in rawNames) {
-            names.add(normalize(raw))
-            if (names.size > 16) throw InvalidPostRequestException()
-        }
-        return names.toList()
-    }
 }

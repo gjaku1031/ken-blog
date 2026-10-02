@@ -4,7 +4,6 @@ import io.github.gjaku1031.kenblog.attachment.service.PostAttachmentDeliveryServ
 import org.springframework.http.HttpHeaders
 import org.springframework.http.MediaType
 import jakarta.servlet.http.HttpServletResponse
-import org.springframework.security.core.Authentication
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.RequestMapping
@@ -19,10 +18,9 @@ class PostAttachmentController(private val service: PostAttachmentDeliveryServic
     fun content(
         @PathVariable("postId") postId: Long,
         @PathVariable("id") id: Long,
-        authentication: Authentication?,
         response: HttpServletResponse,
     ) {
-        val content = service.open(postId, id, authentication)
+        val content = service.open(postId, id)
         content.stream.use { stream ->
             response.contentType = content.contentType
             response.setContentLengthLong(content.byteSize)

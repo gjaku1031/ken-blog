@@ -12,8 +12,8 @@ import { readableMathFallback, isOversizeMath } from "./math-format";
 import { highlightCode, resolveHighlightLanguage } from "./code-highlight";
 import { mermaidSourceError } from "./mermaid-render";
 
-/** 관리자 미리보기와 공개 빌드가 공유하는 주소·원문 위치 계약. */
-export type RenderOptions = { attachmentUrl?: (id: number) => string | null; wikiUrl?: (title: string) => string | null; sourceMap?: boolean };
+/** Pages 본문 생성에 사용하는 이미지·위키 주소 해석 계약. */
+export type RenderOptions = { attachmentUrl?: (id: number) => string | null; wikiUrl?: (title: string) => string | null };
 export type TocItem = { id: string; label: string; depth: number; line: number };
 export type RenderResult = { html: string; headings: TocItem[]; attachmentIds: number[]; wikiTargets: string[] };
 
@@ -21,7 +21,6 @@ type Positioned = { type: string; value?: string; depth?: number; alt?: string; 
   data?: { hName?: string; hProperties?: Record<string, unknown>; hChildren?: Array<{ value?: string }> };
   position?: { start: { line: number } }; children?: Positioned[] };
 
-const blockTags = new Set(["p", "h1", "h2", "h3", "h4", "h5", "h6", "blockquote", "ul", "ol", "li", "pre", "table", "thead", "tbody", "tr", "th", "td", "hr", "details", "summary", "div"]);
 const safeLocal = (url: string): boolean => /^\/(?!\/)[a-zA-Z0-9/_~.?=-]*$/.test(url) && !url.includes("..") && !url.includes("%") && !url.includes("\\");
 /** 일반 Markdown 상대 경로와 유니코드 앵커를 URL 파서로 검사한다. */
 function safeLink(url: string): boolean {
@@ -69,12 +68,11 @@ function headingsOf(root: Root): TocItem[] {
 }
 
 /** 주석·링크·코드 속성을 HTML로 옮기기 전에 출처와 허용 주소를 검사한다. */
-async function decorate(tree: HtmlRoot, options: RenderOptions, headings: TocItem[], attachments: Set<number>, wiki: Set<string>, annotations: Array<{index:number; label:string; content:string; refs:number[]}>): Promise<void> {
+async function decorate(tree: HtmlRoot, options: RenderOptions, headings: TocItem[], wiki: Set<string>, annotations: Array<{index:number; label:string; content:string; refs:number[]}>): Promise<void> {
   const headingByLine = new Map(headings.map((item) => [item.line, item]));
   const visit = async (node: HtmlNode, parent?: Element): Promise<void> => {
     if (node.type !== "element") return;
     const tag = node.tagName;
-    if (options.sourceMap && blockTags.has(tag) && node.position?.start.line) node.properties.dataSourceLine = String(node.position.start.line);
     if (tag === "h2" || tag === "h3") {
       const item = node.position?.start.line ? headingByLine.get(node.position.start.line) : undefined;
       if (item?.depth === Number(tag[1])) node.properties.id = item.id;
@@ -99,8 +97,6 @@ async function decorate(tree: HtmlRoot, options: RenderOptions, headings: TocIte
         node.tagName = "span"; node.properties = { className: ["blocked-image"], role: "note" };
         node.children = [textNode("지원하지 않는 이미지")];
       } else {
-        attachments.add(id);
-        if (metadata.darkAttachmentId) attachments.add(metadata.darkAttachmentId);
         node.properties = { src: light, alt: metadata.caption, loading: "lazy", decoding: "async",
           dataDarkSrc: dark ?? "", dataWidth: String(metadata.width), dataAlign: metadata.align,
           className: ["ken-attachment"] };
@@ -134,8 +130,7 @@ async function decorate(tree: HtmlRoot, options: RenderOptions, headings: TocIte
         try {
           // KaTeX의 trust=false는 TeX의 URL·HTML 기능을 사용하지 않는다.
           const html = katex.renderToString(source, { displayMode: display, throwOnError: false, trust: false, strict: "ignore", output: "htmlAndMathml" });
-          node.properties = { className: [display ? "ken-math-block" : "ken-math-inline"], dataKatexHtml: html,
-            ...(node.properties.dataSourceLine ? { dataSourceLine: node.properties.dataSourceLine } : {}) };
+          node.properties = { className: [display ? "ken-math-block" : "ken-math-inline"], dataKatexHtml: html };
           node.children = [];
         } catch { node.children = [textNode(source)]; }
       }
@@ -148,11 +143,10 @@ async function decorate(tree: HtmlRoot, options: RenderOptions, headings: TocIte
         const mermaidError = language === "mermaid" ? mermaidSourceError(source) : null;
         if (language === "mermaid" && mermaidError) {
           node.tagName = "div";
-          node.properties = { className: ["ken-mermaid-error"], ...(node.properties.dataSourceLine ? { dataSourceLine: node.properties.dataSourceLine } : {}) };
+          node.properties = { className: ["ken-mermaid-error"] };
           node.children = [element("p", { role: "alert" }, [textNode(mermaidError)]), element("pre", {}, [textNode(source)])];
         } else if (language === "mermaid") {
-          node.tagName = "div"; node.properties = { className: ["ken-mermaid"], dataMermaidSource: source,
-            ...(node.properties.dataSourceLine ? { dataSourceLine: node.properties.dataSourceLine } : {}) };
+          node.tagName = "div"; node.properties = { className: ["ken-mermaid"], dataMermaidSource: source };
           node.children = [element("button", { type: "button", className: ["mermaid-source-toggle"] }, [textNode("원문 보기")]), element("pre", { className: ["mermaid-source"] }, [textNode(source)]), element("div", { className: ["mermaid-diagram"] })];
         } else {
           node.properties.className = ["ken-code"];
@@ -183,23 +177,12 @@ export async function renderMarkdown(source: string, options: RenderOptions = {}
   if (typeof source !== "string") throw new TypeError("Markdown 원문이 필요합니다.");
   if (new TextEncoder().encode(source).byteLength > 1024 * 1024) throw new RangeError("Markdown 원문이 1 MiB를 넘습니다.");
   const parsed = parseAnnotationDocument(source);
-  if (options.sourceMap) {
-    const markCustom = (node: Positioned): void => {
-      if (node.data?.hName && blockTags.has(node.data.hName) && node.position?.start.line) {
-        node.data.hProperties ??= {};
-        node.data.hProperties.dataSourceLine = String(node.position.start.line);
-      }
-      for (const child of node.children ?? []) markCustom(child);
-    };
-    markCustom(parsed.root as Positioned);
-  }
   const headings = headingsOf(parsed.root);
   const wikiTargets = new Set(collectWikiTitles(parsed.root, parsed.items).titles);
   const tree = toHast(parsed.root, { allowDangerousHtml: false }) as HtmlRoot;
-  const attachmentIds = new Set<number>();
-  await decorate(tree, options, headings, attachmentIds, wikiTargets, parsed.items);
+  await decorate(tree, options, headings, wikiTargets, parsed.items);
   const schema = { ...defaultSchema, clobberPrefix: "", tagNames: [...(defaultSchema.tagNames ?? []), "figure", "figcaption", "button", "details", "summary"], attributes: { ...defaultSchema.attributes,
-    "*": ["className", "id", "title", "dataSourceLine", "dataWidth", "dataAlign", "dataDarkSrc", "dataLanguage", "dataMermaidSource", "dataAnnotationIndex", "dataWikiTitle", "dataKatexHtml", "role", "ariaLabel", "tabIndex"],
+    "*": ["className", "id", "title", "dataWidth", "dataAlign", "dataDarkSrc", "dataLanguage", "dataMermaidSource", "dataAnnotationIndex", "dataWikiTitle", "dataKatexHtml", "role", "ariaLabel", "tabIndex"],
     a: ["href", "target", "rel", "className", "ariaLabel", "dataAnnotationReturn"], img: ["src", "alt", "loading", "decoding", "className", "dataDarkSrc"], span: ["className", "style", "id", "role", "tabIndex", "ariaLabel", "dataAnnotationIndex", "dataKatexHtml"],
     figure: ["className", "style", "dataWidth", "dataAlign"], input: ["type", "checked", "disabled"], button: ["type", "className"], th: ["align"], td: ["align"] },
     protocols: { ...defaultSchema.protocols, href: ["http", "https", "mailto"], src: ["http", "https"] } };
@@ -233,7 +216,7 @@ export async function renderMarkdown(source: string, options: RenderOptions = {}
         content = `<span class="ken-annotation-content">${escapeHtml(item.content)}</span>`;
       } else {
         paragraph.tagName = "span"; paragraph.properties = { className: ["ken-annotation-content"] };
-        await decorate(noteTree, options, [], new Set(), wikiTargets, []);
+        await decorate(noteTree, options, [], wikiTargets, []);
         content = await serialize(noteTree);
       }
       const first = item.refs[0];

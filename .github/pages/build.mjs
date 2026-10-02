@@ -190,7 +190,7 @@ async function main() {
   }
   for (const post of allPosts) {
     const rendered = await renderMarkdown(post.body, { attachmentUrl: (id) => attachmentUrls.get(id) ?? null,
-      wikiUrl: (title) => links.get(wikiKey(title)) ?? null, sourceMap: true });
+      wikiUrl: (title) => links.get(wikiKey(title)) ?? null });
     post.rendered = { html: rendered.html, headings: rendered.headings, wikiTargets: rendered.wikiTargets };
   }
   await generateSite({ snapshot, assets, adminHref: route("manage/"),

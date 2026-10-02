@@ -283,10 +283,3 @@ export function parseMathMarkdown(source: string): Root {
   restorePositions(root as PositionedNode, ranges, starts);
   return root;
 }
-
-/** GFM 뒤, 안전 접기 변환 앞에 등록할 수식 문법 플러그인. */
-export function remarkMathSyntax() {
-  return (root: Root, file: { value: unknown }) => {
-    root.children = parseMathMarkdown(String(file.value)).children;
-  };
-}

@@ -10,7 +10,6 @@ import org.springframework.data.repository.query.Param
 
 /** JPA로 글 저장·단건 조회·변경 잠금만 담당. 목록·검색은 PostQueries에 위임. */
 interface PostRepository : JpaRepository<PostEntity, Long> {
-    fun findBySlug(slug: String): PostEntity?
     fun existsBySeriesId(seriesId: Long): Boolean
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)

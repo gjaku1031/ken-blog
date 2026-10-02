@@ -2,10 +2,13 @@ import './style.css';
 
 type Csrf = { headerName: string; token: string };
 type Page<T> = { items: T[]; page: number; totalElements: number; totalPages: number };
-type Category = { id: number; path: string; name: string; depth: number; sortOrder: number; directCount: number; children: Category[] };
+type CategoryRef = { id: number; path: string; name: string; depth: number; sortOrder: number };
+type Category = CategoryRef & { directCount: number; children: Category[] };
+type SeriesRef = { id: number; name: string; slug: string; kind: 'TECH' | 'PROJECT' };
 type Badge = { id: number; name: string };
 type Series = { id: number; name: string; slug: string; kind: 'TECH' | 'PROJECT'; description: string; projectStatus: string | null; startPeriod: string | null; endPeriod: string | null; updatedAt: string; sortOrder: number; stackBadges: Badge[] };
-type Post = { id: number; title: string; slug: string; section: string; status: string; summary: string; category: Category | null; tags: string[]; series: Series | null; seriesOrder: number | null; relatedSeriesId: number | null };
+type Post = { id: number; title: string; slug: string; section: 'TECH' | 'PROJECT'; status: 'DRAFT' | 'PUBLISHED'; visibility: 'PUBLIC' | 'PRIVATE'; summary: string; category: CategoryRef | null; tags: string[]; series: SeriesRef | null; seriesOrder: number | null; relatedSeriesId: number | null };
+type PostDetail = Post & { attachmentIds: number[]; wikiTargets: string[] };
 type AdminData = { posts: Page<Post>; series: Series[]; categories: Category[]; badges: Badge[] };
 
 const root = document.documentElement;
@@ -27,7 +30,6 @@ const loginForm = get('login-form') as HTMLFormElement;
 let csrf: Csrf | null = null;
 let postPage = 0;
 let sessionReady = false;
-let currentData: AdminData | null = null;
 
 function get(id: string): HTMLElement {
   const found = document.getElementById(id);
@@ -47,7 +49,6 @@ function setMessage(target: HTMLElement, message: string, error = false) {
   target.setAttribute('role', error ? 'alert' : 'status');
 }
 function clearDashboard() {
-  currentData = null;
   for (const id of ['post-create', 'post-list', 'post-pages', 'category-create', 'category-list', 'series-create', 'series-list']) get(id).replaceChildren();
 }
 function showLogin(message = '') {
@@ -152,7 +153,7 @@ function area(form: HTMLElement, title: string, name: string, value = '', max = 
   label.append(input); form.append(label);
   return input;
 }
-function choice(form: HTMLElement, title: string, name: string, options: Array<[string, string]>, value = '') {
+function choice(form: HTMLElement, title: string, name: string, options: Array<[string, string]>, value = options[0]?.[0] ?? '') {
   const label = el('label', '', title);
   const input = el('select');
   input.name = name;
@@ -226,8 +227,7 @@ async function loadDashboard() {
     request<Badge[]>('/admin/stack-badges'),
   ]);
   if (!sessionReady) return;
-  currentData = { posts: data[0], series: data[1], categories: data[2], badges: data[3] };
-  render(currentData);
+  render({ posts: data[0], series: data[1], categories: data[2], badges: data[3] });
   showDashboard();
 }
 function render(data: AdminData) {
@@ -253,7 +253,7 @@ function renderPosts(data: AdminData) {
   if (!data.posts.items.length) list.append(el('p', 'empty', '등록된 글이 없습니다.'));
   for (const post of data.posts.items) {
     const article = el('article', 'item');
-    article.append(itemHeading(post.title, `${post.section} · ${post.status}`));
+    article.append(itemHeading(post.title, `${post.section === 'PROJECT' ? '프로젝트' : '일반 글'} · ${post.status === 'PUBLISHED' ? post.visibility === 'PUBLIC' ? '공개 발행' : '비공개 발행' : '미발행'}`));
     article.append(el('p', 'muted', `/${post.slug} · content/posts/${post.slug}.md`));
     {
       const edit = form(input => mutate(`/admin/posts/${post.id}/metadata`, 'PATCH', {
@@ -271,6 +271,7 @@ function renderPosts(data: AdminData) {
     }), '시리즈와 문서 순서를 저장했습니다.');
     seriesFields(membership, data, post.series?.id ?? null, post.seriesOrder, post.relatedSeriesId);
     submit(membership, '시리즈·순서 저장'); article.append(membership);
+    article.append(postDeclarations(post));
     const actions = el('div', 'inline-actions');
     const published = post.status === 'PUBLISHED';
     smallAction(actions, published ? '발행 취소' : '발행', () =>
@@ -300,6 +301,51 @@ function renderPosts(data: AdminData) {
   if (data.posts.page > 0) pageButton('이전', data.posts.page - 1);
   pages.append(el('span', '', `${data.posts.page + 1} / ${Math.max(1, data.posts.totalPages)}`));
   if (data.posts.page + 1 < data.posts.totalPages) pageButton('다음', data.posts.page + 1);
+}
+/** 목록에는 없는 선언 관계는 펼칠 때 상세 API로 조회. */
+function postDeclarations(post: Post): HTMLDetailsElement {
+  const panel = el('details', 'declarations');
+  panel.append(el('summary', '', '첨부·위키 연결'));
+  const content = el('div');
+  panel.append(content);
+  let loaded = false;
+  let loading = false;
+  const load = async () => {
+    if (!panel.open || loaded || loading) return;
+    loading = true;
+    content.replaceChildren(el('p', 'muted', '연결 정보를 읽는 중입니다.'));
+    try {
+      const detail = await request<PostDetail>(`/admin/posts/${post.id}`);
+      if (!panel.isConnected || !sessionReady) return;
+      const attachments = form(input => {
+        const values = value(input, 'attachmentIds').split(/[\s,]+/).filter(Boolean);
+        const ids = values.map(Number);
+        if (values.length > 100 || values.some((raw, i) => !/^[0-9]+$/.test(raw) || !Number.isSafeInteger(ids[i]) || ids[i] <= 0))
+          throw new Error('첨부 ID는 양의 정수로 최대 100개까지 입력하세요.');
+        return mutate(`/admin/posts/${post.id}/attachments`, 'PUT', { attachmentIds: ids });
+      }, '첨부 연결을 저장했습니다.');
+      field(attachments, '첨부 ID (쉼표 구분)', 'attachmentIds', detail.attachmentIds.join(', '), { wide: true });
+      attachments.append(el('p', 'wide muted', '등록된 이미지의 ID를 입력하세요. 비우고 저장하면 이 글의 연결만 해제됩니다.'));
+      submit(attachments, '첨부 연결 저장');
+      const wiki = form(input => mutate(`/admin/posts/${post.id}/wiki-links`, 'PUT', {
+        wikiTargets: value(input, 'wikiTargets').split('\n').map(title => title.trim()).filter(Boolean),
+      }), '위키 연결을 저장했습니다.');
+      area(wiki, '위키 대상 제목 (한 줄에 하나)', 'wikiTargets', detail.wikiTargets.join('\n'), 26000);
+      wiki.append(el('p', 'wide muted', '최대 128개 제목을 입력하세요. 본문의 [[제목]]과 함께 맞춰야 하며, 이 저장은 원고 파일을 바꾸지 않습니다.'));
+      submit(wiki, '위키 연결 저장');
+      content.replaceChildren(attachments, wiki);
+      loaded = true;
+    } catch (error) {
+      if (error instanceof HttpError && error.status === 401) { showLogin(error.message); return; }
+      const notice = el('p', 'notice error', error instanceof Error ? error.message : '연결 정보를 읽지 못했습니다.');
+      notice.setAttribute('role', 'alert');
+      const retry = el('button', 'button ghost', '다시 시도');
+      retry.type = 'button'; retry.addEventListener('click', () => { void load(); });
+      content.replaceChildren(notice, retry);
+    } finally { loading = false; }
+  };
+  panel.addEventListener('toggle', () => { void load(); });
+  return panel;
 }
 function renderCategories(data: AdminData) {
   const create = form(input => mutate('/admin/categories', 'POST', { path: value(input, 'path') }), '분류를 만들었습니다.');
@@ -331,9 +377,12 @@ function seriesMetadata(input: FormData, project: boolean) {
 }
 function projectFields(parent: HTMLElement, badges: Badge[], item?: Series) {
   choice(parent, '상태', 'projectStatus', [['PLAN', '기획'], ['DEV', '개발'], ['MAINT', '유지보수'], ['DONE', '완료']], item?.projectStatus ?? 'PLAN');
-  field(parent, '시작 기간', 'startPeriod', item?.startPeriod ?? '', { placeholder: 'YYYY.MM' });
-  field(parent, '종료 기간', 'endPeriod', item?.endPeriod ?? '', { placeholder: 'YYYY.MM' });
-  checkboxes(parent, '기술 뱃지', badges, item?.stackBadges.map(b => b.name) ?? []);
+  const start = field(parent, '시작 기간', 'startPeriod', item?.startPeriod ?? '', { required: true, placeholder: 'YYYY.MM', max: 7 });
+  start.pattern = '[0-9]{4}\\.(0[1-9]|1[0-2])';
+  const end = field(parent, '종료 기간', 'endPeriod', item?.endPeriod ?? '', { placeholder: 'YYYY.MM', max: 7 });
+  end.pattern = start.pattern;
+  checkboxes(parent, '기술 스택', badges, item?.stackBadges.map(b => b.name) ?? []);
+  if (!badges.length) parent.append(el('p', 'wide muted', '등록된 기술이 없습니다. 기술 이름과 아이콘을 먼저 등록하세요.'));
 }
 function renderSeries(data: AdminData) {
   const create = form(input => mutate('/admin/series', 'POST', {

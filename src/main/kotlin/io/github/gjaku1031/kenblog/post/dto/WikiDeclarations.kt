@@ -50,7 +50,7 @@ object WikiDeclarations {
     private const val MAX_TARGETS = 128
 }
 
-/** 관리자 제목 검색·공개 역링크의 본문 없는 게시글 이동 정보. */
+/** 관리자 제목 검색의 본문 없는 게시글 이동 정보. */
 data class WikiNavigationItem(
     val id: Long,
     val title: String,
@@ -64,13 +64,6 @@ data class WikiNavigationItem(
 data class WikiTitleSearchResponse(
     val items: List<WikiNavigationItem>,
     val exact: WikiLinkResult,
-)
-
-/** 현재 권한으로 읽을 수 있는 출간 글만 담는 10개 역링크 페이지. */
-data class WikiBacklinkPageResponse(
-    val items: List<WikiNavigationItem>,
-    val page: Int,
-    val hasMore: Boolean,
 )
 
 /** 원고와 독립적으로 위키 대상 선언 전체를 교체하는 관리자 입력. */

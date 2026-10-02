@@ -13,7 +13,10 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @RequestMapping("/api/v1/admin/tags")
 class AdminTagController(private val service: PostService) {
-    /** @return 초안 포함 태그 사용량과 no-store HTTP 200. */
+
+    /**
+     * @return 초안 포함 태그 사용량과 no-store HTTP 200.
+     */
     @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE])
     fun list(): ResponseEntity<List<TagCountResponse>> =
         ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.adminTags())

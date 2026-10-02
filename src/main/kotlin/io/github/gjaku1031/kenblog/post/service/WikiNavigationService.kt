@@ -1,20 +1,15 @@
 package io.github.gjaku1031.kenblog.post.service
 
-import io.github.gjaku1031.kenblog.post.domain.InvalidPostRequestException
 import io.github.gjaku1031.kenblog.post.domain.InvalidWikiLinkRequestException
-import io.github.gjaku1031.kenblog.post.domain.PostNotFoundException
-import io.github.gjaku1031.kenblog.post.dto.WikiBacklinkPageResponse
 import io.github.gjaku1031.kenblog.post.dto.WikiLinkMissing
 import io.github.gjaku1031.kenblog.post.dto.WikiLinkReadable
 import io.github.gjaku1031.kenblog.post.dto.WikiTitleSearchResponse
 import io.github.gjaku1031.kenblog.post.dto.navigationItem
 import io.github.gjaku1031.kenblog.post.repository.PostQueries
-import java.util.Locale
-import org.springframework.security.core.Authentication
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 
-/** 본문 없이 제목 대표 검색과 현재 권한의 저장된 역링크를 읽는 서비스. */
+/** 본문 없이 공개 제목 대표 검색을 수행하는 관리자 서비스. */
 @Service
 class WikiNavigationService(private val posts: PostQueries) {
     /**
@@ -39,26 +34,4 @@ class WikiNavigationService(private val posts: PostQueries) {
         return WikiTitleSearchResponse(posts.titleSearch(query).map { it.navigationItem() }, exact)
     }
 
-    /**
-     * 현재 canonical 출간 글의 공개 가능 출처만 10개씩 조회하고 11번째 행으로 hasMore 판정.
-     * 미발행 대상은 404로 처리하며 공개되지 않은 출처는 본문·건수에서 제외함.
-     * @throws PostNotFoundException 없는 글·초안·읽기 불가 대상일 때
-     * @throws InvalidPostRequestException 페이지가 SQL 범위를 넘을 때
-     */
-    @Transactional(readOnly = true)
-    fun backlinks(slug: String, page: Int, authentication: Authentication?): WikiBacklinkPageResponse {
-        if (page < 0 || page.toLong() * PAGE_SIZE > Int.MAX_VALUE) throw InvalidPostRequestException()
-        val normalizedSlug = slug.trim().lowercase(Locale.ROOT)
-        if (normalizedSlug.length > 160 || !SLUG_PATTERN.matches(normalizedSlug)) throw PostNotFoundException()
-        val target = posts.publicBySlug(normalizedSlug) ?: throw PostNotFoundException()
-        val canonical = posts.wikiTarget(target.title)
-        if (canonical?.id != target.id) return WikiBacklinkPageResponse(emptyList(), page, false)
-        val rows = posts.backlinks(target.id, target.title, page * PAGE_SIZE)
-        return WikiBacklinkPageResponse(rows.take(PAGE_SIZE).map { it.navigationItem() }, page, rows.size > PAGE_SIZE)
-    }
-
-    private companion object {
-        const val PAGE_SIZE = 10
-        val SLUG_PATTERN = Regex("[a-z0-9]+(?:-[a-z0-9]+)*")
-    }
 }

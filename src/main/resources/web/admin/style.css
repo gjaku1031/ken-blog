@@ -22,7 +22,6 @@ a:hover{color:var(--accent-dark)}
 .brand-dot{color:var(--accent)}
 nav{display:flex;gap:14px;flex:1;overflow:auto;white-space:nowrap}
 nav a{font-size:14px;color:var(--muted)}
-.header-inner form{margin:0}
 .page-container{width:min(100% - 32px,1092px);margin:32px auto 80px}
 .page-heading,.section-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:20px}
 .page-heading{margin-bottom:28px}
@@ -44,9 +43,6 @@ nav a{font-size:14px;color:var(--muted)}
 .field-grid input,.field-grid select,.field-grid textarea,.login-card input:not([type=checkbox]){width:100%;border:1px solid var(--line);border-radius:7px;padding:9px 11px;background:var(--card);color:var(--text);font-size:14px}
 .field-grid textarea{resize:vertical}
 .field-grid .wide,.field-grid .form-actions{grid-column:1/-1}
-.create-form{border-bottom:1px solid var(--line);padding:18px 0 28px}
-.create-group{border:1px solid var(--line);border-radius:7px;padding:12px}
-.create-group legend{font-size:13px;color:var(--muted)}
 .inline-actions{display:flex;gap:8px;margin:14px 0}
 .form-actions{display:flex;justify-content:flex-end}
 .button{display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line);border-radius:7px;padding:8px 14px;background:var(--card);color:var(--text);font-weight:600;min-height:39px}
@@ -61,7 +57,6 @@ nav a{font-size:14px;color:var(--muted)}
 .badge-list legend{font-size:13px;color:var(--muted)}
 .field-grid .badge-list .check,.check{display:inline-flex;align-items:center;flex-direction:row;gap:6px;font-size:13px;color:var(--text);font-weight:400}
 .check input{width:auto}
-.login-page{min-height:100vh;display:grid;place-items:center;padding:20px}
 .login-card{width:min(100%,410px);padding:32px}
 .page-container>.login-card{margin:12vh auto}
 .login-card h1{margin:6px 0;font-size:27px}
@@ -78,3 +73,7 @@ nav a{font-size:14px;color:var(--muted)}
 .field-grid{grid-template-columns:1fr}
 .section-heading{display:block}
 }
+
+.declarations{margin:16px 0}
+.declarations summary{cursor:pointer;color:var(--accent-dark)}
+.declarations form{margin-top:18px}

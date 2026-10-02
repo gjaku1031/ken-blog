@@ -7,7 +7,6 @@ import io.github.gjaku1031.kenblog.post.domain.DuplicatePostSlugException
 import io.github.gjaku1031.kenblog.post.domain.InvalidPostRequestException
 import io.github.gjaku1031.kenblog.post.domain.PostEntity
 import io.github.gjaku1031.kenblog.post.domain.PostNotFoundException
-import io.github.gjaku1031.kenblog.post.domain.PostStatus
 import io.github.gjaku1031.kenblog.post.domain.PostTagEntity
 import io.github.gjaku1031.kenblog.post.domain.PostVisibility
 import io.github.gjaku1031.kenblog.post.domain.TagNames
@@ -169,16 +168,7 @@ class PostService(
     }
 
     @Transactional(readOnly = true)
-    fun adminTags(): List<TagCountResponse> = queries.tagCounts(false)
-
-    @Transactional(readOnly = true)
-    fun findById(id: Long): PostEntity? = if (id > 0) repository.findByIdOrNull(id) else null
-
-    @Transactional(readOnly = true)
-    fun findBySlug(slug: String): PostEntity? {
-        val normalized = slug.trim().lowercase(Locale.ROOT)
-        return if (normalized.length <= 160 && SLUG_PATTERN.matches(normalized)) repository.findBySlug(normalized) else null
-    }
+    fun adminTags(): List<TagCountResponse> = queries.tagCounts()
 
     private fun lockedPostRead(id: Long): PostEntity {
         if (id <= 0) throw InvalidPostRequestException()

@@ -20,7 +20,7 @@ data class PostRow(val id: Long, val title: String, val slug: String, val summar
     val series: SeriesRef?, val seriesOrder: Int?, val relatedSeriesId: Long?, val legacyPath: String?)
 data class PostRows(val items: List<PostRow>, val total: Long, val pages: Int)
 
-/** 공개 조건·정렬·집계를 생성된 테이블 타입으로 구성. 저장과 잠금은 JPA 담당. */
+/** 공개 조건·정렬·집계를 생성된 테이블 타입으로 구성. 저장은 JPA 담당, 첨부 연결 검증은 상태 열만 잠금 조회. */
 @Repository
 class PostQueries(private val sql: DSLContext) {
     private val p = POSTS
@@ -53,12 +53,11 @@ class PostQueries(private val sql: DSLContext) {
         .where(p.SERIES_ID.eq(id).and(if (publicOnly) readable() else trueCondition())).orderBy(ordered).fetch(::row)
     fun categoryPosts(id: Long): List<PostRow> = sql.select(fields).from(joined)
         .where(readable().and(general()).and(p.CATEGORY_ID.eq(id))).orderBy(ordered).fetch(::row)
-    fun categoryCounts(admin: Boolean): List<CategoryPostCountRow> = sql.select(p.CATEGORY_ID, count())
-        .from(joined).where(p.CATEGORY_ID.isNotNull.and(if (admin) trueCondition() else readable().and(general())))
+    fun categoryCounts(): List<CategoryPostCountRow> = sql.select(p.CATEGORY_ID, count())
+        .from(joined).where(p.CATEGORY_ID.isNotNull)
         .groupBy(p.CATEGORY_ID).fetch { CategoryPostCountRow(it.value1()!!, it.value2().toLong()) }
-    fun tagCounts(publicOnly: Boolean): List<TagCountResponse> = sql.select(min(POST_TAGS.DISPLAY_NAME), count())
+    fun tagCounts(): List<TagCountResponse> = sql.select(min(POST_TAGS.DISPLAY_NAME), count())
         .from(POST_TAGS.join(joined).on(POST_TAGS.POST_ID.eq(p.ID)))
-        .where(if (publicOnly) readable().and(general()) else trueCondition())
         .groupBy(POST_TAGS.TAG_NAME).orderBy(count().desc(), POST_TAGS.TAG_NAME.asc())
         .fetch { TagCountResponse(it.value1()!!, it.value2().toLong()) }
 
@@ -78,10 +77,9 @@ class PostQueries(private val sql: DSLContext) {
         return sql.select(fields).from(joined).where(readable().and(p.TITLE.containsIgnoreCase(query)).and(canonical))
             .orderBy(newest).limit(7).fetch(::row)
     }
-    fun backlinks(id: Long, title: String, offset: Int): List<PostRow> = sql.select(fields).from(joined)
-        .where(readable().and(p.ID.ne(id)).and(exists(sql.selectOne().from(POST_WIKI_LINKS)
-            .where(POST_WIKI_LINKS.POST_ID.eq(p.ID).and(titleKey(POST_WIKI_LINKS.TARGET_TITLE).eq(titleKey(value(title))))))))
-        .orderBy(newest).limit(11).offset(offset).fetch(::row)
+    /** 연결 교체 트랜잭션에서 ID 순서대로 호출하여 직접 DB 변경과 직렬화. */
+    fun lockAttachmentStatus(id: Long): String? = sql.select(ATTACHMENTS.STATUS).from(ATTACHMENTS)
+        .where(ATTACHMENTS.ID.eq(id)).forUpdate().fetchOne(ATTACHMENTS.STATUS)
     fun readableAttachment(postId: Long, attachmentId: Long): AttachmentDeliveryRow? = sql
         .select(ATTACHMENTS.OBJECT_KEY, ATTACHMENTS.CONTENT_TYPE, ATTACHMENTS.BYTE_SIZE)
         .from(joined.join(POST_ATTACHMENTS).on(POST_ATTACHMENTS.POST_ID.eq(p.ID))

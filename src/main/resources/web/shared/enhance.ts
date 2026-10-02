@@ -2,10 +2,10 @@ import { renderMermaid } from "./mermaid-render";
 
 const pendingMermaid = new WeakMap<HTMLElement, { theme: string; source: string; controller: AbortController; task: Promise<void> }>();
 
-/** 정적 HTML과 미리보기에 동일한 점진적 상호작용을 연결한다. */
-export async function enhanceMarkdown(root: HTMLElement, options: { theme?: "light" | "dark"; signal?: AbortSignal } = {}): Promise<void> {
+/** 정적 본문 HTML에 이미지 확대·복사·주석·Mermaid 상호작용을 연결한다. */
+export async function enhanceMarkdown(root: HTMLElement, options: { theme?: "light" | "dark" } = {}): Promise<void> {
   const theme = options.theme ?? (document.documentElement.dataset.theme === "dark" ? "dark" : "light");
-  if (options.signal?.aborted || !root.isConnected) return;
+  if (!root.isConnected) return;
   for (const image of root.querySelectorAll<HTMLImageElement>("img.ken-attachment")) {
     if (!image.dataset.lightSrc) image.dataset.lightSrc = image.src;
     if (image.dataset.darkSrc) image.src = theme === "dark" ? image.dataset.darkSrc : image.dataset.lightSrc;
@@ -85,7 +85,7 @@ export async function enhanceMarkdown(root: HTMLElement, options: { theme?: "lig
     diagram.replaceChildren();
     const controller = new AbortController();
     const detachedCheck = globalThis.setInterval(() => { if (!block.isConnected) controller.abort(); }, 50);
-    // 보존된 DOM 노드는 이전 preview revision의 AbortSignal 이후에도 같은 원문을 렌더해야 한다.
+    // 테마 전환으로 취소된 노드도 현재 테마의 원문을 다시 렌더해야 한다.
     const task = (async () => { try {
       const svg = await renderMermaid(source, theme, controller.signal);
       if (controller.signal.aborted || !block.isConnected || block.dataset.generation !== generation) return;

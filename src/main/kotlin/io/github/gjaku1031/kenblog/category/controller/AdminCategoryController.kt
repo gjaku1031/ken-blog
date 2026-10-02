@@ -34,7 +34,7 @@ class AdminCategoryController(private val service: CategoryService) {
     /** @return 초안 포함 직접·하위 글 수 트리와 no-store HTTP 200. */
     @GetMapping(produces = [MediaType.APPLICATION_JSON_VALUE])
     fun list(): ResponseEntity<List<CategoryTreeResponse>> =
-        ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.tree(admin = true, authentication = null))
+        ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.tree())
 
     /** @return 변경된 숫자 순서를 포함한 no-store 참조. */
     @PutMapping("/{id}/order", consumes = [MediaType.APPLICATION_JSON_VALUE], produces = [MediaType.APPLICATION_JSON_VALUE])

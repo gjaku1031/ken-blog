@@ -15,13 +15,6 @@ const MAX_LABEL_CODEPOINTS = 2048;
 const EXCLUDED = new Set(["code", "inlineCode", "html", "definition", "image", "imageReference", "link"]);
 const INVALID_CHARACTER = /[\u0000-\u001f\u007f-\u009f\u2028\u2029\ud800-\udfff]/u;
 
-/** 검색·새 글 제목·삽입·저장 메타데이터에 공통으로 쓰는 서버 제목 규칙. */
-export function validWikiTitle(value: string): string | null {
-  const title = value.trim();
-  return title && Array.from(title).length <= MAX_TITLE_CODEPOINTS &&
-    !INVALID_CHARACTER.test(title) && !/[\[\]|]/.test(title) ? title : null;
-}
-
 /** 수식·코드·이미지·기존 링크·HTML·주석 안쪽을 위키 후보에서 제외한다. */
 function excludedMask(source: string): Uint8Array {
   const mask = annotationSourceMask(source);
@@ -222,13 +215,8 @@ export function parseWikiMarkdown(source: string, maximum = MAX_CANDIDATES): Roo
   return root;
 }
 
-/** GFM·수식 뒤, 안전 접기 전에 위키 후보와 주석 후보를 함께 보호한다. */
-export function remarkWikiSyntax(maximum = MAX_CANDIDATES) {
-  return (root: Root, file: { value: unknown }) => { root.children = parseWikiMarkdown(String(file.value), maximum).children; };
-}
-
 /** 실제로 렌더되는 위키 노드와 유효한 주석 본문에서 조회 대상만 모은다. */
-export function collectWikiTitles(root: Root, items: AnnotationItem[]): { titles: string[]; annotationLimits: number[] } {
+export function collectWikiTitles(root: Root, items: AnnotationItem[]): { titles: string[] } {
   const titles: string[] = [];
   const seen = new Set<string>();
   let count = 0;
@@ -242,12 +230,11 @@ export function collectWikiTitles(root: Root, items: AnnotationItem[]): { titles
     for (const child of node.children ?? []) collect(child);
   };
   collect(root as PositionedNode);
-  const annotationLimits = items.map((item) => {
+  for (const item of items) {
     const remaining = Math.max(0, MAX_CANDIDATES - count);
-    if (!remaining) return 0;
+    if (!remaining) break;
     const annotationRoot = parseWikiMarkdown(item.content, remaining);
     collect(annotationRoot as PositionedNode);
-    return remaining;
-  });
-  return { titles, annotationLimits };
+  }
+  return { titles };
 }

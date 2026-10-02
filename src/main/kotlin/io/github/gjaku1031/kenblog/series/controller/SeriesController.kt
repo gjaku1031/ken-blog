@@ -12,18 +12,30 @@ import tools.jackson.databind.JsonNode
 @RestController
 @RequestMapping("/api/v1/admin/series")
 class SeriesController(private val service: SeriesService) {
-    @GetMapping fun list() = noStore(service.list(true))
-    @GetMapping("/{id}") fun detail(@PathVariable id: Long) = noStore(service.detail(id, true))
-    @PostMapping fun create(@RequestBody input: JsonNode) = noStore(service.create(SeriesRequests.create(input)))
-    @PutMapping("/{id}/metadata") fun update(@PathVariable id: Long, @RequestBody input: JsonNode) =
+    @GetMapping
+    fun list() = noStore(service.list(true))
+
+    @GetMapping("/{id}")
+    fun detail(@PathVariable id: Long) = noStore(service.detail(id))
+
+    @PostMapping
+    fun create(@RequestBody input: JsonNode) = noStore(service.create(SeriesRequests.create(input)))
+
+    @PutMapping("/{id}/metadata")
+    fun update(@PathVariable id: Long, @RequestBody input: JsonNode) =
         noStore(service.update(id, SeriesRequests.metadata(input)))
-    @PutMapping("/{id}/order") fun order(@PathVariable id: Long, @RequestBody input: JsonNode): ResponseEntity<*> {
+
+    @PutMapping("/{id}/order")
+    fun order(@PathVariable id: Long, @RequestBody input: JsonNode): ResponseEntity<*> {
         if (!input.isObject || input.size() != 1 || !input.path("order").isIntegralNumber || !input.path("order").canConvertToLong())
             throw InvalidSeriesRequestException()
         return noStore(service.setOrder(id, input.get("order").longValue()))
     }
-    @DeleteMapping("/{id}") fun delete(@PathVariable id: Long): ResponseEntity<Void> {
+
+    @DeleteMapping("/{id}")
+    fun delete(@PathVariable id: Long): ResponseEntity<Void> {
         service.delete(id); return ResponseEntity.noContent().cacheControl(CacheControl.noStore()).build()
     }
+
     private fun <T : Any> noStore(value: T): ResponseEntity<T> = ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(value)
 }

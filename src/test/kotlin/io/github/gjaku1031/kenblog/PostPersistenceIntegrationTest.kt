@@ -7,7 +7,6 @@ import io.github.gjaku1031.kenblog.post.dto.PostMetadataCreateRequest
 import io.github.gjaku1031.kenblog.post.service.PostService
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
-import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -42,19 +41,16 @@ class PostPersistenceIntegrationTest(
         val created = service.createMetadata(PostMetadataCreateRequest("  첫 글  ", "  FIRST-POST  "))
         val afterCreate = Instant.now()
         val id = created.id
-        val byId = service.findById(id) ?: error("ID로 재조회 실패")
-        val bySlug = service.findBySlug("FIRST-POST") ?: error("slug로 재조회 실패")
+        val byId = service.adminMetadata(id)
         assertEquals("첫 글", byId.title)
         assertEquals("first-post", byId.slug)
-        assertEquals("", bySlug.body)
-        assertEquals(PostVisibility.PUBLIC, bySlug.visibility)
-        assertEquals(id, bySlug.id)
+        assertEquals("", jdbc.queryForObject("SELECT body FROM posts WHERE slug = ?", String::class.java, "first-post"))
+        assertEquals(PostVisibility.PUBLIC, byId.visibility)
+        assertEquals(id, jdbc.queryForObject("SELECT id FROM posts WHERE slug = ?", Long::class.java, "first-post"))
         assertEquals(byId.createdAt, byId.updatedAt)
         val storedInstant = byId.createdAt.toInstant(ZoneOffset.UTC)
         assertFalse(storedInstant.isBefore(beforeCreate))
         assertFalse(storedInstant.isAfter(afterCreate))
-        assertNull(service.findById(-1))
-        assertNull(service.findBySlug("invalid slug"))
     }
 
     /** Unicode 제목과 명시 요약의 최대 길이를 DB 왕복으로 확인. */
@@ -63,10 +59,10 @@ class PostPersistenceIntegrationTest(
         val title = "😀".repeat(200)
         val summary = "가".repeat(120)
         val created = service.createMetadata(PostMetadataCreateRequest(title, "limit-post", summary))
-        val reloaded = service.findBySlug(created.slug) ?: error("메타데이터 재조회 실패")
+        val reloaded = service.adminMetadata(created.id)
         assertEquals(title, reloaded.title)
         assertEquals(summary, reloaded.summary)
-        assertEquals("", reloaded.body)
+        assertEquals("", jdbc.queryForObject("SELECT body FROM posts WHERE id = ?", String::class.java, created.id))
     }
 
     /** 본문 입력이 없는 등록 경계에서 제목·slug·요약 오류를 거부. */
@@ -96,7 +92,7 @@ class PostPersistenceIntegrationTest(
             jdbc.update("UPDATE posts SET slug = ? WHERE id = ?", first.slug, second.id)
         }
         assertEquals(2, countPosts())
-        assertEquals("원본", service.findBySlug(first.slug)?.title)
+        assertEquals("원본", service.adminMetadata(first.id).title)
     }
 
     /** 나중 검증 실패가 같은 외부 트랜잭션의 첫 등록까지 되돌림. */
@@ -144,7 +140,7 @@ class PostPersistenceIntegrationTest(
         jdbc.update("UPDATE admin_auth_state SET failure_count = 2 WHERE id = 1")
         val initializer = ResourceDatabasePopulator(ClassPathResource("schema.sql"))
         repeat(2) { initializer.execute(jdbc.dataSource!!) }
-        assertEquals("유지할 글", service.findBySlug(post.slug)?.title)
+        assertEquals("유지할 글", service.adminMetadata(post.id).title)
         assertEquals(2, jdbc.queryForObject("SELECT failure_count FROM admin_auth_state WHERE id = 1", Int::class.java))
         assertEquals(1, jdbc.queryForObject("SELECT COUNT(*) FROM content_state WHERE id = 1", Int::class.java))
     }

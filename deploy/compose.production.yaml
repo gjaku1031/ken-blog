@@ -1,5 +1,8 @@
 # 독립 운영 스택. --env-file에 저장소 밖 0600 production.env 사본을 지정.
 # DB는 기존 외부 MySQL을 사용하며, api와 caddy만 이 Compose 네트워크에 둔다.
+# 파일 위치 변경 후에도 기존 컨테이너·볼륨의 기본 프로젝트 이름 유지.
+name: ken-blog
+
 services:
   api:
     # 검증된 CI 이미지 아카이브를 먼저 docker load 하고 SHA 태그를 지정.
@@ -11,7 +14,6 @@ services:
         required: true
         format: raw
     environment:
-      SPRING_PROFILES_ACTIVE: caddy
       SERVER_PORT: "8080"
       SERVER_FORWARD_HEADERS_STRATEGY: none
       SESSION_COOKIE_SECURE: "true"
@@ -20,7 +22,7 @@ services:
       APP_CORS_ALLOWED_ORIGINS: https://gjaku1031.github.io
       APP_AUTH_CORS_ALLOWED_ORIGINS: https://gjaku1031.github.io
       APP_ASSETS_DIRECTORY: /var/lib/ken-blog/assets
-      # 이미지 처리 등 JVM 외 메모리를 위해 10% 여유 확보. 힙은 Paketo가 계산.
+      # JVM 외 메모리를 위해 10% 여유 확보. 힙은 Paketo가 계산.
       BPL_JVM_HEAD_ROOM: ${BPL_JVM_HEAD_ROOM:-10}
       # Kotlin·jOOQ 동적 클래스 로딩을 위한 메타스페이스. 힙은 남은 공간에서 계산.
       JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS:--XX:MaxMetaspaceSize=256m}
@@ -30,6 +32,7 @@ services:
       - type: bind
         source: ${KEN_BLOG_ASSETS_DIR:?Durable local assets directory is required}
         target: /var/lib/ken-blog/assets
+        read_only: true
         bind:
           create_host_path: false
     # JVM 힙 외 메모리를 포함한 컨테이너 전체 한도.
@@ -50,7 +53,7 @@ services:
       - "${KEN_BLOG_PUBLIC_BIND_IP:?Private NIC bind IPv4 is required}:443:443"
     volumes:
       - type: bind
-        source: ./deploy/Caddyfile
+        source: ./Caddyfile
         target: /etc/caddy/Caddyfile
         read_only: true
         bind:

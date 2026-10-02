@@ -118,8 +118,6 @@ h1, h2, h3 { word-break: keep-all; line-height: 1.35; }
 .feed-column { min-width: 0; }
 .section-heading { display: flex; align-items: center; min-height: 34px; margin-bottom: 22px; gap: 14px; }
 .section-heading h1, .section-heading h2 { margin: 0; font-size: 24px; font-weight: 700; }
-.feed-write-link { margin-left: auto; white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; height: 36px; padding: 0 14px;
-  border: 1px solid var(--line2); border-radius: 6px; background: var(--card); color: var(--text); font-size: 14px; font-weight: 500; }
 .feed-total { color: var(--muted2); font-size: 12px; }
 .post-list { display: grid; gap: 14px; }
 .post-card { min-width: 0; padding: 21px 26px; transition: border-color .15s, box-shadow .15s; }
@@ -310,8 +308,6 @@ button:disabled { cursor: not-allowed; opacity: .6; }
 .mermaid-heading button { height: 26px; padding: 2px 10px; border: 1px solid var(--line2); border-radius: 6px;
   background: var(--card); color: var(--text2); font-size: 12px; text-decoration: none; }
 .mermaid-heading button[aria-pressed="true"] { background: var(--tint); color: var(--text); text-decoration: none; font-weight: 700; }
-.mermaid-preview { max-width: 100%; overflow: auto; padding: 16px; }
-.mermaid-preview img { display: block; width: max(100%, 600px); max-width: none; height: auto; }
 .mermaid-notice { margin: 0; padding: 12px 16px; color: var(--text2); font-size: 13px; }
 .markdown-body .mermaid-block pre { margin: 0; border-radius: 0; white-space: pre; overflow-wrap: normal; word-break: normal; }
 .markdown-body code { font-family: var(--font-mono), monospace; font-size: .87em; }
@@ -473,7 +469,6 @@ button:disabled { cursor: not-allowed; opacity: .6; }
 .about-intro { margin: 16px 0 10px; color: var(--text2); white-space: pre-line; font-size: 14.5px; line-height: 1.7; }
 .about-links { display: flex; flex-wrap: wrap; gap: 5px 16px; margin-top: auto; color: var(--accent-d); font-size: 13px; }
 .feed-sort { display: flex; color: var(--muted); align-items: center; gap: 4px; margin-left: auto; font-size: 14px; }
-.section-heading:has(.feed-write-link) .feed-sort { margin-left: 0; }
 .feed-sort a[aria-current="page"] { color: var(--text); font-weight: 700; }
 .post-summary { margin: 0 0 9px; color: var(--text2); font-size: 15px; line-height: 1.7; }
 .card-title-row { display: flex; align-items: flex-start; gap: 12px; margin: 7px 0 6px; }
@@ -499,7 +494,6 @@ button:disabled { cursor: not-allowed; opacity: .6; }
 /* 원본 공개 화면의 카드·탐색·읽기 화면 치수 */
 .card.hv:hover, .post-card:hover, .project-card:hover{ border-color: var(--line3); box-shadow: var(--shadow2); }
 .home-page, .tech-page, .search-page { max-width: var(--page-width-standard); padding-top: 40px; }
-.feed-write-link:hover { background: var(--soft); }
 .feed-sort a, .feed-sort span { display: inline-flex; align-items: center; gap: 5px; height: 34px; padding: 0 10px;
   border-radius: 6px; color: var(--muted); font-size: 14px; font-weight: 500; }
 .feed-sort a:hover { color: var(--text); }

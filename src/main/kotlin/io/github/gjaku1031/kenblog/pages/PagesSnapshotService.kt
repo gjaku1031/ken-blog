@@ -14,6 +14,7 @@ import java.util.HexFormat
 /** 동일 MySQL 일관 읽기에서 공통 공개 메타데이터와 첨부 revision을 생성. */
 @Service
 class PagesSnapshotService(private val posts: PublicPostService, private val series: SeriesService,
+
     private val queries: PostQueries, private val mapper: ObjectMapper) {
     @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
     fun snapshot(): Map<String, Any?> {

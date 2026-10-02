@@ -261,11 +261,6 @@ export function parseAnnotationMarkdown(source: string): Root {
   return parsed;
 }
 
-/** 수식 다음·안전 접기 이전에 쓰는 주석 구문 플러그인. */
-export function remarkAnnotationSyntax() {
-  return (root: Root, file: { value: unknown }) => { root.children = parseAnnotationMarkdown(String(file.value)).children; };
-}
-
 /** 허용한 링크 주소만 주석 본문에서 활성화하고 나머지는 원문 후보로 남긴다. */
 function safeLink(url: string): boolean {
   if (/[\u0000-\u001f\u007f\\]/.test(url)) return false;
@@ -339,9 +334,4 @@ export function resolveAnnotationDocument(root: Root): AnnotationItem[] {
     occurrence++;
   }
   return items;
-}
-
-/** 안전 접기 뒤에 문서 범위의 정의·참조를 확정하는 remark 플러그인. */
-export function remarkResolveAnnotations() {
-  return (root: Root) => { resolveAnnotationDocument(root); };
 }

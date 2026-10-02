@@ -173,7 +173,7 @@ tasks.named<BootJar>("bootJar") {
     archiveFileName = "ken-blog-api.jar"
 }
 
-// java.desktop 이미지 처리에 필요한 공유 라이브러리가 있는 Noble base 스택을 사용한다.
+// 기존 운영 이미지와 같은 Noble base 스택을 사용한다.
 tasks.named<BootBuildImage>("bootBuildImage") {
     builder.set("paketobuildpacks/ubuntu-noble-builder:latest")
     runImage.set("paketobuildpacks/ubuntu-noble-run:latest")

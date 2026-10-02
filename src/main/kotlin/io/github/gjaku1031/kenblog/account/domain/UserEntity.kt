@@ -12,7 +12,7 @@ import jakarta.persistence.UniqueConstraint
 import java.time.LocalDateTime
 import org.hibernate.annotations.ColumnDefault
 
-/** [UserEntity.role]에 저장하는 계정 권한. 현재 자동 준비 대상은 [ADMIN]뿐임. */
+/** [UserEntity.role]에 저장하는 계정 권한. 로그인은 설정된 활성 ADMIN 계정으로 제한. */
 enum class UserRole { ADMIN, USER }
 
 /**
@@ -56,22 +56,4 @@ class UserEntity protected constructor() {
     @Column(nullable = false)
     var enabled: Boolean = true
         protected set
-
-    /**
-     * 이미 검증된 계정 속성으로 새 저장 객체를 생성.
-     *
-     * 호출자는 [io.github.gjaku1031.kenblog.account.service.AccountService.ensureInitialAdmin]에서 초기 관리자 입력을 검증해야 함.
-     *
-     * @param username 대소문자를 구분하는 ASCII 계정명
-     * @param passwordHash `{bcrypt}` 형식의 비밀번호 해시
-     * @param role 계정의 [UserRole]
-     * @param createdAt UTC 생성 시각
-     */
-    internal constructor(username: String, passwordHash: String, role: UserRole, createdAt: LocalDateTime) : this() {
-        this.username = username
-        this.passwordHash = passwordHash
-        this.role = role
-        this.createdAt = createdAt
-    }
-
 }

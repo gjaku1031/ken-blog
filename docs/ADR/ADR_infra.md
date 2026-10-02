@@ -32,6 +32,26 @@ flowchart LR
 
 Caddy는 운영 Compose에서 `caddy run`으로 직접 실행하는 선택. 고정 IP의 단일 VM에서 중간 실행 스크립트의 필요성이 낮아 `deploy/start-caddy.sh`와 연결 마운트·entrypoint 제거. 공인 IP와 사설 NIC bind IP는 Compose 필수 입력이며, 실제 값의 적합성은 운영 준비 단계에서 확인하는 계약. 인증서 발급·갱신은 Caddy 자체 기능으로 유지.
 
+## 운영 Compose 위치 — 2026-10-02 결정
+
+로컬 실행용 `compose.yaml`은 루트에 유지하고 운영용은 `deploy/compose.production.yaml`로 이동. Caddy 설정·운영 환경 예시와 같은 폴더에서 관리. 운영 파일은 로컬 Compose와 합치는 override가 아닌 독립 스택.
+
+저장소 루트에서 `docker compose --env-file /absolute/path/production.env -f deploy/compose.production.yaml up -d`로 실행하는 구성. 환경 파일과 이미지 저장소는 기존대로 저장소 밖 절대 경로 사용. Caddy 마운트는 Compose 파일 기준 `./Caddyfile`로 수정. 디렉터리 이동 때문에 프로젝트·컨테이너·볼륨 이름이 바뀌지 않도록 기존 기본값 `name: ken-blog` 명시. 기존 배포에서 `-p`로 별도 이름을 지정했다면 같은 이름을 계속 사용하는 기준.
+
+검증: 저장소 밖 가짜 환경 파일로 이동 전후 `docker compose config`의 전체 해석 결과 일치 확인. 포트·환경·마운트·자원 제한·볼륨 이름 동일. 컨테이너 실행·운영 배포 미수행.
+
+## Spring 설정 통합 — 2026-10-02 결정
+
+기존 Caddy 전용 프로필의 설정을 `application.yml`과 실행 환경변수로 통합. 별도 프로필 파일과 운영 Compose·CI의 프로필 활성화 제거. 기본 포트 8080과 전달 헤더 자동 신뢰 금지 정책은 공통 설정에 명시.
+
+로컬 HTTP의 쿠키 기본값 false/lax/false와 빈 CORS 허용 목록 유지. 운영은 기존 Compose가 Secure=true·SameSite=None·Partitioned=true와 GitHub Pages의 공개/인증 CORS 주소를 지정. CI는 HTTP 검사 쿠키 값을 그대로 유지하고 이전 프로필에서 받던 두 CORS 주소를 실행 환경변수로 명시. 운영 Compose 없이 직접 실행하는 경우에도 필요한 쿠키·CORS 환경변수를 명시하는 계약.
+
+검증: 저장소 밖 격리 복사본에서 기존 인증·HTTP 검사 17개와 bootJar 통과(실패·오류·건너뜀 0). 로컬·운영·CI 설정값의 전후 대조, 두 Compose 해석과 CI YAML/shell/Python 구문 검사 통과. JAR에 통합 설정만 포함하고 삭제 프로필 미포함 확인. 신규 저장소 테스트·원격 CI·운영 배포 미수행.
+
+## 관리자 등록 설정 제거 — 2026-10-02 결정
+
+관리자 계정의 DB 직접 관리 결정에 따라 초기 생성용 환경변수와 application 설정·로컬 Compose 전달·환경 예시 제거. ADMIN_USERNAME은 로그인 대상 선택용으로 유지. CI는 앱의 기동·health 확인 후 CI 전용 MySQL 서비스에만 관리자 행을 INSERT하며 실제 운영 계정 등록 절차로 사용하지 않음. 상세 계정 관리 기준은 [애플리케이션 ADR](ADR_application.md) 참조.
+
 ## 정적 페이지 생성의 Node 통합 — 2026-10-02 결정
 
 Post의 메타데이터와 저장소 Markdown을 빌드 시 결합해 완성 HTML을 제공하는 방식 유지. 글 변경 시 Spring·프론트 컴파일을 분리하려는 목적만으로 SPA를 도입하지 않는 결정. 공통 화면 유지나 실시간 메타데이터 반영은 이번 요구에서 제외. 공통 레이아웃 변경 시 전체 페이지 재조립 필요.
@@ -68,9 +88,19 @@ Spring Boot 4.1.1·Java 25 및 `paketobuildpacks/ubuntu-noble-builder:latest`/`u
 
 API 컨테이너 기본 메모리 한도 `1536m`, 운영 CPU 한도 1코어. `BPL_JVM_HEAD_ROOM=10`으로 JVM 외 작업에 10% 여유를 예약하고, 나머지에서 메타스페이스·코드 캐시·스레드 스택을 뺀 힙 크기는 Paketo 메모리 계산기에 위임. MCP가 존재하던 과거 최초 기본 계산의 메타스페이스 약 139MiB에서는 이미지 도구 실행 중 `OutOfMemoryError: Metaspace`와 종료 코드 3 확인. `JAVA_TOOL_OPTIONS=-XX:MaxMetaspaceSize=256m`으로 클래스 정보 공간을 확보하고 그만큼 힙을 줄여 전체 한도 유지. 컨테이너 한도 전체를 `-Xmx`로 지정하지 않는 기준. Caddy·OS 및 테스트 MySQL의 메모리는 별도. [Paketo 메모리 계산기](https://paketo.io/docs/reference/java-reference/#memory-calculator)
 
-CI의 Actuator health·CSRF·본문 PNG/JPEG 업로드·로컬 64px 아이콘·Series/Post·jOOQ 조회·비밀번호 로그인/로그아웃·공개 스냅샷 v2 검사는 인증된 관리자 HTTP로 수행. MCP 도구·문서·프롬프트 검사는 제거하고 원고 디렉터리와 마운트 없이 API 동작 검증. 위키 선언은 해시 없는 새 HTTP 계약으로 확인. 기능 검사를 통과한 이미지·SHA-256을 커밋별 artifact로 90일 보관. 빌더의 `latest`는 변경 가능하므로 실제 이미지 ID와 아카이브 해시가 산출물 식별 기준. Compose는 검증된 이미지를 받아 실행하며 자동 운영 배포·레지스트리 공개는 없는 구성.
+CI의 Actuator health·CSRF·직접 준비한 본문 PNG/JPEG 조회·로컬 64px 아이콘·Series/Post·jOOQ 조회·비밀번호 로그인/로그아웃·공개 스냅샷 v2 검사는 인증된 관리자 HTTP로 수행. MCP 도구·문서·프롬프트 검사는 제거하고 원고 디렉터리와 마운트 없이 API 동작 검증. 위키 선언은 해시 없는 새 HTTP 계약으로 확인. 기능 검사를 통과한 이미지·SHA-256을 커밋별 artifact로 90일 보관. 빌더의 `latest`는 변경 가능하므로 실제 이미지 ID와 아카이브 해시가 산출물 식별 기준. Compose는 검증된 이미지를 받아 실행하며 자동 운영 배포·레지스트리 공개는 없는 구성.
 
 실서버 적용 및 새 용량 검증 결과는 문서 후반의 JVM 전환 기록 참조. 기존 외부 DB 연결·자료 이관·Pages 전환은 별도 잔여 작업이며 테스트 DB의 성공을 운영 완료로 간주하지 않는 원칙.
+
+## 이미지 읽기 전용 런타임 — 2026-10-02
+
+본문 첨부와 기술 아이콘의 파일 쓰기를 API에서 제거. `APP_ASSETS_DIRECTORY`와 영속 이미지 마운트·UID/GID 준비는 기존 파일 조회에 필요하므로 유지, `APP_ASSETS_KEY_PREFIX`와 multipart 크기 설정만 제거. API는 디렉터리를 자동 생성하지 않으며 파일을 열 때 경계·심볼릭 링크·디렉터리 쓰기 권한 확인. Caddy의 관리자 attachments 경로 제거, 공개 글별 이미지 경로 유지. 기존 서버 파일/백업 삭제와 운영 마운트 변경 없음.
+
+본문 이미지도 기술 아이콘과 동일하게 직접 파일을 먼저 준비한 다음 DB 행 등록. 기존 `attachments`의 ID·object_key·original_filename·content_type·byte_size·uploaded_by·status·pending_cleanup·시각 열과 FK 유지. 새 행은 실제 PNG/JPEG·10MiB 이하 파일, 일치하는 MIME/크기, 기존 계정 FK, READY·pending_cleanup=false, UTC 시각과 고유 UUID 상대 키 사용. 파일/디렉터리 권한과 루트 경계는 기술 아이콘 직접 관리 절차와 동일. 업로드 검증기가 제거되어 앱이 형식을 변환/검증해 주지 않으므로 작성자가 파일을 확인하는 책임. 기존 PENDING/DELETING 행은 자동 복구/삭제 없이 보존.
+
+글의 `attachmentIds`는 관리자 HTTP로 등록하며 존재·READY 검증과 잠금 유지. 원고의 `attachment:ID`와 연결 관계가 일치해야 Pages 빌드에서 다운로드 가능. 파일 교체는 새 키를 준비한 뒤 DB 키/크기/MIME/updated_at을 함께 변경하고 Pages 재생성 확인. 정리 전에는 `post_attachments`·기술 아이콘·복구 자료의 참조 및 백업 확인. 실제 자료 삭제는 이 코드 변경에 포함하지 않음.
+
+CI의 PNG/JPEG 준비를 격리 DB INSERT·로컬 파일 배치로 변경하고 로그인·출간·연결·공개 원본 바이트·jOOQ·Pages snapshot 검사 유지. 삭제된 관리자 첨부 API의 404 확인. 저장소 밖 실제 JVM/Caddy와 읽기 전용 이미지 마운트에서 해당 시나리오 및 Node의 실제 원고·이미지 Pages 생성 통과. CI YAML/shell/Python 구문 및 Caddy adapt/validate 확인. 런타임 자료 등록용 스크립트/스킬 신설 없음. Buildpacks·원격 CI·운영 반영 미수행.
 
 ## 기술 이름·아이콘의 직접 관리 — 2026-10-02
 
@@ -125,7 +155,7 @@ CI의 커스텀 상태 호출 제거, 기존 `/actuator/health` 기동 대기·�
 
 Node/Pages의 `content/posts` checkout·원고 변경 트리거·Markdown→HTML 생성과 공개 메타데이터 수집 유지. 기존 Pages 소비자는 API의 빈 body를 사용하지 않으므로 필드 제거와 함께 새로운 본문 다운로드 경로를 만들지 않음. API 출간과 Git 원고 배포는 원자적 작업이 아니며 누락 원고는 Pages 생성 시 실패하는 기존 계약.
 
-`ops/prepare-local-storage.py`는 assets만으로 미리보기/적용 가능하도록 수정. 기존 --content-root는 과거 원고 권한 복구를 명시한 경우에만 사용하며 기본 생성·접근 없음. export-markdown·unify-post-series·OCI 첨부 이관·DB 백업/복구 도구는 미완료 자료 이관을 위해 보존하며 앱 런타임에서 실행하지 않음. 기존 서버의 원고·비공개 자료·DB 열·이미지·백업·시크릿은 실제로 삭제하거나 변경하지 않는 범위.
+당시 런타임과 분리해 보존했던 권한 준비·자료 이관·DB 백업/복구 스크립트는 후속 운영 도구 제거 결정으로 삭제. 기존 서버의 원고·비공개 자료·DB 열·이미지·백업·시크릿은 실제로 삭제하거나 변경하지 않는 범위.
 
 아래 Native/JVM 측정의 MCP 언급은 당시 검증 이력이며 현재 의존성이나 기능이 아님. 기존 256MiB 메타스페이스·1536MiB 컨테이너 한도는 유지하며 MCP 제거 후 새 부하 한도를 추정하지 않는 기준.
 
@@ -140,19 +170,15 @@ Node/Pages의 `content/posts` checkout·원고 변경 트리거·Markdown→HTML
 - `gradlew.bat`: 사용자 확정에 따라 Windows용 wrapper 실행 파일 삭제. `gradlew`와 `gradle/wrapper` 유지.
 - Linux/macOS Gradle wrapper·`package*.json`·`tsconfig.json`·환경 예시·`.editorconfig`·`.gitattributes`·두 Compose 파일: 현재 사용처가 있어 유지.
 
-## 보존해야 하는 운영 도구
+## 운영 도구 제거 — 2026-10-02 결정
 
-`ops`는 애플리케이션 런타임이나 CI에서 자동 실행하는 폴더는 아니지만, 아래 작업이 끝나지 않아 현재 일괄 삭제 대상에서 제외.
+사용자 결정에 따라 `ops` 폴더와 수동 실행 스크립트 6개 제거. 대상은 DB 백업·복구, 이미지 저장소 권한 준비, 기존 DB 본문의 Markdown 추출, OCI 이미지 복사, Post·Series 메타데이터 이관. 미완료 이관을 위해 도구를 보존하던 이전 결정 대체.
 
-| 파일 | 현재 필요성 | 삭제 판단 기준 |
-| --- | --- | --- |
-| `ops/backup-mysql.sh` | 기존 운영 DB의 안전한 백업 | 검증된 별도 백업 체계로 대체 후 검토 |
-| `ops/restore-mysql.sh` | 빈 복구 스키마의 백업 복원 | 검증된 복구 절차로 대체 후 검토 |
-| `ops/prepare-local-storage.py` | 이미지 저장소 권한 준비, 명시한 경우에만 과거 원고 권한 복구 | 실행 사용자·마운트 권한 계약을 대체 절차에 옮긴 후 검토 |
-| `ops/export-markdown.py` | 기존 DB 원고·미출간·편집본 보존 추출 | 이관 완료 및 원본 대조 후 제거 가능 |
-| `ops/migrate-oci-assets.py` | DB가 참조하는 OCI 객체의 로컬 이관·해시 대조 | 이관 완료 및 원본 대조 후 제거 가능 |
+앱·Gradle·Node·CI·Compose에서 호출하지 않던 독립 도구이므로 런타임·빌드·배포 계약 변화 없음. 별도 도구나 자동 이관 경로로 대체하지 않으며 관련 실행 안내·보존 목록도 정리. 향후 백업·복구·권한 준비·자료 이관 절차가 필요하면 별도 마련하는 범위.
 
-도구를 지우기 위해 실제 원고·첨부·계정·DB·비밀 파일·기존 운영 인증서를 삭제하지 않는 원칙. 폴더 이름 변경이나 이관을 끝내는 작업은 별도 범위.
+도구 삭제는 기존 자료의 이관 완료나 폐기를 의미하지 않음. 실제 DB·원고·비공개 자료·첨부·계정·백업·서버 파일은 보존. 아래 과거 검증 기록은 해당 도구가 있던 시점의 이력.
+
+검증: 저장소의 스크립트 호출·파일 참조 재검색과 문서 diff 검사 수행. 런타임·빌드 입력 변경이 없어 JVM·Node 빌드 재실행 생략. 원격 push·운영 배포 미수행.
 
 ## 과거 Native Image 검증 이력 — JVM 결정으로 대체
 
@@ -170,7 +196,7 @@ Node/Pages의 `content/posts` checkout·원고 변경 트리거·Markdown→HTML
 
 ### Post·Series 통합 병합 — 2026-10-02
 
-메인의 Native Image·Buildpacks·ARM64 CI·Caddy 구성을 유지한 채 Post·Series와 jOOQ 변경을 병합한다. JPA는 저장·단일 조회·잠금, jOOQ는 목록·검색·태그·위키·공개 첨부 조회를 담당한다. 병합 당시 jOOQ 3.21.8의 Kotlin 테이블 코드는 저장소 DDL로 생성했다. 이후 수동 DDL을 제거하고 JPA 엔티티에서 빌드 중 자동 생성하도록 변경했다([영속성 ADR](ADR_persistence.md)). 코드 생성과 AOT는 운영 DB에 연결하지 않는다. 본문은 Markdown 정본을 유지하고 기존 DB 원문·ID·slug·비공개 상태를 보존하는 명시적 `ops/unify-post-series.py` 이관 도구를 제공한다.
+메인의 Native Image·Buildpacks·ARM64 CI·Caddy 구성을 유지한 채 Post·Series와 jOOQ 변경을 병합한다. JPA는 저장·단일 조회·잠금, jOOQ는 목록·검색·태그·위키·공개 첨부 조회를 담당한다. 병합 당시 jOOQ 3.21.8의 Kotlin 테이블 코드는 저장소 DDL로 생성했다. 이후 수동 DDL을 제거하고 JPA 엔티티에서 빌드 중 자동 생성하도록 변경했다([영속성 ADR](ADR_persistence.md)). 코드 생성과 AOT는 운영 DB에 연결하지 않는다. 본문은 Markdown 정본을 유지하고 기존 DB 원문·ID·slug·비공개 상태를 보존하는 명시적 이관 도구를 당시 제공. 해당 도구는 후속 운영 도구 제거 결정으로 삭제.
 
 MFA 제거는 사용자 승인된 인증 요구사항 변경이다. 단일 설정 관리자 비밀번호·JDBC 세션·CSRF·로그인 실패 제한은 유지한다. 기존 MFA 자료는 DB에서 삭제하지 않으며 신규 세션 증명으로 이전 MFA 세션의 자동 재사용을 막는다. 운영 환경 예시에서 TOTP·복구 코드 설정도 제거한다.
 
@@ -244,3 +270,11 @@ ARM 1코어·RAM 3894MiB 서버, API 제한 1 CPU/1536MiB, Caddy와 테스트 My
 유휴 API 중앙값 400.2MiB. 전체 측정 중 API 최대 474.5MiB, API+Caddy 동시 합계 최대 506.5MiB, 테스트 MySQL까지 합산한 스택 최대 749.0MiB. 호스트 최소 가용 메모리 2361.4MiB. OOM·자동 재시작 0회, 부하 종료 후 기존 JDBC 세션·jOOQ 조회·공개 스냅샷 보존 확인.
 
 판단: 현재 검증한 개인 블로그 부하에서 일반 JVM과 Caddy를 RAM 4GB 서버에 유지할 근거 확보. 최대 힙 약 626MiB와 API 전체 한도 1.5GiB 안에서 운영하는 구성. 공개 200/s에서 CPU 평균 88.4%이므로 이 수치를 장기 처리량 보장으로 해석하지 않는 기준. Native 전용 호환 설정을 다시 도입할 필요 없이 일반 JVM 선택 유지. 실제 운영 DB 연결·원고/첨부 이관·GitHub Pages 전환 및 push는 기존 보류 상태 유지.
+
+## 프론트·백엔드 통합 배포 준비 — 2026-10-02
+
+기존 미반영된 읽기 전용 첨부·계정 직접 관리·Spring 설정 통합·운영 Compose 이동과 관리자 프론트 정렬을 함께 검증. 운영 이미지 마운트도 읽기 전용으로 지정하며 파일 등록·변경은 호스트에서 수행. 관리자 프론트의 HTTP 계약과 검증은 애플리케이션 ADR 참조.
+
+격리 clean build 기존 검사 30개, Node 타입·빈 사이트·실제 격리 API/Markdown/PNG/JPEG/아이콘 기반 사이트 생성 통과. Linux ARM64 Buildpacks JVM 이미지 생성 및 운영 UID 10001/GID 1001·1코어·1536MiB 제한·읽기 전용 이미지 디스크·원고 마운트 없는 기동 확인. 배포 이미지와 검증용 사이트의 분리 보관, 시험 자료의 운영 배포 제외.
+
+운영 준비 중 기존 DB 연결 실패와 API 키 인증 401 확인. 로컬 키 fingerprint·시간 대조 정상, VM 자체 인증은 기본 조회에 성공하지만 DB/Compute/API 키 관리 권한 없음. 사용자 결정은 OCI 인증 복구 후 기존 운영 DB 사용이며 시험 DB 대체나 백업 복원은 적용하지 않은 상태. 운영 전환·Pages 발행·push는 인증 및 운영 자료 연결 이후 확인할 단계.
