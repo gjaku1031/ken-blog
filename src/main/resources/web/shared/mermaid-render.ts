@@ -27,7 +27,40 @@ const SVG_ATTRIBUTES = new Set([
 const FRAGMENT_URL = /^url\(\s*['"]?#[-\w:.]+['"]?\s*\)$/i;
 const ANY_URL = /url\s*\([^)]*\)/gi;
 
-/** 지원 도식의 원문 크기와 외부 자원·설정·스타일 기능을 검사하고 실패 이유를 반환한다. */
+/** 단순한 클래스 이름, 6자리 색상, 제한된 선 두께만 읽는다. */
+function colorClass(line: string): { name: string; styles: Record<string, string> } | null {
+  const match = /^[ \t]*classDef[ \t]+([A-Za-z][\w-]{0,31})[ \t]+([^;\r\n]+);?[ \t]*$/.exec(line);
+  if (!match) return null;
+  const declarations = match[2].split(",").map(value => value.trim());
+  if (declarations.length > 4 || !declarations.every(value =>
+    /^(?:fill|stroke|color)[ \t]*:[ \t]*#[0-9a-fA-F]{6}$/.test(value) ||
+    /^stroke-width[ \t]*:[ \t]*[1-4]px$/.test(value))) return null;
+  return { name: match[1], styles: Object.fromEntries(declarations.map(value => value.split(":").map(part => part.trim()))) };
+}
+
+function mixColor(color: string, base: string, weight: number): string {
+  return "#" + [1, 3, 5].map(offset => Math.round(
+    parseInt(color.slice(offset, offset + 2), 16) * weight +
+    parseInt(base.slice(offset, offset + 2), 16) * (1 - weight),
+  ).toString(16).padStart(2, "0")).join("");
+}
+
+/** 다크 테마의 교차 행·그룹에서도 읽히도록 검증된 색상 선언만 조정한다. */
+export function mermaidThemeSource(source: string, theme: MermaidTheme): string {
+  if (theme === "light") return source;
+  return source.split(/\r\n|\r|\n/).map(line => {
+    const definition = colorClass(line);
+    if (!definition) return line;
+    const { styles } = definition;
+    const fill = styles.stroke ?? styles.fill;
+    if (styles.fill) styles.fill = mixColor(fill, "#111827", 0.18);
+    if (styles.stroke) styles.stroke = mixColor(styles.stroke, "#ffffff", 0.7);
+    if (styles.color) styles.color = mixColor(styles.color, "#ffffff", 0.15);
+    return `classDef ${definition.name} ${Object.entries(styles).map(([key, value]) => `${key}:${value}`).join(",")}`;
+  }).join("\n");
+}
+
+/** 지원 도식의 크기를 제한하고, 색상 classDef 이외의 설정·CSS·외부 참조를 거부한다. */
 export function mermaidSourceError(source: string): string | null {
   const lines = source.split(/\r\n|\r|\n/);
   const lineCount = lines.length - (lines.at(-1) === "" ? 1 : 0);
@@ -37,8 +70,8 @@ export function mermaidSourceError(source: string): string | null {
     return "지원하지 않는 Mermaid 도식은 원문으로 표시합니다.";
   if (/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/.test(source))
     return "제어 문자가 있는 도식은 원문으로 표시합니다.";
-  // Mermaid의 strict 설정은 소스 directive, image shape, 사용자 CSS 자체를 제거하지 않는다.
-  if (/%%\s*\{|^\s*---(?:\s|$)|@\s*\{|(?:^|[;\r\n])\s*(?:click|callback|link|links|style|classDef|linkStyle|cssClass)\b/im.test(source) ||
+  // Mermaid strict만으로는 설정·CSS를 제한할 수 없다. 검증된 단색 선언만 예외로 허용한다.
+  if (/%%\s*\{|^\s*---(?:\s|$)|@\s*\{|(?:^|[;\r\n])\s*(?:click|callback|link|links|style|classDef|linkStyle|cssClass)\b/im.test(lines.map(line => colorClass(line) ? "" : line).join("\n")) ||
     /(?:\b(?:https?|ftp|file|data|blob|javascript):|\/\/|url\s*\(|@import\b|@font-face\b|\b(?:-webkit-)?image-set\s*\(|\bcross-fade\s*\(|\bpaint\s*\(|\b(?:src|href|img|image|icon)\s*[:=]|\bfa:|!\[|<\s*\/?\s*[a-z!]|&#|&(?:lt|gt|amp|quot|apos);)/i.test(source))
     return "외부 자원이나 사용자 설정이 포함된 도식은 원문으로 표시합니다.";
   return null;
@@ -140,7 +173,9 @@ async function drainQueue(): Promise<void> {
         if (job.signal.aborted) continue;
         mermaid.initialize({ startOnLoad: false, securityLevel: "strict", htmlLabels: false,
           suppressErrorRendering: true, maxTextSize: MAX_MERMAID_LENGTH, maxEdges: MAX_MERMAID_EDGES,
-          theme: job.theme === "dark" ? "dark" : "default", layout: "dagre", look: "classic",
+          theme: job.theme === "dark" ? "dark" : "default",
+          // 그룹과 교차 FK가 있는 ERD는 ELK로 배치하고 다른 도식의 배치는 유지한다.
+          layout: /^\s*erDiagram\b/.test(job.source) ? "elk" : "dagre", look: "classic",
           fontFamily: "Arial, sans-serif", arrowMarkerAbsolute: false,
           secure: ["securityLevel", "startOnLoad", "maxTextSize", "maxEdges", "suppressErrorRendering", "theme",
             "themeVariables", "themeCSS", "htmlLabels", "fontFamily", "layout", "look", "arrowMarkerAbsolute"] });
@@ -149,7 +184,7 @@ async function drainQueue(): Promise<void> {
         container.setAttribute("aria-hidden", "true");
         document.body.appendChild(container);
         const id = `ken_mermaid_${++sequence}_${crypto.randomUUID().replaceAll("-", "")}`;
-        const result = await mermaid.render(id, job.source, container);
+        const result = await mermaid.render(id, mermaidThemeSource(job.source, job.theme), container);
         if (!job.signal.aborted) job.resolve(sanitizeMermaidSvg(result.svg));
       } catch {
         if (!job.signal.aborted) job.reject(new Error("도식을 표시할 수 없습니다."));
