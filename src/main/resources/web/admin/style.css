@@ -38,7 +38,7 @@ main:focus{outline:none}
 .admin-table th:nth-child(2){width:11%}
 .admin-table th:nth-child(3){width:14%}
 .admin-table th:nth-child(4){width:15%}
-.admin-table th:last-child{width:17%;text-align:right}
+.admin-table th:last-child{width:17%;text-align:left}
 .admin-table td{padding:17px 10px;border-bottom:1px solid var(--line);vertical-align:middle}
 .admin-table tr:last-child td{border-bottom:0}
 .admin-table .post-title small{display:block;font-size:12px;margin-top:3px;overflow-wrap:anywhere}
@@ -48,7 +48,7 @@ main:focus{outline:none}
 .status:before{content:'';width:6px;height:6px;background:var(--muted);border-radius:50%}
 .status.published{color:var(--accent-dark)}
 .status.published:before{background:var(--accent)}
-.row-actions{text-align:right}
+.row-actions{text-align:left}
 .row-actions .button{background:none;border:0;color:var(--muted);font-size:12px;min-height:0;padding:4px 0;margin-left:12px;font-weight:400}
 .row-actions .button:hover{color:var(--accent-dark)}
 .item{border-top:1px solid var(--line);padding:20px 0}
