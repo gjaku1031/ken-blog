@@ -190,7 +190,7 @@ class SecurityConfig {
         return CorsConfigurationSource { request ->
             val path = request.servletPath
             if (path.startsWith("/api/v1/admin/") || path == "/api/v1/admin") adminCors
-            else if (path == "/api/v1/pages/snapshot" || path == "/api/v1/profile/photo" ||
+            else if (path == "/api/v1/pages/snapshot" ||
                 path.matches(Regex("/api/v1/stack-badges/[0-9]+/image")) ||
                 path.matches(Regex("/api/v1/posts/[0-9]+/attachments/[0-9]+/content"))) {
                 if (request.getHeader("Origin") in authOrigins) authenticatedPosts else publicPosts
@@ -234,7 +234,7 @@ class SecurityConfig {
         .authorizeHttpRequests {
             it.requestMatchers(HttpMethod.GET, "/api/v1/status", "/actuator/health", "/api/v1/pages/snapshot").permitAll()
             it.requestMatchers(HttpMethod.GET, "/api/v1/posts/*/attachments/*/content").permitAll()
-            it.requestMatchers(HttpMethod.GET, "/api/v1/profile/photo", "/api/v1/stack-badges/*/image").permitAll()
+            it.requestMatchers(HttpMethod.GET, "/api/v1/stack-badges/*/image").permitAll()
             it.requestMatchers(HttpMethod.GET, "/api/v1/auth/csrf").permitAll()
             it.requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
             it.requestMatchers(HttpMethod.GET, "/api/v1/auth/me").authenticated()

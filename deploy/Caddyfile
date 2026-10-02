@@ -30,7 +30,7 @@
 
 	@public_read {
 		method GET HEAD OPTIONS
-		path /api/v1/status /api/v1/pages/snapshot /api/v1/profile/photo /api/v1/stack-badges/*/image /api/v1/posts/*/attachments/*/content /actuator/health
+		path /api/v1/status /api/v1/pages/snapshot /api/v1/stack-badges/*/image /api/v1/posts/*/attachments/*/content /actuator/health
 	}
 	@auth {
 		method GET POST OPTIONS
@@ -38,7 +38,7 @@
 	}
 	@admin {
 		method GET POST PUT PATCH DELETE OPTIONS
-		path /api/v1/admin/attachments /api/v1/admin/attachments/* /api/v1/admin/categories /api/v1/admin/categories/* /api/v1/admin/posts /api/v1/admin/posts/* /api/v1/admin/profile /api/v1/admin/profile/* /api/v1/admin/series /api/v1/admin/series/* /api/v1/admin/stack-badges /api/v1/admin/stack-badges/* /api/v1/admin/tags /api/v1/admin/tags/*
+		path /api/v1/admin/attachments /api/v1/admin/attachments/* /api/v1/admin/categories /api/v1/admin/categories/* /api/v1/admin/posts /api/v1/admin/posts/* /api/v1/admin/series /api/v1/admin/series/* /api/v1/admin/stack-badges /api/v1/admin/stack-badges/* /api/v1/admin/tags /api/v1/admin/tags/*
 	}
 
 	handle @public_read {

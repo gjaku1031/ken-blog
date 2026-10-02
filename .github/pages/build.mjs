@@ -145,7 +145,7 @@ async function main() {
   if (!fixture && !base) throw new Error("운영 빌드에는 PUBLIC_API_BASE_URL이 필요합니다.");
   let snapshot;
   if (["--fixture=empty", "--fixture", "--empty"].includes(fixtureArg))
-    snapshot = { version: 2, profile: null, posts: [], series: [] };
+    snapshot = { version: 2, posts: [], series: [] };
   else if (fixtureArg?.startsWith("--fixture=")) snapshot = JSON.parse(await readFile(resolve(fixtureArg.slice(10)), "utf8"));
   else snapshot = await capture(base);
   snapshot = validate(snapshot, fixture);
@@ -180,7 +180,6 @@ async function main() {
     const postId = owners.get(id); const path = `/api/v1/posts/${postId}/attachments/${id}/content`;
     attachmentUrls.set(id, await download(imagePath(path, base, path), `attachment-${id}`));
   }
-  if (snapshot.profile?.photoUrl) snapshot.profile.photoUrl = await download(imagePath(snapshot.profile.photoUrl, base, "/api/v1/profile/photo"), "profile");
   const badges = new Map();
   for (const project of snapshot.series) for (const badge of project.stackBadges ?? []) if (!badges.has(badge.id)) badges.set(badge.id, badge);
   for (const badge of badges.values()) badge.imageUrl = await download(imagePath(badge.imageUrl, base, `/api/v1/stack-badges/${badge.id}/image`), `stack-${badge.id}`);

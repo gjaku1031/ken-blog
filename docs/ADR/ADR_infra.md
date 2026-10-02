@@ -40,6 +40,8 @@ Post의 메타데이터와 저장소 Markdown을 빌드 시 결합해 완성 HTM
 
 `pages`의 공개 snapshot v2·revision 및 일관 읽기 계약 유지. `content/posts/{slug}.md` 경로 규칙 유지. 공개 목록에 있는 글만 생성하고, 원고 누락·비공개 데이터 혼입·생성 중 revision 변경 시 최종 출력 교체 전 실패. 공개 페이지와 다운로드 이미지는 빈 staging에서 전체 재생성하여 삭제·공개 해제된 자료가 과거 출력에서 남지 않는 구성. 글별 증분 생성·의존성 그래프·본문 캐시 미도입.
 
+홈 소개는 후속 단순화로 `views/about.njk`에 직접 작성. snapshot v2의 `profile` 필드와 프로필 사진 다운로드 제거. 빌더는 구 API가 추가로 반환하는 profile 필드도 사용하지 않으며 사이트·API 사이 프로필 의존성 제거. 소개 수정은 템플릿 변경으로 Pages만 재생성. Caddy에서 프로필 공개·관리자 경로 삭제, ACME 인증서의 `profile shortlived` 설정은 별개 기능으로 유지.
+
 ### 빌드·배포 경계
 
 - 사이트 명령은 `npm ci`, `npm test`, `PUBLIC_API_BASE_URL=… npm run build:site`. Node 24.21.0 사용. Java·Gradle·Spring 실행 없는 생성 경로. `npm test`는 기존 타입 검사와 빈 사이트 생성 검사.

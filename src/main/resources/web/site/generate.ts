@@ -19,7 +19,7 @@ interface Series extends SeriesRef {
   stackBadges: { id: number; name: string; imageUrl: string }[];
 }
 interface Input {
-  snapshot: { version: number; posts: Post[]; series: Series[]; profile: Record<string, string> | null };
+  snapshot: { version: number; posts: Post[]; series: Series[] };
   assets: { css: string; js: string }; adminHref: string;
   admin: { apiBase: string; css: string; js: string };
 }
@@ -115,11 +115,8 @@ export async function generateSite(payload: Input, output: string) {
     backlinks.set(postPath(target), refs);
   }
   const feed = [...allPosts].sort((a, b) => chronological(b, a)), home = feed.slice(0, 12);
-  const profile = snapshot.profile ?? {};
   await page("", "home", "Home", "Home", "Ken Blog", {
-    cards: home.map(card), profile, hasProfile: Object.values(profile).some(Boolean),
-    profileEmailSafe: /^[^\s@<>"'/?#]+@[^\s@<>"'/?#]+\.[A-Za-z]{2,}$/.test(profile.email ?? ""),
-    profileGithubSafe: (profile.github ?? "").startsWith("https://github.com/"),
+    cards: home.map(card),
     categories: unique(home.map(p => p.category?.path ?? "")), tags: unique(home.flatMap(p => p.tags)),
   });
   await listing("posts", "Posts", "Posts", feed.filter(p => p.section === "TECH"));

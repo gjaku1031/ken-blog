@@ -29,6 +29,10 @@ MySQL enum 열은 jOOQ 조회 경계에서 문자열 타입으로 매핑하여 J
 
 런타임 `src/main/resources/schema.sql`은 JDBC 세션·인증 상태 등 JPA 외 테이블 초기화용이므로 유지. 앱의 기존 `ddl-auto` 정책과 운영 자료 이관 절차도 별도 책임이며, 코드 생성 DDL을 운영 DB에 실행하지 않음.
 
+## 프로필 영속 모델 제거
+
+홈 소개의 정적 HTML 전환으로 HomeProfileEntity와 Repository 제거. 다음 clean 빌드에서 프로필 테이블 DDL·jOOQ 타입도 생성 대상에서 제외. 기존 운영 테이블·행·사진은 DROP 또는 파일 삭제 없이 보존. 격리 DB에 기존 home_profile 행을 둔 상태로 새 JVM을 기동하여 행 보존 확인. 기존 DB/OCI 자료 추출 도구의 프로필 사진 참조는 과거 자료 이관을 위한 용도.
+
 ## 검증과 적용 범위
 
 - 생성 로직을 `build.gradle.kts`로 옮긴 뒤 생성 DDL의 SHA-256이 이전 독립 생성기 결과와 동일함을 확인. 저장소에 별도 생성기 소스나 수동 DDL 없음.

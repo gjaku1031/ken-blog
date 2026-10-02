@@ -27,6 +27,7 @@ import tempfile
 
 
 KEY = re.compile(r"[A-Za-z0-9_-]+(?:/[A-Za-z0-9_-]+)*/[0-9a-fA-F]{8}-(?:[0-9a-fA-F]{4}-){3}[0-9a-fA-F]{12}\.(?:jpg|png)\Z")
+# 제거된 프로필 기능의 기존 사진도 이관 시 유실되지 않도록 옛 home_profile 참조 유지.
 MANIFEST_SQL = """SELECT object_key FROM attachments WHERE status = 'READY'
 UNION SELECT object_key FROM stack_badges
 UNION SELECT photo_object_key FROM home_profile WHERE photo_object_key IS NOT NULL;"""

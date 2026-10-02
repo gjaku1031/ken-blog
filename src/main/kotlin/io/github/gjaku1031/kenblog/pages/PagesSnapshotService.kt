@@ -1,6 +1,5 @@
 package io.github.gjaku1031.kenblog.pages
 
-import io.github.gjaku1031.kenblog.profile.service.HomeProfileService
 import io.github.gjaku1031.kenblog.post.service.PublicPostService
 import io.github.gjaku1031.kenblog.post.dto.PublicPostDetailResponse
 import io.github.gjaku1031.kenblog.post.repository.PostQueries
@@ -15,7 +14,7 @@ import java.util.HexFormat
 /** 동일 MySQL 일관 읽기에서 공통 공개 메타데이터와 첨부 revision을 생성. */
 @Service
 class PagesSnapshotService(private val posts: PublicPostService, private val series: SeriesService,
-    private val profile: HomeProfileService, private val queries: PostQueries, private val mapper: ObjectMapper) {
+    private val queries: PostQueries, private val mapper: ObjectMapper) {
     @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
     fun snapshot(): Map<String, Any?> {
         val rows = mutableListOf<PublicPostDetailResponse>()
@@ -25,7 +24,7 @@ class PagesSnapshotService(private val posts: PublicPostService, private val ser
             check(result.pages <= 10_000) { "Public snapshot too large" }
             rows += result.items.map { posts.detailMetadata(it.slug) }
         } while (page < result.pages)
-        val payload = linkedMapOf<String, Any?>("version" to 2, "profile" to profile.get(),
+        val payload = linkedMapOf<String, Any?>("version" to 2,
             "posts" to rows, "series" to series.list(false))
         val digest = MessageDigest.getInstance("SHA-256")
         digest.update(mapper.writeValueAsBytes(payload)); digest.update(0)

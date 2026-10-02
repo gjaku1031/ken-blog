@@ -79,7 +79,7 @@ class StackBadgeService(
         val clean = displayName(name)
         val keyName = nameKey(clean)
         if (badges.findByNameKey(keyName) != null) duplicate()
-        val png = images.normalize(file, 64)
+        val png = images.normalize(file)
         storage.requireConfigured()
         val key = storage.newKey("png")
         storage.put(key, png, "image/png")
@@ -112,7 +112,7 @@ class StackBadgeService(
     /** 새 64×64 PNG를 저장한 후 DB를 전환하고 커밋 뒤 이전 객체를 제거. */
     fun replaceImage(id: Long, file: MultipartFile): StackBadgeResponse {
         badge(id)
-        val png = images.normalize(file, 64)
+        val png = images.normalize(file)
         storage.requireConfigured()
         val key = storage.newKey("png")
         storage.put(key, png, "image/png")

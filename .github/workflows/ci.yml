@@ -316,7 +316,7 @@ jobs:
               assert response.status == 200
               snapshot = json.load(response)
           assert snapshot['version'] == 2 and len(snapshot['revision']) == 64, snapshot
-          assert snapshot['posts'] == [] and snapshot['series'] == [], snapshot
+          assert snapshot['posts'] == [] and snapshot['series'] == [] and 'profile' not in snapshot, snapshot
           assert slug not in json.dumps(snapshot), snapshot
 
           tool('blog_set_post_publication', {'postId': post['id'], 'published': True})

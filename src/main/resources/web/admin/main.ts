@@ -6,8 +6,7 @@ type Category = { id: number; path: string; name: string; depth: number; sortOrd
 type Badge = { id: number; name: string; projectCount: number | null };
 type Series = { id: number; name: string; slug: string; kind: 'TECH' | 'PROJECT'; description: string; projectStatus: string | null; startPeriod: string | null; endPeriod: string | null; updatedAt: string; sortOrder: number; stackBadges: Badge[] };
 type Post = { id: number; title: string; slug: string; section: string; status: string; summary: string; category: Category | null; tags: string[]; series: Series | null; seriesOrder: number | null; relatedSeriesId: number | null };
-type Profile = { name: string; tagline: string; intro: string; github: string; email: string };
-type AdminData = { posts: Page<Post>; series: Series[]; categories: Category[]; badges: Badge[]; profile: Profile };
+type AdminData = { posts: Page<Post>; series: Series[]; categories: Category[]; badges: Badge[] };
 
 const root = document.documentElement;
 const savedTheme = localStorage.getItem('ken-blog-theme');
@@ -49,7 +48,7 @@ function setMessage(target: HTMLElement, message: string, error = false) {
 }
 function clearDashboard() {
   currentData = null;
-  for (const id of ['post-create', 'post-list', 'post-pages', 'category-create', 'category-list', 'series-create', 'series-list', 'badge-create', 'badge-list', 'profile-form']) get(id).replaceChildren();
+  for (const id of ['post-create', 'post-list', 'post-pages', 'category-create', 'category-list', 'series-create', 'series-list', 'badge-create', 'badge-list']) get(id).replaceChildren();
 }
 function showLogin(message = '') {
   sessionReady = false;
@@ -220,10 +219,9 @@ async function loadDashboard() {
     request<Series[]>('/admin/series'),
     request<Category[]>('/admin/categories'),
     request<Badge[]>('/admin/stack-badges'),
-    request<Profile>('/admin/profile'),
   ]);
   if (!sessionReady) return;
-  currentData = { posts: data[0], series: data[1], categories: data[2], badges: data[3], profile: data[4] };
+  currentData = { posts: data[0], series: data[1], categories: data[2], badges: data[3] };
   render(currentData);
   showDashboard();
 }
@@ -232,7 +230,6 @@ function render(data: AdminData) {
   renderCategories(data);
   renderSeries(data);
   renderBadges(data);
-  renderProfile(data);
 }
 function renderPosts(data: AdminData) {
   const create = form(input => mutate('/admin/posts', 'POST', {
@@ -390,18 +387,6 @@ function renderBadges(data: AdminData) {
       '뱃지를 삭제했습니다.', `${badge.name} 뱃지를 삭제할까요?`);
     list.append(article);
   }
-}
-function renderProfile(data: AdminData) {
-  const edit = form(input => mutate('/admin/profile', 'PUT', {
-    name: value(input, 'name'), tagline: value(input, 'tagline'), intro: value(input, 'intro'),
-    github: value(input, 'github'), email: value(input, 'email'),
-  }), '프로필을 저장했습니다.');
-  field(edit, '이름', 'name', data.profile.name, { required: true, max: 100 });
-  field(edit, '한 줄 소개', 'tagline', data.profile.tagline, { max: 240 });
-  field(edit, 'GitHub 주소', 'github', data.profile.github, { max: 500 });
-  field(edit, '공개 이메일', 'email', data.profile.email, { max: 254 });
-  area(edit, '소개', 'intro', data.profile.intro, 5000);
-  submit(edit, '프로필 저장'); get('profile-form').replaceChildren(edit);
 }
 loginForm.addEventListener('submit', async event => {
   event.preventDefault();

@@ -1,21 +1,5 @@
 <main id="main-content" class="page-container home-page">
-  {% if hasProfile %}<div class="home-summary">
-    <section class="profile-card card" aria-label="블로그 소개">
-      <div class="profile-head">
-        <div class="profile-avatar">
-          {% if profile.photoUrl %}<img alt="" width="64" height="64" src="{{ profile.photoUrl }}">{% endif %}{% if not (profile.photoUrl) %}<span aria-hidden="true">{{ 'K' if not profile.name else profile.name[0] }}</span>{% endif %}
-        </div>
-        <div>
-          <h2>{{ 'ken.blog' if not profile.name else profile.name }}</h2>
-          {% if profile.tagline %}<p>{{ profile.tagline }}</p>{% endif %}
-        </div>
-      </div>
-      {% if profile.intro %}<p class="profile-intro">{{ profile.intro }}</p>{% endif %}
-      {% if profileGithubSafe or profileEmailSafe %}<div class="profile-links">
-        {% if profileGithubSafe %}<a target="_blank" rel="noreferrer noopener" href="{{ profile.github }}">GitHub</a>{% endif %}{% if profileEmailSafe %}<a class="profile-email-link" href="{{ 'mailto:' + profile.email }}"><span>{{ profile.email }}</span></a>{% endif %}
-      </div>{% endif %}
-    </section>
-  </div>{% endif %}
+  {% include "views/about.njk" %}
   <div class="content-grid">
     <section class="feed-column">
       <div class="section-heading">

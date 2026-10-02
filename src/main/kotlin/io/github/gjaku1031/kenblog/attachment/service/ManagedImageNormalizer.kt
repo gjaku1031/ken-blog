@@ -11,19 +11,19 @@ import org.springframework.http.HttpStatus
 import org.springframework.stereotype.Component
 import org.springframework.web.multipart.MultipartFile
 
-/** 기술 뱃지와 홈 사진을 서버에서 안전한 정사각 PNG로 변환. */
+/** 기술 뱃지를 서버에서 안전한 64×64 PNG로 변환. */
 @Component
 class ManagedImageNormalizer {
     /**
      * JPEG/PNG를 확인하고 비율을 유지해 투명 캔버스 중앙에 배치.
      *
      * @param file 브라우저에서 보낸 단일 이미지
-     * @param size 저장할 정사각형 한 변의 픽셀 수
      * @return 원본 메타데이터와 분리된 PNG 바이트
      * @throws OperationFailure 형식·크기·디코딩 실패일 때
      */
-    fun normalize(file: MultipartFile, size: Int): ByteArray {
-        if (file.isEmpty || file.size > 10L * 1024 * 1024 || size !in setOf(64, 256)) badImage()
+    fun normalize(file: MultipartFile): ByteArray {
+        val size = 64
+        if (file.isEmpty || file.size > 10L * 1024 * 1024) badImage()
         val source = file.bytes
         if (!isPng(source) && !isJpeg(source)) badImage()
         val input = ImageIO.createImageInputStream(ByteArrayInputStream(source)) ?: badImage()

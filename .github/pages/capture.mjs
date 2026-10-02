@@ -89,9 +89,7 @@ export function normalizeSnapshot(raw, fixture = false) {
       postCount: integer(row.postCount, "post count", 1), stackBadges: array(row.stackBadges, "stack badges").map(b => ({
         id: integer(b.id, "badge id", 1), name: string(b.name, "badge name"), imageUrl: string(b.imageUrl, "badge image") })) };
   });
-  const profile = raw.profile == null ? null : Object.fromEntries(["name", "tagline", "intro", "github", "email", "photoUrl"]
-    .map(key => [key, nullableString(raw.profile[key], `profile ${key}`) ?? ""]));
-  return { version: 2, revision: raw.revision, profile, posts, series };
+  return { version: 2, revision: raw.revision, posts, series };
 }
 
 export async function capture(base) { return normalizeSnapshot(await readSnapshot(base)); }
