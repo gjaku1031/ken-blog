@@ -1,3 +1,4 @@
+import { expandPublicSnapshot } from '../../src/main/resources/web/shared/deployment-status.ts';
 import { isSlug } from '../../src/main/resources/web/shared/site-path.ts';
 
 /**
@@ -113,6 +114,7 @@ async function readSnapshot(base) {
  * 3. 공개 시리즈와 대문·기술 이미지 필드 검증
  */
 export function normalizeSnapshot(raw, fixture = false) {
+  raw = expandPublicSnapshot(raw);
   // 스냅샷 형태·버전·revision 검사
   object(raw, "snapshot");
   requireValue(raw.version === 2 && (fixture || revisionPattern.test(raw.revision ?? "")), "snapshot version/revision");
@@ -175,6 +177,6 @@ export async function capture(base) { return normalizeSnapshot(await readSnapsho
 export async function confirmRevision(base, expected) {
   requireValue(revisionPattern.test(expected ?? ""), "expected revision");
   const current = object(await readSnapshot(base), "final snapshot");
-  requireValue(current.version === 2 && revisionPattern.test(current.revision ?? ""), "final revision");
+  requireValue([2, 3].includes(current.version) && revisionPattern.test(current.revision ?? ""), "final revision");
   if (current.revision !== expected) throw new Error("공개 메타데이터 또는 이미지가 생성 중 변경되었습니다. Pages 빌드를 다시 실행하세요.");
 }

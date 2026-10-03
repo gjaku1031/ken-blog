@@ -84,6 +84,184 @@ class AuthHttpIntegrationTest {
             "INSERT IGNORE INTO users (username, password_hash, role, created_at, enabled) VALUES (?, ?, 'ADMIN', UTC_TIMESTAMP(6), true)",
             "testadmin", TEST_HASH,
         )
+        jdbc.update("UPDATE users SET password_hash = ?, role = 'ADMIN', enabled = true WHERE username = 'testadmin'", TEST_HASH)
+        jdbc.update("UPDATE admin_auth_state SET failure_count = 0, locked_until = NULL WHERE id = 1")
+        jdbc.update("DELETE FROM admin_login_sources")
+    }
+
+    /**
+     * 공개 HEAD·CORS는 GET과 같은 권한을 사용하고 관리자 HEAD는 인증 필요
+     */
+    @Test
+    fun publicHeadBoundaries() {
+        val client = newClient().first
+        for (path in listOf("/actuator/health", "/api/v1/pages/snapshot")) {
+            val response = send(client, "HEAD", path)
+            assertEquals(200, response.statusCode())
+            assertEquals("", response.body())
+        }
+        for (path in listOf("/api/v1/posts/999999/attachments/999999/content", "/api/v1/stack-badges/999999/image")) {
+            assertEquals(404, send(client, "HEAD", path, headers = mapOf("Accept" to "image/png")).statusCode())
+            assertEquals(200, send(client, "OPTIONS", path, headers = mapOf("Origin" to "https://gjaku1031.github.io",
+                "Access-Control-Request-Method" to "HEAD")).statusCode())
+        }
+        assertEquals(401, send(client, "HEAD", "/api/v1/admin/posts/snapshot").statusCode())
+    }
+
+    /**
+     * 계정 비활성화·권한 강등·비밀번호 변경 직후 기존 세션 거부
+     */
+    @Test
+    fun accountChangesInvalidateExistingSessions() {
+        for (change in listOf("enabled = false", "role = 'USER'", "password_hash = CONCAT(password_hash, 'changed')")) {
+            prepareAdmin()
+            val client = newClient().first
+            assertEquals(200, send(client, "POST", "/api/v1/auth/login", body = loginBody(TEST_PASSWORD, "missing"), csrf = csrfToken(client)).statusCode())
+            jdbc.update("UPDATE users SET $change WHERE username = 'testadmin'")
+            assertEquals(401, send(client, "GET", "/api/v1/auth/me").statusCode())
+        }
+    }
+
+    /**
+     * 기억 로그인은 JDBC 30일 비활동 한도와 같은 쿠키 수명 사용, 로그아웃 시 영속 행 폐기
+     */
+    @Test
+    fun rememberedSessionUsesThirtyDayDatabaseExpiry() {
+        val (client, cookies) = newClient()
+        val response = send(client, "POST", "/api/v1/auth/login", csrf = csrfToken(client),
+            body = mapper.writeValueAsString(mapOf("password" to TEST_PASSWORD, "rememberMe" to true)))
+        assertEquals(200, response.statusCode())
+        assertTrue(response.headers().allValues("Set-Cookie").any { it.contains("Max-Age=2592000") })
+        val id = decodeSessionId(sessionCookie(cookies))
+        assertEquals(Duration.ofDays(30), sessions.findById(id)?.maxInactiveInterval)
+        assertEquals(204, send(client, "POST", "/api/v1/auth/logout", csrf = csrfToken(client)).statusCode())
+        assertEquals(0, sessionCount(id))
+    }
+
+    /**
+     * 한 출처의 실패·잠금은 다른 출처를 잠그지 않고 만료 시 다시 검증 가능
+     */
+    @Test
+    fun sourceLimitsExpireWithoutLockingOtherClients() {
+        repeat(4) { assertEquals(io.github.gjaku1031.kenblog.auth.service.AdminLoginResult.Denied, attempts.attempt("wrong", "source-a")) }
+        assertEquals(io.github.gjaku1031.kenblog.auth.service.AdminLoginResult.Locked, attempts.attempt("wrong", "source-a"))
+        assertEquals(io.github.gjaku1031.kenblog.auth.service.AdminLoginResult.Locked, attempts.attempt(TEST_PASSWORD, "source-a"))
+        assertTrue(attempts.attempt(TEST_PASSWORD, "source-b") is io.github.gjaku1031.kenblog.auth.service.AdminLoginResult.Success)
+        jdbc.update("UPDATE admin_login_sources SET expires_at = UTC_TIMESTAMP(6) - INTERVAL 1 SECOND WHERE source_key = 'source-a'")
+        assertTrue(attempts.attempt(TEST_PASSWORD, "source-a") is io.github.gjaku1031.kenblog.auth.service.AdminLoginResult.Success)
+    }
+
+    /**
+     * 동시에 시작한 실패도 DB 잠금으로 직렬화하고 전체 연산 한도 유지
+     */
+    @Test
+    fun parallelAttemptsCannotBypassFailureLimits() {
+        java.util.concurrent.Executors.newFixedThreadPool(6).use { pool ->
+            val gate = java.util.concurrent.CountDownLatch(1)
+            val futures = (1..6).map { pool.submit<io.github.gjaku1031.kenblog.auth.service.AdminLoginResult> { gate.await(); attempts.attempt("wrong", "parallel") } }
+            gate.countDown()
+            val results = futures.map { it.get(15, java.util.concurrent.TimeUnit.SECONDS) }
+            assertEquals(4, results.count { it is io.github.gjaku1031.kenblog.auth.service.AdminLoginResult.Denied })
+            assertEquals(2, results.count { it is io.github.gjaku1031.kenblog.auth.service.AdminLoginResult.Locked })
+        }
+        jdbc.update("UPDATE admin_auth_state SET failure_count = 30, locked_until = UTC_TIMESTAMP(6) + INTERVAL 60 SECOND WHERE id = 1")
+        assertEquals(io.github.gjaku1031.kenblog.auth.service.AdminLoginResult.Locked, attempts.attempt(TEST_PASSWORD, "another-source"))
+    }
+
+    /**
+     * 분류 순서 입력은 문자열·소수·범위 초과·알 수 없는 키를 강제 변환하지 않음
+     */
+    @Test
+    fun categoryOrderRejectsCoercion() {
+        val client = newClient().first
+        assertEquals(200, send(client, "POST", "/api/v1/auth/login", body = loginBody(TEST_PASSWORD, "missing"), csrf = csrfToken(client)).statusCode())
+        val token = csrfToken(client)
+        val category = send(client, "POST", "/api/v1/admin/categories", csrf = token, body = """{"path":"order-${java.util.UUID.randomUUID()}"}""")
+        assertEquals(201, category.statusCode())
+        val id = mapper.readTree(category.body()).path("id").longValue()
+        for (body in listOf("""{"order":"3"}""", """{"order":1.5}""", """{"order":9223372036854775808}""", """{"order":1,"extra":true}"""))
+            assertEquals(400, send(client, "PUT", "/api/v1/admin/categories/$id/order", csrf = token, body = body).statusCode())
+        assertEquals(200, send(client, "PUT", "/api/v1/admin/categories/$id/order", csrf = token, body = """{"order":-3}""").statusCode())
+    }
+
+    /**
+     * 일반 스키마 재실행과 기동 검사에서 누락된 인증 상태를 복구하지 않음
+     */
+    @Test
+    fun restartNeverRecreatesMissingAuthState() {
+        val state = jdbc.queryForMap("SELECT * FROM admin_auth_state WHERE id = 1")
+        jdbc.update("DELETE FROM admin_auth_state WHERE id = 1")
+        try {
+            org.springframework.jdbc.datasource.init.ResourceDatabasePopulator(org.springframework.core.io.ClassPathResource("schema.sql"))
+                .execute(requireNotNull(jdbc.dataSource))
+            assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM admin_auth_state", Int::class.java))
+            assertThrows<EmptyResultDataAccessException> { attempts.run(org.springframework.boot.DefaultApplicationArguments()) }
+        } finally {
+            jdbc.update("INSERT INTO admin_auth_state (id, config_fingerprint, auth_version, failure_count, locked_until) VALUES (1, ?, ?, ?, ?)",
+                state["config_fingerprint"], state["auth_version"], state["failure_count"], state["locked_until"])
+        }
+    }
+
+    /**
+     * 설정이 다른 관리자였다가 돌아와도 기존 세션 버전은 되살아나지 않음
+     */
+    @Test
+    fun settingsRoundTripDoesNotReviveOldSession() {
+        val client = newClient().first
+        assertEquals(200, send(client, "POST", "/api/v1/auth/login", body = loginBody(TEST_PASSWORD, "missing"), csrf = csrfToken(client)).statusCode())
+        val before = jdbc.queryForObject("SELECT auth_version FROM admin_auth_state WHERE id = 1", Long::class.java)!!
+        // 다른 설정으로 운영되던 DB 상태를 명시적으로 만들고 현재 설정의 실제 기동 동기화 수행
+        val other = io.github.gjaku1031.kenblog.auth.service.AdminAuthSettings("anotheradmin").configured()!!
+        jdbc.update("UPDATE admin_auth_state SET config_fingerprint = ?, auth_version = auth_version + 1 WHERE id = 1", other.fingerprint)
+        attempts.run(org.springframework.boot.DefaultApplicationArguments())
+        assertEquals(before + 2, jdbc.queryForObject("SELECT auth_version FROM admin_auth_state WHERE id = 1", Long::class.java))
+        assertEquals(401, send(client, "GET", "/api/v1/auth/me").statusCode())
+    }
+
+    /**
+     * 명시적 인증 복구는 삭제 전 세션까지 전부 폐기하고 재로그인만 허용
+     */
+    @Test
+    fun explicitRecoveryInvalidatesAllSessions() {
+        val client = newClient().first
+        assertEquals(200, send(client, "POST", "/api/v1/auth/login", body = loginBody(TEST_PASSWORD, "missing"), csrf = csrfToken(client)).statusCode())
+        jdbc.update("DELETE FROM admin_auth_state WHERE id = 1")
+        org.springframework.jdbc.datasource.init.ResourceDatabasePopulator(org.springframework.core.io.ClassPathResource("recover-auth-state.sql"))
+            .execute(requireNotNull(jdbc.dataSource))
+        assertEquals(0, jdbc.queryForObject("SELECT COUNT(*) FROM SPRING_SESSION", Int::class.java))
+        attempts.run(org.springframework.boot.DefaultApplicationArguments())
+        assertEquals(401, send(client, "GET", "/api/v1/auth/me").statusCode())
+        assertEquals(200, send(client, "POST", "/api/v1/auth/login", body = loginBody(TEST_PASSWORD, "missing"), csrf = csrfToken(client)).statusCode())
+    }
+
+    /**
+     * 실제 HTTP 편집은 기준 버전 필수이며 전체 저장·순서 변경 뒤 오래된 요청 거부
+     */
+    @Test
+    fun metadataHttpContractRequiresVersionAndAtomicFields() {
+        val client = newClient().first
+        assertEquals(200, send(client, "POST", "/api/v1/auth/login", body = loginBody(TEST_PASSWORD, "missing"), csrf = csrfToken(client)).statusCode())
+        val token = csrfToken(client)
+        val created = send(client, "POST", "/api/v1/admin/posts", csrf = token, body = """{"title":"HTTP 편집"}""")
+        assertEquals(201, created.statusCode())
+        val row = mapper.readTree(created.body())
+        val path = "/api/v1/admin/posts/${row.path("id").longValue()}"
+        val payload = linkedMapOf<String, Any?>("baseVersion" to row.path("editVersion").longValue(), "title" to "원자적 변경",
+            "summary" to "요약", "categoryId" to null, "tags" to listOf("HTTP"), "seriesId" to null, "order" to null, "relatedSeriesId" to null)
+        val saved = send(client, "PATCH", "$path/metadata", csrf = token, body = mapper.writeValueAsString(payload))
+        assertEquals(200, saved.statusCode())
+        assertEquals(409, send(client, "PATCH", "$path/metadata", csrf = token, body = mapper.writeValueAsString(payload)).statusCode())
+        for (invalid in listOf(payload - "baseVersion", payload + ("unexpected" to true)))
+            assertEquals(400, send(client, "PATCH", "$path/metadata", csrf = token, body = mapper.writeValueAsString(invalid)).statusCode())
+        assertEquals(400, send(client, "PUT", "$path/order", csrf = token, body = """{"order":null}""").statusCode())
+        val version = mapper.readTree(saved.body()).path("editVersion").longValue()
+        val ordered = send(client, "PUT", "$path/order", csrf = token, body = """{"order":null,"baseVersion":$version}""")
+        assertEquals(200, ordered.statusCode())
+        payload["baseVersion"] = version
+        assertEquals(409, send(client, "PATCH", "$path/metadata", csrf = token, body = mapper.writeValueAsString(payload)).statusCode())
+        val fresh = mapper.readTree(send(client, "GET", path).body())
+        assertEquals("원자적 변경", fresh.path("title").stringValue())
+        assertEquals(version + 1, fresh.path("editVersion").longValue())
     }
 
     /**

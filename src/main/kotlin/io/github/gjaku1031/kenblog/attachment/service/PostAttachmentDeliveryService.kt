@@ -51,8 +51,10 @@ class PostAttachmentDeliveryService(
     fun open(postId: Long, attachmentId: Long): PostAttachmentContent {
         if (postId <= 0 || attachmentId <= 0) throw notFound()
         val row = queries.readableAttachment(postId, attachmentId) ?: throw notFound()
+        if (row.contentType !in setOf("image/png", "image/jpeg") || row.byteSize !in 1..10L * 1024 * 1024)
+            throw AttachmentFailure(HttpStatus.SERVICE_UNAVAILABLE, "첨부 정보를 확인할 수 없습니다.")
         storage.requireConfigured()
-        return PostAttachmentContent(row.contentType, row.byteSize, storage.open(row.objectKey))
+        return PostAttachmentContent(row.contentType, row.byteSize, storage.open(row.objectKey, row.byteSize))
     }
 
     /**

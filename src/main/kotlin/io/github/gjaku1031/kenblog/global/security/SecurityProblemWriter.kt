@@ -29,11 +29,18 @@ class SecurityProblemWriter(
      * @param status 공개할 HTTP 상태
      * @throws IllegalStateException 이미 응답이 확정되어 오류로 바꿀 수 없을 때
      */
-    fun write(response: HttpServletResponse, status: HttpStatus) {
+    fun write(response: HttpServletResponse, status: HttpStatus, eventId: String? = null) {
         // 이미 확정된 응답은 변경하지 않고 실패
         check(!response.isCommitted) { "Security response is already committed" }
         // 기존 버퍼를 비우고 오류 상태·JSON 헤더 설정
-        response.resetBuffer()
+        val representation = setOf("content-length", "content-type", "content-disposition", "content-encoding",
+            "etag", "last-modified", "accept-ranges", "content-range", "cache-control", "expires")
+        val retained = response.headerNames.filter { it.lowercase(java.util.Locale.ROOT) !in representation }
+            .associateWith { response.getHeaders(it).toList() }
+        // reset으로 Servlet 내부 길이·출력 상태도 초기화하고 CORS·보안·세션 헤더 복원
+        response.reset()
+        retained.forEach { (name, values) -> values.forEach { response.addHeader(name, it) } }
+        response.setHeader("Cache-Control", "no-store")
         response.status = status.value()
         response.contentType = MediaType.APPLICATION_PROBLEM_JSON_VALUE
         response.characterEncoding = Charsets.UTF_8.name()
@@ -45,6 +52,8 @@ class SecurityProblemWriter(
             else -> "요청을 처리할 수 없습니다."
         }
         // ProblemDetail JSON으로 응답 기록
-        objectMapper.writeValue(response.outputStream, ProblemDetail.forStatusAndDetail(status, detail))
+        val problem = ProblemDetail.forStatusAndDetail(status, detail)
+        if (eventId != null) problem.setProperty("eventId", eventId)
+        objectMapper.writeValue(response.outputStream, problem)
     }
 }

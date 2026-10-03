@@ -1,0 +1,10 @@
+# 사설 MySQL CA를 쓸 때 production Compose와 함께 적용하는 읽기 전용 truststore
+services:
+  api:
+    volumes:
+      - type: bind
+        source: ${KEN_BLOG_MYSQL_TRUSTSTORE:?Reviewed MySQL CA truststore is required}
+        target: /run/ken-blog/mysql-truststore.p12
+        read_only: true
+        bind:
+          create_host_path: false

@@ -205,3 +205,12 @@ tasks.named<BootBuildImage>("bootBuildImage") {
 tasks.named<Jar>("jar") {
     enabled = false
 }
+
+// 격리 DB의 최초 설치·복구 검사는 운영 SQL과 같은 원본 사용
+sourceSets.test { resources.srcDir("deploy/sql") }
+
+// CI의 독립 TLS 검사에 앱과 같은 Connector/J 런타임 제공
+tasks.register<Copy>("prepareMysqlTlsVerification") {
+    from(configurations.runtimeClasspath.map { files -> files.filter { it.name.startsWith("mysql-connector-j-") } })
+    into(layout.buildDirectory.dir("verification"))
+}

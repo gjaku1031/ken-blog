@@ -20,5 +20,5 @@ class TestMysqlConfig {
      */
     @Bean
     @ServiceConnection
-    fun mysqlContainer(): MySQLContainer = MySQLContainer("mysql:8.4.11")
+    fun mysqlContainer(): MySQLContainer = MySQLContainer("mysql:8.4.11").withInitScript("bootstrap-auth.sql")
 }

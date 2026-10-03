@@ -441,7 +441,7 @@ export async function renderPreparedMarkdown(prepared: ReturnType<typeof prepare
   };
     sanitized.children.forEach(finalize);
     let html = toHtml(sanitized);
-    for (const [marker, value] of inserts) html = html.replace(marker, value);
+    for (const [marker, value] of inserts) html = html.replace(marker, () => value);
     return html;
   };
   // 본문과 주석에 같은 직렬화·정화 경계 적용

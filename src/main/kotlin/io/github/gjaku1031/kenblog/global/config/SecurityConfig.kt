@@ -93,6 +93,12 @@ class SecurityConfig {
     fun passwordEncoder(): PasswordEncoder = PasswordEncoderFactories.createDelegatingPasswordEncoder()
 
     /**
+     * 인증 제한의 UTC 시계, 테스트에서 대기 없이 대체 가능
+     */
+    @Bean
+    fun authClock(): java.time.Clock = java.time.Clock.systemUTC()
+
+    /**
      * 로그인 전후 기대 CSRF 토큰을 MySQL의 HTTP 세션에 저장
      *
      * @return [AuthController.csrf]와 Security 필터가 공유할 저장소
@@ -147,14 +153,14 @@ class SecurityConfig {
         // 쿠키 없는 공개 읽기·쿠키 포함 읽기·관리자 변경 정책 분리
         val publicPosts = CorsConfiguration().apply {
             allowedOrigins = publicOrigins
-            allowedMethods = listOf("GET")
+            allowedMethods = listOf("GET", "HEAD")
             allowedHeaders = listOf("Accept")
             allowCredentials = false
             maxAge = 600
         }
         val authenticatedPosts = CorsConfiguration().apply {
             allowedOrigins = authOrigins
-            allowedMethods = listOf("GET")
+            allowedMethods = listOf("GET", "HEAD")
             allowedHeaders = listOf("Accept")
             allowCredentials = true
             maxAge = 600
@@ -179,7 +185,7 @@ class SecurityConfig {
         // 요청 경로와 origin에 맞는 CORS 정책 선택
         return CorsConfigurationSource { request ->
             val path = request.servletPath
-            if (path == "/api/v1/admin/stack-badges") authenticatedPosts
+            if (path == "/api/v1/admin/stack-badges") CorsConfiguration(authenticatedPosts).apply { allowedMethods = listOf("GET") }
             else if (path.startsWith("/api/v1/admin/") || path == "/api/v1/admin") adminCors
             else if (path == "/api/v1/pages/snapshot" ||
                 path.matches(Regex("/api/v1/stack-badges/[0-9]+/image")) ||
@@ -234,6 +240,8 @@ class SecurityConfig {
         .addFilterBefore(accountSessionValidationFilter, AuthorizationFilter::class.java)
         // 공개 경로·인증 경로·관리자 경로의 접근 범위 지정
         .authorizeHttpRequests {
+            it.requestMatchers(HttpMethod.HEAD, "/actuator/health", "/api/v1/pages/snapshot",
+                "/api/v1/posts/*/attachments/*/content", "/api/v1/stack-badges/*/image").permitAll()
             it.requestMatchers(HttpMethod.GET, "/actuator/health", "/api/v1/pages/snapshot").permitAll()
             it.requestMatchers(HttpMethod.GET, "/api/v1/posts/*/attachments/*/content").permitAll()
             it.requestMatchers(HttpMethod.GET, "/api/v1/stack-badges/*/image").permitAll()

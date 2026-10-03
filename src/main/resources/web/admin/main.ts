@@ -1,3 +1,4 @@
+import { categoryCount } from '../shared/category-count';
 import "../shared/base.css";
 import { sitePath } from '../shared/site-path';
 import "../shared/theme.css";
@@ -13,31 +14,6 @@ import { seriesEditor, type Series } from '../shared/series-editor';
 import { deploymentManifest, readDeploymentManifest, deploymentState, filterPosts, type DeploymentComparison, type PostFilter } from '../shared/deployment-status';
 import { postEditor } from '../shared/post-editor';
 import { postFields, postPayload, type Category, type Tag } from '../shared/post-fields';
-
-/**
- * 페이지 조회 결과
- */
-type Page<T> = {
-  /**
-   * 조회 결과 목록
-   */
-  items: T[];
-
-  /**
-   * 0 기반 페이지 번호
-   */
-  page: number;
-
-  /**
-   * 전체 결과 수
-   */
-  totalElements: number;
-
-  /**
-   * 전체 페이지 수
-   */
-  totalPages: number
-};
 
 /**
  * 분류 참조
@@ -98,6 +74,11 @@ type SeriesRef = {
  * 게시글 메타데이터
  */
 type Post = {
+  /**
+   * 편집 충돌 검사용 버전
+   */
+  editVersion: number;
+
   /**
    * 수정 시각
    */
@@ -369,6 +350,7 @@ function clearDashboard() {
 function showLogin(message = '') {
   sessionReady = false;
   sessionGeneration++;
+  loadedOptionsRevision = -1;
   dashboardRequest?.abort();
   postPage = 0;
   updateHeaderSession(false);
@@ -487,17 +469,10 @@ function smallAction(parent: HTMLElement, title: string, operation: () => Promis
 }
 
 /**
- * 모든 관리자 페이지를 수집한 뒤 필터링할 글 목록 반환
+ * 하나의 DB 일관 읽기로 관리자 전체 목록 반환
  */
 async function allPosts(signal: AbortSignal): Promise<Post[]> {
-  const result: Post[] = [];
-  let page = 0;
-  do {
-    const data = await request<Page<Post>>(`/admin/posts?page=${page++}&size=100`, 'GET', undefined, signal);
-    result.push(...data.items);
-    if (page >= data.totalPages) return Array.from(new Map(result.map(post => [post.id, post])).values());
-  } while (page < 10_000);
-  throw new Error('글 목록이 너무 많아 전체 상태를 확인하지 못했습니다.');
+  return request<Post[]>('/admin/posts/snapshot', 'GET', undefined, signal);
 }
 
 /**
@@ -516,19 +491,46 @@ async function loadDeployment(signal: AbortSignal): Promise<DeploymentComparison
 }
 
 /**
+ * 진행 중인 조회에 합류하기 위한 Promise
+ */
+let dashboardLoad: Promise<void> | undefined;
+
+/**
+ * 선택 목록을 다시 읽어야 하는 변경 세대
+ */
+let optionsRevision = 0;
+
+/**
+ * 마지막으로 전체 조회에 성공한 변경 세대
+ */
+let loadedOptionsRevision = -1;
+
+/**
  * 글·시리즈·분류·기술 조회 후 관리자 화면 갱신
  *
  * 1. 글·시리즈·분류·기술·태그 병렬 조회
  * 2. 세션 유지 시 화면 갱신
  * 3. 상세 페이지에서 지정한 편집 대상도 최신 정보로 열기
  */
-async function loadDashboard(refreshOptions = true) {
+async function loadDashboard(refreshOptions = true): Promise<void> {
+  if (refreshOptions) optionsRevision++;
+  const session = sessionGeneration;
+  do {
+    // 자동 조회는 진행 중인 전체 조회에 합류하며 저장 후 더러워진 선택 목록을 재사용하지 않음
+    await (dashboardLoad ??= fetchDashboard().finally(() => { dashboardLoad = undefined; }));
+  } while (sessionReady && session === sessionGeneration && loadedOptionsRevision !== optionsRevision);
+}
+
+/**
+ * 요청을 공유하는 대시보드 조회와 성공한 선택 목록 세대 기록
+ */
+async function fetchDashboard() {
   if (!sessionReady) return;
-  dashboardRequest?.abort();
   const controller = new AbortController();
   dashboardRequest = controller;
   const session = sessionGeneration;
-  const cached = !refreshOptions && latestData;
+  const revision = optionsRevision;
+  const cached = loadedOptionsRevision === revision && latestData;
   // 상태 확인은 글·배포만 조회, 저장 후에는 연결 수와 선택 목록도 갱신
   try {
     const data = await Promise.all([
@@ -541,6 +543,7 @@ async function loadDashboard(refreshOptions = true) {
     ]);
     if (!sessionReady || session !== sessionGeneration || controller.signal.aborted) return;
     render({ posts: data[0], series: data[1], categories: data[2], badges: data[3], tags: data[4], deployment: data[5] }, !!cached);
+    if (!cached) loadedOptionsRevision = revision;
     showDashboard();
     await openLinkedEditor(latestData);
   } catch (error) {
@@ -622,6 +625,10 @@ function render(data: AdminData, postsOnly = false) {
  * 3. 전체 필터 결과를 열 개씩 페이지로 표시
  */
 function renderPosts(data: AdminData) {
+  // 교체 직전 목록 안의 포커스만 동기적으로 복원하여 자동 갱신의 포커스 유실 방지
+  const active = document.activeElement as HTMLElement | null;
+  const ownedFocus = !!active && (get('post-list').contains(active) || get('post-pages').contains(active));
+  const focusKey = ownedFocus ? active?.dataset.focusKey : undefined;
   // 전체 건수와 글 목록 표시
   const filtered = filterPosts(data.posts, postFilter, data.deployment);
   const totalPages = Math.max(1, Math.ceil(filtered.length / 10));
@@ -647,6 +654,7 @@ function renderPosts(data: AdminData) {
     for (const post of rows) {
       const row = el('tr'); const title = el('td', 'post-title');
       const editLink = el('button', 'title-button', post.title); editLink.type = 'button';
+      editLink.dataset.focusKey = `post-${post.id}-title`;
       editLink.addEventListener('click', () => editPost(post, data)); title.append(editLink);
       title.append(el('small', 'muted', [post.category?.path, post.series?.name].filter(Boolean).join(' · ') || `/${post.slug}`));
       const section = el('td', 'muted', post.section === 'PROJECT' ? 'Projects' : 'Posts'); section.dataset.label = '섹션';
@@ -655,9 +663,10 @@ function renderPosts(data: AdminData) {
       state.append(el('span', `status ${deployment.kind}`, deployment.label));
       const date = el('td', 'mono muted', post.updatedAt.slice(0, 10).replaceAll('-', '.')); date.dataset.label = '수정일';
       const actions = el('td', 'row-actions');
-      const edit = el('button', 'text-button', '수정'); edit.type = 'button'; edit.addEventListener('click', () => editPost(post, data)); actions.append(edit);
+      const edit = el('button', 'text-button', '수정'); edit.type = 'button'; edit.dataset.focusKey = `post-${post.id}-edit`; edit.addEventListener('click', () => editPost(post, data)); actions.append(edit);
       const published = post.status === 'PUBLISHED';
       const publication = smallAction(actions, published ? '발행 취소' : '발행', () => mutate(`/admin/posts/${post.id}/publication`, 'PUT', { published: !published }), published ? '발행을 취소했습니다.' : '발행했습니다.', published ? '이 글의 발행을 취소할까요?' : '저장소 Markdown 원고를 확인하고 이 글을 발행할까요?');
+      publication.dataset.focusKey = `post-${post.id}-publication`;
       publication.classList.toggle('danger', published);
       row.append(title, section, state, date, actions); body.append(row);
     }
@@ -671,6 +680,7 @@ function renderPosts(data: AdminData) {
    */
   const pageButton = (title: string, next: number) => {
     const button = el('button', 'button ghost', title); button.type = 'button';
+    button.dataset.focusKey = `page-${title}`;
     button.addEventListener('click', () => { postPage = next; renderPosts(latestData); });
 
     pages.append(button);
@@ -678,12 +688,27 @@ function renderPosts(data: AdminData) {
   if (postPage > 0) pageButton('이전', postPage - 1);
   pages.append(el('span', '', `${postPage + 1} / ${totalPages}`));
   if (postPage + 1 < totalPages) pageButton('다음', postPage + 1);
+  if (ownedFocus) {
+    const target = Array.from(document.querySelectorAll<HTMLElement>('[data-focus-key]')).find(item => item.dataset.focusKey === focusKey);
+    const fallback = get('post-count'); fallback.tabIndex = -1;
+    (target ?? fallback).focus({ preventScroll: true });
+  }
 }
 
 /**
  * 상세 페이지와 같은 글 메타데이터 편집 폼 표시
  */
-function editPost(post: Post, data: AdminData) {
+async function editPost(post: Post, data: AdminData) {
+  const generation = ++dialogGeneration;
+  const session = sessionGeneration;
+  try { post = await request<Post>(`/admin/posts/${post.id}`); }
+  catch (error) {
+    if (session !== sessionGeneration || generation !== dialogGeneration) return;
+    if (error instanceof HttpError && error.status === 401) showLogin(error.message);
+    else setMessage(dashboardMessage, error instanceof Error ? error.message : '글 정보를 불러오지 못했습니다.', true);
+    return;
+  }
+  if (!sessionReady || session !== sessionGeneration || generation !== dialogGeneration) return;
   // 제출한 폼과 세션의 결과만 반영
   let context: ReturnType<typeof operationContext>;
   const edit = postEditor(post, data, {
@@ -792,11 +817,6 @@ function renderCategories(data: AdminData) {
   };
 
   /**
-   * 분류의 직접 글과 하위 글 수 합산
-   */
-  const count = (category: Category): number => category.totalCount ?? category.directCount + category.children.reduce((sum, child) => sum + count(child), 0);
-
-  /**
    * 분류 추가 버튼 생성
    */
   const addButton = (parent: Category | null) => {
@@ -836,7 +856,7 @@ function renderCategories(data: AdminData) {
       const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
       path.setAttribute('d', 'M3 5h5l2 2h7v9H3Z'); path.setAttribute('fill', 'none'); path.setAttribute('stroke', 'currentColor'); path.setAttribute('stroke-linejoin', 'round'); icon.append(path);
       name.append(icon, document.createTextNode(category.name)); name.addEventListener('click', () => editCategory(category));
-      const total = el('span', 'category-total mono', String(count(category))); total.setAttribute('aria-label', `${count(category)}개 글`);
+      const total = el('span', 'category-total mono', String(categoryCount(category))); total.setAttribute('aria-label', `${categoryCount(category)}개 글`);
       row.append(name, total); li.append(row); if (children) li.append(children); ul.append(li);
     }
     const add = el('li', 'category-add-row'); add.append(addButton(parent)); ul.append(add); return ul;

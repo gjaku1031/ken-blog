@@ -1,4 +1,4 @@
-import { mutate } from './admin-api';
+import { HttpError, mutate } from './admin-api';
 import { el, seriesFormFields, seriesMetadata, submit, value, type Badge, type SeriesMetadata } from './forms';
 
 /**
@@ -68,6 +68,7 @@ export function seriesEditor(options: {
 }) {
   // 기존 항목 또는 마지막 저장 성공 결과 유지
   let saved = options.item;
+  let committedMetadata: string | undefined;
   const form = el('form', 'field-grid series-editor');
   seriesFormFields(form, options.badges, options.project, saved);
   submit(form, saved ? '저장' : options.project ? '프로젝트 만들기' : '시리즈 만들기');
@@ -80,14 +81,22 @@ export function seriesEditor(options: {
       const input = new FormData(form);
       const metadata = seriesMetadata(input, options.project);
       // 신규 생성 또는 수정 시각 비교를 포함한 메타데이터 저장
-      saved = saved
-        ? await mutate<Series>(`/admin/series/${saved.id}/metadata`, 'PUT', { ...metadata, baseUpdatedAt: saved.updatedAt })
-        : await mutate<Series>('/admin/series', 'POST', { kind: options.project ? 'PROJECT' : 'TECH', metadata });
+      const metadataKey = JSON.stringify(metadata);
+      if (!saved || committedMetadata !== metadataKey) {
+        saved = saved
+          ? await mutate<Series>(`/admin/series/${saved.id}/metadata`, 'PUT', { ...metadata, baseUpdatedAt: saved.updatedAt })
+          : await mutate<Series>('/admin/series', 'POST', { kind: options.project ? 'PROJECT' : 'TECH', metadata });
+        committedMetadata = metadataKey;
+      }
       const order = Number(value(input, 'order'));
       // 순서는 별도 저장, 실패하면 생성된 항목을 유지해 재시도
       if (order !== saved.sortOrder) {
         try { saved = await mutate<Series>(`/admin/series/${saved.id}/order`, 'PUT', { order }); }
-        catch (error) { throw new Error(`기본 정보는 저장됐지만 카드 순서를 저장하지 못했습니다. 다시 저장하면 이어서 처리합니다. ${error instanceof Error ? error.message : ''}`); }
+        catch (error) {
+          const message = `기본 정보는 저장됐지만 카드 순서를 저장하지 못했습니다. 다시 저장하면 이어서 처리합니다. ${error instanceof Error ? error.message : ''}`;
+          if (error instanceof HttpError) throw new HttpError(error.status, message);
+          throw new Error(message, { cause: error });
+        }
       }
       // 완료 콜백 실행, 성공·실패 모두 버튼 복구
       await options.onSaved(saved);

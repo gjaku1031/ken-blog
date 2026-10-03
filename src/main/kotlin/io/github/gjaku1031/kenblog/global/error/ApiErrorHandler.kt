@@ -17,7 +17,12 @@ import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExcep
  * Spring MVC 오류를 상태·프로토콜 헤더를 보존한 RFC 9457 본문으로 변환하는 경계
  */
 @RestControllerAdvice
-class ApiErrorHandler : ResponseEntityExceptionHandler() {
+class ApiErrorHandler(
+    /**
+     * 민감 값을 제외한 장애 기록기
+     */
+    private val failures: SafeFailureLog,
+) : ResponseEntityExceptionHandler() {
     /**
      * Spring MVC의 상태와 헤더를 유지하고 입력값·내부 사유를 제외한 설명 사용
      *
@@ -36,20 +41,18 @@ class ApiErrorHandler : ResponseEntityExceptionHandler() {
 
     /**
      * 업무·인증·저장소 실패의 공통 설명 사용
-     * 예상하지 못한 오류 로그에는 타입만 기록
+     * 장애 로그에는 연관 ID·경로 템플릿·타입·제한된 프레임만 기록
      *
      * 1. 업무·인증·저장소 예외를 공개 가능한 상태로 분류
-     * 2. 예상하지 못한 실패는 내부 원문 없이 타입만 기록
+     * 2. 서버 장애는 민감 값 없이 위치를 기록하고 응답에 연관 ID 제공
      * 3. 원래 프로토콜 헤더를 보존한 오류 응답 조립
      */
     @ExceptionHandler(Exception::class)
-    fun handleFailure(ex: Exception): ResponseEntity<ProblemDetail> {
+    fun handleFailure(ex: Exception, request: jakarta.servlet.http.HttpServletRequest): ResponseEntity<ProblemDetail> {
         // 업무·인증·저장소 예외를 공개 가능한 상태로 분류
         val problem = publicProblem(ex)
-        // 예상하지 못한 실패는 내부 원문 없이 타입만 기록
-        if (problem.status == HttpStatus.INTERNAL_SERVER_ERROR.value()) {
-            logger.error("Unhandled API exception: ${ex.javaClass.name}")
-        }
+        // 서버 장애는 민감 값 없이 위치를 기록하고 응답에 연관 ID 제공
+        if (problem.status >= 500) problem.setProperty("eventId", failures.record(request, ex))
         // 원래 프로토콜 헤더를 보존한 오류 응답 조립
         val response = ResponseEntity.status(problem.status)
         if (ex is ErrorResponse && !ex.isDatabaseConnectionFailure()) response.headers(ex.headers)

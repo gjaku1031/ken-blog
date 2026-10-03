@@ -1,3 +1,4 @@
+import { coverRawHtml } from "./raw-html-mask";
 import { escaped, originalOffset, lineStarts, sourcePoint } from './source-position';
 import type { Root, RootContent } from "mdast";
 import { parseMathMarkdown } from "./math-syntax";
@@ -284,32 +285,7 @@ function excludedMask(source: string, root: Root): Uint8Array {
   visit(root as PositionedNode);
   // 인라인 HTML 태그 사이에 있는 텍스트도 HTML로 취급하되 안전한 details/summary 내용은 남김
   // HTML 여닫는 태그 사이의 텍스트도 제외
-  const stack: Array<{
-    /**
-     * 이름
-     */
-    name: string;
-
-    /**
-     * 구간 시작 위치
-     */
-    start: number
-  }> = [];
-  for (const item of html.sort((left, right) => left.start - right.start)) {
-    const raw = source.slice(item.start, item.end);
-    const tag = /^<(\/)?([A-Za-z][\w:-]*)(?:\s[^>]*)?>$/.exec(raw);
-    if (!tag) continue;
-    const name = tag[2].toLowerCase();
-    if (name === "details" || name === "summary") continue;
-    if (tag[1]) {
-      const index = stack.findLastIndex((open) => open.name === name);
-      if (index >= 0) { cover(stack[index].start, item.end); stack.length = index; }
-    } else if (!/\/>$/.test(raw) && !/^(?:br|hr|img|input|meta|link|source|wbr)$/.test(name)) {
-      stack.push({ name, start: item.start });
-    }
-  }
-  // 닫히지 않은 HTML은 문서 끝까지 제외
-  for (const open of stack) cover(open.start, source.length);
+  coverRawHtml(source, html, cover);
   return mask;
 }
 

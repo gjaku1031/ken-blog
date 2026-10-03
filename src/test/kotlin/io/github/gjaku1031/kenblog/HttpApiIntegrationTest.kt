@@ -44,7 +44,7 @@ class HttpApiIntegrationTest(
             .andExpect(status().isOk)
             .andExpect(header().string("Access-Control-Allow-Origin", "https://gjaku1031.github.io"))
             .andExpect(header().doesNotExist("Access-Control-Allow-Credentials"))
-            .andExpect(jsonPath("$.version").value(2))
+            .andExpect(jsonPath("$.version").value(3))
     }
 
     /**
@@ -58,7 +58,7 @@ class HttpApiIntegrationTest(
             .header("Access-Control-Request-Headers", "Accept"))
             .andExpect(status().isOk)
             .andExpect(header().string("Access-Control-Allow-Origin", "http://127.0.0.1:14000"))
-            .andExpect(header().string("Access-Control-Allow-Methods", "GET"))
+            .andExpect(header().string("Access-Control-Allow-Methods", "GET,HEAD"))
             .andExpect(header().doesNotExist("Access-Control-Allow-Credentials"))
     }
 

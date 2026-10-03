@@ -23,25 +23,24 @@ concurrency:
 # 워크플로 실행에 필요한 저장소 권한
 permissions:
   contents: read
-  # 의존성 준비 → 검증 → 공개 데이터 빌드 → 산출물 배포
-  pages: write
-  id-token: write
 
 # 검증·산출물 생성 작업
 jobs:
-  pages:
+  build:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    environment:
-      name: github-pages
-      url: ${{ steps.deploy.outputs.page_url }}
+    outputs:
+      source: ${{ steps.source.outputs.sha }}
     steps:
       - name: Check out source
-        uses: actions/checkout@v7.0.1
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: main
+          ref: ${{ github.sha }}
+      - name: Record artifact source
+        id: source
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
       - name: Set up Node.js
-        uses: actions/setup-node@v7.0.0
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '24.21.0'
           cache: npm
@@ -52,7 +51,7 @@ jobs:
         id: assets
         run: echo "key=$(node src/main/resources/web/build.mjs --cache-key)" >> "$GITHUB_OUTPUT"
       - name: Reuse browser bundles when inputs match
-        uses: actions/cache@v5
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5
         with:
           key: web-assets-${{ steps.assets.outputs.key }}
           path: |
@@ -85,12 +84,36 @@ jobs:
             .github/pages .github/workflows/pages.yml
           printf 'source=%s\n' "$current" >> "$GITHUB_STEP_SUMMARY"
           node -e 'console.log("assets=" + JSON.parse(require("node:fs").readFileSync("build/web-assets.json")).key)' >> "$GITHUB_STEP_SUMMARY"
-      - name: Configure Pages
-        uses: actions/configure-pages@v6.0.0
       - name: Upload static site
-        uses: actions/upload-pages-artifact@v5.0.0
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: build/site
-      - name: Deploy completed artifact
+
+  # 배포 권한은 의존성 설치·빌드 코드를 실행하지 않는 작업에만 부여
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - name: Check out artifact source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ needs.build.outputs.source }}
+      - name: Reject changed site inputs immediately before deployment
+        run: |
+          git fetch --depth=1 origin main
+          git diff --quiet HEAD FETCH_HEAD -- \
+            content/posts src/main/resources/web package.json package-lock.json tsconfig.json \
+            .github/pages .github/workflows/pages.yml
+      - name: Configure Pages
+        uses: actions/configure-pages@45bfe0192ca1faeb007ade9deae92b16b8254a0d # v6.0.0
+      - name: Deploy artifact from this workflow run
         id: deploy
-        uses: actions/deploy-pages@v5.0.1
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

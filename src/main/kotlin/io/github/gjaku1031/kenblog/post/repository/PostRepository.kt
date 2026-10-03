@@ -21,9 +21,9 @@ interface PostRepository : JpaRepository<PostEntity, Long> {
     fun findLockedById(@Param("id") id: Long): PostEntity?
 
     /**
-     * 삭제할 분류의 글을 지정 분류로 이동
+     * 삭제할 분류의 글을 지정 분류로 이동하고 기존 편집 폼 무효화
      */
     @Modifying(flushAutomatically = true)
-    @Query("update PostEntity p set p.categoryId = :parentId where p.categoryId in :categoryIds")
+    @Query("update PostEntity p set p.categoryId = :parentId, p.editVersion = p.editVersion + 1 where p.categoryId in :categoryIds")
     fun moveCategories(@Param("categoryIds") categoryIds: Collection<Long>, @Param("parentId") parentId: Long?): Int
 }

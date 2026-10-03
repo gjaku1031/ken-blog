@@ -1,4 +1,4 @@
-import { HttpError, mutate } from './admin-api';
+import { mutate } from './admin-api';
 import { el, submit } from './forms';
 import { postFields, postPayload, type PostOptions } from './post-fields';
 
@@ -10,6 +10,16 @@ export type EditablePost = {
    * 글 ID
    */
   id: number;
+
+  /**
+   * Git 원고 주소
+   */
+  slug: string;
+
+  /**
+   * 서버에서 읽은 편집 기준 버전
+   */
+  editVersion: number;
 
   /**
    * 글 섹션
@@ -66,8 +76,8 @@ export type EditablePost = {
  * 상세 페이지와 관리자에서 공유하는 글 편집 폼
  *
  * 1. 작성 폼과 같은 입력에 기존 값 반영
- * 2. 기본 정보를 먼저 저장한 뒤 변경된 소속·순서 저장
- * 3. 부분 실패 시 입력 유지와 오류 전달, 성공 시 호출 화면 갱신
+ * 2. 편집 기준 버전과 모든 필드를 한 요청으로 저장
+ * 3. 충돌·오류 시 입력 유지, 성공 시 기준 버전과 호출 화면 갱신
  */
 export function postEditor(post: EditablePost, data: PostOptions, callbacks: {
   /**
@@ -91,6 +101,8 @@ export function postEditor(post: EditablePost, data: PostOptions, callbacks: {
     seriesId: post.series?.id ?? null, order: post.seriesOrder, relatedSeriesId: post.relatedSeriesId,
   };
   const form = el('form', 'field-grid');
+  form.append(el('p', 'form-help', `원고: content/posts/${post.slug}.md`));
+  let baseVersion = post.editVersion;
   postFields(form, data, post.section === 'PROJECT', initial);
   submit(form, '글 정보 저장');
   // 유효한 입력만 저장하고 중복 제출 차단
@@ -100,20 +112,10 @@ export function postEditor(post: EditablePost, data: PostOptions, callbacks: {
     const button = form.querySelector<HTMLButtonElement>('button[type=submit]')!;
     button.disabled = true; callbacks.onSaving();
     try {
-      const { seriesId, order, relatedSeriesId, ...metadata } = postPayload(new FormData(form));
-      // 분류 변경을 소속·순서 검증에 반영하기 위해 기본 정보 먼저 저장
-      await mutate(`/admin/posts/${post.id}/metadata`, 'PATCH', metadata);
-      if (seriesId !== initial.seriesId || order !== initial.order || relatedSeriesId !== initial.relatedSeriesId) {
-        try {
-          await mutate(`/admin/posts/${post.id}/series`, 'PUT', { seriesId, order, relatedSeriesId });
-        } catch (error) {
-          // 두 요청은 별도 저장이므로 이미 저장한 정보와 실패 범위를 구분
-          const detail = error instanceof Error ? error.message : '요청에 실패했습니다.';
-          const message = `기본 정보는 저장했지만 소속·문서 순서를 저장하지 못했습니다. ${detail} 다시 저장해 주세요.`;
-          if (error instanceof HttpError) throw new HttpError(error.status, message);
-          throw new Error(message);
-        }
-      }
+      const saved = await mutate<EditablePost>(`/admin/posts/${post.id}/metadata`, 'PATCH', {
+        ...postPayload(new FormData(form)), baseVersion,
+      });
+      baseVersion = saved.editVersion;
       await callbacks.onSaved();
     } catch (error) { callbacks.onError(error); }
     finally { button.disabled = false; }

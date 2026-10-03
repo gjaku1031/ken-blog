@@ -24,6 +24,19 @@ class LocalAssetStorageTest {
     lateinit var directory: Path
 
     /**
+     * 실행 셸의 umask와 무관하게 정상 저장 경로의 POSIX 권한 준비
+     */
+    private fun privateDirectory(path: Path): Path {
+        Files.createDirectories(path)
+        var current = path
+        while (current.startsWith(directory) && current != directory) {
+            Files.setPosixFilePermissions(current, java.nio.file.attribute.PosixFilePermissions.fromString("rwxr-x---"))
+            current = current.parent
+        }
+        return path
+    }
+
+    /**
      * 외부에서 준비한 파일을 저장소 객체 재생성 후에도 같은 DB key로 조회
      *
      * 1. 외부에서 준비한 저장 루트와 파일 생성
@@ -34,10 +47,10 @@ class LocalAssetStorageTest {
     fun `externally prepared files survive storage recreation`() {
         // 외부에서 준비한 저장 루트와 파일 생성
         val root = directory.resolve("storage")
-        Files.createDirectory(root)
+        privateDirectory(root)
         val key = "ken-blog/attachments/123e4567-e89b-12d3-a456-426614174000.png"
         val bytes = byteArrayOf(1, 2, 3)
-        Files.createDirectories(root.resolve(key).parent)
+        privateDirectory(root.resolve(key).parent)
         Files.write(root.resolve(key), bytes)
         // 저장소 객체 재생성 후 같은 key로 바이트 조회
         val reopened = LocalAssetStorage(root.toString())
@@ -55,9 +68,9 @@ class LocalAssetStorageTest {
     fun `existing keys remain readable without prefix configuration`() {
         val root = directory.resolve("storage")
         val key = "ken-blog/attachments/123e4567-e89b-12d3-a456-426614174000.jpg"
-        Files.createDirectory(root)
+        privateDirectory(root)
         val storage = LocalAssetStorage(root.toString())
-        Files.createDirectories(root.resolve(key).parent)
+        privateDirectory(root.resolve(key).parent)
         Files.write(root.resolve(key), byteArrayOf(4))
         storage.open(key).use { assertArrayEquals(byteArrayOf(4), it.readAllBytes()) }
     }
@@ -72,7 +85,7 @@ class LocalAssetStorageTest {
     @Test
     fun `path traversal and absolute paths cannot reach outside files`() {
         // 저장소 밖 원본 파일과 저장 루트 준비
-        Files.createDirectory(directory.resolve("storage"))
+        privateDirectory(directory.resolve("storage"))
         val storage = LocalAssetStorage(directory.resolve("storage").toString())
         val outside = directory.resolve("outside.png")
         Files.write(outside, byteArrayOf(5))
@@ -96,15 +109,15 @@ class LocalAssetStorageTest {
         // 심볼릭 링크를 검증할 POSIX 파일시스템에서 실행
         assumeTrue(directory.fileSystem.supportedFileAttributeViews().contains("posix"))
         val root = directory.resolve("storage")
-        Files.createDirectory(root)
+        privateDirectory(root)
         val storage = LocalAssetStorage(root.toString())
         val outside = directory.resolve("outside")
-        Files.createDirectory(outside)
+        privateDirectory(outside)
         val filename = "123e4567-e89b-12d3-a456-426614174000.png"
         Files.write(outside.resolve(filename), byteArrayOf(7))
         // 외부 파일을 가리키는 디렉터리·파일 링크 구성
         Files.createSymbolicLink(root.resolve("linked"), outside)
-        Files.createDirectory(root.resolve("attachments"))
+        privateDirectory(root.resolve("attachments"))
         Files.createSymbolicLink(root.resolve("attachments").resolve(filename), outside.resolve(filename))
         // 두 링크 경로의 접근 거부와 외부 원본 보존 확인
         for (key in listOf("linked/$filename", "attachments/$filename")) {

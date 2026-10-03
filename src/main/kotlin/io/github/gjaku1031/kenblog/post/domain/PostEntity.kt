@@ -178,6 +178,18 @@ open class PostEntity protected constructor() {
         protected set
 
     /**
+     * 관리자 편집 충돌 검사용 버전, 모든 편집 저장과 분류 일괄 이동에서 증가
+     */
+    @Column(name = "edit_version", nullable = false)
+    open var editVersion: Long = 0
+        protected set
+
+    /**
+     * 글 쓰기 잠금을 가진 트랜잭션에서 편집 버전과 수정 시각 갱신
+     */
+    internal open fun advanceEdit(now: LocalDateTime) { editVersion = Math.addExact(editVersion, 1); updatedAt = now }
+
+    /**
      * 출간 상태
      */
     @Enumerated(EnumType.STRING) @Column(nullable = false, columnDefinition = "varchar(16)")

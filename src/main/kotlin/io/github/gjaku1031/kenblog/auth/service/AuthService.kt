@@ -27,6 +27,11 @@ class AuthService(
     private val attempts: AdminLoginAttemptService,
 
     /**
+     * 신뢰한 프록시 또는 직접 연결에서 로그인 출처 식별
+     */
+    private val sources: LoginSource,
+
+    /**
      * 로그인 성공 시 세션 교체 전략
      */
     private val sessionStrategy: SessionAuthenticationStrategy,
@@ -56,7 +61,7 @@ class AuthService(
      */
     fun login(body: LoginRequest, request: HttpServletRequest, response: HttpServletResponse): CurrentUserResponse {
         // 로그인 시도 트랜잭션 완료 후 성공·거부·잠금 결과 구분
-        val success = when (val result = attempts.attempt(body.password)) {
+        val success = when (val result = attempts.attempt(body.password, sources.key(request))) {
             is AdminLoginResult.Success -> result
             AdminLoginResult.Denied -> throw BadCredentialsException("Invalid credentials")
             AdminLoginResult.Locked -> throw ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS)
@@ -70,10 +75,8 @@ class AuthService(
         request.getSession(true).apply {
             maxInactiveInterval = if (body.rememberMe) REMEMBERED_SESSION_TIMEOUT_SECONDS else AUTHENTICATED_SESSION_TIMEOUT_SECONDS
             if (body.rememberMe) {
-                setAttribute(REMEMBER_LOGIN_ATTRIBUTE, true)
                 request.setAttribute(REMEMBER_COOKIE_REQUEST_ATTRIBUTE, true)
             } else {
-                removeAttribute(REMEMBER_LOGIN_ATTRIBUTE)
                 request.removeAttribute(REMEMBER_COOKIE_REQUEST_ATTRIBUTE)
             }
             setAttribute(AUTH_PROOF_ATTRIBUTE, success.proof)
@@ -111,11 +114,6 @@ class AuthService(
          * 세션 인증 버전 속성명
          */
         const val AUTH_VERSION_ATTRIBUTE = "KENBLOG_ADMIN_AUTH_VERSION"
-
-        /**
-         * 로그인 유지 세션 속성명
-         */
-        const val REMEMBER_LOGIN_ATTRIBUTE = "KENBLOG_REMEMBER_LOGIN"
 
         /**
          * 영속 세션 쿠키 기록 요청 속성명

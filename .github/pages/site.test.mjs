@@ -52,3 +52,21 @@ test('muted text meets normal-text contrast in both themes', async () => {
     }
   }
 });
+
+// 대소문자 별칭이 같은 대표 글을 가리켜도 출처 글은 역링크에 한 번만 표시
+test('wiki aliases produce one backlink per source document', async () => {
+  const output = await mkdtemp(join(tmpdir(), 'ken-backlink-'));
+  try {
+    const snapshot = normalizeSnapshot(fixture, true);
+    snapshot.posts.forEach(post => { post.rendered = { html: '', headings: [], wikiTargets: [] }; });
+    snapshot.posts[1].title = 'Target';
+    snapshot.posts[0].rendered.wikiTargets = ['Target', 'target', 'TARGET'];
+    snapshot.posts[2].rendered.wikiTargets = ['target'];
+    await generateSite({ snapshot, assets: { css: 'public.css', js: 'public.js' }, adminHref: '/ken-blog/manage/',
+      admin: { apiBase: '', css: 'admin.css', js: 'admin.js' } }, output);
+    const html = await readFile(join(output, 'post/fixture-2/index.html'), 'utf8');
+    const backlinks = html.match(/<[^>]+class="post-backlinks[\s\S]*?<\/section>/)?.[0] ?? '';
+    assert.equal((backlinks.match(/href="\/ken-blog\/post\/fixture-1\/"/g) ?? []).length, 1);
+    assert.equal((backlinks.match(/href="\/ken-blog\/post\/fixture-3\/"/g) ?? []).length, 1);
+  } finally { await rm(output, { recursive: true, force: true }); }
+});

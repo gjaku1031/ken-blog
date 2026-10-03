@@ -20,6 +20,10 @@ services:
     environment:
       SERVER_PORT: "8080"
       SERVER_FORWARD_HEADERS_STRATEGY: none
+      # 검토된 SQL 적용 후 운영 기동은 스키마 검증만 수행
+      APP_JPA_DDL_AUTO: validate
+      APP_SQL_INIT_MODE: never
+      AUTH_PROXY_KEY: ${AUTH_PROXY_KEY:?Shared proxy key of at least 32 characters is required}
       SESSION_COOKIE_SECURE: "true"
       SESSION_COOKIE_SAME_SITE: none
       SESSION_COOKIE_PARTITIONED: "true"
@@ -52,6 +56,7 @@ services:
         condition: service_started
     environment:
       KEN_BLOG_PUBLIC_IP: ${KEN_BLOG_PUBLIC_IP:?Public IPv4 certificate SAN is required}
+      AUTH_PROXY_KEY: ${AUTH_PROXY_KEY:?Shared proxy key of at least 32 characters is required}
     command: ["caddy", "run", "--config", "/etc/caddy/Caddyfile", "--adapter", "caddyfile"]
     ports:
       - "${KEN_BLOG_PUBLIC_BIND_IP:?Private NIC bind IPv4 is required}:80:80"

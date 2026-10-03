@@ -46,3 +46,26 @@ test('image headers reserve the intrinsic size and reject truncated dimensions',
   assert.throws(() => imageSize(png.subarray(0, 20), 'image/png'));
   assert.throws(() => imageSize(jpeg.subarray(0, 8), 'image/jpeg'));
 });
+
+// 치환 메타문자를 포함한 TeX가 HTML과 내부 마커를 재삽입하지 않는지 검증
+test('math replacement is literal, deterministic and bounded', async () => {
+  const samples = [String.raw`$\text{\$\&}$`, String.raw`$\text{\$\$}$`, "$\\text{\\$`}$", "$\\text{\\$'}$"];
+  for (const sample of samples) {
+    const one = await renderMarkdown(sample);
+    const prepared = prepareMarkdown(Array(16).fill(sample).join('\n\n'));
+    const many = await renderPreparedMarkdown(prepared);
+    assert.deepEqual(many, await renderPreparedMarkdown(prepared));
+    assert.doesNotMatch(many.html, /KENBLOG(?:MATH|INSERT|RENDER)/);
+    assert.ok(many.html.length <= one.html.length * 17);
+  }
+});
+
+// 수식 시작 달러가 코드·이미지·주소의 달러를 닫는 구분자로 소비하지 않는지 검증
+test('math cannot cross protected Markdown boundaries', async () => {
+  for (const source of ['가격 $5와 `$HOME`', '가격 $5와 [링크](https://example.org/$path)', '가격 $5와 ![$alt](attachment:1)', '$x <span>$y</span>', '$$\n```text\n$$\n```']) {
+    const rendered = await renderMarkdown(source, { attachmentUrl: () => '/ken-blog/assets/1.png' });
+    assert.doesNotMatch(rendered.html, /class="katex"/);
+  }
+  const link = await renderMarkdown('[수식 $x$](https://example.org/)');
+  assert.match(link.html, /class="katex"/);
+});

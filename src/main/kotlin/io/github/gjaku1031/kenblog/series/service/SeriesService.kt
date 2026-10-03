@@ -4,6 +4,7 @@ import io.github.gjaku1031.kenblog.series.domain.*
 import io.github.gjaku1031.kenblog.series.dto.*
 import io.github.gjaku1031.kenblog.series.repository.SeriesRepository
 import io.github.gjaku1031.kenblog.post.repository.PostQueries
+import io.github.gjaku1031.kenblog.post.repository.PostRow
 import io.github.gjaku1031.kenblog.post.domain.PostVisibility
 import io.github.gjaku1031.kenblog.post.domain.PostStatus
 import io.github.gjaku1031.kenblog.post.dto.PostSeriesItem
@@ -44,6 +45,25 @@ class SeriesService(
         .filter { admin || it.visibility == PostVisibility.PUBLIC }
         .sortedWith(compareBy<SeriesEntity> { it.sortOrder }.thenBy { it.id })
         .map { response(it, admin) }.filter { admin || it.cover != null }
+
+    /**
+     * 공개 스냅샷의 행을 재사용하여 시리즈·뱃지 N+1 조회 제거
+     */
+    fun publicSnapshot(rows: List<PostRow>): List<SeriesResponse> {
+        val groups = rows.sortedWith(compareBy<PostRow, Int?>(nullsLast()) { it.seriesOrder }
+            .thenBy(nullsLast()) { it.publishedAt }.thenBy { it.id }).filter { it.series != null }.groupBy { it.series!!.id }
+        val stacks = badges.batchForSeries()
+        return series.findAll().filter { it.visibility == PostVisibility.PUBLIC && groups.containsKey(it.id) }
+            .sortedWith(compareBy<SeriesEntity> { it.sortOrder }.thenBy { it.id }).map { entity ->
+                val id = entity.id ?: error("Persisted series has no ID")
+                val siblings = groups.getValue(id)
+                val cover = siblings.first()
+                SeriesResponse(id, entity.slug, entity.name, entity.kind, entity.description, entity.visibility,
+                    entity.projectStatus, entity.startPeriod, entity.endPeriod, entity.sortOrder, entity.updatedAt,
+                    PostSeriesItem(cover.id, cover.slug, cover.title, 1), siblings.size,
+                    if (entity.kind == SeriesKind.PROJECT) stacks[id].orEmpty() else emptyList())
+            }
+    }
 
     /**
      * 시리즈 상세와 문서 목록 조회

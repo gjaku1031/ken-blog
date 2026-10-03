@@ -25,6 +25,8 @@
 .markdown-body .attachment-figure { margin:24px auto; max-width:100%; width:100%; text-align:center; }
 .markdown-body .attachment-figure[data-align="left"] { margin-left:0; }
 .markdown-body .attachment-figure[data-align="right"] { margin-right:0; }
+/* 문단·링크·표 안의 첨부도 원본 비율 유지 */
+.markdown-body img.ken-attachment { max-width:100%; height:auto; }
 .markdown-body .attachment-figure img { display:block; max-width:100%; height:auto; margin:auto; cursor:zoom-in; }
 .markdown-body figcaption { color:var(--muted); font-size:13px; padding-top:7px; }
 /* Mermaid 도식과 원문 전환 */
@@ -33,7 +35,7 @@
 .markdown-body .mermaid-source-toggle { display:block; margin-left:auto; border:0; background:transparent; color:var(--accent-d); }
 /* 본문 주석 참조·팝업·목록 */
 .markdown-body .ken-annotation-ref { position:relative; cursor:pointer; color:var(--accent-d); }
-.markdown-body .ken-annotation-popup { position:absolute; bottom:100%; left:0; z-index:10; width:max-content; max-width:min(360px,80vw); padding:9px 12px; border:1px solid var(--line2); border-radius:6px; background:var(--card); box-shadow:var(--shadow2); color:var(--text); font-size:13px; font-weight:400; }
+.markdown-body .ken-annotation-popup { position:fixed; z-index:10; width:max-content; max-width:min(360px,calc(100vw - 16px)); max-height:calc(100vh - 16px); overflow:auto; padding:9px 12px; border:1px solid var(--line2); border-radius:6px; background:var(--card); box-shadow:var(--shadow2); color:var(--text); font-size:13px; font-weight:400; }
 .markdown-body .ken-annotations { border-top:1px solid var(--line2); margin-top:40px; font-size:13px; }
 .markdown-body .ken-annotations h2 { font-size:17px; }
 .markdown-body .ken-annotations > ol { list-style:none; padding-left:0; }
@@ -130,9 +132,6 @@
 .post-page article .post-reading-layout.has-toc .post-main-content { grid-column: 1; min-width: 0; }
 .post-page article .post-reading-layout.has-toc .post-side-rail { grid-column: 2; grid-row: 1 / span 12;
   position: static; margin-top: 0; }
-/* 화면 폭에 맞춘 배치 조정 */
-@media (min-width: 1081px) {.post-page article .post-reading-layout.has-toc .post-side-rail.can-stick { position: sticky; top: 96px; }
-}
 .post-page .back-link { font-size: 13px; color: var(--muted); }
 .post-overline a { color: var(--muted); }
 .post-overline a:hover { color: var(--accent-d); }
@@ -167,7 +166,7 @@
 }
 /* 화면 폭에 맞춘 배치 조정 */
 @media (min-width:1081px) {.post-page article .post-reading-layout.has-toc .post-side-rail.can-stick {
-    max-height:calc(100dvh - 116px); overflow-y:auto; overscroll-behavior:contain;
+    position:sticky; top:96px; max-height:calc(100dvh - 116px); overflow-y:auto; overscroll-behavior:contain;
   }
 }
 /* 프로젝트 상태·기간·편집 배치 */

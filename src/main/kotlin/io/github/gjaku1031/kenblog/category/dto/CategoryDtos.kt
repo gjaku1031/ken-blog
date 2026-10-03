@@ -32,17 +32,6 @@ data class CategoryCreateRequest(
 }
 
 /**
- * 분류 하나의 숫자 순서 입력
- * 서비스에서 저장 가능한 Int 범위를 검증
- */
-data class CategoryOrderRequest(
-    /**
-     * 표시 순서
-     */
-    val order: Long
-    )
-
-/**
  * 글과 분류 생성 응답에서 공유하는 저장 분류 참조
  */
 data class CategoryRefResponse(

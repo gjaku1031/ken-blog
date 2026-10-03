@@ -90,8 +90,7 @@ export function connectHeader(options: {
         else history.replaceState(history.state, "", target);
       }
       options.onSearch?.();
-    } else if (submitted) location.assign(target);
-    else location.replace(target);
+    } else location.assign(target);
   }
 
   /**

@@ -1,3 +1,4 @@
+import { categoryCount } from './category-count';
 import { el } from './forms';
 import type { Category } from './post-fields';
 
@@ -45,11 +46,6 @@ export function categoryTreePicker(parent: HTMLElement, categories: Category[], 
   }
 
   /**
-   * 하위 분류를 포함한 글 수 합산
-   */
-  const count = (category: Category): number => category.totalCount ?? category.directCount + category.children.reduce((sum, child) => sum + count(child), 0);
-
-  /**
    * 분류 깊이에 따른 중첩 목록 구성, 초기에는 현재 선택도 보이도록 모두 펼침
    */
   function tree(items: Category[]) {
@@ -57,8 +53,8 @@ export function categoryTreePicker(parent: HTMLElement, categories: Category[], 
     for (const category of items) {
       const item = el('li'); const line = el('div', 'category-line');
       const button = option(String(category.id), category.name, category.path);
-      const total = el('span', 'category-total mono', String(count(category)));
-      total.setAttribute('aria-label', `글 ${count(category)}개`); button.append(total);
+      const total = el('span', 'category-total mono', String(categoryCount(category)));
+      total.setAttribute('aria-label', `글 ${categoryCount(category)}개`); button.append(total);
       // 하위 목록 접기와 분류 선택을 별도 버튼으로 분리
       if (category.children.length) {
         const children = tree(category.children); children.id = `${prefix}-${category.id}`;

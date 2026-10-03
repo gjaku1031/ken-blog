@@ -135,37 +135,7 @@ h1, h2, h3 { word-break: keep-all; line-height: 1.35; }
 .back-link { color: var(--muted); font-size: 14px; }
 .primary-button { display: inline-flex; justify-content: center; align-items: center; min-height: 44px; padding: 0 18px; border: 1px solid var(--button-bg); border-radius: 6px; background: var(--button-bg); color: var(--on-accent); font-weight: 700; }
 .primary-button:hover { background: var(--button-hover); border-color: var(--button-hover); color: var(--on-accent); }
-/* 사용자 동작 줄이기 설정 반영 */
-@media (prefers-reduced-motion: reduce) {html { scroll-behavior: auto; }
-}
 .blocked-image { display: inline-block; border: 1px dashed var(--line2); border-radius: 6px; padding: 6px 10px; color: var(--muted); font-size: 13px; }
-/* 로그인·잠금 화면 */
-.login-card { width: min(100%, 400px); padding: 35px; }
-.login-card h1 { margin: 0 0 20px; font-size: 26px; }
-.login-card form { display: grid; }
-.login-card label { color: var(--text2); font-size: 13px; font-weight: 700; margin: 0 0 5px; }
-.login-card input { width: 100%; height: 44px; margin: 0 0 16px; border: 1px solid var(--line2); border-radius: 8px; padding: 0 13px; background: var(--card); color: var(--text); font-size: 15px; }
-.login-card input:focus { border-color: var(--accent); }
-.login-card .primary-button { width: 100%; }
-/* 화면 폭에 맞춘 배치 조정 */
-@media (max-width: 1080px) {.content-grid { grid-template-columns: minmax(0, 1fr); }
-.feed-sidebar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.projects-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-}
-/* 화면 폭에 맞춘 배치 조정 */
-@media (max-width: 860px) {.projects-grid { grid-template-columns: minmax(0, 1fr); }
-}
-/* 화면 폭에 맞춘 배치 조정 */
-@media (max-width: 760px) {.page-container { width: min(100% - 28px, var(--page-width-standard)); }
-.tech-page { padding-top: 24px; }
-.feed-sidebar { grid-template-columns: 1fr; }
-}
-/* 화면 폭에 맞춘 배치 조정 */
-@media (max-width: 420px) {.post-card { padding: 16px; }
-.post-card h2, .post-card h3 { font-size: 18px; }
-.site-footer { padding: 18px 14px; }
-.login-card { padding: 25px; }
-}
 /* 사용자 동작 줄이기 설정 반영 */
 @media (prefers-reduced-motion: reduce) {html { scroll-behavior: auto; }
 .post-card { transition: none; }
@@ -228,14 +198,16 @@ h1, h2, h3 { word-break: keep-all; line-height: 1.35; }
 .projects-grid { grid-template-columns: minmax(0,1fr); }
 }
 /* 화면 폭에 맞춘 배치 조정 */
-@media (max-width: 760px) {.page-container { width: min(100% - 64px, var(--page-width-standard)); }
+@media (max-width: 760px) {.tech-page { padding-top:24px; }
+.page-container { width: min(100% - 64px, var(--page-width-standard)); }
 .feed-sidebar { grid-template-columns: 1fr; }
 }
 /* 화면 폭에 맞춘 배치 조정 */
 @media (max-width: 420px) {:root { --article-title-size: 25px; --heading-1-size: 23px; --heading-2-size: 21px; --heading-3-size: 18px; }
 .page-container { width: min(100% - 64px, var(--page-width-standard)); }
 .post-card { padding: 20px; }
-.post-card h2 { font-size: 18px; }
+.post-card h2, .post-card h3 { font-size: 18px; }
+.site-footer { padding:18px 14px; }
 .projects-page { width: min(100% - 64px, var(--page-width-wide)); }
 }
 .write-button { display:inline-flex; align-items:center; justify-content:center; }

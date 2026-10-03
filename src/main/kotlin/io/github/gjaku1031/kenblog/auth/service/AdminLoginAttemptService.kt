@@ -38,6 +38,12 @@ class AdminLoginAttemptService(
      * 단일 관리자 설정
      */
     private val settings: AdminAuthSettings,
+
+    /**
+     * 제한 기간 계산용 UTC 시계
+     */
+    private val clock: java.time.Clock,
+
 ) : ApplicationRunner {
     /**
      * 재시작 시 설정 회전을 DB 버전에 기록하여 옛 세션을 영구 무효화
@@ -45,47 +51,59 @@ class AdminLoginAttemptService(
     @Transactional
     override fun run(args: ApplicationArguments) {
         synchronizeSettings(lockedState(), settings.configured())
+        // JPA가 검증하지 않는 보조 테이블도 일반 기동에서 읽기만 하여 누락을 조기에 발견
+        jdbc.queryForList("SELECT source_key, failure_count, expires_at FROM admin_login_sources WHERE 1 = 0")
+        jdbc.queryForList("SELECT PRIMARY_ID, SESSION_ID, CREATION_TIME, LAST_ACCESS_TIME, MAX_INACTIVE_INTERVAL, EXPIRY_TIME, PRINCIPAL_NAME FROM SPRING_SESSION WHERE 1 = 0")
+        jdbc.queryForList("SELECT SESSION_PRIMARY_ID, ATTRIBUTE_NAME, ATTRIBUTE_BYTES FROM SPRING_SESSION_ATTRIBUTES WHERE 1 = 0")
+        jdbc.queryForObject("SELECT id FROM content_state WHERE id = 1", Byte::class.java)
     }
 
     /**
      * 실패 상태도 커밋되도록 예외 대신 결과를 반환하고 비밀번호 인증 성공 때만 인증 증명을 생성
      *
-     * 1. 공유 상태 행을 잠그고 설정 회전·잠금 만료 확인
-     * 2. 설정된 관리자 계정의 비밀번호·활성 상태·권한 검증
-     * 3. 성공 시 실패 상태 초기화 후 세션 증명 반환
-     * 4. 실패 횟수·잠금 상태를 저장하고 예외 없이 결과 반환
+     * 1. 공유 상태 행을 잠그고 설정 회전·출처별 제한·전체 연산 한도 확인
+     * 2. 연산 예산 차감 후 관리자 비밀번호·활성 상태·권한 검증
+     * 3. 성공한 출처의 실패 상태만 지우고 세션 증명 반환
+     * 4. 실패한 출처의 횟수를 저장하고 예외 없이 결과 반환
      */
     @Transactional
-    fun attempt(password: String): AdminLoginResult {
+    fun attempt(password: String, source: String = "direct-service"): AdminLoginResult {
         // 공유 상태 행을 잠그고 설정 회전·잠금 만료 확인
         val state = lockedState()
         val config = settings.configured()
         synchronizeSettings(state, config)
-        val now = Instant.now()
-        if (state.lockedUntil?.isAfter(now) == true) return AdminLoginResult.Locked
+        val now = clock.instant()
+        val timestamp = LocalDateTime.ofInstant(now, ZoneOffset.UTC)
+        val expires = LocalDateTime.ofInstant(now.plusSeconds(LOCK_SECONDS), ZoneOffset.UTC)
+        // 출처별 실패 창은 첫 실패부터 60초이며 차단 요청으로 연장하지 않음
+        jdbc.update("DELETE FROM admin_login_sources WHERE expires_at <= ?", timestamp)
+        val sourceFailures = jdbc.query("SELECT failure_count FROM admin_login_sources WHERE source_key = ?", { rs, _ -> rs.getInt(1) }, source).firstOrNull() ?: 0
+        if (sourceFailures >= MAX_FAILURES) return AdminLoginResult.Locked
+        // 분산 시도에서도 BCrypt 실행은 전체 60초당 30회로 제한, 한도 소진 시 검증 없이 거부
+        val inWindow = state.lockedUntil?.isAfter(now) == true
+        val work = if (inWindow) state.failureCount else 0
+        if (work >= 30) return AdminLoginResult.Locked
+        if (sourceFailures == 0 && requireNotNull(jdbc.queryForObject("SELECT COUNT(*) FROM admin_login_sources", Int::class.java)) >= 4096)
+            return AdminLoginResult.Locked
+        jdbc.update("UPDATE admin_auth_state SET failure_count = ?, locked_until = ? WHERE id = 1", work + 1,
+            if (inWindow) LocalDateTime.ofInstant(state.lockedUntil, ZoneOffset.UTC) else expires)
 
         // 설정된 관리자 계정의 비밀번호·활성 상태·권한 검증
         val account = config?.let { accounts.findByUsername(it.username) }
         val validPassword = account != null && password.isNotEmpty() &&
             password.toByteArray(Charsets.UTF_8).size <= 72 && encoder.matches(password, account.passwordHash)
         val validOwner = account?.enabled == true && account.role == UserRole.ADMIN
-        // 성공 시 실패 상태 초기화 후 세션 증명 반환
+        // 성공한 출처의 실패 상태만 지우고 전체 검증 예산은 유지
         if (validPassword && validOwner) {
-            jdbc.update("UPDATE admin_auth_state SET failure_count = 0, locked_until = NULL WHERE id = 1")
+            jdbc.update("DELETE FROM admin_login_sources WHERE source_key = ?", source)
             return AdminLoginResult.Success(config.username, sessionProof(config.fingerprint, account.passwordHash), state.authVersion)
         }
 
-        // 실패 횟수·잠금 상태를 저장하고 예외 없이 결과 반환
-        val failures = state.failureCount + 1
-        if (failures >= MAX_FAILURES) {
-            jdbc.update(
-                "UPDATE admin_auth_state SET failure_count = 0, locked_until = ? WHERE id = 1",
-                LocalDateTime.ofInstant(now.plusSeconds(LOCK_SECONDS), ZoneOffset.UTC),
-            )
-            return AdminLoginResult.Locked
-        }
-        jdbc.update("UPDATE admin_auth_state SET failure_count = ? WHERE id = 1", failures)
-        return AdminLoginResult.Denied
+        // 단일 인증 상태 잠금 아래에서 제한된 출처별 실패 상태 저장
+        val failures = sourceFailures + 1
+        jdbc.update("INSERT INTO admin_login_sources (source_key, failure_count, expires_at) VALUES (?, 1, ?) " +
+            "ON DUPLICATE KEY UPDATE failure_count = failure_count + 1", source, expires)
+        return if (failures >= MAX_FAILURES) AdminLoginResult.Locked else AdminLoginResult.Denied
     }
 
     /**
@@ -170,12 +188,12 @@ class AdminLoginAttemptService(
         var authVersion: Long,
 
         /**
-         * 누적 로그인 실패 횟수
+         * 현재 창의 비밀번호 검증 횟수
          */
         var failureCount: Int,
 
         /**
-         * 로그인 잠금 만료 시각
+         * 전체 비밀번호 검증 창 만료 시각
          */
         var lockedUntil: Instant?,
     )
@@ -231,7 +249,7 @@ sealed interface AdminLoginResult {
     data object Denied : AdminLoginResult
 
     /**
-     * 공유된 로그인 실패 한도에 도달했거나 잠금 중임
+     * 출처별 실패 또는 전체 비밀번호 연산 한도에 도달함
      */
     data object Locked : AdminLoginResult
 }

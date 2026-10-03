@@ -50,13 +50,23 @@ export function connectPostCreator() {
             /**
              * 제목
              */
-            title: string
+            title: string;
+
+            /**
+             * 저장한 글 ID
+             */
+            id: number;
+
+            /**
+             * Git 원고 주소
+             */
+            slug: string
           }>('/admin/posts', 'POST', postPayload(new FormData(form)));
           if (!dialog.open || run !== generation) return;
           // 현재 세대의 결과만 완료 화면에 반영
           const done = el('div', 'creation-complete');
-          done.append(el('h3', '', '미발행 글로 저장했습니다.'), el('p', '', post.title));
-          const manage = el('a', 'button', '글 관리'); manage.href = sitePath('manage/#posts');
+          done.append(el('h3', '', '미발행 글로 저장했습니다.'), el('p', '', post.title), el('code', '', `content/posts/${post.slug}.md`));
+          const manage = el('a', 'button', '글 관리'); manage.href = sitePath(`manage/?post=${post.id}#posts`);
           const finish = el('button', 'button primary', '완료'); finish.type = 'button'; finish.addEventListener('click', () => dialog.close());
           done.append(manage, finish); content.replaceChildren(done); finish.focus();
         } catch (error) { if (run === generation && dialog.open) showError(error); }

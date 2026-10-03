@@ -21,7 +21,12 @@ class JdbcSessionFailureFilter(
     /**
      * 보안 오류 응답기
      */
-    private val writer: SecurityProblemWriter
+    private val writer: SecurityProblemWriter,
+
+    /**
+     * MVC 밖 JDBC 세션 장애 기록기
+     */
+    private val failures: io.github.gjaku1031.kenblog.global.error.SafeFailureLog
 ) : OncePerRequestFilter() {
     /**
      * 뒤따르는 세션 필터의 DB 연결 실패만 HTTP 503으로 변환
@@ -43,8 +48,10 @@ class JdbcSessionFailureFilter(
             filterChain.doFilter(request, response)
         } catch (ex: Exception) {
             // 연결 장애이면서 응답 미확정인 경우만 503으로 변환
-            if (!ex.isDatabaseConnectionFailure() || response.isCommitted) throw ex
-            writer.write(response, HttpStatus.SERVICE_UNAVAILABLE)
+            if (!ex.isDatabaseConnectionFailure()) throw ex
+            val eventId = failures.record(request, ex)
+            if (response.isCommitted) throw ex
+            writer.write(response, HttpStatus.SERVICE_UNAVAILABLE, eventId)
         }
     }
 }

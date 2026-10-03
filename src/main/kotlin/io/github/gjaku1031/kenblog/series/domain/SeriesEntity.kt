@@ -161,7 +161,12 @@ open class SeriesEntity protected constructor() {
         this.slug = slug
         this.kind = kind
         this.createdAt = now
-        replace(name, description, projectStatus, startPeriod, endPeriod, now)
+        this.name = name
+        this.description = description
+        this.projectStatus = projectStatus
+        this.startPeriod = startPeriod
+        this.endPeriod = endPeriod
+        this.updatedAt = now
     }
 
     /**

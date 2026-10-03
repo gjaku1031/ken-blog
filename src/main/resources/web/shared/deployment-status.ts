@@ -77,6 +77,25 @@ function pick(value: unknown, keys: string[]) {
 }
 
 /**
+ * v3의 공용 탐색 목록을 기존 렌더링·비교 모델로 확장, 잘못된 참조 거부
+ */
+export function expandPublicSnapshot(input: unknown): Record<string, unknown> {
+  const snapshot = record(input);
+  if (snapshot.version !== 3) return snapshot;
+  const groups = record(snapshot.navigation);
+  if (!Array.isArray(snapshot.posts)) throw new Error('공개 글 목록을 확인하지 못했습니다.');
+  const posts = snapshot.posts.map(value => {
+    const post = record(value);
+    if (post.series == null) return post;
+    const ref = record(post.series);
+    if (typeof ref.navigationKey !== 'string' || !Object.hasOwn(groups, ref.navigationKey) || !Array.isArray(groups[ref.navigationKey]))
+      throw new Error('공개 탐색 참조가 올바르지 않습니다.');
+    return { ...post, series: { ...ref, items: groups[ref.navigationKey] } };
+  });
+  return { ...snapshot, version: 2, posts };
+}
+
+/**
  * 공개 스냅샷의 글·탐색·프로젝트 정보를 같은 방식으로 해시
  *
  * 1. 공개 스냅샷 형태 검사
@@ -84,7 +103,7 @@ function pick(value: unknown, keys: string[]) {
  * 3. 글별 지문 생성, 생성 시각은 비교 대상에서 제외
  */
 export async function deploymentManifest(input: unknown): Promise<DeploymentManifest> {
-  const snapshot = record(input);
+  const snapshot = expandPublicSnapshot(input);
   if (snapshot.version !== 2 || !Array.isArray(snapshot.posts) || !Array.isArray(snapshot.series))
     throw new Error('공개 스냅샷을 확인하지 못했습니다.');
   const groups = snapshot.series.map(record);
@@ -138,7 +157,8 @@ export function readDeploymentManifest(input: unknown): DeploymentManifest {
  * 배포 기록 조회 실패 시 공개 완료로 추정하지 않음
  */
 export function deploymentState(post: Publication, comparison: DeploymentComparison | null) {
-  const deployed = comparison?.deployed.posts[post.id];
+  if (!comparison) return { kind: 'unknown', label: `${post.status === 'DRAFT' ? '미발행' : post.visibility === 'PRIVATE' ? '비공개 발행' : '공개 발행'} · 배포 상태 미확인` };
+  const deployed = comparison.deployed.posts[post.id];
   const current = comparison?.current.posts[post.id];
   if (post.status === 'DRAFT') return deployed
     ? { kind: 'pending', label: '발행 취소 · 배포 대기' }
@@ -146,10 +166,10 @@ export function deploymentState(post: Publication, comparison: DeploymentCompari
   if (post.visibility === 'PRIVATE') return deployed
     ? { kind: 'pending', label: '비공개 전환 · 배포 대기' }
     : { kind: 'private', label: '비공개 발행' };
-  if (!comparison || !current) return { kind: 'unknown', label: '배포 상태 확인 필요' };
+  if (!current) return { kind: 'unknown', label: '배포 상태 확인 필요' };
   if (!deployed) return { kind: 'pending', label: '발행 후 배포 대기' };
   return current === deployed
-    ? { kind: 'published', label: '공개 반영 완료' }
+    ? { kind: 'published', label: '공개 메타데이터 반영 확인' }
     : { kind: 'pending', label: '수정 후 배포 대기' };
 }
 

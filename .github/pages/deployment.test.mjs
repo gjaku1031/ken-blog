@@ -44,7 +44,7 @@ test('post, category, tags, project and navigation edits become pending until de
     const changed = structuredClone(snapshot); edit(changed);
     const current = await deploymentManifest(changed);
     assert.equal(deploymentState(published, { current, deployed }).label, '수정 후 배포 대기');
-    assert.equal(deploymentState(published, { current, deployed: current }).label, '공개 반영 완료');
+    assert.equal(deploymentState(published, { current, deployed: current }).label, '공개 메타데이터 반영 확인');
   }
 });
 
@@ -107,4 +107,10 @@ test('invalid manifests and incomplete snapshots fail closed', async () => {
   assert.throws(() => readDeploymentManifest({ version: 2, generatedAt: new Date().toISOString(), posts: {} }));
   assert.throws(() => readDeploymentManifest({ version: 1, generatedAt: new Date().toISOString(), posts: { 1: 'bad' } }));
   await assert.rejects(deploymentManifest({ version: 2, posts: [{}], series: [] }));
+});
+
+// 비교 실패는 모든 발행 설정에서 미확인 상태로 유지
+test('unknown deployment remains unknown for drafts and private posts', () => {
+  for (const status of ['DRAFT', 'PUBLISHED']) for (const visibility of ['PUBLIC', 'PRIVATE'])
+    assert.equal(deploymentState({ id: 1, status, visibility }, null).kind, 'unknown');
 });

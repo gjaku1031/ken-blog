@@ -55,6 +55,15 @@ class StackBadgeService(
     }
 
     /**
+     * 스냅샷의 프로젝트 기술 선택을 두 조회로 구성하고 선택 순서 유지
+     */
+    fun batchForSeries(): Map<Long, List<StackBadgeResponse>> {
+        val catalog = badges.findAll().associate { (it.id ?: error("Persisted badge has no ID")) to it.response() }
+        return links.findAll().sortedBy { it.sortOrder }.groupBy { it.id.seriesId }
+            .mapValues { (_, selected) -> selected.mapNotNull { catalog[it.id.badgeId] } }
+    }
+
+    /**
      * 프로젝트 대문의 이름 배열을 등록된 ID 연결로 교체
      *
      * 1. 프로젝트 존재·종류·기술 수 상한 확인

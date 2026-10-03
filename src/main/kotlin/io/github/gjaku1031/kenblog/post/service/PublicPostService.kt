@@ -71,6 +71,34 @@ class PublicPostService(
     }
 
     /**
+     * 같은 읽기 트랜잭션의 전체 공개 행에서 분류·태그와 문서 탐색을 일괄 구성
+     * 시리즈 없는 글의 소분류 탐색에는 같은 분류의 TECH 시리즈 글도 포함
+     */
+    fun batch(rows: List<PostRow>): List<PublicPostDetailResponse> {
+        val metadata = taxonomy.batch(rows.map { it.id }, rows.map { it.categoryId })
+        val ordered = rows.sortedWith(compareBy<PostRow, Int?>(nullsLast()) { it.seriesOrder }
+            .thenBy(nullsLast()) { it.publishedAt }.thenBy { it.id })
+        val seriesGroups = ordered.filter { it.series != null }.groupBy { it.series!!.id }
+        val categoryGroups = ordered.filter { it.series == null || it.series.kind == SeriesKind.TECH }.groupBy { it.categoryId }
+        val seriesItems = seriesGroups.mapValues { (_, siblings) -> siblings.mapIndexed { index, row -> PostSeriesItem(row.id, row.slug, row.title, index + 1) } }
+        val categoryItems = categoryGroups.mapValues { (_, siblings) -> siblings.mapIndexed { index, row -> PostSeriesItem(row.id, row.slug, row.title, index + 1) } }
+        val positions = seriesItems.values.flatMap { it }.associate { it.id to it.order }
+        val categoryPositions = categoryItems.values.flatMap { it }.associate { it.id to it.order }
+        return rows.map { row ->
+            val view = metadata.getValue(row.id)
+            val category = view.category
+            val navigation = row.series?.let { ref ->
+                PostSeriesResponse(ref.id, ref.slug, ref.name, ref.kind, seriesItems.getValue(ref.id), positions.getValue(row.id))
+            } ?: category?.takeIf { it.depth == 2 }?.let {
+                PostSeriesResponse(it.id, it.path, it.name, SeriesKind.TECH, categoryItems.getValue(it.id), categoryPositions.getValue(row.id))
+            }
+            val related = row.relatedSeriesId?.let { seriesGroups[it]?.firstOrNull()?.series }?.takeIf { it.kind == SeriesKind.PROJECT }
+            PublicPostDetailResponse(row.id, row.title, row.slug, row.summary, row.publishedDate(),
+                row.series?.kind ?: SeriesKind.TECH, category, view.tags, navigation, related, row.legacyPath, row.publishedAt)
+        }
+    }
+
+    /**
      * UTC 출간 시각을 한국 날짜로 변환
      */
     private fun PostRow.publishedDate() = publishedAt!!.atZone(ZoneOffset.UTC).withZoneSameInstant(ZoneId.of("Asia/Seoul")).toLocalDate()

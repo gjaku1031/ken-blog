@@ -35,11 +35,15 @@ CREATE TABLE IF NOT EXISTS admin_auth_state (
     CONSTRAINT ck_admin_auth_state_id CHECK (id = 1)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- 최초 기동에만 인증 상태 행 추가, 기존 잠금·실패 횟수 유지
-INSERT IGNORE INTO admin_auth_state (id, config_fingerprint, auth_version, failure_count)
-VALUES (1, REPEAT('0', 64), 0, 0);
+-- 출처는 해시만 저장, 전역 인증 행 잠금 아래에서 4,096행·60초로 제한
+CREATE TABLE IF NOT EXISTS admin_login_sources (
+    source_key VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL PRIMARY KEY,
+    failure_count INT NOT NULL,
+    expires_at DATETIME(6) NOT NULL,
+    KEY ix_login_source_expiry (expires_at)
+) ENGINE=InnoDB;
 
-
+-- 인증 상태 행은 최초 설치 SQL에서만 생성하며 일반 재시작에서는 복구하지 않음
 
 -- 분류 변경 직렬화용 상태 행 보장
 INSERT IGNORE INTO content_state (id) VALUES (1);

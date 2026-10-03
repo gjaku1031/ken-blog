@@ -22,3 +22,8 @@ class InvalidPostRequestException : BusinessException(HttpStatus.BAD_REQUEST, "�
  * 양수 ID에 해당하는 [PostEntity]가 없어 관리자 API에서 404로 변환하는 조회 오류
  */
 class PostNotFoundException : BusinessException(HttpStatus.NOT_FOUND, "게시글을 찾을 수 없습니다.")
+
+/**
+ * 읽은 뒤 변경된 글을 덮어쓰지 않도록 409로 반환하는 편집 충돌
+ */
+class PostEditConflictException : BusinessException(HttpStatus.CONFLICT, "다른 변경이 저장되었습니다. 입력을 복사한 뒤 글을 다시 열어 확인하세요.")

@@ -116,6 +116,11 @@ data class PostDetailResponse(
      * 요약
      */
     val summary: String = "",
+
+    /**
+     * 다음 편집 요청의 기준 버전
+     */
+    val editVersion: Long = 0,
 ) {
     /**
      * 탐색 구획
@@ -201,6 +206,11 @@ data class PostSummaryResponse(
      * 관련 프로젝트 시리즈 ID
      */
     val relatedSeriesId: Long?,
+
+    /**
+     * 다음 편집 요청의 기준 버전
+     */
+    val editVersion: Long,
 ) {
     /**
      * 탐색 구획
@@ -299,7 +309,7 @@ data class PostSeriesResponse(
     val items: List<PostSeriesItem>,
 
     /**
-     * 입력 순서의 0 기반 위치
+     * 시리즈 내 1 기반 위치
      */
     val position: Int
 )

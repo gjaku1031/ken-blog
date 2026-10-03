@@ -50,20 +50,23 @@ class LocalAssetStorage(
 
     /**
      * 호출자가 닫아야 하는 원본 파일 스트림
-     * 심볼릭 링크는 따르지 않음
+     * 심볼릭 링크는 따르지 않으며 지정된 크기는 이미 연 파일 핸들에서 확인
      *
      * 1. 저장 루트와 객체 경로 확인
      * 2. 링크·권한 검사 후 링크를 따르지 않는 스트림 생성
      */
-    fun open(key: String): InputStream {
+    fun open(key: String, expectedSize: Long? = null): InputStream {
         // 저장 루트와 객체 경로 확인
         requireConfigured()
         val path = resolve(key)
         try {
             // 링크·권한 검사 후 링크를 따르지 않는 스트림 생성
             checkSafePath(path)
-            return Channels.newInputStream(FileChannel.open(path,
-                setOf<OpenOption>(StandardOpenOption.READ, LinkOption.NOFOLLOW_LINKS)))
+            val channel = FileChannel.open(path, setOf<OpenOption>(StandardOpenOption.READ, LinkOption.NOFOLLOW_LINKS))
+            try {
+                if (expectedSize != null && channel.size() != expectedSize) throw unavailable()
+                return Channels.newInputStream(channel)
+            } catch (failure: Exception) { channel.close(); throw failure }
         } catch (_: Exception) {
             throw unavailable()
         }

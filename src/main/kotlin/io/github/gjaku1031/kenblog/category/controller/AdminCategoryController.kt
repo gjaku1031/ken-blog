@@ -1,7 +1,7 @@
 package io.github.gjaku1031.kenblog.category.controller
 
 import io.github.gjaku1031.kenblog.category.dto.CategoryCreateRequest
-import io.github.gjaku1031.kenblog.category.dto.CategoryOrderRequest
+import io.github.gjaku1031.kenblog.category.domain.InvalidCategoryRequestException
 import io.github.gjaku1031.kenblog.category.dto.CategoryRefResponse
 import io.github.gjaku1031.kenblog.category.dto.CategoryTreeResponse
 import io.github.gjaku1031.kenblog.category.service.CategoryService
@@ -51,8 +51,12 @@ class AdminCategoryController(
      * 변경된 숫자 순서를 포함한 no-store 참조
      */
     @PutMapping("/{id}/order", consumes = [MediaType.APPLICATION_JSON_VALUE], produces = [MediaType.APPLICATION_JSON_VALUE])
-    fun setOrder(@PathVariable("id") id: Long, @RequestBody request: CategoryOrderRequest): ResponseEntity<CategoryRefResponse> =
-        ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.setOrder(id, request.order))
+    fun setOrder(@PathVariable("id") id: Long, @RequestBody request: JsonNode): ResponseEntity<CategoryRefResponse> {
+        val order = request.get("order")
+        if (!request.isObject || request.size() != 1 || order == null || !order.isIntegralNumber || !order.canConvertToLong())
+            throw InvalidCategoryRequestException()
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.setOrder(id, order.longValue()))
+    }
 
     /**
      * 글을 부모로 이동한 뒤 분류만 삭제한 no-store HTTP 204.

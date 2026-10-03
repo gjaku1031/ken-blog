@@ -16,14 +16,14 @@ import { imageSize } from './image-size.mjs';
 const root = resolve(import.meta.dirname, "../..");
 
 /**
- * 배포 전 임시 사이트 디렉터리
+ * 완성 사이트 출력 디렉터리, 격리 검사는 명시적 CLI 경로 사용
  */
-const staging = join(root, "build/site-staging");
+const output = resolve(process.argv.find(arg => arg.startsWith('--output-dir='))?.slice('--output-dir='.length) ?? join(root, 'build/site'));
 
 /**
- * 완성 사이트 출력 디렉터리
+ * 같은 파일시스템에서 교체할 임시 사이트 디렉터리
  */
-const output = join(root, "build/site");
+const staging = `${output}.staging`;
 
 /**
  * 공개 API의 같은 출처만 이미지 다운로드 원본으로 허용함
@@ -71,7 +71,7 @@ async function download(url, name) {
   let length = 0;
   for await (const chunk of response.body) {
     length += chunk.byteLength;
-    if (length > limit) { await response.body.cancel().catch(() => undefined); throw new Error("공개 이미지 크기 오류"); }
+    if (length > limit) throw new Error("공개 이미지 크기 오류");
     chunks.push(chunk);
   }
   const bytes = new Uint8Array(Buffer.concat(chunks, length));
@@ -237,13 +237,22 @@ async function main() {
   for (const post of allPosts) {
     const parsed = prepareMarkdown(post.body);
     post.prepared = parsed;
-    for (const id of parsed.attachmentIds) owners.set(id, post.id);
+    for (const id of parsed.attachmentIds) {
+      const posts = owners.get(id) ?? new Set();
+      posts.add(post.id); owners.set(id, posts);
+    }
   }
   // 본문 첨부를 글 권한 경로로 내려받아 정적 주소 구성
   const attachmentUrls = new Map();
   for (const id of [...owners.keys()].sort((a, b) => a - b)) {
-    const postId = owners.get(id); const path = `/api/v1/posts/${postId}/attachments/${id}/content`;
-    attachmentUrls.set(id, await download(imagePath(path, base, path), `attachment-${id}`));
+    // 파일을 공유하더라도 모든 글·첨부 관계의 공개 권한을 검증
+    for (const postId of [...owners.get(id)].sort((a, b) => a - b)) {
+      const path = `/api/v1/posts/${postId}/attachments/${id}/content`;
+      const asset = await download(imagePath(path, base, path), `attachment-${id}`);
+      const previous = attachmentUrls.get(id);
+      if (previous && previous.url !== asset.url) throw new Error("첨부 내용이 생성 중 변경되었습니다.");
+      attachmentUrls.set(id, asset);
+    }
   }
   // 프로젝트 기술 이미지는 ID별로 한 번만 수집
   const badges = new Map();

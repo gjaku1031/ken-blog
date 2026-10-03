@@ -6,5 +6,5 @@ export default defineConfig({
   outputDir: '../../build/browser-results',
   use: { baseURL: 'http://127.0.0.1:4173', headless: true,
     launchOptions: { executablePath: process.env.CHROMIUM_PATH || undefined, args: ['--no-sandbox'] } },
-  webServer: { command: 'node .github/pages/browser-server.mjs', cwd: '../..', port: 4173, timeout: 120000 },
+  webServer: { command: 'node .github/pages/browser-server.mjs', cwd: '../..', port: 4173, timeout: 120000, reuseExistingServer: !process.env.CI },
 });

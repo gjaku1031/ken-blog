@@ -558,7 +558,7 @@ export async function generateSite(payload: Input, output: string) {
     const target = targets.get(wikiKey(title));
     if (!target || target.id === source.id) continue;
     const refs = backlinks.get(postPath(target)) ?? [];
-    refs.push({ href: postPath(source), title: source.title, section: label(source.section) });
+    if (!refs.some(ref => ref.href === postPath(source))) refs.push({ href: postPath(source), title: source.title, section: label(source.section) });
     backlinks.set(postPath(target), refs);
   }
   // 공개 목록·검색·프로젝트·글 상세 생성

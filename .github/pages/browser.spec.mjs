@@ -2,25 +2,118 @@ import { test, expect } from '@playwright/test';
 import { fixture } from './fixture.mjs';
 
 /**
- * 화면별 관리자 API 응답과 요청 관측, 변경 요청은 가상 응답만 반환
+ * 실제 글 폼의 필수 키·타입과 선택 숫자 범위 검사
+ */
+function expectPostInput(body, editing = false) {
+  expect(Object.keys(body).sort()).toEqual(['title', 'summary', 'categoryId', 'tags', 'seriesId', 'order', 'relatedSeriesId',
+    ...(editing ? ['baseVersion'] : [])].sort());
+  expect(typeof body.title).toBe('string'); expect(typeof body.summary).toBe('string');
+  expect(Array.isArray(body.tags) && body.tags.every(tag => typeof tag === 'string')).toBe(true);
+  for (const key of ['categoryId', 'seriesId', 'order', 'relatedSeriesId'])
+    expect(body[key] === null || Number.isSafeInteger(body[key]) && body[key] > 0).toBe(true);
+  if (editing) expect(Number.isSafeInteger(body.baseVersion) && body.baseVersion >= 0).toBe(true);
+}
+
+/**
+ * 시리즈 종류별 메타데이터 키와 편집 기준 시각 검사
+ */
+function expectSeriesInput(body, project, editing = false) {
+  expect(Object.keys(body).sort()).toEqual(['name', 'description', ...(editing ? ['baseUpdatedAt'] : []),
+    ...(project ? ['projectStatus', 'startPeriod', 'endPeriod', 'stackBadgeNames'] : [])].sort());
+  expect(typeof body.name).toBe('string'); expect(typeof body.description).toBe('string');
+  if (editing) expect(typeof body.baseUpdatedAt).toBe('string');
+  if (project) {
+    expect(['PLAN', 'DEV', 'MAINT', 'DONE']).toContain(body.projectStatus);
+    expect(typeof body.startPeriod).toBe('string');
+    expect(body.endPeriod === null || typeof body.endPeriod === 'string').toBe(true);
+    expect(Array.isArray(body.stackBadgeNames) && body.stackBadgeNames.every(name => typeof name === 'string')).toBe(true);
+  }
+}
+
+/**
+ * 메서드·필수 필드·편집 버전을 검사하고 저장 결과를 후속 읽기에 반영하는 API 대역
+ * 지원하지 않는 경로는 501로 실패하여 계약 누락을 숨기지 않음
  */
 async function mockApi(page, override = async () => false) {
+  const posts = structuredClone(fixture.posts).map(post => ({ ...post, editVersion: 0, updatedAt: post.publishedAt,
+    status: 'DRAFT', visibility: 'PUBLIC', seriesOrder: null, relatedSeriesId: null }));
+  const series = structuredClone(fixture.series).map(row => ({ ...row, updatedAt: '2026-10-03T00:00:00', sortOrder: row.sortOrder ?? 0 }));
+  const categories = structuredClone(fixture.categories).filter(item => item.depth === 1).map(item => ({ ...item, directCount: 1,
+    children: fixture.categories.filter(child => child.path.startsWith(item.path + '/')).map(child => ({ ...child, directCount: 1, children: [] })) }));
+  let authenticated = true;
+  let revision = 0;
   await page.route('**/api/v1/**', async route => {
-    const path = new URL(route.request().url()).pathname.replace('/api/v1', '');
+    const request = route.request();
+    const url = new URL(request.url());
+    const path = url.pathname.replace('/api/v1', '');
+    const method = request.method();
     if (await override(route, path)) return;
-    const number = Number(new URL(route.request().url()).searchParams.get('page') || 0);
-    const size = Number(new URL(route.request().url()).searchParams.get('size') || 10);
-    const posts = fixture.posts.map(post => ({ ...post, updatedAt: post.publishedAt, status: 'DRAFT', visibility: 'PUBLIC', seriesOrder: null, relatedSeriesId: null }));
-    const data = path === '/auth/me' ? { role: 'ADMIN' } : path === '/auth/csrf' ? { headerName: 'X-CSRF', token: 'fixture' }
-      : path === '/pages/snapshot' ? fixture
-      : path === '/admin/posts' ? { items: posts.slice(number * size, (number + 1) * size), page: number, totalPages: Math.ceil(posts.length / size), totalElements: posts.length }
-      : /^\/admin\/posts\/\d+$/.test(path) ? posts.find(post => post.id === Number(path.split('/').at(-1)))
-      : path === '/admin/categories' ? fixture.categories.filter(item => item.depth === 1).map(item => ({ ...item, directCount: 1, children: fixture.categories.filter(child => child.path.startsWith(item.path + '/')).map(child => ({ ...child, directCount: 1, children: [] })) }))
-      : path === '/admin/tags' ? Array.from({ length: 20 }, (_, i) => ({ name: `tag${i}`, count: 1 }))
-      : path === '/admin/series' ? fixture.series
-      : /^\/admin\/series\/\d+$/.test(path) ? { series: fixture.series.find(series => series.id === Number(path.split('/').at(-1))) }
-      : path === '/admin/stack-badges' ? ['Alpha', 'Beta', 'Gamma'].map((name, index) => ({ id: index + 1, name, imageUrl: `/api/v1/stack-badges/${index + 1}/image` })) : [];
-    await route.fulfill({ json: data });
+    const body = request.postDataJSON();
+    let data, status = 200;
+    // 인증·목록 경로는 메서드까지 계약에 포함
+    if (method === 'GET' && path === '/auth/me') { status = authenticated ? 200 : 401; data = { role: 'ADMIN' }; }
+    else if (method === 'GET' && path === '/auth/csrf') data = { headerName: 'X-CSRF', token: 'fixture' };
+    else if (method === 'POST' && path === '/auth/logout') { authenticated = false; status = 204; }
+    else if (method === 'POST' && path === '/auth/login') { authenticated = true; data = { role: 'ADMIN' }; }
+    else if (method === 'GET' && path === '/pages/snapshot') data = fixture;
+    else if (method === 'GET' && path === '/admin/posts/snapshot') data = posts;
+    else if (method === 'GET' && path === '/admin/posts') {
+      const number = Number(url.searchParams.get('page') || 0), size = Number(url.searchParams.get('size') || 10);
+      data = { items: posts.slice(number * size, (number + 1) * size), page: number, totalPages: Math.ceil(posts.length / size), totalElements: posts.length };
+    } else if (method === 'GET' && /^\/admin\/posts\/\d+$/.test(path)) data = posts.find(post => post.id === Number(path.split('/').at(-1)));
+    else if (method === 'POST' && path === '/admin/posts') {
+      expectPostInput(body);
+      const id = Math.max(...posts.map(row => row.id)) + 1;
+      data = { ...body, id, slug: `created-${id}`, editVersion: 0, status: 'DRAFT', visibility: 'PUBLIC', updatedAt: '2026-10-03T00:00:00',
+        section: 'TECH', category: null, series: null, seriesOrder: body.order, relatedSeriesId: body.relatedSeriesId };
+      posts.push(data); status = 201;
+    } else if (method === 'PATCH' && /^\/admin\/posts\/\d+\/metadata$/.test(path)) {
+      expectPostInput(body, true);
+      const row = posts.find(post => post.id === Number(path.split('/')[3]));
+      if (row.editVersion !== body.baseVersion) { status = 409; data = { detail: '다른 변경이 저장되었습니다.' }; }
+      else {
+        Object.assign(row, { title: body.title, summary: body.summary, tags: body.tags,
+          category: categories.flatMap(item => [item, ...item.children]).find(item => item.id === body.categoryId) ?? null,
+          series: series.find(item => item.id === body.seriesId) ?? null, seriesOrder: body.order, relatedSeriesId: body.relatedSeriesId,
+          editVersion: row.editVersion + 1 });
+        data = row;
+      }
+    } else if (method === 'PUT' && /^\/admin\/posts\/\d+\/publication$/.test(path)) {
+      expect(Object.keys(body)).toEqual(['published']); expect(typeof body.published).toBe('boolean');
+      const row = posts.find(post => post.id === Number(path.split('/')[3]));
+      row.status = body.published ? 'PUBLISHED' : 'DRAFT'; row.editVersion++; data = row;
+    } else if (method === 'GET' && path === '/admin/categories') data = categories;
+    else if (method === 'GET' && path === '/admin/tags') data = [...new Set([...Array.from({ length: 20 }, (_, i) => `tag${i}`), ...posts.flatMap(row => row.tags)])].map(name => ({ name, count: 1 }));
+    else if (method === 'GET' && path === '/admin/series') data = series;
+    else if (method === 'GET' && /^\/admin\/series\/\d+$/.test(path)) data = { series: series.find(row => row.id === Number(path.split('/').at(-1))) };
+    else if (method === 'POST' && path === '/admin/series') {
+      expect(Object.keys(body).sort()).toEqual(['kind', 'metadata']);
+      expect(['TECH', 'PROJECT']).toContain(body.kind);
+      expectSeriesInput(body.metadata, body.kind === 'PROJECT');
+      const id = Math.max(0, ...series.map(row => row.id)) + 1;
+      data = { ...body.metadata, id, kind: body.kind, slug: `series-${id}`, visibility: 'PUBLIC', sortOrder: 0,
+        updatedAt: `2026-10-03T00:00:${String(++revision).padStart(2, '0')}`, stackBadges: [], postCount: 0, cover: null };
+      series.push(data); status = 201;
+    } else if (method === 'PUT' && /^\/admin\/series\/\d+\/(metadata|order)$/.test(path)) {
+      const row = series.find(item => item.id === Number(path.split('/')[3]));
+      if (path.endsWith('/metadata')) {
+        expectSeriesInput(body, row.kind === 'PROJECT', true);
+        expect(body.baseUpdatedAt).toBe(row.updatedAt);
+        const { baseUpdatedAt, ...metadata } = body;
+        Object.assign(row, metadata, { updatedAt: `2026-10-03T00:00:${String(++revision).padStart(2, '0')}` });
+      } else {
+        expect(Object.keys(body)).toEqual(['order']); expect(Number.isSafeInteger(body.order)).toBe(true);
+        row.sortOrder = body.order;
+      }
+      data = row;
+    } else if (method === 'GET' && path === '/admin/stack-badges') data = ['Alpha', 'Beta', 'Gamma'].map((name, index) => ({ id: index + 1, name, imageUrl: `/api/v1/stack-badges/${index + 1}/image` }));
+    else if (method === 'GET' && /^\/stack-badges\/[123]\/image$/.test(path)) {
+      await route.fulfill({ contentType: 'image/png', body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLbtAAAAABJRU5ErkJggg==', 'base64') }); return;
+    }
+    else { await route.fulfill({ status: 501, json: { detail: `Unhandled mock: ${method} ${path}` } }); throw new Error(`Unhandled mock: ${method} ${path}`); }
+    if (status === 204) await route.fulfill({ status });
+    else if (data === undefined) await route.fulfill({ status: 404, json: { detail: '없음' } });
+    else await route.fulfill({ status, json: data });
   });
 }
 
@@ -50,7 +143,7 @@ test('pagination uses cached posts and status refresh reuses options', async ({ 
   let postReads = 0, categoryReads = 0;
   await mockApi(page, async (route, path) => {
     if (path === '/admin/categories') categoryReads++;
-    if (path === '/admin/posts') postReads++;
+    if (path === '/admin/posts/snapshot') postReads++;
     return false;
   });
   await page.goto('/ken-blog/manage/');
@@ -72,7 +165,7 @@ test('pagination uses cached posts and status refresh reuses options', async ({ 
 test('late dashboard response cannot restore a logged out session', async ({ page }) => {
   let delay = false, finish;
   await mockApi(page, async (route, path) => {
-    if (path === '/admin/posts' && delay) await new Promise(resolve => { finish = resolve; });
+    if (path === '/admin/posts/snapshot' && delay) await new Promise(resolve => { finish = resolve; });
     return false;
   });
   await page.goto('/ken-blog/manage/');
@@ -147,6 +240,43 @@ test('series save reports a refresh failure without offering duplicate creation'
   await expect(page.locator('#edit-dialog')).not.toBeVisible();
   await expect(page.locator('#dashboard-message')).toBeVisible();
   await expect(page.locator('#dashboard-message')).toContainText('저장했습니다. 목록을 새로고침하지 못했습니다.');
+});
+
+// 기본 정보 저장 뒤 순서의 401도 인증 만료로 전달
+test('series order authentication failure returns to login', async ({ page }) => {
+  await mockApi(page, async (route, path) => {
+    if (!/^\/admin\/series\/\d+\/order$/.test(path)) return false;
+    await route.fulfill({ status: 401, json: { detail: '만료' } }); return true;
+  });
+  await page.goto('/ken-blog/manage/#series');
+  await page.getByRole('button', { name: '+ 새 시리즈', exact: true }).click();
+  await page.locator('#edit-dialog input[name=name]').fill('순서 인증 검사');
+  await page.locator('#edit-dialog input[name=order]').fill('7');
+  await page.locator('#edit-dialog button[type=submit]').click();
+  await expect(page.locator('#login')).toBeVisible();
+  await expect(page.locator('#dashboard')).toBeHidden();
+});
+
+// 순서 저장 재시도에서 이미 성공한 생성·메타데이터 요청을 반복하지 않음
+test('series order retry reuses the committed metadata', async ({ page }) => {
+  let creates = 0, metadataWrites = 0, orders = 0;
+  await mockApi(page, async (route, path) => {
+    if (path === '/admin/series' && route.request().method() === 'POST') creates++;
+    if (/^\/admin\/series\/\d+\/metadata$/.test(path)) metadataWrites++;
+    if (/^\/admin\/series\/\d+\/order$/.test(path) && ++orders === 1) {
+      await route.fulfill({ status: 503, json: { detail: '일시 장애' } }); return true;
+    }
+    return false;
+  });
+  await page.goto('/ken-blog/manage/#series');
+  await page.getByRole('button', { name: '+ 새 시리즈', exact: true }).click();
+  await page.locator('#edit-dialog input[name=name]').fill('순서 재시도 검사');
+  await page.locator('#edit-dialog input[name=order]').fill('7');
+  await page.locator('#edit-dialog button[type=submit]').click();
+  await expect(page.locator('#dialog-message')).toContainText('카드 순서');
+  await page.locator('#edit-dialog button[type=submit]').click();
+  await expect(page.locator('#edit-dialog')).not.toBeVisible();
+  expect(creates).toBe(1); expect(metadataWrites).toBe(0); expect(orders).toBe(2);
 });
 
 // 선택 개수 초과 후 제거하면 유효성 오류가 해제되는지 검증
@@ -477,4 +607,117 @@ test('touch sorting works across wrapped rows with reduced motion', async ({ pag
   expect(await page.locator('input[name=tags]').evaluateAll(inputs => inputs.map(input => input.value)))
     .toEqual(['tag1', 'tag2', 'tag3', 'tag4', 'tag5', 'tag6', 'tag7', 'tag0']);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+// 저장 요청 한 번에 전체 편집 정보와 기준 버전 전달, 성공 뒤 목록에도 반영
+test('post edit is atomic and the latest detail supplies its base version', async ({ page }) => {
+  let writes = 0;
+  await mockApi(page, async (route, path) => {
+    if (route.request().method() === 'PATCH' && path.endsWith('/metadata')) {
+      writes++;
+      expect(route.request().postDataJSON().baseVersion).toBe(0);
+    }
+    return false;
+  });
+  await page.goto('/ken-blog/manage/');
+  await page.getByRole('button', { name: '검사 글 1', exact: true }).click();
+  await page.locator('#edit-dialog input[name=title]').fill('원자적 수정');
+  await expect(page.locator('#edit-dialog')).toContainText('content/posts/fixture-1.md');
+  await page.getByRole('button', { name: '글 정보 저장', exact: true }).click();
+  await expect(page.getByRole('button', { name: '원자적 수정', exact: true })).toBeVisible();
+  expect(writes).toBe(1);
+});
+
+// 409 응답 뒤 수정 중 입력과 창을 유지
+test('stale post conflict preserves the form', async ({ page }) => {
+  await mockApi(page, async (route, path) => {
+    if (!path.endsWith('/metadata')) return false;
+    await route.fulfill({ status: 409, json: { detail: '다른 변경이 저장되었습니다.' } }); return true;
+  });
+  await page.goto('/ken-blog/manage/');
+  await page.getByRole('button', { name: '검사 글 1', exact: true }).click();
+  await page.locator('#edit-dialog input[name=title]').fill('보존할 수정');
+  await page.getByRole('button', { name: '글 정보 저장', exact: true }).click();
+  await expect(page.locator('#dialog-message')).toContainText('다른 변경');
+  await expect(page.locator('#edit-dialog input[name=title]')).toHaveValue('보존할 수정');
+});
+
+// 자동 새로고침은 목록 내부 버튼의 키보드 포커스 유지
+test('automatic dashboard refresh preserves action focus', async ({ page }) => {
+  let reads = 0;
+  await mockApi(page, async (_, path) => { if (path === '/admin/posts/snapshot') reads++; return false; });
+  await page.goto('/ken-blog/manage/');
+  const button = page.getByRole('button', { name: '검사 글 1', exact: true });
+  await button.focus();
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  await expect.poll(() => reads).toBeGreaterThan(1);
+  await expect(button).toBeFocused();
+});
+
+// 저장 후 전체 조회 중 자동 조회가 들어와도 선택 목록의 새 응답을 버리지 않음
+test('automatic refresh joins the full refresh after save', async ({ page }) => {
+  let categoryReads = 0, release;
+  await mockApi(page, async (_, path) => {
+    if (path === '/admin/categories' && ++categoryReads === 2) await new Promise(resolve => { release = resolve; });
+    return false;
+  });
+  await page.goto('/ken-blog/manage/');
+  await page.getByRole('button', { name: '검사 글 1', exact: true }).click();
+  await page.getByRole('button', { name: '글 정보 저장', exact: true }).click();
+  await expect.poll(() => !!release).toBe(true);
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  release();
+  await expect(page.locator('#dashboard-message')).toContainText('저장했습니다');
+  expect(categoryReads).toBe(2);
+});
+
+// 다른 페이지에서 처음 검색하면 뒤로 가기로 원래 글에 복귀
+test('first search navigation preserves the previous article in history', async ({ page }) => {
+  await mockApi(page);
+  await page.goto('/ken-blog/post/fixture-2/');
+  await page.getByRole('button', { name: '검색 열기' }).click();
+  await page.locator('#site-search').fill('needle-3');
+  await expect(page).toHaveURL(/\/search\//);
+  await expect(page.locator('#search-filter')).toHaveAttribute('role', 'status');
+  await page.goBack();
+  await expect(page).toHaveURL(/\/post\/fixture-2\//);
+});
+
+// 주석은 화면 오른쪽에서도 보이며 Escape 뒤 링크 포커스 유지
+test('annotation popup stays in the viewport and Escape preserves focus', async ({ page }) => {
+  await mockApi(page); await page.setViewportSize({ width: 390, height: 700 });
+  await page.goto('/ken-blog/post/fixture-2/');
+  const ref = page.locator('.ken-annotation-ref').first();
+  const link = ref.locator(':scope > a');
+  await ref.evaluate(element => { element.style.position = 'fixed'; element.style.right = '1px'; element.style.top = '100px'; });
+  await link.focus();
+  const popup = ref.locator('.ken-annotation-popup');
+  await expect(popup).toBeVisible();
+  const box = await popup.boundingBox();
+  expect(box.x).toBeGreaterThanOrEqual(0); expect(box.x + box.width).toBeLessThanOrEqual(390);
+  await link.press('Escape'); await expect(popup).toBeHidden(); await expect(link).toBeFocused();
+});
+
+// 링크 첨부는 링크 하나만 키보드 대상이며 문단 안 이미지도 종횡비 보존
+test('linked inline attachment keeps link behavior and responsive aspect ratio', async ({ page }) => {
+  await mockApi(page); await page.setViewportSize({ width: 390, height: 700 });
+  await page.goto('/ken-blog/post/fixture-2/');
+  await page.evaluate(() => {
+    const body = document.querySelector('.markdown-body');
+    const paragraph = document.createElement('p'); paragraph.id = 'image-regression';
+    const link = document.createElement('a'); link.href = '#image-destination';
+    const image = document.createElement('img'); image.className = 'ken-attachment'; image.width = 1600; image.height = 800;
+    image.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="800"></svg>';
+    image.alt = '링크 이미지'; link.append(image); paragraph.append('본문 ', link); body.prepend(paragraph);
+    document.dispatchEvent(new Event('site-theme'));
+  });
+  const image = page.locator('#image-regression img');
+  await expect(image).not.toHaveAttribute('role', 'button');
+  await expect(image).not.toHaveAttribute('tabindex', '0');
+  const bounds = await image.boundingBox();
+  expect(bounds.width).toBeLessThan(390);
+  expect(Math.abs(bounds.width / bounds.height - 2)).toBeLessThan(0.02);
+  await image.click();
+  await expect(page).toHaveURL(/#image-destination$/);
+  await expect(page.locator('dialog[open]')).toHaveCount(0);
 });

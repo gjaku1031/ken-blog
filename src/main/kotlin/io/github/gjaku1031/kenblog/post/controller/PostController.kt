@@ -6,7 +6,8 @@ import io.github.gjaku1031.kenblog.post.domain.InvalidWikiLinkRequestException
 import io.github.gjaku1031.kenblog.post.dto.PostDetailResponse
 import io.github.gjaku1031.kenblog.post.dto.PostMetadataCreateRequest
 import io.github.gjaku1031.kenblog.post.dto.PostPageResponse
-import io.github.gjaku1031.kenblog.post.dto.PostTaxonomyRequest
+import io.github.gjaku1031.kenblog.post.dto.PostSummaryResponse
+import io.github.gjaku1031.kenblog.post.dto.PostEditRequest
 import io.github.gjaku1031.kenblog.post.dto.WikiLinkCorrectionRequest
 import io.github.gjaku1031.kenblog.post.dto.WikiTitleSearchResponse
 import io.github.gjaku1031.kenblog.post.service.PostService
@@ -82,6 +83,13 @@ class PostController(
         ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.listDrafts(page, size))
 
     /**
+     * 같은 DB 시점에서 읽은 관리자 전체 메타데이터
+     */
+    @GetMapping("/snapshot", produces = [MediaType.APPLICATION_JSON_VALUE])
+    fun snapshot(): ResponseEntity<List<PostSummaryResponse>> =
+        ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.snapshot())
+
+    /**
      * 파일이 아직 없어도 관리자 화면에는 메타데이터를 반환함
      */
     @GetMapping("/{id}", produces = [MediaType.APPLICATION_JSON_VALUE])
@@ -96,7 +104,7 @@ class PostController(
     @PutMapping("/{id}/publication", consumes = [MediaType.APPLICATION_JSON_VALUE], produces = [MediaType.APPLICATION_JSON_VALUE])
     fun publication(@PathVariable id: Long, @RequestBody request: JsonNode): ResponseEntity<PostDetailResponse> {
         val value = request.get("published")
-        // 순서 변경 요청의 키·타입 검사
+        // 출간 상태 요청의 키·타입 검사
         if (!request.isObject || value == null || !value.isBoolean || request.size() != 1)
             throw InvalidPostRequestException()
         return ResponseEntity.ok().cacheControl(CacheControl.noStore())
@@ -119,12 +127,9 @@ class PostController(
      */
     @PatchMapping("/{id}/metadata", consumes = [MediaType.APPLICATION_JSON_VALUE], produces = [MediaType.APPLICATION_JSON_VALUE])
     fun metadata(@PathVariable id: Long, @RequestBody request: JsonNode): ResponseEntity<PostDetailResponse> {
-        if (!request.isObject || request.has("body") || !request.path("title").isString ||
-            !request.path("summary").isString) throw InvalidPostRequestException()
-        val taxonomy = PostTaxonomyRequest.fromJson(request)
-        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.updateMetadata(
-            id, request.get("title").stringValue(), request.get("summary").stringValue(), taxonomy.categoryId, taxonomy.tags,
-        ))
+        val input = PostEditRequest.metadata(request)
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore())
+            .body(service.updateMetadata(id, input, PostEditRequest.version(request)))
     }
 
     /**
@@ -132,11 +137,11 @@ class PostController(
      */
     @PutMapping("/{id}/series")
     fun series(@PathVariable id: Long, @RequestBody request: JsonNode): ResponseEntity<PostDetailResponse> {
-        if (!request.isObject || request.size() != 3 || !request.has("seriesId") || !request.has("order") || !request.has("relatedSeriesId"))
+        if (!request.isObject || request.size() != 4 || !request.has("baseVersion") || !request.has("seriesId") || !request.has("order") || !request.has("relatedSeriesId"))
             throw InvalidPostRequestException()
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.setSeries(id,
             PostMetadataCreateRequest.optionalLong(request, "seriesId"), PostMetadataCreateRequest.optionalInt(request, "order"),
-            PostMetadataCreateRequest.optionalLong(request, "relatedSeriesId")))
+            PostMetadataCreateRequest.optionalLong(request, "relatedSeriesId"), PostEditRequest.version(request)))
     }
 
     /**
@@ -146,7 +151,7 @@ class PostController(
      */
     @PutMapping("/{id}/order", consumes = [MediaType.APPLICATION_JSON_VALUE], produces = [MediaType.APPLICATION_JSON_VALUE])
     fun order(@PathVariable id: Long, @RequestBody request: JsonNode): ResponseEntity<PostDetailResponse> {
-        if (!request.isObject || request.size() != 1 || !request.has("order")) throw InvalidPostRequestException()
+        if (!request.isObject || request.size() != 2 || !request.has("baseVersion") || !request.has("order")) throw InvalidPostRequestException()
         val value = request.get("order")
         // 선택 순서를 정수로 읽고 서비스에 전달
         val order = when {
@@ -154,6 +159,6 @@ class PostController(
             value.isIntegralNumber && value.canConvertToInt() -> value.intValue()
             else -> throw InvalidPostRequestException()
         }
-        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.setOrder(id, order))
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.setOrder(id, order, PostEditRequest.version(request)))
     }
 }

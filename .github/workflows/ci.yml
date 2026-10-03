@@ -14,6 +14,23 @@ on:
       - 'gradle/**'
       - 'gradlew'
       - '.github/workflows/ci.yml'
+      - 'deploy/**'
+      - '*compose*'
+      - '.env*'
+  pull_request:
+    paths:
+      - 'src/main/kotlin/**'
+      - 'src/main/resources/**'
+      - '!src/main/resources/web/**'
+      - 'src/test/**'
+      - '*.gradle.kts'
+      - 'gradle.properties'
+      - 'gradle/**'
+      - 'gradlew'
+      - '.github/workflows/ci.yml'
+      - 'deploy/**'
+      - '*compose*'
+      - '.env*'
   workflow_dispatch:
 
 # 워크플로 실행에 필요한 저장소 권한
@@ -26,37 +43,33 @@ jobs:
   verify:
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    services:
-      mysql:
-        image: mysql:8.4.11
-        env:
-          MYSQL_DATABASE: ken_blog_ci
-          MYSQL_USER: ci_api
-          MYSQL_PASSWORD: ci_ephemeral_only
-          MYSQL_ROOT_PASSWORD: ci_root_ephemeral_only
-        ports:
-          - 13307:3306
-        options: >-
-          --health-cmd "mysqladmin ping -h 127.0.0.1"
-          --health-interval 5s
-          --health-timeout 3s
-          --health-retries 20
-    env:
-      DB_URL: jdbc:mysql://127.0.0.1:13307/ken_blog_ci
-      DB_USERNAME: ci_api
-      DB_PASSWORD: ci_ephemeral_only
     steps:
-      - uses: actions/checkout@v7.0.1
-      - uses: actions/setup-java@v6.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
           distribution: temurin
           java-version: '25'
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4
+      - name: Validate deployment configuration
+        run: bash deploy/verify-config.sh
       - name: Verify Spring application
-        run: ./gradlew --no-daemon clean build
+        run: ./gradlew --no-daemon clean build prepareMysqlTlsVerification
+      - name: Verify MySQL TLS identity boundary
+        run: bash deploy/verify-mysql-tls.sh build/verification/mysql-connector-j-*.jar
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '24.21.0'
+          cache: npm
+      - name: Prepare isolated HTTPS browser verification
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Verify schema rollout and cross-site authentication
+        run: python3 deploy/verify-review-runtime.py
 
   # 테스트 성공 후 ARM64 JVM 이미지 생성·실행 검증
   jvm-image:
+    if: github.event_name != 'pull_request'
     needs: verify
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 45
@@ -78,12 +91,12 @@ jobs:
     env:
       IMAGE_NAME: ken-blog-api:jvm-${{ github.sha }}
     steps:
-      - uses: actions/checkout@v7.0.1
-      - uses: actions/setup-java@v6.0.1
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-java@de7274f081f381c8f8158605e0321c36c376e2e6 # v6.0.1
         with:
           distribution: temurin
           java-version: '25'
-      - uses: gradle/actions/setup-gradle@v4
+      - uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4
       - name: Build Linux ARM64 JVM image with Cloud Native Buildpacks
         run: |
           # 러너 아키텍처 확인 후 Buildpacks 이미지 생성
@@ -113,6 +126,8 @@ jobs:
             "$IMAGE_NAME" "$GITHUB_SHA" "$image_user" > image.txt
       - name: Start JVM image with production storage identity
         run: |
+          # 빈 CI DB의 인증 상태는 일반 앱 기동과 분리해 명시적으로 설치
+          docker exec -i '${{ job.services.mysql.id }}' sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" exec mysql --user="$MYSQL_USER" "$MYSQL_DATABASE"' < deploy/sql/bootstrap-auth.sql
           # 운영과 같은 UID·GID의 임시 저장소로 API 기동
           sudo install -d -o 10001 -g 1001 -m 0750 "$RUNNER_TEMP/ken-blog-jvm-assets"
           docker run -d --name ken-blog-jvm-ci --network host --user 10001:1001 --memory 1536m --cpus 1 \
@@ -125,7 +140,7 @@ jobs:
             -e ADMIN_USERNAME=ci_jvm_admin \
             -e SESSION_COOKIE_SECURE=false -e SESSION_COOKIE_SAME_SITE=lax -e SESSION_COOKIE_PARTITIONED=false \
             -e APP_ASSETS_DIRECTORY=/var/lib/ken-blog/assets \
-            --mount "type=bind,source=$RUNNER_TEMP/ken-blog-jvm-assets,target=/var/lib/ken-blog/assets" \
+            --mount "type=bind,source=$RUNNER_TEMP/ken-blog-jvm-assets,target=/var/lib/ken-blog/assets,readonly" \
             "$IMAGE_NAME"
           # 종료 시 실패 진단을 남기고 검증 컨테이너 정리
           cleanup() {
@@ -304,6 +319,7 @@ jobs:
           assert metadata(request('GET', post_path))['slug'] == slug
           assert metadata(request('PATCH', post_path + '/metadata', {
               'title': 'JVM CI Project', 'summary': 'HTTP metadata only', 'categoryId': category['id'], 'tags': ['Spring'],
+              'baseVersion': post['editVersion'], 'seriesId': series['id'], 'order': 1, 'relatedSeriesId': None,
           }))['tags'] == ['Spring']
           assert metadata(request('PUT', post_path + '/attachments', {'attachmentIds': attachment_ids}))['attachmentIds'] == attachment_ids
           assert metadata(request('PUT', post_path + '/wiki-links', {'wikiTargets': ['Target', 'Target']}))['wikiTargets'] == ['Target']
@@ -315,7 +331,7 @@ jobs:
           assert request('GET', '/api/v1/admin/posts/wiki-titles?q=JVM')['items'] == []
           assert request('GET', '/api/v1/admin/series/' + str(series['id']))['posts'][0]['id'] == post['id']
           snapshot = request('GET', '/api/v1/pages/snapshot', authenticated=False)
-          assert snapshot['version'] == 2 and len(snapshot['revision']) == 64
+          assert snapshot['version'] == 3 and len(snapshot['revision']) == 64
           assert snapshot['posts'] == [] and snapshot['series'] == [] and 'profile' not in snapshot
 
           # 발행 후 스냅샷·검색·이미지 공개 확인
@@ -332,10 +348,10 @@ jobs:
           assert request('GET', '/api/v1/pages/snapshot', authenticated=False)['posts'] == []
           request('POST', '/api/v1/auth/logout', expected=204)
           request('GET', '/api/v1/auth/me', expected=401)
-          print('PASS HTTP login/logout, metadata/publication/wiki, PNG/JPEG attachments, local 64px icons, jOOQ reads, Pages v2 and removed endpoint; no API Markdown files')
+          print('PASS HTTP login/logout, metadata/publication/wiki, PNG/JPEG attachments, local 64px icons, jOOQ reads, Pages v3 and removed endpoint; no API Markdown files')
           PY
       - name: Upload reviewed image archive
-        uses: actions/upload-artifact@v7.0.1
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ken-blog-jvm-arm64-${{ github.sha }}-${{ github.run_attempt }}
           path: ${{ runner.temp }}/ken-blog-jvm-image/

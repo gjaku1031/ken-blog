@@ -19,7 +19,7 @@ spring:
   # JPA 초기화 뒤 보조 테이블·상태 행 초기화
   sql:
     init:
-      mode: always
+      mode: ${APP_SQL_INIT_MODE:always}
   # 요청 범위 영속성 컨텍스트 비활성화와 DDL 정책
   jpa:
     open-in-view: false
@@ -53,6 +53,8 @@ app:
     directory: ${APP_ASSETS_DIRECTORY:}
   # 관리자 계정명과 쿠키 인증 허용 origin
   auth:
+    # 프록시 출처 헤더는 공유 키가 일치할 때만 사용
+    proxy-key: ${AUTH_PROXY_KEY:}
     cors:
       allowed-origins: ${APP_AUTH_CORS_ALLOWED_ORIGINS:}
     admin:

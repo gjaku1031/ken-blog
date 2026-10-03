@@ -35,7 +35,7 @@ export async function enhanceMarkdown(root: HTMLElement, options: {
     const width = theme === 'dark' ? image.dataset.darkWidth ?? image.dataset.lightWidth : image.dataset.lightWidth;
     const height = theme === 'dark' ? image.dataset.darkHeight ?? image.dataset.lightHeight : image.dataset.lightHeight;
     if (width && height) { image.width = Number(width); image.height = Number(height); }
-    connectImageZoom(image);
+    if (!image.closest("a[href]")) connectImageZoom(image);
   }
   // 중복 연결 없이 코드 복사 동작 구성
   for (const button of root.querySelectorAll<HTMLButtonElement>(".code-copy")) {
@@ -59,12 +59,46 @@ export async function enhanceMarkdown(root: HTMLElement, options: {
     popup.className = "ken-annotation-popup";
     const content = note.querySelector(".ken-annotation-content");
     if (content) popup.append(...Array.from(content.childNodes, (child) => child.cloneNode(true)));
-    popup.hidden = true; ref.append(popup);
-    ref.addEventListener("mouseenter", () => { popup.hidden = false; });
-    ref.addEventListener("mouseleave", () => { popup.hidden = true; });
-    ref.addEventListener("focusin", () => { popup.hidden = false; });
-    ref.addEventListener("focusout", (event) => {
-      if (!ref.contains(event.relatedTarget as Node | null)) popup.hidden = true;
+    popup.hidden = true;
+    popup.setAttribute("role", "region");
+    popup.setAttribute("aria-label", "주석 미리보기");
+    ref.append(popup);
+    let hovered = false;
+    let dismissed = false;
+    let frame = 0;
+
+    /**
+     * 스크롤·크기 변경에도 팝업을 화면 안에 배치하고 분리 시 예약 해제
+     */
+    const position = () => {
+      if (popup.hidden || !ref.isConnected) { frame = 0; return; }
+      const anchor = ref.getBoundingClientRect();
+      const bounds = popup.getBoundingClientRect();
+      popup.style.left = `${Math.max(8, Math.min(anchor.left, innerWidth - bounds.width - 8))}px`;
+      const above = anchor.top - bounds.height;
+      popup.style.top = `${Math.max(8, Math.min(above >= 8 ? above : anchor.bottom, innerHeight - bounds.height - 8))}px`;
+      frame = requestAnimationFrame(position);
+    };
+
+    /**
+     * 포인터와 키보드 포커스를 함께 고려하고 Escape 해제 상태 유지
+     */
+    const update = () => {
+      const active = hovered || ref.contains(document.activeElement);
+      if (!active) dismissed = false;
+      popup.hidden = !active || dismissed;
+      if (popup.hidden) { cancelAnimationFrame(frame); frame = 0; }
+      else if (!frame) position();
+    };
+    ref.addEventListener("mouseenter", () => { hovered = true; update(); });
+    ref.addEventListener("mouseleave", () => { hovered = false; update(); });
+    ref.addEventListener("focusin", update);
+    ref.addEventListener("focusout", () => { queueMicrotask(update); });
+    ref.addEventListener("keydown", event => {
+      if (event.key !== "Escape" || popup.hidden) return;
+      event.preventDefault(); event.stopPropagation(); dismissed = true;
+      if (popup.contains(document.activeElement)) ref.querySelector<HTMLAnchorElement>(":scope > a")?.focus();
+      update();
     });
     ref.querySelector(":scope > a")?.addEventListener("click", () => {
       if (!ref.isConnected || !note.isConnected) return;

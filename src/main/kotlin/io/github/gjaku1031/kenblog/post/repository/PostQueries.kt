@@ -85,7 +85,12 @@ data class PostRow(
     /**
      * 이전 공개 경로
      */
-    val legacyPath: String?
+    val legacyPath: String?,
+
+    /**
+     * 관리자 편집 버전
+     */
+    val editVersion: Long
 )
 
 /**
@@ -149,7 +154,7 @@ class PostQueries(
          */
         get() = listOf(p.ID, p.TITLE, p.SLUG, p.SUMMARY, p.CREATED_AT, p.UPDATED_AT,
         p.PUBLISHED_AT, p.STATUS, p.VISIBILITY, p.CATEGORY_ID, p.SERIES_ORDER, p.RELATED_SERIES_ID,
-        p.LEGACY_PATH, s.ID, s.SLUG, s.NAME, s.KIND)
+        p.LEGACY_PATH, p.EDIT_VERSION, s.ID, s.SLUG, s.NAME, s.KIND)
 
     /**
      * 출간 시각·ID 내림차순
@@ -192,6 +197,22 @@ class PostQueries(
      * 공개 출간 글 목록 조회
      */
     fun publicPage(page: Int, size: Int): PostRows = page(readable(), page, size, true)
+
+    /**
+     * 단일 읽기 스냅샷의 전체 메타데이터, 10,000건 초과는 부분 응답 대신 실패
+     */
+    fun snapshotRows(publicOnly: Boolean): List<PostRow> {
+        val rows = sql.select(fields).from(joined).where(if (publicOnly) readable() else trueCondition())
+            .orderBy(if (publicOnly) newest else listOf(p.UPDATED_AT.desc(), p.ID.desc()))
+            .limit(10_001).fetch(::row)
+        check(rows.size <= 10_000) { "Metadata snapshot too large" }
+        return rows
+    }
+
+    /**
+     * 본문 열 없이 관리자 단건 메타데이터 조회
+     */
+    fun adminById(id: Long): PostRow? = sql.select(fields).from(joined).where(p.ID.eq(id)).fetchOne(::row)
 
     /**
      * 조건에 맞는 총건수와 정렬된 페이지 조회
@@ -305,5 +326,5 @@ class PostQueries(
         r[p.CREATED_AT]!!, r[p.UPDATED_AT]!!, r[p.PUBLISHED_AT], PostStatus.valueOf(r[p.STATUS]!!),
         PostVisibility.valueOf(r[p.VISIBILITY]!!), r[p.CATEGORY_ID], r[s.ID]?.let {
             SeriesRef(it, r[s.SLUG]!!, r[s.NAME]!!, SeriesKind.valueOf(r[s.KIND]!!))
-        }, r[p.SERIES_ORDER], r[p.RELATED_SERIES_ID], r[p.LEGACY_PATH])
+        }, r[p.SERIES_ORDER], r[p.RELATED_SERIES_ID], r[p.LEGACY_PATH], r[p.EDIT_VERSION]!!)
 }

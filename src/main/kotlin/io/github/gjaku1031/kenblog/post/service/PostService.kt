@@ -5,6 +5,7 @@ import io.github.gjaku1031.kenblog.category.domain.CategoryNotFoundException
 import io.github.gjaku1031.kenblog.category.repository.CategoryRepository
 import io.github.gjaku1031.kenblog.post.domain.DuplicatePostSlugException
 import io.github.gjaku1031.kenblog.post.domain.InvalidPostRequestException
+import io.github.gjaku1031.kenblog.post.domain.PostEditConflictException
 import io.github.gjaku1031.kenblog.post.domain.PostEntity
 import io.github.gjaku1031.kenblog.post.domain.PostNotFoundException
 import io.github.gjaku1031.kenblog.post.domain.PostTagEntity
@@ -31,6 +32,7 @@ import org.springframework.dao.DataIntegrityViolationException
 import org.springframework.data.repository.findByIdOrNull
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.transaction.annotation.Isolation
 
 /**
  * 게시글의 DB 메타데이터·출간 상태·첨부 및 위키 관계 관리
@@ -76,6 +78,12 @@ class PostService(
      * 게시글 메타데이터 조회기
      */
     private val queries: PostQueries,
+
+    /**
+     * 전체 메타데이터 응답의 바이트 상한 검사
+     */
+    private val mapper: tools.jackson.databind.ObjectMapper,
+
 ) {
     /**
      * 본문 없이 등록함
@@ -95,10 +103,7 @@ class PostService(
         if (request.categoryId != null) validCategory(request.categoryId)
         if (request.order != null && (request.order <= 0 || request.seriesId == null && request.categoryId == null))
             throw InvalidPostRequestException()
-        request.seriesId?.let { if (it <= 0 || series.findLockedById(it) == null) throw SeriesNotFoundException() }
-        request.relatedSeriesId?.let {
-            if (it <= 0 || series.findLockedById(it)?.kind != SeriesKind.PROJECT) throw InvalidPostRequestException()
-        }
+        lockSeries(request.seriesId, request.relatedSeriesId)
         val now = now()
         val post = PostEntity(title, slug, "", now)
         post.replaceMetadata(title, summary, now)
@@ -127,6 +132,7 @@ class PostService(
     fun setPublished(id: Long, published: Boolean): PostDetailResponse {
         val post = lockedPost(id)
         if (published) post.publish(PostVisibility.PUBLIC, now()) else post.unpublish(now())
+        post.advanceEdit(now())
         repository.saveAndFlush(post)
         return post.adminDetail()
     }
@@ -150,7 +156,7 @@ class PostService(
             val view = metadata.getValue(row.id)
             PostSummaryResponse(row.id, row.title, row.slug, row.createdAt, row.updatedAt,
                 row.status, row.visibility, row.publishedAt, view.category, view.tags,
-                row.series, row.seriesOrder, row.summary, row.relatedSeriesId)
+                row.series, row.seriesOrder, row.summary, row.relatedSeriesId, row.editVersion)
         }
         return PostPageResponse(items, page, size, result.total, result.pages)
     }
@@ -159,30 +165,55 @@ class PostService(
      * 파일이 아직 없는 새 글도 제목·상태 등 메타데이터를 조회할 수 있음
      */
     @Transactional(readOnly = true)
-    fun adminMetadata(id: Long): PostDetailResponse = lockedPostRead(id).adminDetail()
+    fun adminMetadata(id: Long): PostDetailResponse {
+        if (id <= 0) throw InvalidPostRequestException()
+        val row = queries.adminById(id) ?: throw PostNotFoundException()
+        val view = taxonomy.one(id, row.categoryId)
+        return PostDetailResponse(id, row.title, row.slug, row.createdAt, row.updatedAt, row.status, row.visibility,
+            row.publishedAt, view.category, view.tags, attachmentLinks.postIds(id), wikiLinks.postTitles(id),
+            row.series, row.seriesOrder, row.relatedSeriesId, row.summary, row.editVersion)
+    }
 
     /**
-     * 웹에서 제목·요약·분류·태그만 교체함
-     *
-     * 1. 입력 정규화와 분류 존재 확인
-     * 2. 글을 잠근 뒤 변경된 메타데이터만 저장
-     * 3. 태그 목록이 달라진 경우에만 전체 교체
+     * 페이지 사이의 변경으로 글이 누락되지 않는 관리자 전체 메타데이터 일관 읽기
+     * 본문 제외, 최대 10,000건·8,000,000바이트
+     */
+    @Transactional(readOnly = true, isolation = Isolation.REPEATABLE_READ)
+    fun snapshot(): List<PostSummaryResponse> {
+        val rows = queries.snapshotRows(false)
+        val metadata = taxonomy.batch(rows.map { it.id }, rows.map { it.categoryId })
+        val items = rows.map { row ->
+            val view = metadata.getValue(row.id)
+            PostSummaryResponse(row.id, row.title, row.slug, row.createdAt, row.updatedAt,
+                row.status, row.visibility, row.publishedAt, view.category, view.tags,
+                row.series, row.seriesOrder, row.summary, row.relatedSeriesId, row.editVersion)
+        }
+        check(mapper.writeValueAsBytes(items).size <= 8_000_000) { "Admin metadata snapshot too large" }
+        return items
+    }
+
+    /**
+     * 제목·요약·분류·태그·소속·순서를 기준 버전과 대조해 한 트랜잭션에서 교체
+     * 분류 → ID 오름차순 시리즈 → 글 잠금 순서 유지, 충돌·검증 실패 시 전체 롤백
      */
     @Transactional
-    fun updateMetadata(id: Long, title: String, summary: String, categoryId: Long?,
-        rawTags: List<String>): PostDetailResponse {
-        // 입력 정규화와 분류 존재 확인
-        val normalizedTitle = validTitle(title)
-        val normalizedSummary = validSummary(summary)
-        val normalizedTags = TagNames.displayAll(rawTags)
-        if (categoryId != null) validCategory(categoryId)
-        // 글을 잠근 뒤 변경된 메타데이터만 저장
+    fun updateMetadata(id: Long, request: PostMetadataCreateRequest, baseVersion: Long): PostDetailResponse {
+        val title = validTitle(request.title)
+        val summary = validSummary(request.summary)
+        val normalizedTags = TagNames.displayAll(request.tags)
+        if (request.categoryId != null) validCategory(request.categoryId)
+        lockSeries(request.seriesId, request.relatedSeriesId)
+        if (request.order != null && (request.order <= 0 || request.seriesId == null && request.categoryId == null))
+            throw InvalidPostRequestException()
+        // 같은 잠금 안에서 기준 버전을 검증하고 모든 편집 필드를 반영
         val post = lockedPost(id)
-        if (post.title != normalizedTitle || post.summary != normalizedSummary)
-            post.replaceMetadata(normalizedTitle, normalizedSummary, now())
-        if (post.categoryId != categoryId) post.changeCategory(categoryId, now())
+        requireVersion(post, baseVersion)
+        val now = now()
+        post.replaceMetadata(title, summary, now)
+        post.changeCategory(request.categoryId, now)
+        post.assignSeries(request.seriesId, request.order, request.relatedSeriesId, now)
+        post.advanceEdit(now)
         repository.saveAndFlush(post)
-        // 태그 목록이 달라진 경우에만 전체 교체
         if (tags.findNamesByPostId(id) != normalizedTags) {
             tags.deleteByPostId(id)
             if (normalizedTags.isNotEmpty())
@@ -192,14 +223,16 @@ class PostService(
     }
 
     /**
-     * 부모 잠금 순서를 지키며 섹션별 번호만 저장하고 Markdown 원문은 유지
+     * 글 잠금과 기준 버전 검사를 거쳐 문서 순서를 저장하고 Markdown 원문은 유지
      */
     @Transactional
-    fun setOrder(id: Long, order: Int?): PostDetailResponse {
+    fun setOrder(id: Long, order: Int?, baseVersion: Long): PostDetailResponse {
         if (id <= 0 || (order != null && order <= 0)) throw InvalidPostRequestException()
         val post = lockedPost(id)
+        requireVersion(post, baseVersion)
         if (order != null && post.seriesId == null && post.categoryId == null) throw InvalidPostRequestException()
         post.reorder(order)
+        post.advanceEdit(now())
         repository.saveAndFlush(post)
         return post.adminDetail()
     }
@@ -212,19 +245,17 @@ class PostService(
      * 3. 부모 잠금 뒤 글을 잠그고 새 소속·순서 저장
      */
     @Transactional
-    fun setSeries(id: Long, seriesId: Long?, order: Int?, relatedId: Long?): PostDetailResponse {
+    fun setSeries(id: Long, seriesId: Long?, order: Int?, relatedId: Long?, baseVersion: Long): PostDetailResponse {
         // 글 ID·순서 입력 검사
         if (id <= 0 || order != null && order <= 0) throw InvalidPostRequestException()
         // 소속·관련 시리즈를 ID 순서로 잠금
-        val parents = listOfNotNull(seriesId, relatedId).distinct().sorted().associateWith {
-            if (it <= 0) throw InvalidPostRequestException()
-            series.findLockedById(it) ?: throw SeriesNotFoundException()
-        }
-        if (relatedId != null && parents.getValue(relatedId).kind != SeriesKind.PROJECT) throw InvalidPostRequestException()
+        lockSeries(seriesId, relatedId)
         // 부모 잠금 뒤 글을 잠그고 새 소속·순서 저장
         val post = lockedPost(id)
+        requireVersion(post, baseVersion)
         if (order != null && seriesId == null && post.categoryId == null) throw InvalidPostRequestException()
         post.assignSeries(seriesId, order, relatedId, now())
+        post.advanceEdit(now())
         repository.saveAndFlush(post)
         return post.adminDetail()
     }
@@ -257,14 +288,6 @@ class PostService(
     fun adminTags(): List<TagCountResponse> = queries.tagCounts()
 
     /**
-     * 양수 ID로 글 조회, 잘못된 ID나 미존재 글은 오류
-     */
-    private fun lockedPostRead(id: Long): PostEntity {
-        if (id <= 0) throw InvalidPostRequestException()
-        return repository.findByIdOrNull(id) ?: throw PostNotFoundException()
-    }
-
-    /**
      * 양수 ID로 글 조회 및 쓰기 잠금 취득
      */
     private fun lockedPost(id: Long): PostEntity {
@@ -290,7 +313,26 @@ class PostService(
         // 첨부·위키 선언을 포함한 관리자 응답 조립
         return PostDetailResponse(postId, title, slug, createdAt, updatedAt,
             status, visibility, publishedAt, view.category, view.tags, attachmentLinks.postIds(postId),
-            wikiLinks.postTitles(postId), ref, seriesOrder, relatedSeriesId, summary)
+            wikiLinks.postTitles(postId), ref, seriesOrder, relatedSeriesId, summary, editVersion)
+    }
+
+    /**
+     * 생성·소속 교체에서 공유하는 ID 오름차순 시리즈 잠금과 관련 프로젝트 검증
+     */
+    private fun lockSeries(seriesId: Long?, relatedId: Long?) {
+        val parents = listOfNotNull(seriesId, relatedId).distinct().sorted().associateWith {
+            if (it <= 0) throw InvalidPostRequestException()
+            series.findLockedById(it) ?: throw SeriesNotFoundException()
+        }
+        if (relatedId != null && parents.getValue(relatedId).kind != SeriesKind.PROJECT) throw InvalidPostRequestException()
+    }
+
+    /**
+     * 글 쓰기 잠금 안에서 오래된 편집 기준 거부
+     */
+    private fun requireVersion(post: PostEntity, version: Long) {
+        if (version < 0) throw InvalidPostRequestException()
+        if (post.editVersion != version) throw PostEditConflictException()
     }
 
     /**

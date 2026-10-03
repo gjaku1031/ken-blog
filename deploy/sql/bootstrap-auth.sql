@@ -1,0 +1,50 @@
+-- 최초 설치에서만 명시적으로 적용하는 비 JPA 테이블·인증 상태 초기화
+-- 일반 앱 기동과 분리하며 중복 인증 상태 INSERT는 오류로 중단
+-- 세션 ID·수명·인증 주체 저장
+CREATE TABLE IF NOT EXISTS SPRING_SESSION (
+    PRIMARY_ID CHAR(36) NOT NULL,
+    SESSION_ID CHAR(36) NOT NULL,
+    CREATION_TIME BIGINT NOT NULL,
+    LAST_ACCESS_TIME BIGINT NOT NULL,
+    MAX_INACTIVE_INTERVAL INT NOT NULL,
+    EXPIRY_TIME BIGINT NOT NULL,
+    PRINCIPAL_NAME VARCHAR(100),
+    CONSTRAINT SPRING_SESSION_PK PRIMARY KEY (PRIMARY_ID),
+    UNIQUE KEY SPRING_SESSION_IX1 (SESSION_ID),
+    KEY SPRING_SESSION_IX2 (EXPIRY_TIME),
+    KEY SPRING_SESSION_IX3 (PRINCIPAL_NAME)
+) ENGINE=InnoDB ROW_FORMAT=DYNAMIC;
+
+-- 직렬화 세션 속성, 부모 세션 삭제 시 함께 정리
+CREATE TABLE IF NOT EXISTS SPRING_SESSION_ATTRIBUTES (
+    SESSION_PRIMARY_ID CHAR(36) NOT NULL,
+    ATTRIBUTE_NAME VARCHAR(200) NOT NULL,
+    ATTRIBUTE_BYTES BLOB NOT NULL,
+    CONSTRAINT SPRING_SESSION_ATTRIBUTES_PK PRIMARY KEY (SESSION_PRIMARY_ID, ATTRIBUTE_NAME),
+    CONSTRAINT SPRING_SESSION_ATTRIBUTES_FK FOREIGN KEY (SESSION_PRIMARY_ID) REFERENCES SPRING_SESSION(PRIMARY_ID) ON DELETE CASCADE
+) ENGINE=InnoDB ROW_FORMAT=DYNAMIC;
+
+-- 관리자 설정 지문·세션 버전·로그인 실패 상태를 단일 행으로 직렬화
+CREATE TABLE IF NOT EXISTS admin_auth_state (
+    id TINYINT NOT NULL,
+    config_fingerprint CHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL,
+    auth_version BIGINT NOT NULL,
+    failure_count INT NOT NULL,
+    locked_until DATETIME(6) NULL,
+    PRIMARY KEY (id),
+    CONSTRAINT ck_admin_auth_state_id CHECK (id = 1)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- 출처는 해시만 저장, 전역 인증 행 잠금 아래에서 4,096행·60초로 제한
+CREATE TABLE IF NOT EXISTS admin_login_sources (
+    source_key VARCHAR(64) CHARACTER SET ascii COLLATE ascii_bin NOT NULL PRIMARY KEY,
+    failure_count INT NOT NULL,
+    expires_at DATETIME(6) NOT NULL,
+    KEY ix_login_source_expiry (expires_at)
+) ENGINE=InnoDB;
+
+-- 인증 상태 행은 최초 설치 SQL에서만 생성하며 일반 재시작에서는 복구하지 않음
+
+-- 비어 있는 새 DB에만 실행, 중복 실행 시 명시적으로 실패
+INSERT INTO admin_auth_state (id, config_fingerprint, auth_version, failure_count)
+VALUES (1, REPEAT('0', 64), 0, 0);
