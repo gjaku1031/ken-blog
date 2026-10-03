@@ -2,6 +2,7 @@ import { el, field, area, choice, value } from './forms';
 import { listbox } from './dropdown';
 import type { Series } from './series-editor';
 import { categoryTreePicker } from './category-select';
+import { sortableChips } from './sortable-chips';
 
 /**
  * 분류 트리 노드
@@ -130,6 +131,17 @@ export function tagPicker(parent: HTMLElement, tags: Tag[], initial: string[] = 
   const input = el('input'); input.type = 'text'; input.placeholder = '기존 태그 검색 또는 새 태그 입력'; input.autocomplete = 'off'; input.maxLength = 80;
   input.setAttribute('aria-label', '태그 검색'); input.setAttribute('aria-autocomplete', 'list');
   const list = el('div');
+  const sorting = sortableChips(chips, order => { selected = order; syncValues(); });
+
+  /**
+   * 선택·드래그 순서대로 제출할 태그 값 구성
+   */
+  function syncValues() {
+    values.replaceChildren();
+    for (const name of selected) {
+      const hidden = el('input'); hidden.type = 'hidden'; hidden.name = 'tags'; hidden.value = name; values.append(hidden);
+    }
+  }
 
   /**
    * 대소문자와 무관하게 이미 선택한 태그인지 확인
@@ -140,13 +152,15 @@ export function tagPicker(parent: HTMLElement, tags: Tag[], initial: string[] = 
    * 선택 태그 칩과 제출할 폼 값 갱신
    */
   function render() {
-    chips.replaceChildren(); values.replaceChildren();
+    sorting.cancel(); chips.replaceChildren();
     for (const name of selected) {
-      const chip = el('span', 'stack-chip', `#${name}`); const remove = el('button', 'chip-remove', '×'); remove.type = 'button'; remove.setAttribute('aria-label', `${name} 태그 제거`);
+      const chip = el('span', 'stack-chip'); chip.dataset.sortKey = name; chip.title = name;
+      chip.append(el('span', 'chip-label', `#${name}`));
+      const remove = el('button', 'chip-remove', '×'); remove.type = 'button'; remove.setAttribute('aria-label', `${name} 태그 제거`);
       remove.addEventListener('click', () => { selected = selected.filter(tag => tag !== name); render(); input.focus(); popup.refresh(); });
       chip.append(remove); chips.append(chip);
-      const hidden = el('input'); hidden.type = 'hidden'; hidden.name = 'tags'; hidden.value = name; values.append(hidden);
     }
+    syncValues(); sorting.refresh();
   }
   // 길이·개수·대소문자 중복 검사 후 추가
 

@@ -1,4 +1,5 @@
 import { listbox, styleChoice } from './dropdown';
+import { sortableChips } from './sortable-chips';
 
 /**
  * 기술 뱃지
@@ -200,6 +201,17 @@ export function stackPicker(parent: HTMLElement, badges: Badge[], initial: strin
   input.setAttribute('aria-label', '기술 스택 검색'); input.setAttribute('aria-autocomplete', 'list');
   const list = el('div');
   const values = el('div');
+  const sorting = sortableChips(chips, order => { selected = order; syncValues(); });
+
+  /**
+   * 선택·드래그 순서대로 제출할 기술 이름 구성
+   */
+  function syncValues() {
+    values.replaceChildren();
+    for (const name of selected) {
+      const hidden = el('input'); hidden.type = 'hidden'; hidden.name = 'stackBadgeNames'; hidden.value = name; values.append(hidden);
+    }
+  }
   // 검색어와 선택 개수 제한에 맞는 후보 구성
 
   /**
@@ -227,16 +239,16 @@ export function stackPicker(parent: HTMLElement, badges: Badge[], initial: strin
    * 선택 기술을 칩·숨김 폼 값으로 갱신
    */
   function render() {
-    chips.replaceChildren(); values.replaceChildren();
+    sorting.cancel(); chips.replaceChildren();
     for (const name of selected) {
-      const chip = el('span', 'stack-chip');
+      const chip = el('span', 'stack-chip'); chip.dataset.sortKey = name; chip.title = name;
       const badge = badges.find(b => b.name === name); if (badge) chip.append(stackIcon(badge));
-      chip.append(document.createTextNode(name));
+      chip.append(el('span', 'chip-label', name));
       const remove = el('button', 'chip-remove', '×'); remove.type = 'button'; remove.setAttribute('aria-label', `${name} 선택 해제`);
       remove.addEventListener('click', () => { selected = selected.filter(item => item !== name); render(); input.focus(); popup.refresh(); });
       chip.append(remove); chips.append(chip);
-      const hidden = el('input'); hidden.type = 'hidden'; hidden.name = 'stackBadgeNames'; hidden.value = name; values.append(hidden);
     }
+    syncValues(); sorting.refresh();
   }
   group.append(chips, input, list, values); parent.append(group); render();
   // 검색 포커스·입력·키보드 처리를 선택 목록에 연결
