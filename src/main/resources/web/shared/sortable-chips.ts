@@ -1,5 +1,5 @@
 /**
- * 입력별 순서 변경 안내의 고유 ID
+ * 입력별 스크린 리더 순서 변경 안내의 고유 ID
  */
 let sequence = 0;
 
@@ -12,8 +12,8 @@ let sequence = 0;
  * 4. 동작 축소 설정에서는 이동·착지 애니메이션 생략
  */
 export function sortableChips(container: HTMLElement, onChange: (names: string[]) => void) {
-  // 입력마다 안내·발표 영역과 진행 중인 이동 상태 보관
-  const hint = document.createElement('p'); hint.className = 'chip-order-hint'; hint.id = `chip-order-${++sequence}`;
+  // 화면에 별도 문구를 표시하지 않는 스크린 리더 안내와 이동 상태 보관
+  const hint = document.createElement('p'); hint.className = 'sr-only'; hint.id = `chip-order-${++sequence}`;
   hint.textContent = '드래그 또는 ← → 키로 순서 변경';
   const status = document.createElement('span'); status.className = 'sr-only'; status.setAttribute('role', 'status');
   const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)');

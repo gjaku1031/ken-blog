@@ -19,7 +19,8 @@ export function categoryTreePicker(parent: HTMLElement, categories: Category[], 
   const group = el('fieldset', 'post-category-picker');
   group.append(el('legend', '', '분류'));
   const hidden = el('input'); hidden.type = 'hidden'; hidden.name = 'categoryId';
-  const selection = el('p', 'category-selection'); selection.setAttribute('aria-live', 'polite');
+  // 선택 결과는 스크린 리더로만 안내, 화면에서는 선택한 분류 버튼으로 표시
+  const selection = el('p', 'sr-only'); selection.setAttribute('aria-live', 'polite');
   const buttons = new Map<string, HTMLButtonElement>();
 
   /**
@@ -77,7 +78,7 @@ export function categoryTreePicker(parent: HTMLElement, categories: Category[], 
   }
   // 분류가 없어도 연결 해제 가능, 초기 선택은 목록에 존재하는 ID만 반영
   const clear = option('', '분류 없음', '분류 없음'); clear.classList.add('category-clear');
-  // 긴 목록만 스크롤하며 분류 해제와 현재 선택 표시는 목록 밖에 유지
+  // 긴 목록만 스크롤하며 분류 해제 버튼은 목록 밖에 유지
   const viewport = el('div', 'category-tree-scroll');
   viewport.tabIndex = 0; viewport.setAttribute('role', 'region'); viewport.setAttribute('aria-label', '분류 목록');
   const list = tree(categories);
