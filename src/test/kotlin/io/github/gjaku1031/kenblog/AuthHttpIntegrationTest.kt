@@ -247,20 +247,28 @@ class AuthHttpIntegrationTest {
     }
 
     /**
-     * 삭제 기능을 제거한 뒤에도 생성·조회는 가능하며 기존 삭제 요청은 데이터를 지우지 않음
+     * 인증·CSRF를 확인하고 소속 초안이 없는 시리즈만 삭제 가능
      */
     @Test
     @Order(6)
-    fun seriesDeletionIsNotAvailable() {
+    fun seriesDeletionRequiresRemovingItsPosts() {
         val client = newClient().first
         assertEquals(200, send(client, "POST", "/api/v1/auth/login", csrf = csrfToken(client), body = loginBody(TEST_PASSWORD)).statusCode())
         val token = csrfToken(client)
         val created = send(client, "POST", "/api/v1/admin/series", csrf = token,
-            body = """{"kind":"TECH","metadata":{"name":"삭제 없는 시리즈"}}""")
+            body = """{"kind":"TECH","metadata":{"name":"삭제 제약 시리즈"}}""")
         assertEquals(200, created.statusCode())
         val id = mapper.readTree(created.body()).path("id").asLong()
-        assertEquals(405, send(client, "DELETE", "/api/v1/admin/series/$id", csrf = token).statusCode())
+        val post = send(client, "POST", "/api/v1/admin/posts", csrf = token,
+            body = """{"title":"소속 초안","seriesId":$id}""")
+        assertEquals(201, post.statusCode())
+        val postId = mapper.readTree(post.body()).path("id").asLong()
+        assertEquals(403, send(client, "DELETE", "/api/v1/admin/series/$id").statusCode())
+        assertEquals(409, send(client, "DELETE", "/api/v1/admin/series/$id", csrf = token).statusCode())
         assertEquals(200, send(client, "GET", "/api/v1/admin/series/$id").statusCode())
+        assertEquals(204, send(client, "DELETE", "/api/v1/admin/posts/$postId", csrf = token).statusCode())
+        assertEquals(204, send(client, "DELETE", "/api/v1/admin/series/$id", csrf = token).statusCode())
+        assertEquals(404, send(client, "GET", "/api/v1/admin/series/$id").statusCode())
     }
 
     /**

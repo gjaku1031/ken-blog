@@ -4,6 +4,7 @@ import io.github.gjaku1031.kenblog.series.domain.*
 import io.github.gjaku1031.kenblog.series.dto.*
 import io.github.gjaku1031.kenblog.series.repository.SeriesRepository
 import io.github.gjaku1031.kenblog.post.repository.PostQueries
+import io.github.gjaku1031.kenblog.post.repository.PostRepository
 import io.github.gjaku1031.kenblog.post.domain.PostVisibility
 import io.github.gjaku1031.kenblog.post.domain.PostStatus
 import io.github.gjaku1031.kenblog.post.dto.PostSeriesItem
@@ -34,7 +35,12 @@ class SeriesService(
     /**
      * 기술 뱃지 서비스
      */
-    private val badges: StackBadgeService
+    private val badges: StackBadgeService,
+
+    /**
+     * 초안과 관련 글을 포함한 삭제 제약 조회
+     */
+    private val posts: PostRepository
     ) {
     /**
      * 시리즈 목록 조회
@@ -111,6 +117,24 @@ class SeriesService(
         val entity = series.findLockedById(id) ?: throw SeriesNotFoundException()
         entity.reorder(order); series.saveAndFlush(entity)
         return response(entity, true)
+    }
+
+    /**
+     * 소속 글과 관련 글이 없는 시리즈만 삭제
+     *
+     * 1. 글 생성·연결 변경과 같은 부모 행 잠금 취득
+     * 2. 초안·비공개를 포함한 모든 글 참조 확인, 하나라도 남으면 HTTP 409
+     * 3. 시리즈 삭제, 기술 뱃지 연결은 기존 FK CASCADE로 함께 제거
+     */
+    @Transactional
+    fun delete(id: Long) {
+        // 부모 잠금으로 검사 이후 새 글 참조가 추가되는 경합 차단
+        if (id <= 0) throw InvalidSeriesRequestException()
+        val entity = series.findLockedById(id) ?: throw SeriesNotFoundException()
+        // 소속과 관련 참조를 모두 검사한 뒤 삭제
+        if (posts.existsBySeriesIdOrRelatedSeriesId(id, id)) throw SeriesInUseException()
+        series.delete(entity)
+        series.flush()
     }
 
     /**

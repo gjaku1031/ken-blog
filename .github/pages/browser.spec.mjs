@@ -10,7 +10,7 @@ async function mockApi(page, override = async () => false) {
     if (await override(route, path)) return;
     const number = Number(new URL(route.request().url()).searchParams.get('page') || 0);
     const size = Number(new URL(route.request().url()).searchParams.get('size') || 10);
-    const posts = fixture.posts.map(post => ({ ...post, updatedAt: post.publishedAt, status: 'DRAFT', visibility: 'PUBLIC', seriesOrder: null, relatedSeriesId: null }));
+    const posts = fixture.posts.map(post => ({ ...post, updatedAt: post.publishedAt, status: 'DRAFT', visibility: 'PUBLIC', seriesOrder: null, relatedSeriesId: post.relatedSeries?.id ?? null }));
     const data = path === '/auth/me' ? { role: 'ADMIN' } : path === '/auth/csrf' ? { headerName: 'X-CSRF', token: 'fixture' }
       : path === '/pages/snapshot' ? fixture
       : path === '/admin/posts' ? { items: posts.slice(number * size, (number + 1) * size), page: number, totalPages: Math.ceil(posts.length / size), totalElements: posts.length }
@@ -479,4 +479,154 @@ test('touch sorting works across wrapped rows with reduced motion', async ({ pag
   expect(await page.locator('input[name=tags]').evaluateAll(inputs => inputs.map(input => input.value)))
     .toEqual(['tag1', 'tag2', 'tag3', 'tag4', 'tag5', 'tag6', 'tag7', 'tag0']);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+// 프로젝트 소속 탐색 다음에 공개 관련 글 다섯 편을 표시하고 본문으로 이동
+test('project rail lists related posts below its own documents', async ({ page }) => {
+  await mockApi(page); await page.goto('/ken-blog/post/project-intro/');
+  const related = page.getByRole('navigation', { name: '관련된 글 목록' });
+  await expect(related.getByRole('link')).toHaveCount(5);
+  await expect(related.getByRole('link').first()).toHaveText('검사 글 5');
+  expect(await related.evaluate(node => node.previousElementSibling?.getAttribute('aria-label'))).toBe('프로젝트 글 목록');
+  await related.getByRole('link').first().click();
+  await expect(page).toHaveURL(/post\/fixture-5\//);
+});
+
+// 연결 글이 남으면 서버의 거부 안내를 유지하고 마지막 글 삭제 후 시리즈 제거
+test('series deletion stays blocked until both owned and related posts are removed', async ({ page }) => {
+  const remaining = new Set([1, 35]);
+  let deleted = false;
+  await mockApi(page, async (route, path) => {
+    if (path === '/admin/series' && route.request().method() === 'GET') {
+      await route.fulfill({ json: deleted ? [] : fixture.series }); return true;
+    }
+    if (path === '/admin/series/90' && route.request().method() === 'DELETE') {
+      if (remaining.size) await route.fulfill({ status: 409, json: { detail: '소속 글과 관련된 글을 먼저 모두 삭제해야 합니다. 초안도 포함됩니다.' } });
+      else { deleted = true; await route.fulfill({ status: 204 }); }
+      return true;
+    }
+    if (/^\/admin\/posts\/\d+$/.test(path) && route.request().method() === 'DELETE') {
+      remaining.delete(Number(path.split('/').at(-1))); await route.fulfill({ status: 204 }); return true;
+    }
+    return false;
+  });
+  page.on('dialog', dialog => dialog.accept());
+  await page.goto('/ken-blog/manage/#series');
+  const remove = page.getByRole('button', { name: 'UI 검사 프로젝트 삭제', exact: true });
+  await remove.click(); await expect(page.locator('#dashboard-message')).toContainText('먼저 모두 삭제');
+  await page.getByRole('link', { name: '글 관리', exact: true }).click();
+  await page.getByRole('button', { name: '다음', exact: true }).click();
+  await page.getByRole('button', { name: '다음', exact: true }).click();
+  await page.getByRole('button', { name: '다음', exact: true }).click();
+  await page.getByRole('button', { name: '프로젝트 소개 삭제', exact: true }).click();
+  await expect.poll(() => remaining.has(35)).toBe(false);
+  await page.getByRole('link', { name: '시리즈·프로젝트', exact: true }).click();
+  await remove.click(); await expect(page.locator('#dashboard-message')).toContainText('먼저 모두 삭제');
+  await page.getByRole('link', { name: '글 관리', exact: true }).click();
+  await page.getByRole('button', { name: '이전', exact: true }).click();
+  await page.getByRole('button', { name: '이전', exact: true }).click();
+  await page.getByRole('button', { name: '이전', exact: true }).click();
+  await page.getByRole('button', { name: '검사 글 1 삭제', exact: true }).click();
+  await expect.poll(() => remaining.has(1)).toBe(false);
+  await page.getByRole('link', { name: '시리즈·프로젝트', exact: true }).click();
+  await remove.click(); await expect(page.locator('#series-list')).toContainText('등록된 시리즈·프로젝트가 없습니다');
+});
+
+/**
+ * 변경 후 재조회·거부 응답을 포함한 분류 관리용 모의 API
+ */
+async function categoryApi(page) {
+  let roots = [
+    { id: 201, name: 'Alpha', path: 'alpha', depth: 1, sortOrder: 1, directCount: 0, children: [
+      { id: 202, name: 'First', path: 'alpha/first', depth: 2, sortOrder: 1, directCount: 1, children: [] },
+      { id: 203, name: 'Second', path: 'alpha/second', depth: 2, sortOrder: 2, directCount: 0, children: [] },
+    ] },
+    { id: 204, name: 'Beta', path: 'beta', depth: 1, sortOrder: 2, directCount: 0, children: [] },
+  ];
+  const orders = [];
+  let reject = false;
+  await mockApi(page, async (route, path) => {
+    if (!path.startsWith('/admin/categories')) return false;
+    const method = route.request().method();
+    if (method === 'GET') { await route.fulfill({ json: roots }); return true; }
+    if (path === '/admin/categories/order') {
+      const body = route.request().postDataJSON(); orders.push(body);
+      if (reject) { await route.fulfill({ status: 409, json: { detail: '순서 저장 충돌' } }); return true; }
+      const parent = roots.find(root => root.id === body.parentId);
+      const current = parent ? parent.children : roots;
+      const next = body.ids.map(id => current.find(item => item.id === id));
+      if (parent) parent.children = next; else roots = next;
+      await route.fulfill({ json: next }); return true;
+    }
+    const id = Number(path.split('/')[3]);
+    if (path.endsWith('/name')) {
+      const category = roots.flatMap(root => [root, ...root.children]).find(item => item.id === id);
+      category.name = route.request().postDataJSON().name;
+      await route.fulfill({ json: category }); return true;
+    }
+    if (method === 'DELETE') {
+      roots = roots.filter(root => root.id !== id).map(root => ({ ...root, children: root.children.filter(child => child.id !== id) }));
+      await route.fulfill({ status: 204 }); return true;
+    }
+    return false;
+  });
+  return { orders, reject: () => { reject = true; } };
+}
+
+// 행 안에서 이름 수정·삭제, 대분류와 소분류 정렬 저장·실패 복원 검증
+test('category rows rename and delete inline and reorder complete sibling groups', async ({ page }) => {
+  const api = await categoryApi(page); await page.goto('/ken-blog/manage/#categories');
+  await expect(page.getByRole('button', { name: 'First 수정', exact: true })).toBeVisible();
+  await page.screenshot({ path: test.info().outputPath('categories-desktop.png') });
+  await page.getByRole('button', { name: 'First 수정', exact: true }).click();
+  await expect(page.locator('dialog[open]')).toHaveCount(0);
+  await page.getByRole('textbox', { name: 'First 새 이름' }).fill('Renamed');
+  await page.locator('.category-rename').getByRole('button', { name: '저장', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Renamed 수정', exact: true })).toBeVisible();
+  await page.getByRole('button', { name: 'Second 순서 이동', exact: true }).press('ArrowUp');
+  await expect.poll(() => api.orders.length).toBe(1);
+  expect(api.orders[0]).toEqual({ parentId: 201, ids: [203, 202] });
+  await expect(page.locator('#dashboard-message')).toContainText('분류 순서를 저장했습니다');
+  // 부모 행을 이동하면 하위 분류가 함께 따라가며 부모 ID는 변경되지 않음
+  const from = await page.getByRole('button', { name: 'Alpha 순서 이동', exact: true }).boundingBox();
+  const target = await page.locator('[data-category-id="204"] > .category-line').boundingBox();
+  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2); await page.mouse.down();
+  await page.mouse.move(from.x + from.width / 2, target.y + target.height - 2, { steps: 8 }); await page.mouse.up();
+  await expect.poll(() => api.orders.length).toBe(2);
+  expect(api.orders[1]).toEqual({ parentId: null, ids: [204, 201] });
+  await expect(page.locator('#category-list > ul > [data-category-id]').first()).toHaveAttribute('data-category-id', '204');
+  api.reject();
+  await page.getByRole('button', { name: 'Alpha 순서 이동', exact: true }).press('ArrowUp');
+  await expect(page.locator('#dashboard-message')).toContainText('순서 저장 충돌');
+  await expect(page.locator('#category-list > ul > [data-category-id]').first()).toHaveAttribute('data-category-id', '204');
+  page.on('dialog', dialog => dialog.accept());
+  await page.getByRole('button', { name: 'Renamed 삭제', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'Renamed 삭제', exact: true })).toHaveCount(0);
+});
+
+// 좁은 화면에서 터치 정렬과 Escape 취소가 저장 요청·부모 관계를 지키는지 검증
+test('category touch sorting and cancelled drags preserve the hierarchy', async ({ page }) => {
+  const api = await categoryApi(page); await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/ken-blog/manage/#categories');
+  const handle = page.getByRole('button', { name: 'Second 순서 이동', exact: true });
+  await expect(handle).toBeVisible();
+  await page.screenshot({ path: test.info().outputPath('categories-mobile.png') });
+  const from = await handle.boundingBox();
+  const target = await page.locator('[data-category-id="202"] > .category-line').boundingBox();
+  const session = await page.context().newCDPSession(page);
+  await session.send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 1 });
+  await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: from.x + from.width / 2, y: from.y + from.height / 2 }] });
+  await session.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: from.x + from.width / 2, y: target.y + 2 }] });
+  await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await expect.poll(() => api.orders.length).toBe(1);
+  expect(api.orders[0]).toEqual({ parentId: 201, ids: [203, 202] });
+  await expect(page.locator('#category-children-201 > [data-category-id]').first()).toHaveAttribute('data-category-id', '203');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  const start = await page.getByRole('button', { name: 'Alpha 순서 이동', exact: true }).boundingBox();
+  const end = await page.locator('[data-category-id="204"] > .category-line').boundingBox();
+  await page.mouse.move(start.x + start.width / 2, start.y + start.height / 2); await page.mouse.down();
+  await page.mouse.move(start.x + start.width / 2, end.y + end.height - 2, { steps: 5 });
+  await page.keyboard.press('Escape'); await page.mouse.up();
+  expect(api.orders).toHaveLength(1);
+  await expect(page.locator('#category-list > ul > [data-category-id]').first()).toHaveAttribute('data-category-id', '201');
 });

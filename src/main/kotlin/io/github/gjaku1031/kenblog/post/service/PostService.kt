@@ -132,6 +132,16 @@ class PostService(
     }
 
     /**
+     * 글 메타데이터 삭제, 태그·첨부 연결·위키 선언은 기존 FK CASCADE로 정리
+     * Git 원고와 첨부 파일 자체는 삭제하지 않음
+     */
+    @Transactional
+    fun delete(id: Long) {
+        repository.delete(lockedPost(id))
+        repository.flush()
+    }
+
+    /**
      * 본문 열 없이 초안·출간 메타데이터를 고정 정렬로 조회함
      *
      * 1. 페이지 범위·오프셋 상한 검사

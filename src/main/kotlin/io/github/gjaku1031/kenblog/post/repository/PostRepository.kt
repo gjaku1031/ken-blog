@@ -14,6 +14,11 @@ import org.springframework.data.repository.query.Param
  */
 interface PostRepository : JpaRepository<PostEntity, Long> {
     /**
+     * 출간 상태·공개 범위와 관계없이 시리즈 소속 또는 관련 글의 존재 확인
+     */
+    fun existsBySeriesIdOrRelatedSeriesId(seriesId: Long, relatedSeriesId: Long): Boolean
+
+    /**
      * ID로 조회하며 변경용 배타 잠금 취득
      */
     @Lock(LockModeType.PESSIMISTIC_WRITE)

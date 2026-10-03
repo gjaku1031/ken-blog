@@ -93,4 +93,9 @@ open class CategoryEntity protected constructor() {
      */
     internal open fun reorder(order: Int) { sortOrder = order }
 
+    /**
+     * 표시 이름만 변경하며 기존 경로·부모·글 연결 유지
+     */
+    internal open fun rename(displayName: String) { name = displayName }
+
 }

@@ -563,6 +563,16 @@ export async function generateSite(payload: Input, output: string) {
   }
   // 공개 목록·검색·프로젝트·글 상세 생성
   const feed = [...allPosts].sort((a, b) => chronological(b, a));
+  /**
+   * 공개 일반 글을 관련 프로젝트별 최신 출간순으로 묶은 역방향 탐색 목록
+   */
+  const relatedPostsByProject = new Map<number, Post[]>();
+  // 소속 문서와 별개로 relatedSeries 연결만 집계, 입력은 공개 스냅샷에 한정
+  for (const post of feed) {
+    if (post.section !== 'TECH' || !post.relatedSeries) continue;
+    const related = relatedPostsByProject.get(post.relatedSeries.id) ?? [];
+    related.push(post); relatedPostsByProject.set(post.relatedSeries.id, related);
+  }
   await listing("posts", "Posts", "Posts", feed.filter(p => p.section === "TECH"));
   const status: Record<string, string> = { PLAN: "기획 중", DEV: "개발 중", MAINT: "유지보수 중", DONE: "완료" };
   const projects = snapshot.series.filter(s => s.kind === "PROJECT").sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id)
@@ -582,6 +592,7 @@ export async function generateSite(payload: Input, output: string) {
       post: { ...post, categoryTrail: categoryTrail(post.category, snapshot.categories ?? []), displayDate: date(post.publishedDate), relatedProject }, project, html: post.rendered.html,
       toc: post.rendered.headings.filter(h => h.depth === 2 || h.depth === 3), backlinks: backlinks.get(postPath(post)) ?? [],
       series, previousPost, nextPost, seriesName: navigation?.name ?? "", seriesPosition: navigation?.position ?? 0,
+      relatedPosts: project ? (relatedPostsByProject.get(project.id) ?? []).map(item => ({ title: item.title, href: postPath(item) })) : [],
     });
   }
   // 공개 대상에 한해 옛 주소를 생성하고 프로젝트 루트는 현재 첫 글로 연결
