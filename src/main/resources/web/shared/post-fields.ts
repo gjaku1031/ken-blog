@@ -1,6 +1,7 @@
 import { el, field, area, choice, value } from './forms';
 import { listbox } from './dropdown';
 import type { Series } from './series-editor';
+import { categoryTreePicker } from './category-select';
 
 /**
  * 분류 트리 노드
@@ -190,43 +191,33 @@ export function tagPicker(parent: HTMLElement, tags: Tag[], initial: string[] = 
 }
 
 /**
- * 글의 현재 분류·태그를 편집 입력에 반영
- */
-export function taxonomyFields(parent: HTMLElement, data: PostOptions, post?: {
-  /**
-   * 분류
-   */
-  category: {
-    /**
-     * ID
-     */
-    id: number
-  } | null;
-
-  /**
-   * 태그 목록
-   */
-  tags: string[]
-}, includeTags = true) {
-  categoryPicker(parent, data.categories, post?.category?.id);
-  if (includeTags) tagPicker(parent, data.tags, post?.tags);
-}
-
-/**
  * 글 작성·수정에 공통으로 사용하는 메타데이터 입력 구성
  * 생략한 초기값은 빈 입력, 프로젝트 글은 태그·관련 프로젝트 제외
+ * Posts는 왼쪽 메타데이터 입력과 오른쪽 분류 트리로 분리
  */
 export function postFields(parent: HTMLElement, data: PostOptions, project: boolean, initial: Partial<ReturnType<typeof postPayload>> = {}) {
+  // Posts의 작성·수정 진입점 모두 같은 두 칸 배치 사용
+  let fields = parent;
+  if (!project) {
+    const columns = el('div', 'post-form-columns wide');
+    fields = el('div', 'post-form-main field-grid');
+    columns.append(fields); categoryTreePicker(columns, data.categories, initial.categoryId);
+    parent.append(columns);
+  }
   // 제목·요약·분류·태그의 기존 값 반영
-  field(parent, '제목', 'title', initial.title ?? '', { required: true, max: 200, wide: true });
-  area(parent, '요약', 'summary', initial.summary ?? '', 120);
-  taxonomyFields(parent, data, { category: initial.categoryId ? { id: initial.categoryId } : null, tags: initial.tags ?? [] }, !project);
+  field(fields, '제목', 'title', initial.title ?? '', { required: true, max: 200, wide: true });
+  area(fields, '요약', 'summary', initial.summary ?? '', 120);
+  if (project) categoryPicker(fields, data.categories, initial.categoryId);
+  else tagPicker(fields, data.tags, initial.tags);
   // 글 섹션에 맞는 소속만 선택 가능, 프로젝트 글은 소속 필수
   const groups = data.series.filter(item => item.kind === (project ? 'PROJECT' : 'TECH'));
-  const select = choice(parent, project ? '프로젝트' : '시리즈', 'seriesId', [['', project ? '프로젝트 선택' : '없음'], ...groups.map(item => [String(item.id), item.name] as [string, string])], groups.some(item => item.id === initial.seriesId) ? String(initial.seriesId) : '');
+  const select = choice(fields, project ? '프로젝트' : '시리즈', 'seriesId', [['', project ? '프로젝트 선택' : '없음'], ...groups.map(item => [String(item.id), item.name] as [string, string])], groups.some(item => item.id === initial.seriesId) ? String(initial.seriesId) : '');
   select.required = project;
-  field(parent, '문서 순서 (비우면 마지막)', 'order', String(initial.order ?? ''), { type: 'number' }).min = '1';
-  if (!project) choice(parent, '관련 프로젝트', 'relatedSeriesId', [['', '없음'], ...data.series.filter(item => item.kind === 'PROJECT').map(item => [String(item.id), item.name] as [string, string])], String(initial.relatedSeriesId ?? ''));
+  field(fields, '문서 순서 (비우면 마지막)', 'order', String(initial.order ?? ''), { type: 'number' }).min = '1';
+  if (!project) {
+    const related = choice(fields, '관련 프로젝트', 'relatedSeriesId', [['', '없음'], ...data.series.filter(item => item.kind === 'PROJECT').map(item => [String(item.id), item.name] as [string, string])], String(initial.relatedSeriesId ?? ''));
+    related.closest('label')?.classList.add('wide');
+  }
 }
 
 /**
