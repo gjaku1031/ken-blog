@@ -41,6 +41,8 @@
       <section id="categories" data-panel hidden><div class="page-heading"><h1>분류 관리</h1></div><div class="card panel category-card"><div id="category-create"></div><div id="category-list"></div></div></section>
       <section id="series" data-panel hidden>
         <div class="page-heading series-heading"><h1>시리즈·프로젝트</h1><div id="series-create" class="heading-actions"></div></div>
+        {# 시리즈·프로젝트 종류 선택과 전체 목록 기준 건수 #}
+        <div class="post-filter-bar"><div class="series-filters" role="group" aria-label="시리즈·프로젝트 종류 필터"><button type="button" data-series-filter="all" aria-controls="series-list" aria-pressed="true">전체</button><button type="button" data-series-filter="TECH" aria-controls="series-list" aria-pressed="false">시리즈</button><button type="button" data-series-filter="PROJECT" aria-controls="series-list" aria-pressed="false">프로젝트</button></div></div>
         <div class="card panel"><div id="series-list"></div></div>
       </section>
       {% endif %}
