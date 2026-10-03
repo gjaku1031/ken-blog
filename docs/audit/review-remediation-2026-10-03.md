@@ -68,11 +68,13 @@
 
 실행 명령은 [운영 전환 문서](../../deploy/REVIEW-ROLLOUT.md#반복-가능한-사전-검사)에 모았다.
 
-- Java 25·MySQL 8.4.11에서 전체 Gradle build와 통합/단위 검사 61개 통과, 실패·오류·건너뜀 0. 일반 umask 0002에서도 파일 권한 fixture가 통과하도록 테스트 소유 디렉터리 권한을 명시했다.
+- 최신 `main`의 관리 기능을 병합한 뒤 Java 25·MySQL 8.4.11에서 전체 Gradle build와 통합/단위 검사 68개 통과, 실패·오류·건너뜀 0. 일반 umask 0002에서도 파일 권한 fixture가 통과하도록 테스트 소유 디렉터리 권한을 명시했다.
 - Node 24에서 엄격한 타입 검사와 렌더/사이트/capture 검사 53개 통과.
-- Chromium 브라우저 회귀 34개 통과. 최초 검색의 자동 이동과 시리즈 부분 저장의 인증 실패·재시도를 포함한다.
+- Chromium 브라우저 회귀 38개 통과. 최초 검색의 자동 이동, 시리즈 부분 저장의 인증 실패·재시도, 최신 분류 관리·연관 글을 포함한다. 분류 정렬 검사는 저장 후 입력 잠금 해제를 기다리도록 보정하고 3회 추가 실행했다.
 - Compose·Caddy 설정과 실제 GET/HEAD·거부 경로·프록시 헤더 덮어쓰기 확인. MySQL TLS의 정상 연결·3종 부정 조건 확인.
 - 실제 JAR·일회용 MySQL의 이관/복구/장애 및 서로 다른 두 HTTPS 사이트의 일반·기억 로그인→CSRF 회전→인증 조회→편집→로그아웃→옛 세션 재사용 거부 검사.
-- 앱/jpaModel 바이트코드에서 Post/Series의 open·protected 계약과 생성자 호출 확인. 기준 DDL과의 차이는 JPA edit_version 열 하나이며 본문·해시·FK·인덱스는 유지된다.
+- 앱/jpaModel 바이트코드에서 Post/Series/Category의 open·protected 계약과 생성자 호출 확인. 기준 DDL과의 차이는 JPA edit_version 열 하나이며 본문·해시·FK·인덱스는 유지된다.
 
-사이트 간 브라우저 검사는 실제 Spring API와 JDBC 세션을 사용하며 API mock을 쓰지 않는다. 일회용 자체 서명 HTTPS 인증서를 테스트 컨텍스트에서 허용하므로 운영 인증서 신뢰의 증명은 아니다. 실제 Pages origin과 운영 MySQL CA/SAN, Safari·Firefox, 원격 GitHub Actions 및 ARM64 이미지 재생성·운영 배포는 이번 로컬 실행 범위에 포함하지 않는다. 주입된 세션 저장 실패의 Servlet 검사는 실제 DB 중단의 세션 읽기 검사와 구분한다.
+격리 환경의 사이트 간 브라우저 검사는 실제 Spring API와 JDBC 세션을 사용하며 API mock을 쓰지 않는다. 일회용 자체 서명 HTTPS 인증서를 테스트 컨텍스트에서 허용하므로 그 검사만으로 운영 인증서 신뢰를 증명하지 않는다. 주입된 세션 저장 실패의 Servlet 검사는 실제 DB 중단의 세션 읽기 검사와 구분한다.
+
+후속 운영 적용에서는 원격 GitHub Actions·ARM64 이미지 재생성·DB 백업 복원·스키마 이관·API와 Pages 배포를 완료했다. 실제 운영 MySQL CA/SAN의 정상·거부 조건, 공개 이미지 바이트, 공개 메타데이터, 실제 Pages origin의 CSRF와 Chromium 쿠키를 별도로 확인했다. 자세한 소스·이미지·실행 링크·인증서 갱신·롤백 정보는 [운영 배포 기록](review-deployment-2026-10-03.md)에 있다. 운영 관리자 비밀번호 로그인·편집과 Safari·Firefox는 이번 운영 검증 범위에 포함하지 않는다.
