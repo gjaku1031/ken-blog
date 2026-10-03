@@ -11,6 +11,7 @@ import { request } from "../shared/admin-api";
 import { enhanceMarkdown } from "../shared/enhance";
 import { connectTableOfContents } from "./toc";
 import { connectImageZoom } from "../shared/image-zoom";
+import { connectPostEditor } from "./post-edit";
 
 /**
  * 현재 URL의 조회 조건
@@ -99,6 +100,8 @@ function filterCards(): void {
   if (empty) empty.hidden = visible > 0 || cards.length === 0;
 }
 // 공통 헤더를 현재 화면의 검색·테마·로그아웃 동작에 연결
+// 로그인 확인으로 수정 버튼을 표시하기 전에 클릭 처리 준비
+if (document.querySelector('[data-post-edit],[data-project-edit]')) connectPostEditor();
 connectHeader({
   onSearch: filterCards,
   onThemeChange: theme => document.querySelectorAll<HTMLElement>('.markdown-body').forEach(root => { void enhanceMarkdown(root, { theme }); }),

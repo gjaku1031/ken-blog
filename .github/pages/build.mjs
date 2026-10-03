@@ -164,7 +164,7 @@ function validate(snapshot, fixture) {
  */
 async function checkArtifact() {
   // 산출물 최상위 경로 허용 목록 검사
-  const allowed = new Set(["assets", "licenses", "index.html", "404.html", "robots.txt", "sitemap.xml", "routes.json",
+  const allowed = new Set(["assets", "licenses", "index.html", "404.html", "robots.txt", "sitemap.xml", "routes.json", "deployment.json",
     "posts", "tech", "post", "projects", "project", "notes", "course", "series", "search", "manage"]);
   for (const name of await readdir(staging)) if (!allowed.has(name)) throw new Error(`허용되지 않은 Pages 산출물: ${name}`);
   let bytes = 0; let files = 0;

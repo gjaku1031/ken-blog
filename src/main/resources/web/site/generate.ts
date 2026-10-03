@@ -1,6 +1,7 @@
 import { mkdir, writeFile, copyFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import nunjucks from "nunjucks";
+import { deploymentManifest } from "../shared/deployment-status.ts";
 
 /**
  * 문서 이동 정보
@@ -490,6 +491,8 @@ export async function generateSite(payload: Input, output: string) {
     base: BASE, section, adminHref: payload.adminHref,
     nav: [["posts/", "Posts"], ["projects/", "Projects"]].map(([href, label]) => ({ href: route(href), label, active: label === section })),
   });
+  // 배포가 성공한 산출물에만 노출되는 공개 메타데이터 지문 기록
+  await write("deployment.json", JSON.stringify(await deploymentManifest(snapshot)));
   // 관리자 데이터는 포함하지 않고 로그인 화면과 API·자산 주소만 전달
   // 관리·작성 전용 페이지 생성
   await write("manage/index.html", engine.render("manage.njk", { apiBase: admin.apiBase, adminCss: admin.css, adminJs: admin.js, editor: "", ...header("Manage") }));

@@ -2,8 +2,8 @@
   <div class="post-toolbar">
     <a class="back-link" href="{{ base + ('projects/' if project else 'posts/') }}">{{ '← Projects' if project else '← Posts' }}</a>
     <div class="post-edit-actions" data-admin-write hidden>
-      <a class="write-button" href="{{ adminHref }}?post={{ post.id }}#posts">글 수정</a>
-      {% if project %}<a class="write-button" href="{{ adminHref }}?project={{ project.id }}#series">프로젝트 수정</a>{% endif %}
+      <button type="button" class="write-button" data-post-edit="{{ post.id }}">글 수정</button>
+      {% if project %}<button type="button" class="write-button" data-project-edit="{{ project.id }}">프로젝트 수정</button>{% endif %}
     </div>
   </div>
   <article>

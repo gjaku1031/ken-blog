@@ -33,6 +33,9 @@
       {% else %}
       <section id="posts" data-panel>
         <div class="page-heading"><h1>글 관리</h1><span id="post-count" class="muted mono"></span></div>
+        <div class="post-filter-bar"><div class="post-filters" role="group" aria-label="글 상태 필터"><button type="button" data-post-filter="all" aria-pressed="true">전체</button><button type="button" data-post-filter="draft" aria-pressed="false">미발행</button><button type="button" data-post-filter="pending" aria-pressed="false">배포 대기</button></div><button id="refresh-post-status" class="text-button" type="button">상태 새로고침</button></div>
+        <p class="deployment-help muted">수정한 내용은 배포가 완료되면 공개 화면에 반영됩니다.</p>
+        <p id="deployment-notice" class="notice" role="status" hidden></p>
         <div class="card list-card"><div id="post-list"></div><div id="post-pages" class="pagination"></div></div>
       </section>
       <section id="categories" data-panel hidden><div class="page-heading"><h1>분류 관리</h1></div><div class="card panel category-card"><div id="category-create"></div><div id="category-list"></div></div></section>
