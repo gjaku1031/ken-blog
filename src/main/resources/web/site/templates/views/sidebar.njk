@@ -1,7 +1,13 @@
-{# 소개·대분류·소분류·태그 탐색 #}{# 분류·태그 탐색 사이드바 #}<aside class="feed-sidebar" aria-label="글 탐색">
+{# 소개·분류·시리즈·태그 탐색 사이드바 #}<aside class="feed-sidebar" aria-label="글 탐색">
   {% if section == "Posts" %}{% include "views/about.njk" %}{% endif %}
-  <section class="side-card card">
-    <h2>분류</h2>
+  <section class="side-card card sidebar-navigation" aria-label="분류·시리즈 탐색">
+    {# 기본 라디오 선택으로 스크립트 로딩 전에도 전환·방향키 조작 가능 #}
+    <div class="sidebar-view-switch" role="radiogroup" aria-label="글 탐색 방식">
+      <label><input class="sr-only" type="radio" name="sidebar-view" value="categories" aria-controls="sidebar-categories" checked><span>분류</span></label>
+      <label><input class="sr-only" type="radio" name="sidebar-view" value="series" aria-controls="sidebar-series"><span>시리즈</span></label>
+    </div>
+    {# 선택 버튼은 고정하고 긴 목록만 내부 스크롤 #}
+    <div id="sidebar-categories" class="sidebar-navigation-panel" role="region" aria-label="분류 목록" tabindex="0">
     <ul class="category-tree">
       {% for category in categories %}<li>
         <div class="category-line">
@@ -14,13 +20,13 @@
       </li>{% endfor %}
     </ul>
     {% if not categories | length %}<p class="meta">아직 분류가 없습니다.</p>{% endif %}
-  </section>
-  <section class="side-card card">
-    <h2>시리즈</h2>
+    </div>
+    <div id="sidebar-series" class="sidebar-navigation-panel" role="region" aria-label="시리즈 목록" tabindex="0">
     <ul class="sidebar-series-list">
       {% for item in sidebarSeries %}<li><a class="sidebar-series-link" href="{{ item.href }}"><svg viewBox="0 0 20 20" width="15" height="15" aria-hidden="true"><path d="M5 3h11v14H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm-2 12a2 2 0 0 1 2-2h11M7 3v10" fill="none" stroke="currentColor" stroke-linejoin="round"/></svg><span>{{ item.name }}</span><span class="sidebar-series-count mono" aria-label="{{ item.count }}개 글">{{ item.count }}</span></a></li>{% endfor %}
     </ul>
     {% if not sidebarSeries | length %}<p class="side-empty">아직 시리즈가 없습니다.</p>{% endif %}
+    </div>
   </section>
   <section class="side-card card">
     <h2>태그</h2>
