@@ -301,20 +301,29 @@ test('sortable tags preserve submitted order through keyboard, drag and cancella
    * 현재 제출되는 태그 순서
    */
   const values = () => page.locator('input[name=tags]').evaluateAll(inputs => inputs.map(input => input.value));
+
+  /**
+   * 키보드 이동·취소 애니메이션이 안정된 손잡이에서 같은 드래그 시작
+   */
+  async function beginDrag() {
+    const handle = page.locator('[data-sort-key=tag1] .chip-drag-handle');
+    // hover의 위치 안정성 검사를 거친 뒤 실제 드래그 좌표를 읽음
+    await handle.hover();
+    const first = await handle.boundingBox();
+    const last = await page.locator('[data-sort-key=tag0]').boundingBox();
+    await page.mouse.move(first.x + first.width / 2, first.y + first.height / 2); await page.mouse.down();
+    await page.mouse.move(last.x + last.width - 4, last.y + last.height / 2, { steps: 5 });
+  }
   await page.getByRole('button', { name: 'tag0 순서 이동, 1/3' }).press('End');
   expect(await values()).toEqual(['tag1', 'tag2', 'tag0']);
   // 실제 포인터로 마지막 칩 앞으로 이동한 뒤 Escape는 기존 제출 순서를 유지
-  const first = await page.locator('[data-sort-key=tag1] .chip-drag-handle').boundingBox();
-  const last = await page.locator('[data-sort-key=tag0]').boundingBox();
-  await page.mouse.move(first.x + first.width / 2, first.y + first.height / 2); await page.mouse.down();
-  await page.mouse.move(last.x + last.width - 4, last.y + last.height / 2, { steps: 5 });
+  await beginDrag();
   await expect(page.locator('.chip-drag-preview')).toHaveCount(1);
   await page.keyboard.press('Escape'); await page.mouse.up();
   await expect(page.locator('.chip-drag-preview')).toHaveCount(0);
   expect(await values()).toEqual(['tag1', 'tag2', 'tag0']);
   // 같은 이동을 놓아서 확정하면 숨김 값과 화면 순서가 일치
-  await page.mouse.move(first.x + first.width / 2, first.y + first.height / 2); await page.mouse.down();
-  await page.mouse.move(last.x + last.width - 4, last.y + last.height / 2, { steps: 5 }); await page.mouse.up();
+  await beginDrag(); await page.mouse.up();
   await expect.poll(values).toEqual(['tag2', 'tag0', 'tag1']);
   await expect(page.locator('.chip-drag-preview')).toHaveCount(0);
   await page.getByRole('button', { name: 'tag0 태그 제거', exact: true }).click();
