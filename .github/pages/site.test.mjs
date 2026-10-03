@@ -29,6 +29,14 @@ test('representative site keeps public names, tags and canonical routes', async 
     const redirect = await readFile(join(output, 'post/index.html'), 'utf8');
     assert.match(redirect, /fixture-1/);
     assert.doesNotMatch(redirect, /private/);
+    // 소속 문서 탐색 뒤에 관련된 공개 글만 최신순으로 배치
+    const project = await readFile(join(output, 'post/project-intro/index.html'), 'utf8');
+    const related = project.match(/<nav class="series-nav related-posts-nav"[\s\S]*?<\/nav>/)[0];
+    assert.equal((related.match(/<li>/g) ?? []).length, 5);
+    assert.ok(related.indexOf('fixture-5/') < related.indexOf('fixture-1/'));
+    assert.doesNotMatch(related, /project-intro|fixture-6/);
+    const ordinary = await readFile(join(output, 'post/fixture-1/index.html'), 'utf8');
+    assert.doesNotMatch(ordinary, /related-posts-nav/);
   } finally { await rm(output, { recursive: true, force: true }); }
 });
 

@@ -2,6 +2,8 @@ package io.github.gjaku1031.kenblog.category.controller
 
 import io.github.gjaku1031.kenblog.category.dto.CategoryCreateRequest
 import io.github.gjaku1031.kenblog.category.domain.InvalidCategoryRequestException
+import io.github.gjaku1031.kenblog.category.dto.CategoryNameRequest
+import io.github.gjaku1031.kenblog.category.dto.CategoryReorderRequest
 import io.github.gjaku1031.kenblog.category.dto.CategoryRefResponse
 import io.github.gjaku1031.kenblog.category.dto.CategoryTreeResponse
 import io.github.gjaku1031.kenblog.category.service.CategoryService
@@ -56,6 +58,22 @@ class AdminCategoryController(
         if (!request.isObject || request.size() != 1 || order == null || !order.isIntegralNumber || !order.canConvertToLong())
             throw InvalidCategoryRequestException()
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.setOrder(id, order.longValue()))
+    }
+
+    /**
+     * 기존 경로를 유지한 분류 표시 이름 변경
+     */
+    @PutMapping("/{id}/name", consumes = [MediaType.APPLICATION_JSON_VALUE], produces = [MediaType.APPLICATION_JSON_VALUE])
+    fun rename(@PathVariable("id") id: Long, @RequestBody request: JsonNode): ResponseEntity<CategoryRefResponse> =
+        ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.rename(id, CategoryNameRequest.fromJson(request).name))
+
+    /**
+     * 같은 부모의 전체 형제 순서를 원자적으로 저장한 no-store 응답
+     */
+    @PutMapping("/order", consumes = [MediaType.APPLICATION_JSON_VALUE], produces = [MediaType.APPLICATION_JSON_VALUE])
+    fun reorder(@RequestBody request: JsonNode): ResponseEntity<List<CategoryRefResponse>> {
+        val input = CategoryReorderRequest.fromJson(request)
+        return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.reorder(input.parentId, input.ids))
     }
 
     /**

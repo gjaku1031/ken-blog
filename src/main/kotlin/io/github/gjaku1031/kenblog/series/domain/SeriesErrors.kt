@@ -17,3 +17,8 @@ class SeriesNotFoundException : BusinessException(HttpStatus.NOT_FOUND, "콘텐�
  * 주소 중복·수정 시각 경합 충돌
  */
 class SeriesConflictException : BusinessException(HttpStatus.CONFLICT, "콘텐츠 변경이 충돌했습니다.")
+
+/**
+ * 소속 글 또는 관련 글이 남아 있어 시리즈 삭제를 거부하는 경우
+ */
+class SeriesInUseException : BusinessException(HttpStatus.CONFLICT, "소속 글과 관련된 글을 먼저 모두 삭제해야 합니다. 초안도 포함됩니다.")

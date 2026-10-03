@@ -64,6 +64,9 @@
 .series-nav h2 { margin: 0 0 12px; color: var(--text2); font-size: 14px; overflow-wrap: anywhere; }
 .series-nav ol { margin: 0; padding: 0; list-style: none; }
 .series-nav li { margin: 0; }
+/* 프로젝트 문서 탐색 아래의 관련 일반 글 목록 */
+.related-posts-nav { border-top: 1px solid var(--line); margin-top: 22px; padding-top: 22px; }
+.related-posts-nav a { overflow-wrap: anywhere; }
 .series-nav a { display: flex; align-items: flex-start; gap: 9px; padding: 7px 9px; border-radius: 8px;
   color: var(--text2); font-size: 13.5px; line-height: 1.5; }
 .series-nav a[aria-current="page"] { color: var(--accent-d); font-weight: 700; }

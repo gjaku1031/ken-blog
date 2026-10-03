@@ -18,6 +18,7 @@ import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import java.net.URI
 import org.springframework.web.bind.annotation.GetMapping
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.PatchMapping
 import org.springframework.web.bind.annotation.PathVariable
 import org.springframework.web.bind.annotation.PutMapping
@@ -96,6 +97,15 @@ class PostController(
     fun detail(@PathVariable id: Long): ResponseEntity<PostDetailResponse> {
         if (id <= 0) throw InvalidPostRequestException()
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.adminMetadata(id))
+    }
+
+    /**
+     * 글 메타데이터·종속 연결 삭제 후 no-store HTTP 204 반환
+     */
+    @DeleteMapping("/{id}")
+    fun delete(@PathVariable id: Long): ResponseEntity<Void> {
+        service.delete(id)
+        return ResponseEntity.noContent().cacheControl(CacheControl.noStore()).build()
     }
 
     /**

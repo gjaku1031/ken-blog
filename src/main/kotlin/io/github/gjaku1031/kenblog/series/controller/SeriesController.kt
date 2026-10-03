@@ -32,6 +32,15 @@ class SeriesController(
     fun detail(@PathVariable id: Long) = noStore(service.detail(id))
 
     /**
+     * 연결된 글이 없는 시리즈 삭제, no-store HTTP 204
+     */
+    @DeleteMapping("/{id}")
+    fun delete(@PathVariable id: Long): ResponseEntity<Void> {
+        service.delete(id)
+        return ResponseEntity.noContent().cacheControl(CacheControl.noStore()).build()
+    }
+
+    /**
      * 시리즈 생성
      */
     @PostMapping

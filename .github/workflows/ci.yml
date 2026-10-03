@@ -346,6 +346,20 @@ jobs:
           # 발행 취소·로그아웃 후 공개 데이터·인증 상태 회수 확인
           metadata(request('PUT', post_path + '/publication', {'published': False}))
           assert request('GET', '/api/v1/pages/snapshot', authenticated=False)['posts'] == []
+          # 표시명 수정·원자적 형제 정렬과 초안·관련 글 삭제 제약 검증
+          renamed = request('PUT', '/api/v1/admin/categories/' + str(category['id']) + '/name', {'name': 'Renamed'})
+          assert renamed['path'] == category['path'] and renamed['name'] == 'Renamed'
+          roots = request('GET', '/api/v1/admin/categories')
+          request('PUT', '/api/v1/admin/categories/order', {'parentId': None, 'ids': [root['id'] for root in reversed(roots)]})
+          series_path = '/api/v1/admin/series/' + str(series['id'])
+          request('DELETE', series_path, expected=409)
+          related = metadata(request('POST', '/api/v1/admin/posts', {'title': 'Related draft', 'relatedSeriesId': series['id']}, 201))
+          request('DELETE', post_path, expected=204)
+          request('GET', post_path, expected=404)
+          request('DELETE', series_path, expected=409)
+          request('DELETE', '/api/v1/admin/posts/' + str(related['id']), expected=204)
+          request('DELETE', series_path, expected=204)
+          request('GET', series_path, expected=404)
           request('POST', '/api/v1/auth/logout', expected=204)
           request('GET', '/api/v1/auth/me', expected=401)
           print('PASS HTTP login/logout, metadata/publication/wiki, PNG/JPEG attachments, local 64px icons, jOOQ reads, Pages v3 and removed endpoint; no API Markdown files')

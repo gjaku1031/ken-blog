@@ -57,18 +57,6 @@ const cards = Array.from(document.querySelectorAll<HTMLElement>("[data-search-ca
 const searchResults = route === 'search' && search ? connectSearch(search) : null;
 
 /**
- * 일반 글 목록의 추가 표시 한도
- */
-let cardLimit = 20;
-
-/**
- * 긴 공개 목록의 다음 결과 표시 버튼
- */
-const more = document.querySelector<HTMLButtonElement>('#filter-more');
-// 긴 공개 목록을 단계적으로 표시, 정적 HTML에는 전체 글 링크 유지
-if (!searchResults) more?.addEventListener('click', () => { cardLimit += 20; filterCards(); });
-
-/**
  * 카테고리·태그·검색어에 맞는 카드와 결과 수 갱신
  */
 function filterCards(): void {
@@ -85,11 +73,10 @@ function filterCards(): void {
       (!tag || card.tags.has(tag)) &&
       (!category || (path === category || path.startsWith(category + "/")));
     if (match) visible++;
-    const hidden = !match || visible > cardLimit;
+    const hidden = !match;
     if (card.element.hidden !== hidden) card.element.hidden = hidden;
   }
   // 검색 결과 건수와 빈 목록 안내 갱신
-  if (more) more.hidden = visible <= cardLimit;
   const empty = document.querySelector<HTMLElement>("#filter-empty");
   if (empty) empty.hidden = visible > 0 || cards.length === 0;
 }

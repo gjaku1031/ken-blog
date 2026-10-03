@@ -72,6 +72,8 @@ class CategoryService(
                     parent = existing
                 } else {
                     val siblings = categories.findSiblings(parent?.id)
+                    // 이름만 수정한 형제와도 표시 이름 중복 방지
+                    if (siblings.any { it.name.equals(segment.name, ignoreCase = true) }) throw CategoryConflictException()
                     val last = siblings.maxOfOrNull { it.sortOrder } ?: 0
                     if (last == Int.MAX_VALUE) throw CategoryConflictException()
                     parent = categories.saveAndFlush(CategoryEntity(parent?.id, currentPath, segment.name,
@@ -147,6 +149,50 @@ class CategoryService(
         } catch (ex: PessimisticLockingFailureException) {
             throw CategoryConflictException()
         }
+    }
+
+    /**
+     * 경로·글 연결을 유지한 분류 표시 이름 변경
+     *
+     * 1. 한 단계 이름 정규화
+     * 2. 트리·대상 잠금 후 같은 부모의 표시 이름 중복 검사
+     * 3. 표시 이름만 저장, 자손 경로와 글 메타데이터 유지
+     */
+    @Transactional
+    fun rename(id: Long, name: String): CategoryRefResponse {
+        // 경로 구분자를 이름으로 받아 부모 변경에 사용하지 않음
+        if (id <= 0 || name.contains('/')) throw InvalidCategoryRequestException()
+        val normalized = normalizePath(name).single().name
+        // 생성·재정렬·삭제와 같은 잠금 순서로 이름 변경 직렬화
+        lockTree()
+        val category = categories.findLockedById(id) ?: throw CategoryNotFoundException()
+        if (categories.findSiblings(category.parentId).any { it.id != id && it.name.equals(normalized, ignoreCase = true) })
+            throw CategoryConflictException()
+        category.rename(normalized)
+        return categories.saveAndFlush(category).reference()
+    }
+
+    /**
+     * 같은 부모의 전체 형제 순서를 한 트랜잭션에서 교체
+     *
+     * 1. 양수 ID·중복 검사
+     * 2. 트리 잠금 후 부모 존재와 현재 형제 집합 일치 확인
+     * 3. 입력 순서대로 1부터 연속 번호 저장, 실패하면 전체 롤백
+     */
+    @Transactional
+    fun reorder(parentId: Long?, ids: List<Long>): List<CategoryRefResponse> {
+        // 잘못된 ID·중복·과도한 입력은 잠금 전에 거부
+        if (parentId != null && parentId <= 0 || ids.size > 10_000 || ids.any { it <= 0 } || ids.distinct().size != ids.size)
+            throw InvalidCategoryRequestException()
+        // 형제 생성·삭제·이동과 일괄 저장 사이의 집합 경합 차단
+        lockTree()
+        if (parentId != null && categories.findLockedById(parentId) == null) throw CategoryNotFoundException()
+        val siblings = categories.findSiblings(parentId).associateBy { it.id }
+        if (siblings.keys != ids.toSet()) throw CategoryConflictException()
+        // 부모와 소속은 유지하고 모든 형제의 순서를 함께 변경
+        val ordered = ids.mapIndexed { index, id -> siblings.getValue(id).apply { reorder(index + 1) } }
+        categories.saveAllAndFlush(ordered)
+        return ordered.map { it.reference() }
     }
 
     /**

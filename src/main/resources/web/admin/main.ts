@@ -4,6 +4,7 @@ import { sitePath } from '../shared/site-path';
 import "../shared/theme.css";
 import "../shared/stack-icons.css";
 import './style.css';
+import { sortableCategories } from './category-sort';
 import '../shared/header.css';
 import '../shared/forms.css';
 import '../shared/category-tree.css';
@@ -340,6 +341,7 @@ function get(id: string): HTMLElement {
  * 관리자 목록과 결과 메시지 비움
  */
 function clearDashboard() {
+  categorySorters.forEach(cancel => cancel()); categorySorters = [];
   for (const id of ['post-list', 'post-pages', 'category-create', 'category-list', 'series-create', 'series-list', 'editor-content', 'dialog-content']) document.getElementById(id)?.replaceChildren();
   dialog.close();
 }
@@ -376,19 +378,21 @@ function showDashboard() {
 /**
  * 관리 작업 수행 후 목록 갱신·결과 표시, 세션 만료 시 로그인 전환
  */
-async function action(operation: () => Promise<unknown>, success: string) {
+async function action(operation: () => Promise<unknown>, success: string): Promise<boolean> {
   const context = operationContext();
   const message = dialog.open ? get('dialog-message') : dashboardMessage;
   setMessage(message, '');
   try {
     await operation();
-    if (!context.current()) return;
+    if (!context.current()) return false;
     if (context.ownsDialog()) dialog.close();
     await saved(success, context);
+    return true;
   } catch (error) {
-    if (!context.current()) return;
+    if (!context.current()) return false;
     if (error instanceof HttpError && error.status === 401) showLogin(error.message);
     else setMessage(context.ownsDialog() ? message : dashboardMessage, error instanceof Error ? error.message : '요청에 실패했습니다.', true);
+    return false;
   }
 }
 
@@ -668,6 +672,8 @@ function renderPosts(data: AdminData) {
       const publication = smallAction(actions, published ? '발행 취소' : '발행', () => mutate(`/admin/posts/${post.id}/publication`, 'PUT', { published: !published }), published ? '발행을 취소했습니다.' : '발행했습니다.', published ? '이 글의 발행을 취소할까요?' : '저장소 Markdown 원고를 확인하고 이 글을 발행할까요?');
       publication.dataset.focusKey = `post-${post.id}-publication`;
       publication.classList.toggle('danger', published);
+      const remove = smallAction(actions, '삭제', () => mutate(`/admin/posts/${post.id}`, 'DELETE'), '글을 삭제했습니다.', `${post.title} 글을 삭제할까요?`);
+      remove.classList.add('danger'); remove.setAttribute('aria-label', `${post.title} 삭제`);
       row.append(title, section, state, date, actions); body.append(row);
     }
     table.append(body); list.append(table);
@@ -776,13 +782,19 @@ function renderEditor(data: AdminData) {
 const collapsedCategories = new Set<number>();
 
 /**
+ * 분류 재렌더·로그아웃 전에 진행 중 드래그를 정리하는 함수 목록
+ */
+let categorySorters: Array<() => void> = [];
+
+/**
  * 분류 생성·정렬·삭제 화면 렌더
  *
  * 1. 대분류·소분류 생성 폼과 입력 규칙 구성
- * 2. 분류 순서·삭제 관리 동작 구성
+ * 2. 행 내부 이름 수정·삭제와 형제 드래그 정렬 구성
  * 3. 접힘 상태를 유지하며 대분류·소분류 재귀 렌더
  */
 function renderCategories(data: AdminData) {
+  categorySorters.forEach(cancel => cancel()); categorySorters = [];
   get('category-create').replaceChildren();
   const list = get('category-list'); list.replaceChildren();
   // 대분류·소분류 생성 폼과 입력 규칙 구성
@@ -799,22 +811,40 @@ function renderCategories(data: AdminData) {
     name.pattern = '[^\\/]+';
     submit(create, '추가'); openDialog(parent ? '새 소분류' : '새 대분류', create);
   };
-  // 분류 순서·삭제 관리 동작 구성
+  /**
+   * 다른 분류 수정 시작 전에 현재 인라인 입력을 닫는 함수
+   */
+  let cancelRename: (() => void) | undefined;
 
   /**
-   * 선택 분류의 관리 대화상자 열기
+   * 분류 행에서 표시 이름만 수정, 실패하면 입력을 유지하여 재시도 가능
    */
-  const editCategory = (category: Category) => {
-    const content = el('div');
-    content.append(el('p', 'category-parent', category.path.replaceAll('/', ' › ')));
-    const order = form(input => mutate(`/admin/categories/${category.id}/order`, 'PUT', { order: Number(value(input, 'order')) }), '분류 순서를 저장했습니다.');
-    field(order, '순서', 'order', String(category.sortOrder), { type: 'number', required: true });
-    submit(order, '순서 저장'); content.append(order);
-    const actions = el('div', 'category-dialog-actions');
-    smallAction(actions, '분류 삭제', () => mutate(`/admin/categories/${category.id}`, 'DELETE'), '분류를 삭제했습니다.',
-      `${category.path} 분류를 삭제할까요? 글은 상위 분류로 이동합니다.`);
-    content.append(actions); openDialog('분류 관리', content);
-  };
+  function editCategory(category: Category, row: HTMLElement, name: HTMLElement, actions: HTMLElement) {
+    cancelRename?.();
+    const editor = el('form', 'category-rename');
+    const input = el('input'); input.value = category.name; input.required = true; input.maxLength = 60;
+    input.pattern = '[^\\/]+'; input.setAttribute('aria-label', `${category.name} 새 이름`);
+    const save = el('button', 'text-button', '저장'); save.type = 'submit';
+    const cancel = el('button', 'text-button', '취소'); cancel.type = 'button';
+    /**
+     * 원래 이름·관리 버튼을 복원하고 수정 버튼으로 포커스 반환
+     */
+    const close = () => {
+      editor.remove(); name.hidden = false; actions.hidden = false; cancelRename = undefined;
+      actions.querySelector<HTMLButtonElement>('button')?.focus();
+    };
+    cancelRename = close;
+    cancel.addEventListener('click', close);
+    editor.addEventListener('keydown', event => { if (event.key === 'Escape') { event.preventDefault(); close(); } });
+    // 저장 실패 시 입력과 수정 상태 유지, 저장 중 이중 제출 차단
+    editor.addEventListener('submit', async event => {
+      event.preventDefault(); if (!editor.reportValidity()) return;
+      save.disabled = true; cancel.disabled = true; input.readOnly = true;
+      await action(() => mutate(`/admin/categories/${category.id}/name`, 'PUT', { name: input.value }), '분류 이름을 변경했습니다.');
+      save.disabled = false; cancel.disabled = false; input.readOnly = false;
+    });
+    editor.append(input, save, cancel); name.hidden = true; actions.hidden = true; row.append(editor); input.focus(); input.select();
+  }
 
   /**
    * 분류 추가 버튼 생성
@@ -831,8 +861,11 @@ function renderCategories(data: AdminData) {
   const tree = (categories: Category[], parent: Category | null): HTMLUListElement => {
     const ul = el('ul', 'category-tree');
     for (const category of categories) {
-      const li = el('li');
+      const li = el('li'); li.dataset.categoryId = String(category.id);
       const row = el('div', 'category-line');
+      const handle = el('button', 'category-drag-handle', '⠿'); handle.type = 'button';
+      handle.setAttribute('aria-label', `${category.name} 순서 이동`); handle.title = '드래그 또는 위·아래 방향키로 순서 변경';
+      handle.disabled = categories.length < 2; row.append(handle);
       const children = category.depth < 2 ? tree(category.children, category) : null;
       const toggle = el('button', 'category-expand'); toggle.type = 'button';
       if (children) {
@@ -849,17 +882,29 @@ function renderCategories(data: AdminData) {
         });
         row.append(toggle);
       } else row.append(el('span', 'category-expand-spacer'));
-      const name = el('button', 'category-name'); name.type = 'button';
-      name.setAttribute('aria-label', `${category.path} 분류 관리`);
+      const name = el('span', 'category-name');
       const icon = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
       icon.setAttribute('viewBox', '0 0 20 20'); icon.setAttribute('width', '15'); icon.setAttribute('height', '15'); icon.setAttribute('aria-hidden', 'true');
       const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
       path.setAttribute('d', 'M3 5h5l2 2h7v9H3Z'); path.setAttribute('fill', 'none'); path.setAttribute('stroke', 'currentColor'); path.setAttribute('stroke-linejoin', 'round'); icon.append(path);
-      name.append(icon, document.createTextNode(category.name)); name.addEventListener('click', () => editCategory(category));
+      name.append(icon, document.createTextNode(category.name));
       const total = el('span', 'category-total mono', String(categoryCount(category))); total.setAttribute('aria-label', `${categoryCount(category)}개 글`);
-      row.append(name, total); li.append(row); if (children) li.append(children); ul.append(li);
+      const actions = el('div', 'category-actions');
+      const edit = el('button', 'text-button', '수정'); edit.type = 'button'; edit.setAttribute('aria-label', `${category.name} 수정`);
+      edit.addEventListener('click', () => editCategory(category, row, name, actions)); actions.append(edit);
+      const remove = smallAction(actions, '삭제', () => mutate(`/admin/categories/${category.id}`, 'DELETE'), '분류를 삭제했습니다.',
+        `${category.name} 분류${children ? '와 하위 분류' : ''}를 삭제할까요? 글은 ${parent ? parent.name : '분류 없음'}으로 이동합니다.`);
+      remove.className = 'text-button danger'; remove.setAttribute('aria-label', `${category.name} 삭제`);
+      row.append(name, total, actions); li.append(row); if (children) li.append(children); ul.append(li);
     }
-    const add = el('li', 'category-add-row'); add.append(addButton(parent)); ul.append(add); return ul;
+    const add = el('li', 'category-add-row'); add.append(addButton(parent)); ul.append(add);
+    // 한 번에 하나의 형제 집합만 저장하며 실패 시 정렬 도우미가 원래 순서 복원
+    categorySorters.push(sortableCategories(ul, async ids => {
+      list.inert = true; list.setAttribute('aria-busy', 'true');
+      try { return await action(() => mutate('/admin/categories/order', 'PUT', { parentId: parent?.id ?? null, ids }), '분류 순서를 저장했습니다.'); }
+      finally { list.inert = false; list.removeAttribute('aria-busy'); }
+    }));
+    return ul;
   };
   list.append(tree(data.categories, null));
 }
@@ -926,7 +971,15 @@ function renderSeries(data: AdminData) {
       const edit = createSeriesForm(data, item.kind === 'PROJECT', item);
       openDialog(item.kind === 'PROJECT' ? '프로젝트 수정' : '시리즈 수정', edit);
     });
-    article.append(info, button); list.append(article);
+    /**
+     * 수정 아래에 배치하는 시리즈 삭제 동작
+     */
+    const actions = el('div', 'series-actions'); actions.append(button);
+    const remove = smallAction(actions, '삭제', () => mutate(`/admin/series/${item.id}`, 'DELETE'), '삭제했습니다.',
+      `${item.name}을 삭제할까요? 소속 글과 관련된 글이 남아 있으면 삭제할 수 없습니다.`);
+    remove.className = 'text-button danger';
+    remove.setAttribute('aria-label', `${item.name} 삭제`);
+    article.append(info, actions); list.append(article);
   }
 }
 loginForm.addEventListener('submit', async event => {
