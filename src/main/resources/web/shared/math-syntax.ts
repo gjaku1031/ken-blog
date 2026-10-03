@@ -302,7 +302,6 @@ function blockRanges(source: string, mask: Uint8Array): MathRange[] {
   return result;
 }
 
-
 /**
  * 엄격한 한 쌍의 단일 달러만 인라인 수식으로 모음
  *
@@ -383,9 +382,6 @@ function prepare(source: string, ranges: MathRange[]): string {
   }
   return transformed + source.slice(cursor);
 }
-
-
-
 
 /**
  * TeX 원문을 안전한 text child로 전달하는 읽기용 mdast 노드를 만듦

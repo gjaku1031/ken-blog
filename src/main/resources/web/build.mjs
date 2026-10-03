@@ -3,6 +3,7 @@ import { mkdir, rm, readFile, writeFile, readdir } from "node:fs/promises";
 import { basename, join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { createHash } from "node:crypto";
+import { sitePath } from './shared/site-path.ts';
 
 /**
  * 저장소 루트
@@ -97,8 +98,10 @@ export async function buildWebAssets() {
     const saved = JSON.parse(await readFile(manifestFile, "utf8"));
     if (saved.key === key) {
       const files = { admin: await fileHashes(adminOutput), public: await fileHashes(publicOutput) };
-      if (JSON.stringify(files) === JSON.stringify(saved.files) && ["admin", "public"].every(name =>
-        saved.entries?.[name]?.js && saved.entries[name].css && Object.values(saved.entries[name]).every(file => files[name][file]))) {
+      if (JSON.stringify(files) === JSON.stringify(saved.files) && ["admin", "public"].every(name => {
+        const required = name === 'public' ? ['js', 'css', 'articleJs', 'articleCss', 'formsCss'] : ['js', 'css'];
+        return required.every(key => files[name][saved.entries?.[name]?.[key]]);
+      })) {
         console.log(`프론트 번들 재사용: ${key}`);
         return saved.entries;
       }
@@ -106,8 +109,8 @@ export async function buildWebAssets() {
   } catch { /* 캐시 없이도 같은 빌드가 가능하도록 재생성 */ }
   // 캐시 누락·손상이면 관리자·공개 번들 재생성
   const entries = {};
-  entries.admin = await compile("admin", join(source, "admin/main.ts"), adminOutput, "/ken-blog/assets");
-  entries.public = await compile("public", join(source, "public/main.ts"), publicOutput, "/ken-blog/assets");
+  entries.admin = await compile("admin", join(source, "admin/main.ts"), adminOutput, sitePath('assets'));
+  entries.public = await compile("public", join(source, "public/main.ts"), publicOutput, sitePath('assets'));
   const files = { admin: await fileHashes(adminOutput), public: await fileHashes(publicOutput) };
   // 재생성된 파일 해시와 진입 자산 목록 기록
   await writeFile(manifestFile, JSON.stringify({ key, entries, files }));

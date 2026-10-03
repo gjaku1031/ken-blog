@@ -401,8 +401,13 @@ export function prepareMarkdown(source: string) {
 
 /**
  * 같은 AST를 재사용하여 공개 첨부·위키 주소를 반영한 본문 생성
+ *
+ * 1. 준비된 AST를 HTML 트리로 바꾸고 공개 주소·표현 정보 적용
+ * 2. 허용 목록으로 정화한 뒤 신뢰된 수식 출력만 복원
+ * 3. 같은 정화 규칙으로 주석을 렌더하고 본문·탐색 정보 반환
  */
 export async function renderPreparedMarkdown(prepared: ReturnType<typeof prepareMarkdown>, options: RenderOptions = {}): Promise<RenderResult> {
+  // 원본 AST를 다시 파싱하지 않고 새 HTML 트리에 화면 정보를 적용
   const { parsed, headings, attachmentIds } = prepared;
   const wikiTargets = new Set(prepared.wikiTargets);
   const tree = toHast(parsed.root, { allowDangerousHtml: false }) as HtmlRoot;
@@ -439,6 +444,7 @@ export async function renderPreparedMarkdown(prepared: ReturnType<typeof prepare
     for (const [marker, value] of inserts) html = html.replace(marker, value);
     return html;
   };
+  // 본문과 주석에 같은 직렬화·정화 경계 적용
   let html = await serialize(tree);
   if (parsed.items.length) {
     const notes = await Promise.all(parsed.items.map(async (item) => {

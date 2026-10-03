@@ -56,8 +56,7 @@ class AuthService(
      */
     fun login(body: LoginRequest, request: HttpServletRequest, response: HttpServletResponse): CurrentUserResponse {
         // 로그인 시도 트랜잭션 완료 후 성공·거부·잠금 결과 구분
-        val result = attempts.attempt(body.password)
-        val success = when (result) {
+        val success = when (val result = attempts.attempt(body.password)) {
             is AdminLoginResult.Success -> result
             AdminLoginResult.Denied -> throw BadCredentialsException("Invalid credentials")
             AdminLoginResult.Locked -> throw ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS)

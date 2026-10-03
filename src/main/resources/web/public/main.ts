@@ -61,8 +61,11 @@ const searchResults = route === 'search' && search ? connectSearch(search) : nul
  */
 let cardLimit = 20;
 
-// 긴 공개 목록을 단계적으로 표시, 정적 HTML에는 전체 글 링크 유지
+/**
+ * 긴 공개 목록의 다음 결과 표시 버튼
+ */
 const more = document.querySelector<HTMLButtonElement>('#filter-more');
+// 긴 공개 목록을 단계적으로 표시, 정적 HTML에는 전체 글 링크 유지
 if (!searchResults) more?.addEventListener('click', () => { cardLimit += 20; filterCards(); });
 
 /**
@@ -71,9 +74,9 @@ if (!searchResults) more?.addEventListener('click', () => { cardLimit += 20; fil
 function filterCards(): void {
   if (searchResults) { void searchResults(); return; }
   // 검색어·태그·분류 조건 정규화
-  const term = (search?.value ?? "").trim().toLocaleLowerCase();
-  const tag = new URLSearchParams(location.search).get("tag")?.toLocaleLowerCase();
-  const category = new URLSearchParams(location.search).get("category")?.toLocaleLowerCase();
+  const term = (search?.value ?? "").trim().toLocaleLowerCase('und');
+  const tag = new URLSearchParams(location.search).get("tag")?.toLocaleLowerCase('und');
+  const category = new URLSearchParams(location.search).get("category")?.toLocaleLowerCase('und');
   let visible = 0;
   // 전체 조건에 맞는 카드만 표시, 분류 경로는 경계까지 비교
   for (const card of cards) {
@@ -131,22 +134,51 @@ for (const link of document.querySelectorAll<HTMLAnchorElement>('[data-category-
 let isAdmin = false;
 
 /**
- * 첫 작성 요청이 공유하는 코드·스타일 로딩 작업
+ * 최초 작성·수정 요청이 공유하는 폼 스타일 로딩
+ */
+let formStyles: Promise<void> | undefined;
+
+/**
+ * 첫 작성 요청에서 불러온 대화상자 열기 함수
  */
 let creator: Promise<ReturnType<typeof import('./post-create').connectPostCreator>> | undefined;
 
-// 권한 확인 후 실제 클릭 시에만 폼 코드와 스타일 로딩
+/**
+ * 첫 수정 요청에서 불러온 대화상자 열기 함수
+ */
+let editor: Promise<ReturnType<typeof import('./post-edit').connectPostEditor>> | undefined;
+
+/**
+ * 작성·수정 폼 스타일을 한 번만 로딩, 실패한 요청은 다음 클릭에서 재시도
+ */
+function loadFormStyles(): Promise<void> {
+  formStyles ??= new Promise<void>((resolve, reject) => {
+    // 이미 열린 다른 폼에서도 같은 스타일 요소 재사용
+    const link = document.createElement('link'); link.rel = 'stylesheet'; link.href = document.body.dataset.formsCss!;
+    link.onload = () => resolve();
+    link.onerror = () => { link.remove(); reject(new Error('편집 화면을 불러오지 못했습니다.')); };
+    document.head.append(link);
+  }).catch(error => { formStyles = undefined; throw error; });
+  return formStyles;
+}
+
+// 권한 확인 후 실제 클릭 시에만 해당 폼 코드와 공통 스타일 로딩
 document.addEventListener('click', async event => {
-  const trigger = event.target instanceof Element ? event.target.closest<HTMLElement>('[data-post-create]') : null;
+  const trigger = event.target instanceof Element ? event.target.closest<HTMLElement>('[data-post-create],[data-post-edit],[data-project-edit]') : null;
   if (!trigger || !isAdmin || event.button || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey) return;
   event.preventDefault();
   try {
-    creator ??= Promise.all([import('./post-create'), new Promise<void>((resolve, reject) => {
-      const link = document.createElement('link'); link.rel = 'stylesheet'; link.href = document.body.dataset.formsCss!;
-      link.onload = () => resolve(); link.onerror = () => { link.remove(); reject(new Error('글쓰기 화면을 불러오지 못했습니다.')); };
-      document.head.append(link);
-    })]).then(([module]) => module.connectPostCreator()).catch(error => { creator = undefined; throw error; });
-    const open = await creator;
-    if (isAdmin) await open(trigger);
-  } catch (error) { window.alert(error instanceof Error ? error.message : '글쓰기 화면을 불러오지 못했습니다.'); }
+    // 작성과 수정은 개별 청크로 받고 스타일 로딩 작업만 공유
+    if (trigger.hasAttribute('data-post-create')) {
+      creator ??= Promise.all([import('./post-create'), loadFormStyles()])
+        .then(([module]) => module.connectPostCreator()).catch(error => { creator = undefined; throw error; });
+      const open = await creator;
+      if (isAdmin) await open(trigger);
+    } else {
+      editor ??= Promise.all([import('./post-edit'), loadFormStyles()])
+        .then(([module]) => module.connectPostEditor()).catch(error => { editor = undefined; throw error; });
+      const open = await editor;
+      if (isAdmin) await open(trigger);
+    }
+  } catch (error) { window.alert(error instanceof Error ? error.message : '편집 화면을 불러오지 못했습니다.'); }
 });

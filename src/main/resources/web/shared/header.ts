@@ -131,7 +131,6 @@ export function connectHeader(options: {
     navigateSearch(true);
   });
 
-
   // 한글 조합 중에는 이동을 보류하고 검색을 지연 실행
   search?.addEventListener("input", () => {
     scheduleSearch();

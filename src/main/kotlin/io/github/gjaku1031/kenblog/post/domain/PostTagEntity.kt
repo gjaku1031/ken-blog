@@ -21,7 +21,7 @@ import org.hibernate.annotations.OnDeleteAction
     UniqueConstraint(name = "uk_post_tags_position", columnNames = ["post_id", "position"]),
     UniqueConstraint(name = "uk_post_tags_name", columnNames = ["post_id", "tag_name"]),
 ])
-class PostTagEntity protected constructor() {
+open class PostTagEntity protected constructor() {
     // DB 외래 키와 삭제 규칙 저장은 기존 ID 필드를 사용
 
     /**
@@ -37,35 +37,35 @@ class PostTagEntity protected constructor() {
      */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    var id: Long? = null
+    open var id: Long? = null
         protected set
 
     /**
      * 게시글 ID
      */
     @Column(name = "post_id", nullable = false)
-    var postId: Long = 0
+    open var postId: Long = 0
         protected set
 
     /**
      * 입력 순서의 0 기반 위치
      */
     @Column(nullable = false)
-    var position: Int = 0
+    open var position: Int = 0
         protected set
 
     /**
      * 이름
      */
     @Column(name = "tag_name", nullable = false, length = 40, columnDefinition = "varchar(40) character set utf8mb4 collate utf8mb4_bin")
-    lateinit var name: String
+    open lateinit var name: String
         protected set
 
     /**
      * 표시 이름
      */
     @Column(name = "display_name", nullable = false, length = 40)
-    lateinit var displayName: String
+    open lateinit var displayName: String
         protected set
 
     /**

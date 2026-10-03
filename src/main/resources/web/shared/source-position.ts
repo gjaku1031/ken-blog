@@ -35,14 +35,19 @@ export function escaped(source: string, position: number): boolean {
 /**
  * 정렬된 치환 구간을 이분 탐색하여 원문 오프셋 복원
  * 마커 내부는 시작·끝 경계, 이후는 누적 길이 차이 적용
+ *
+ * 1. 해당 오프셋 이전의 마지막 치환 구간 검색
+ * 2. 구간 내부 경계 또는 이후의 누적 길이 차이로 원문 위치 반환
  */
 export function originalOffset(offset: number, ranges: readonly OffsetRange[], endBoundary: boolean): number {
+  // 정렬된 구간에서 원문 위치 보정에 사용할 마지막 항목 검색
   let left = 0, right = ranges.length;
   while (left < right) {
     const middle = (left + right) >>> 1;
     if (ranges[middle].transformedStart <= offset) left = middle + 1;
     else right = middle;
   }
+  // 마커 시작·내부·이후를 구분하여 경계 포함 규칙 적용
   const range = ranges[left - 1];
   if (!range) return offset;
   if (offset === range.transformedStart) return range.start;

@@ -39,6 +39,7 @@ export function imageSize(bytes, type) {
  * APP1 내부의 유효한 TIFF 방향만 읽고 미지원·손상 메타데이터는 무시
  */
 function exifOrientation(view, start, end) {
+  // EXIF 식별자·TIFF 바이트 순서·디렉터리 위치가 APP1 경계 안인지 검사
   if (end - start < 14 || view.getUint32(start) !== 0x45786966 || view.getUint16(start + 4) !== 0) return;
   const base = start + 6;
   const order = view.getUint16(base);
@@ -47,6 +48,7 @@ function exifOrientation(view, start, end) {
   if (view.getUint16(base + 2, little) !== 42) return;
   const directory = base + view.getUint32(base + 4, little);
   if (directory < base + 8 || directory + 2 > end) return;
+  // 단일 SHORT 방향 태그만 해석하고 나머지 메타데이터는 건너뜀
   const count = view.getUint16(directory, little);
   for (let index = 0; index < count; index++) {
     const entry = directory + 2 + index * 12;

@@ -49,8 +49,8 @@ data class PostTaxonomyRequest(
             val tags = ArrayList<String>(tagsNode.size())
             for (index in 0 until tagsNode.size()) {
                 val tag = tagsNode.get(index)
-                if (!tag.isTextual) throw InvalidPostRequestException()
-                tags.add(tag.textValue())
+                if (!tag.isString) throw InvalidPostRequestException()
+                tags.add(tag.stringValue())
             }
             return PostTaxonomyRequest(categoryId, tags)
         }

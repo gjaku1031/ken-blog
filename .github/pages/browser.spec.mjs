@@ -9,12 +9,16 @@ async function mockApi(page, override = async () => false) {
     const path = new URL(route.request().url()).pathname.replace('/api/v1', '');
     if (await override(route, path)) return;
     const number = Number(new URL(route.request().url()).searchParams.get('page') || 0);
+    const size = Number(new URL(route.request().url()).searchParams.get('size') || 10);
     const posts = fixture.posts.map(post => ({ ...post, updatedAt: post.publishedAt, status: 'DRAFT', visibility: 'PUBLIC', seriesOrder: null, relatedSeriesId: null }));
     const data = path === '/auth/me' ? { role: 'ADMIN' } : path === '/auth/csrf' ? { headerName: 'X-CSRF', token: 'fixture' }
-      : path === '/admin/posts' ? { items: posts.slice(number * 10, number * 10 + 10), page: number, totalPages: 4, totalElements: 34 }
+      : path === '/pages/snapshot' ? fixture
+      : path === '/admin/posts' ? { items: posts.slice(number * size, (number + 1) * size), page: number, totalPages: Math.ceil(posts.length / size), totalElements: posts.length }
+      : /^\/admin\/posts\/\d+$/.test(path) ? posts.find(post => post.id === Number(path.split('/').at(-1)))
       : path === '/admin/categories' ? fixture.categories.filter(item => item.depth === 1).map(item => ({ ...item, directCount: 1, children: fixture.categories.filter(child => child.path.startsWith(item.path + '/')).map(child => ({ ...child, directCount: 1, children: [] })) }))
       : path === '/admin/tags' ? Array.from({ length: 20 }, (_, i) => ({ name: `tag${i}`, count: 1 }))
       : path === '/admin/series' ? fixture.series
+      : /^\/admin\/series\/\d+$/.test(path) ? { series: fixture.series.find(series => series.id === Number(path.split('/').at(-1))) }
       : path === '/admin/stack-badges' ? ['Alpha', 'Beta', 'Gamma'].map((name, index) => ({ id: index + 1, name, imageUrl: `/api/v1/stack-badges/${index + 1}/image` })) : [];
     await route.fulfill({ json: data });
   });
@@ -41,26 +45,46 @@ test('late save preserves the newly opened editor', async ({ page }) => {
   await expect(page.locator('#edit-dialog input[name=title]')).toHaveValue('보존할 입력');
 });
 
-// 응답 순서가 뒤집혀도 최신 페이지가 유지되고 분류를 재조회하지 않는지 검증
-test('pagination ignores superseded responses and reuses options', async ({ page }) => {
-  let delay = false, categoryReads = 0;
+// 전체 필터를 보존하며 페이지 이동은 재조회 없이 수행, 상태 갱신은 선택 목록 재사용
+test('pagination uses cached posts and status refresh reuses options', async ({ page }) => {
+  let postReads = 0, categoryReads = 0;
   await mockApi(page, async (route, path) => {
     if (path === '/admin/categories') categoryReads++;
-    if (path === '/admin/posts' && delay && route.request().url().includes('page=0')) {
-      await new Promise(resolve => setTimeout(resolve, 350));
-    }
+    if (path === '/admin/posts') postReads++;
     return false;
   });
   await page.goto('/ken-blog/manage/');
   await page.getByRole('button', { name: '다음', exact: true }).click();
   await expect(page.locator('#post-pages')).toContainText('2 / 4');
-  delay = true;
   await page.getByRole('button', { name: '이전', exact: true }).click();
   await page.getByRole('button', { name: '다음', exact: true }).click();
+  await page.getByRole('button', { name: '다음', exact: true }).click();
   await expect(page.locator('#post-pages')).toContainText('3 / 4');
-  await page.waitForTimeout(450);
+  expect(postReads).toBe(1);
+  await page.locator('#refresh-post-status').click();
+  await expect(page.locator('#refresh-post-status')).toBeEnabled();
   await expect(page.locator('#post-pages')).toContainText('3 / 4');
+  expect(postReads).toBe(2);
   expect(categoryReads).toBe(1);
+});
+
+// 로그아웃 전에 시작한 상태 조회가 로그인 화면을 관리자 화면으로 되돌리지 않는지 검증
+test('late dashboard response cannot restore a logged out session', async ({ page }) => {
+  let delay = false, finish;
+  await mockApi(page, async (route, path) => {
+    if (path === '/admin/posts' && delay) await new Promise(resolve => { finish = resolve; });
+    return false;
+  });
+  await page.goto('/ken-blog/manage/');
+  await expect(page.locator('#dashboard')).toBeVisible();
+  delay = true;
+  await page.locator('#refresh-post-status').click();
+  await expect.poll(() => !!finish).toBe(true);
+  await page.getByRole('button', { name: '로그아웃', exact: true }).click();
+  await expect(page.locator('#login')).toBeVisible();
+  finish();
+  await expect(page.locator('#dashboard')).toBeHidden();
+  await expect(page.locator('#login')).toBeVisible();
 });
 
 // 구분 문자가 든 태그와 공개 분류 표시 순서 검증
@@ -71,6 +95,16 @@ test('public tags and category names retain their data', async ({ page }) => {
   const roots = page.locator('[data-category-link]');
   await expect(roots.nth(0)).toContainText('Z First');
   await expect(roots.nth(1)).toContainText('Child Name');
+});
+
+// 터키어 대소문자 변환이 빌드된 색인의 비교 키와 달라지지 않는지 검증
+test('category filtering uses the same case rules in every browser locale', async ({ browser }) => {
+  const context = await browser.newContext({ locale: 'tr-TR' });
+  try {
+    const page = await context.newPage(); await mockApi(page);
+    await page.goto('/ken-blog/posts/?category=Z-FIRST');
+    await expect(page.locator('[data-search-card]:visible')).toHaveCount(17);
+  } finally { await context.close(); }
 });
 
 // 구 slug 주소의 공개 글 이동과 알 수 없는 글의 목록 복귀 검증
@@ -160,6 +194,41 @@ test('writer assets load only after an authenticated click', async ({ page }) =>
   expect(await page.locator('link[rel=stylesheet]').count()).toBe(2);
 });
 
+// 현장 편집도 클릭 시에만 로딩하고 이전 저장 응답이 새 입력을 지우지 않는지 검증
+test('public editing loads on demand and preserves a reopened form', async ({ page }) => {
+  let finish;
+  await mockApi(page, async (route, path) => {
+    if (!path.endsWith('/metadata')) return false;
+    await new Promise(resolve => { finish = resolve; });
+    await route.fulfill({ json: {} }); return true;
+  });
+  await page.goto('/ken-blog/post/fixture-1/');
+  await expect(page.locator('[data-post-edit]')).toBeVisible();
+  await expect(page.locator('#detail-edit-dialog')).toHaveCount(0);
+  const styles = await page.locator('link[rel=stylesheet]').count();
+  await page.locator('[data-post-edit]').click();
+  await expect(page.locator('#detail-edit-dialog input[name=title]')).toHaveValue('검사 글 1');
+  expect(await page.locator('link[rel=stylesheet]').count()).toBe(styles + 1);
+  // 분류 트리 접기는 선택값을 유지하고 선택 해제는 제출값만 비움
+  const category = page.locator('#detail-edit-dialog input[name=categoryId]');
+  await expect(category).toHaveValue('2');
+  await page.getByRole('button', { name: 'Z First 하위 분류', exact: true }).click();
+  await expect(category).toHaveValue('2');
+  await page.getByRole('button', { name: '분류 없음', exact: true }).click();
+  await expect(category).toHaveValue('');
+  await page.getByRole('button', { name: '글 정보 저장', exact: true }).click();
+  await expect.poll(() => !!finish).toBe(true);
+  await page.locator('#detail-edit-dialog .dialog-close').click();
+  await page.locator('[data-post-edit]').click();
+  await page.locator('#detail-edit-dialog input[name=title]').fill('유지할 제목');
+  const response = page.waitForResponse(response => response.url().endsWith('/metadata'));
+  finish(); await response;
+  await expect(page.locator('#detail-edit-dialog')).toBeVisible();
+  await expect(page.locator('#detail-edit-dialog input[name=title]')).toHaveValue('유지할 제목');
+  await expect(page.locator('.post-edit-notice')).toBeHidden();
+  expect(await page.locator('link[rel=stylesheet]').count()).toBe(styles + 1);
+});
+
 // 화면 밖 도식은 초기화하지 않고 접근·테마 변경 시 올바른 SVG 표시
 test('Mermaid renders on approach and follows theme changes', async ({ page }) => {
   await mockApi(page); await page.goto('/ken-blog/post/fixture-1/');
@@ -197,7 +266,7 @@ test('stack picker preserves selection order through keyboard and removal', asyn
 });
 
 // 익명 독자에게 관리자 모듈·폼 생성이 발생하지 않는지 검증
-test('anonymous listing has no writer dialog or form stylesheet', async ({ page }) => {
+test('anonymous listing and article have no editor dialogs or form stylesheet', async ({ page }) => {
   await mockApi(page, async (route, path) => {
     if (path !== '/auth/me') return false;
     await route.fulfill({ status: 401, json: {} }); return true;
@@ -206,6 +275,10 @@ test('anonymous listing has no writer dialog or form stylesheet', async ({ page 
   await expect(page.locator('[data-post-create]')).toBeHidden();
   await expect(page.locator('#post-dialog')).toHaveCount(0);
   expect(await page.locator('link[rel=stylesheet]').count()).toBe(1);
+  await page.goto('/ken-blog/post/fixture-1/');
+  await expect(page.locator('[data-post-edit]')).toBeHidden();
+  await expect(page.locator('#detail-edit-dialog')).toHaveCount(0);
+  expect(await page.locator('link[rel=stylesheet]').count()).toBe(2);
 });
 
 // 좁은 화면에서 정리한 공개·관리 스타일이 가로 페이지 넘침을 만들지 않는지 검증

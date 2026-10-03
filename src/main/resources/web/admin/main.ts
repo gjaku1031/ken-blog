@@ -10,6 +10,8 @@ import { connectHeader, updateHeaderSession } from '../shared/header';
 import { request, mutate, refreshCsrf, clearCsrf, HttpError } from '../shared/admin-api';
 import { el, setMessage, field, submit, value, stackIcon, type Badge } from '../shared/forms';
 import { seriesEditor, type Series } from '../shared/series-editor';
+import { deploymentManifest, readDeploymentManifest, deploymentState, filterPosts, type DeploymentComparison, type PostFilter } from '../shared/deployment-status';
+import { postEditor } from '../shared/post-editor';
 import { postFields, postPayload, type Category, type Tag } from '../shared/post-fields';
 
 /**
@@ -189,7 +191,12 @@ type AdminData = {
   /**
    * 게시글 목록
    */
-  posts: Page<Post>;
+  posts: Post[];
+
+  /**
+   * 현재 공개 내용과 서비스 중인 배포의 비교, 조회 실패 시 null
+   */
+  deployment: DeploymentComparison | null;
 
   /**
    * 시리즈
@@ -246,6 +253,16 @@ const loginForm = get('login-form') as HTMLFormElement;
  * 현재 글 목록 페이지
  */
 let postPage = 0;
+
+/**
+ * 전체 글에 적용하는 상태 필터
+ */
+let postFilter: PostFilter = 'all';
+
+/**
+ * 자동 갱신 중복 실행 차단
+ */
+let refreshingStatus = false;
 
 /**
  * 관리자 세션 확인 여부
@@ -460,6 +477,35 @@ function smallAction(parent: HTMLElement, title: string, operation: () => Promis
 }
 
 /**
+ * 모든 관리자 페이지를 수집한 뒤 필터링할 글 목록 반환
+ */
+async function allPosts(signal: AbortSignal): Promise<Post[]> {
+  const result: Post[] = [];
+  let page = 0;
+  do {
+    const data = await request<Page<Post>>(`/admin/posts?page=${page++}&size=100`, 'GET', undefined, signal);
+    result.push(...data.items);
+    if (page >= data.totalPages) return Array.from(new Map(result.map(post => [post.id, post])).values());
+  } while (page < 10_000);
+  throw new Error('글 목록이 너무 많아 전체 상태를 확인하지 못했습니다.');
+}
+
+/**
+ * 실제 서비스 중인 정적 기록과 현재 공개 스냅샷을 캐시 없이 비교
+ * 한쪽이라도 실패하면 배포 완료로 표시하지 않음
+ */
+async function loadDeployment(signal: AbortSignal): Promise<DeploymentComparison | null> {
+  try {
+    const [response, snapshotResponse] = await Promise.all([
+      fetch(`${sitePath('deployment.json')}?check=${Date.now()}`, { cache: 'no-store', credentials: 'omit', signal: AbortSignal.any([signal, AbortSignal.timeout(15_000)]) }),
+      fetch(new URL('/api/v1/pages/snapshot', document.body.dataset.apiBase), { cache: 'no-store', credentials: 'omit', signal: AbortSignal.any([signal, AbortSignal.timeout(15_000)]) }),
+    ]);
+    if (!response.ok || !snapshotResponse.ok) return null;
+    return { deployed: readDeploymentManifest(await response.json()), current: await deploymentManifest(await snapshotResponse.json()) };
+  } catch { return null; /* 비교 실패는 별도 안내하고 편집·미발행 필터는 계속 제공 */ }
+}
+
+/**
  * 글·시리즈·분류·기술 조회 후 관리자 화면 갱신
  *
  * 1. 글·시리즈·분류·기술·태그 병렬 조회
@@ -473,17 +519,18 @@ async function loadDashboard(refreshOptions = true) {
   dashboardRequest = controller;
   const session = sessionGeneration;
   const cached = !refreshOptions && latestData;
-  // 페이지 이동은 글만 조회, 저장 후에는 연결 수와 선택 목록도 갱신
+  // 상태 확인은 글·배포만 조회, 저장 후에는 연결 수와 선택 목록도 갱신
   try {
     const data = await Promise.all([
-      request<Page<Post>>(`/admin/posts?page=${postPage}&size=10`, 'GET', undefined, controller.signal),
+      allPosts(controller.signal),
       cached ? cached.series : request<Series[]>('/admin/series', 'GET', undefined, controller.signal),
       cached ? cached.categories : request<Category[]>('/admin/categories', 'GET', undefined, controller.signal),
       cached ? cached.badges : request<Badge[]>('/admin/stack-badges', 'GET', undefined, controller.signal),
       cached ? cached.tags : request<Tag[]>('/admin/tags', 'GET', undefined, controller.signal),
+      loadDeployment(controller.signal),
     ]);
     if (!sessionReady || session !== sessionGeneration || controller.signal.aborted) return;
-    render({ posts: data[0], series: data[1], categories: data[2], badges: data[3], tags: data[4] }, !!cached);
+    render({ posts: data[0], series: data[1], categories: data[2], badges: data[3], tags: data[4], deployment: data[5] }, !!cached);
     showDashboard();
     await openLinkedEditor(latestData);
   } catch (error) {
@@ -562,13 +609,24 @@ function render(data: AdminData, postsOnly = false) {
  *
  * 1. 전체 건수와 글 목록 표시
  * 2. 각 글의 편집·발행·발행 취소 동작 구성
- * 3. 이전·다음 페이지 버튼 구성, 조회 실패 시 기존 페이지 복원
+ * 3. 전체 필터 결과를 열 개씩 페이지로 표시
  */
 function renderPosts(data: AdminData) {
   // 전체 건수와 글 목록 표시
-  get('post-count').textContent = `전체 ${data.posts.totalElements}`;
+  const filtered = filterPosts(data.posts, postFilter, data.deployment);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / 10));
+  postPage = Math.min(postPage, totalPages - 1);
+  const rows = filtered.slice(postPage * 10, (postPage + 1) * 10);
+  get('post-count').textContent = postFilter === 'all' ? `전체 ${data.posts.length}` : `${filtered.length}개 / 전체 ${data.posts.length}`;
+  for (const button of document.querySelectorAll<HTMLButtonElement>('[data-post-filter]')) {
+    const filter = button.dataset.postFilter as PostFilter;
+    const label = { all: '전체', draft: '미발행', pending: '배포 대기' }[filter];
+    button.textContent = `${label} ${filter === 'pending' && !data.deployment ? '—' : filterPosts(data.posts, filter, data.deployment).length}`;
+    button.setAttribute('aria-pressed', String(filter === postFilter));
+  }
+  setMessage(get('deployment-notice'), data.deployment ? '' : '배포 상태를 확인하지 못했습니다. 상태 새로고침으로 다시 확인해 주세요.', true);
   const list = get('post-list'); list.replaceChildren();
-  if (!data.posts.items.length) list.append(el('p', 'empty', '등록된 글이 없습니다.'));
+  if (!rows.length) list.append(el('p', 'empty', postFilter === 'pending' && !data.deployment ? '배포 상태를 확인한 뒤 대기 글을 표시합니다.' : postFilter === 'all' ? '등록된 글이 없습니다.' : '이 상태의 글이 없습니다.'));
   else {
     const table = el('table', 'admin-table');
     const head = el('thead'); const labels = el('tr');
@@ -576,14 +634,15 @@ function renderPosts(data: AdminData) {
     head.append(labels); table.append(head);
     const body = el('tbody');
     // 각 글의 편집·발행·발행 취소 동작 구성
-    for (const post of data.posts.items) {
+    for (const post of rows) {
       const row = el('tr'); const title = el('td', 'post-title');
       const editLink = el('button', 'title-button', post.title); editLink.type = 'button';
       editLink.addEventListener('click', () => editPost(post, data)); title.append(editLink);
       title.append(el('small', 'muted', [post.category?.path, post.series?.name].filter(Boolean).join(' · ') || `/${post.slug}`));
       const section = el('td', 'muted', post.section === 'PROJECT' ? 'Projects' : 'Posts'); section.dataset.label = '섹션';
       const state = el('td'); state.dataset.label = '상태';
-      state.append(el('span', `status ${post.status === 'PUBLISHED' ? 'published' : ''}`, post.status === 'PUBLISHED' ? post.visibility === 'PUBLIC' ? '공개 발행' : '비공개 발행' : '미발행'));
+      const deployment = deploymentState(post, data.deployment);
+      state.append(el('span', `status ${deployment.kind}`, deployment.label));
       const date = el('td', 'mono muted', post.updatedAt.slice(0, 10).replaceAll('-', '.')); date.dataset.label = '수정일';
       const actions = el('td', 'row-actions');
       const edit = el('button', 'text-button', '수정'); edit.type = 'button'; edit.addEventListener('click', () => editPost(post, data)); actions.append(edit);
@@ -594,65 +653,42 @@ function renderPosts(data: AdminData) {
     }
     table.append(body); list.append(table);
   }
-  // 이전·다음 페이지 버튼 구성, 조회 실패 시 기존 페이지 복원
+  // 필터를 먼저 적용한 결과를 열 개씩 표시
   const pages = get('post-pages'); pages.replaceChildren();
 
   /**
-   * 지정 페이지로 이동하는 버튼 생성
+   * 같은 필터 내에서 목록 페이지 이동
    */
   const pageButton = (title: string, next: number) => {
-    const button = el('button', 'button ghost', title);
-    button.type = 'button';
-    button.addEventListener('click', async () => {
-      button.disabled = true;
-      const previous = postPage;
-      postPage = next;
-      try { await loadDashboard(false); }
-      catch (error) {
-        postPage = previous;
-        if (error instanceof HttpError && error.status === 401) showLogin(error.message);
-        else setMessage(dashboardMessage, error instanceof Error ? error.message : '글 목록을 읽지 못했습니다.', true);
-        button.disabled = false;
-      }
-    });
+    const button = el('button', 'button ghost', title); button.type = 'button';
+    button.addEventListener('click', () => { postPage = next; renderPosts(latestData); });
+
     pages.append(button);
   };
-  if (data.posts.page > 0) pageButton('이전', data.posts.page - 1);
-  pages.append(el('span', '', `${data.posts.page + 1} / ${Math.max(1, data.posts.totalPages)}`));
-  if (data.posts.page + 1 < data.posts.totalPages) pageButton('다음', data.posts.page + 1);
+  if (postPage > 0) pageButton('이전', postPage - 1);
+  pages.append(el('span', '', `${postPage + 1} / ${totalPages}`));
+  if (postPage + 1 < totalPages) pageButton('다음', postPage + 1);
 }
 
 /**
- * 글쓰기와 같은 입력·저장 버튼으로 메타데이터 수정
- *
- * 1. 기존 값을 공통 폼에 반영
- * 2. 기본 정보 저장 후 변경된 소속·순서만 저장, 첨부·위키 선언 유지
- * 3. 소속 저장 실패 시 부분 저장 안내와 입력을 유지해 재시도 허용
+ * 상세 페이지와 같은 글 메타데이터 편집 폼 표시
  */
 function editPost(post: Post, data: AdminData) {
-  // 기존 값을 공통 폼에 반영
-  const initial = {
-    title: post.title, summary: post.summary, categoryId: post.category?.id ?? null, tags: post.tags,
-    seriesId: post.series?.id ?? null, order: post.seriesOrder, relatedSeriesId: post.relatedSeriesId,
-  };
-  const edit = form(async input => {
-    // 분류 변경이 소속·순서 검증에 반영되도록 기본 정보를 먼저 저장
-    const { seriesId, order, relatedSeriesId, ...metadata } = postPayload(input);
-    await mutate(`/admin/posts/${post.id}/metadata`, 'PATCH', metadata);
-    // 소속·순서 변경이 없으면 불필요한 재저장 생략
-    if (seriesId === initial.seriesId && order === initial.order && relatedSeriesId === initial.relatedSeriesId) return;
-    try {
-      await mutate(`/admin/posts/${post.id}/series`, 'PUT', { seriesId, order, relatedSeriesId });
-    } catch (error) {
-      // 두 요청은 별도 저장이므로 이미 저장한 정보와 실패 범위를 구분
-      const detail = error instanceof Error ? error.message : '요청에 실패했습니다.';
-      const message = `기본 정보는 저장했지만 소속·문서 순서를 저장하지 못했습니다. ${detail} 다시 저장해 주세요.`;
-      if (error instanceof HttpError) throw new HttpError(error.status, message);
-      throw new Error(message);
-    }
-  }, '글 정보를 저장했습니다.');
-  postFields(edit, data, post.section === 'PROJECT', initial);
-  submit(edit, '글 정보 저장');
+  // 제출한 폼과 세션의 결과만 반영
+  let context: ReturnType<typeof operationContext>;
+  const edit = postEditor(post, data, {
+    onSaving: () => { context = operationContext(); setMessage(get('dialog-message'), ''); },
+    onSaved: async () => {
+      if (!context.current()) return;
+      if (context.ownsDialog()) dialog.close();
+      await saved('글 정보를 저장했습니다.', context);
+    },
+    onError: error => {
+      if (!context.current()) return;
+      if (error instanceof HttpError && error.status === 401) showLogin(error.message);
+      else setMessage(context.ownsDialog() ? get('dialog-message') : dashboardMessage, error instanceof Error ? error.message : '글 정보를 저장하지 못했습니다.', true);
+    },
+  });
   openDialog(post.section === 'PROJECT' ? 'Projects 글 수정' : 'Posts 글 수정', edit);
 }
 
@@ -910,3 +946,29 @@ async function bootAdmin() {
   }
 }
 void bootAdmin();
+
+// 상태 필터 변경은 첫 페이지에서 시작하고 저장 후에도 선택 유지
+for (const button of document.querySelectorAll<HTMLButtonElement>('[data-post-filter]')) {
+  button.addEventListener('click', () => {
+    postFilter = button.dataset.postFilter as PostFilter; postPage = 0;
+    if (latestData) renderPosts(latestData);
+  });
+}
+
+/**
+ * 편집 중 입력을 보존하며 관리자 상태 재조회
+ */
+async function refreshPostStatus() {
+  if (!sessionReady || editorMode || dialog.open || document.hidden || refreshingStatus || get('posts').hidden) return;
+  refreshingStatus = true;
+  const button = get('refresh-post-status') as HTMLButtonElement; button.disabled = true;
+  try { await loadDashboard(false); }
+  catch (error) {
+    if (error instanceof HttpError && error.status === 401) showLogin(error.message);
+    else setMessage(dashboardMessage, error instanceof Error ? error.message : '상태를 갱신하지 못했습니다.', true);
+  } finally { refreshingStatus = false; button.disabled = false; }
+}
+document.getElementById('refresh-post-status')?.addEventListener('click', () => { void refreshPostStatus(); });
+window.addEventListener('focus', () => { void refreshPostStatus(); });
+document.addEventListener('visibilitychange', () => { void refreshPostStatus(); });
+window.setInterval(() => { void refreshPostStatus(); }, 30_000);

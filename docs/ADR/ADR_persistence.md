@@ -43,6 +43,8 @@ MCP·RepositoryMarkdown 제거 후에도 옛 Post body/body_sha256 매핑과 Pos
 
 ## JPA 엔티티의 프록시 상속 허용 — 2026-10-03
 
+프록시 상속 허용 결정은 유지. 아래의 JPA all-open 설정 방식은 같은 날짜의 명시적 `open` 선언 결정으로 대체.
+
 엔티티의 클래스·접근자가 기본 `final`인 상태에서 `protected` 생성자·setter를 사용하는 불일치 확인. 일반 클래스의 내부 상태는 `private`로 제한하되, JPA 엔티티는 Hibernate 프록시를 위해 클래스와 접근자의 상속 가능 여부를 함께 보장하는 결정.
 
 기존 `kotlin("plugin.spring")`의 all-open 기능에 `jakarta.persistence.Entity`와 `jakarta.persistence.MappedSuperclass` 추가. 앱과 DDL 생성용 `jpaModel` 소스셋에 같은 설정 적용. 각 엔티티의 `protected constructor()`·`protected set`과 필드 매핑 유지. 복합 키 `@Embeddable`의 값 비교와 일반 클래스의 기본 `final`은 유지. 별도 no-arg 플러그인이나 경고 억제 추가 없음.
@@ -56,6 +58,18 @@ MCP·RepositoryMarkdown 제거 후에도 옛 Post body/body_sha256 매핑과 Pos
 - 기존 컴파일 경고 34건 유지, 새 경고 0. Jackson 비권장 API 31건과 null 검사 3건은 이번 `ProtectedInFinal` 정리와 별도 범위.
 
 검증은 로컬 격리 빌드·DB 범위이며 운영 DB 변경이나 서버 재배포는 포함하지 않음.
+
+### JPA 상속 계약을 소스에 명시 — 2026-10-03
+
+앞선 all-open 설정으로 컴파일 결과는 열렸으나 VS Code에서 `ProtectedInFinal` 진단이 남는 사례 확인. 엔티티 11개에 `open class`, 외부 조회 프로퍼티 72개와 도메인 메서드 9개에 `open` 명시. JPA 어노테이션을 여는 `allOpen` 블록은 제거하고 Spring 컴포넌트용 플러그인은 유지. 에디터가 JPA 컴파일 플러그인을 반영해야만 상속 의도를 파악할 수 있던 구조를 소스 선언과 일치시킴.
+
+`protected constructor()`·`protected set`·private 연관관계·필드 매핑 유지. setter를 `private`로 바꾸거나 검사 억제를 추가하는 방식은 제외. 일반 타입과 복합 키의 상속 범위를 넓히지 않음. 이후 작성 규칙과 경고 처리 기준은 [CODE.md](../convention/CODE.md) 적용.
+
+- 앱·`jpaModel` 각각 엔티티 11개와 접근자·인스턴스 메서드의 `final` 부재 확인. 보호된 setter 72개와 인자 없는 생성자 11개 유지.
+- 설치된 VS Code Kotlin 확장 0.0.12의 언어 서버에서 격리 프로젝트의 Gradle 가져오기·인덱싱 후 엔티티 11개와 인증 서비스 2개의 문서 진단 조회. 13개 파일 모두 진단 0건. 실제 에디터 창의 캐시 갱신 여부와는 별도 검증.
+- 프록시 지연 초기화·도메인 변경·커밋 후 재조회 검사를 포함한 전체 검사 41건 통과. 실패·오류·건너뜀 0.
+- 생성 DDL은 앞선 변경 전후와 바이트 동일. DB 스키마 변경 없음.
+- Jackson 3의 폐기 예정 문자열 API와 효과 없는 null 검사도 정리하여 Kotlin 컴파일 경고 34건에서 0건으로 감소. 인증 상태 누락의 실제 조회 계약은 [애플리케이션 ADR](ADR_application.md#인증-상태-행-누락-처리--2026-10-03)에 별도 기록.
 
 ## 검증과 적용 범위
 

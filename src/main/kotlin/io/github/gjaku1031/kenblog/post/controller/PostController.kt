@@ -119,11 +119,11 @@ class PostController(
      */
     @PatchMapping("/{id}/metadata", consumes = [MediaType.APPLICATION_JSON_VALUE], produces = [MediaType.APPLICATION_JSON_VALUE])
     fun metadata(@PathVariable id: Long, @RequestBody request: JsonNode): ResponseEntity<PostDetailResponse> {
-        if (!request.isObject || request.has("body") || !request.path("title").isTextual ||
-            !request.path("summary").isTextual) throw InvalidPostRequestException()
+        if (!request.isObject || request.has("body") || !request.path("title").isString ||
+            !request.path("summary").isString) throw InvalidPostRequestException()
         val taxonomy = PostTaxonomyRequest.fromJson(request)
         return ResponseEntity.ok().cacheControl(CacheControl.noStore()).body(service.updateMetadata(
-            id, request.get("title").textValue(), request.get("summary").textValue(), taxonomy.categoryId, taxonomy.tags,
+            id, request.get("title").stringValue(), request.get("summary").stringValue(), taxonomy.categoryId, taxonomy.tags,
         ))
     }
 

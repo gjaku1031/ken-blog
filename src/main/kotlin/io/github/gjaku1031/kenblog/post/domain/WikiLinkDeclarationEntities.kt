@@ -20,7 +20,7 @@ import org.hibernate.annotations.OnDeleteAction
 @Table(name = "post_wiki_links", uniqueConstraints = [
     UniqueConstraint(name = "uk_post_wiki_links_title", columnNames = ["post_id", "target_title"]),
 ])
-class PostWikiLinkEntity protected constructor() {
+open class PostWikiLinkEntity protected constructor() {
     // DB 외래 키와 삭제 규칙 저장은 기존 ID 필드를 사용
 
     /**
@@ -36,28 +36,28 @@ class PostWikiLinkEntity protected constructor() {
      */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    var id: Long? = null
+    open var id: Long? = null
         protected set
 
     /**
      * 게시글 ID
      */
     @Column(name = "post_id", nullable = false)
-    var postId: Long = 0
+    open var postId: Long = 0
         protected set
 
     /**
      * 입력 순서의 0 기반 위치
      */
     @Column(nullable = false)
-    var position: Int = 0
+    open var position: Int = 0
         protected set
 
     /**
      * 위키 대상 제목
      */
     @Column(name = "target_title", nullable = false, length = 200, columnDefinition = "varchar(200) character set utf8mb4 collate utf8mb4_bin")
-    lateinit var targetTitle: String
+    open lateinit var targetTitle: String
         protected set
 
     /**

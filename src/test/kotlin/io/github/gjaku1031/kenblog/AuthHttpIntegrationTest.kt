@@ -1,5 +1,6 @@
 package io.github.gjaku1031.kenblog
 
+import io.github.gjaku1031.kenblog.auth.service.AdminLoginAttemptService
 import io.github.gjaku1031.kenblog.fixture.TestAdminProbeController
 import io.github.gjaku1031.kenblog.fixture.TestMysqlConfig
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -11,10 +12,12 @@ import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.TestMethodOrder
 import org.junit.jupiter.api.MethodOrderer.OrderAnnotation
 import org.junit.jupiter.api.Order
+import org.junit.jupiter.api.assertThrows
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.boot.test.web.server.LocalServerPort
 import org.springframework.context.annotation.Import
+import org.springframework.dao.EmptyResultDataAccessException
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder
 import org.springframework.session.SessionRepository
@@ -59,6 +62,12 @@ class AuthHttpIntegrationTest {
      */
     @Autowired
     private lateinit var jdbc: JdbcTemplate
+
+    /**
+     * 필수 인증 상태가 없을 때의 로그인 실패 계약 검사
+     */
+    @Autowired
+    private lateinit var attempts: AdminLoginAttemptService
 
     /**
      * 테스트 세션 저장소
@@ -143,7 +152,7 @@ class AuthHttpIntegrationTest {
         // 정상 로그인 후 세션 ID 교체와 이전 토큰 무효화 검증
         val login = send(client, "POST", "/api/v1/auth/login", body = body, csrf = token)
         assertEquals(200, login.statusCode())
-        assertEquals("ADMIN", mapper.readTree(login.body()).path("role").asText())
+        assertEquals("ADMIN", mapper.readTree(login.body()).path("role").asString())
         val after = sessionCookie(cookies)
         assertNotEquals(before, after)
         assertEquals(200, send(client, "GET", "/api/v1/auth/me").statusCode())
@@ -185,8 +194,8 @@ class AuthHttpIntegrationTest {
         val tooLong = send(client, "POST", "/api/v1/auth/login", csrf = token, body = loginBody("가".repeat(25)))
         // 상태와 공개 오류 설명이 같은지 비교
         listOf(wrong, missing, tooLong).forEach { assertProblem(it, 401) }
-        assertEquals(mapper.readTree(wrong.body()).path("detail").asText(), mapper.readTree(missing.body()).path("detail").asText())
-        assertEquals(mapper.readTree(wrong.body()).path("detail").asText(), mapper.readTree(tooLong.body()).path("detail").asText())
+        assertEquals(mapper.readTree(wrong.body()).path("detail").asString(), mapper.readTree(missing.body()).path("detail").asString())
+        assertEquals(mapper.readTree(wrong.body()).path("detail").asString(), mapper.readTree(tooLong.body()).path("detail").asString())
     }
 
     /**
@@ -208,8 +217,8 @@ class AuthHttpIntegrationTest {
                 body = loginBody(TEST_PASSWORD, "testuser")).statusCode())
             // 세션 주체가 설정된 ADMIN인지 검증
             val principal = mapper.readTree(send(client, "GET", "/api/v1/auth/me").body())
-            assertEquals("testadmin", principal.path("username").asText())
-            assertEquals("ADMIN", principal.path("role").asText())
+            assertEquals("testadmin", principal.path("username").asString())
+            assertEquals("ADMIN", principal.path("role").asString())
             assertEquals(200, send(client, "GET", "/api/v1/admin/__test").statusCode())
         } finally {
             // 실패 시에도 임시 USER 계정 정리
@@ -255,6 +264,37 @@ class AuthHttpIntegrationTest {
     }
 
     /**
+     * 인증 상태 행이 사라지면 기존 세션은 거부하고 새 로그인은 시스템 오류로 중단
+     *
+     * 1. 정상 로그인 후 복원할 인증 상태와 세션 ID 보관
+     * 2. 상태 행 삭제 후 세션 폐기와 로그인 중단 검증
+     * 3. 성공·실패 모두 기존 상태 복원
+     */
+    @Test
+    @Order(7)
+    fun missingAuthenticationStateInvalidatesSessionAndBlocksLogin() {
+        // 정상 세션을 만든 뒤 실패 횟수·잠금 상태를 포함한 원본 행 보관
+        val (client, cookies) = newClient()
+        assertEquals(200, send(client, "POST", "/api/v1/auth/login", csrf = csrfToken(client), body = loginBody(TEST_PASSWORD)).statusCode())
+        val sessionId = decodeSessionId(sessionCookie(cookies))
+        val state = jdbc.queryForMap("SELECT config_fingerprint, auth_version, failure_count, locked_until FROM admin_auth_state WHERE id = 1")
+
+        try {
+            // 누락된 상태를 null 반환으로 가정하지 않고 실제 0행 조회 경로 재현
+            jdbc.update("DELETE FROM admin_auth_state WHERE id = 1")
+            assertProblem(send(client, "GET", "/api/v1/auth/me"), 401)
+            assertEquals(0, sessionCount(sessionId))
+            assertThrows<EmptyResultDataAccessException> { attempts.attempt(TEST_PASSWORD) }
+        } finally {
+            // 다른 인증 검사에 영향이 없도록 삭제한 상태를 원래 값으로 복원
+            jdbc.update(
+                "INSERT INTO admin_auth_state (id, config_fingerprint, auth_version, failure_count, locked_until) VALUES (1, ?, ?, ?, ?)",
+                state["config_fingerprint"], state["auth_version"], state["failure_count"], state["locked_until"],
+            )
+        }
+    }
+
+    /**
      * 테스트마다 독립적인 브라우저 쿠키 저장소와 HTTP 클라이언트를 생성
      */
     private fun newClient(): Pair<HttpClient, CookieManager> {
@@ -286,8 +326,8 @@ class AuthHttpIntegrationTest {
     private fun csrfToken(client: HttpClient): String {
         val response = send(client, "GET", "/api/v1/auth/csrf")
         assertEquals(200, response.statusCode())
-        assertEquals("X-CSRF-TOKEN", mapper.readTree(response.body()).path("headerName").asText())
-        return mapper.readTree(response.body()).path("token").asText()
+        assertEquals("X-CSRF-TOKEN", mapper.readTree(response.body()).path("headerName").asString())
+        return mapper.readTree(response.body()).path("token").asString()
     }
 
     /**

@@ -25,9 +25,16 @@ export const fixture = {
 // 화면 밖 도식의 지연 렌더를 검사할 충분한 문서 길이
 fixture.posts[0].body += '\n\n' + '여백 문단\n\n'.repeat(50) + '```mermaid\ngraph TD\n A-->B\n```';
 
-// 프로젝트와 옛 문서·강의 주소의 공개 이동 관계
+/**
+ * 가상 프로젝트의 대문 글
+ */
 const cover = { id: 35, slug: 'project-intro', title: '프로젝트 소개', order: 1 };
+
+/**
+ * 가상 프로젝트의 공개 식별 정보
+ */
 const project = { id: 90, slug: 'demo', name: 'UI 검사 프로젝트', kind: 'PROJECT' };
+// 프로젝트와 옛 문서·강의 주소의 공개 이동 관계
 fixture.posts[0].legacyPath = 'course/old/chapters/first';
 fixture.posts.push({ ...fixture.posts[1], ...cover, section: 'PROJECT', category: null, tags: [],
   body: '## 프로젝트 소개\n\n프로젝트 본문', legacyPath: 'project/demo/docs/intro',

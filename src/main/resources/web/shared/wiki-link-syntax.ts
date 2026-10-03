@@ -213,7 +213,6 @@ function excludedMask(source: string, root: Root): Uint8Array {
   return mask;
 }
 
-
 /**
  * 안전한 닫힘과 제목·표시명만 후보로 반환하며 나머지는 Markdown 원문으로 둠
  *
@@ -263,9 +262,6 @@ export function wikiSourceMask(source: string): Uint8Array {
   for (const candidate of scan(source, MAX_CANDIDATES)) mask.fill(1, candidate.start, candidate.end);
   return mask;
 }
-
-
-
 
 /**
  * 보이지 않는 임의 URL 없이 원문 title/label을 HAST 텍스트 노드로 전달함

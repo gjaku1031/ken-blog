@@ -10,6 +10,10 @@ await writeFile('build/frontend-fixture.json', JSON.stringify(fixture));
 execFileSync(process.execPath, ['.github/pages/build.mjs', '--fixture=build/frontend-fixture.json', '--content-dir=build/fixture-content'], {
   stdio: 'inherit', env: { ...process.env, PUBLIC_API_BASE_URL: 'http://127.0.0.1:4173' },
 });
+
+/**
+ * 검사 서버가 공개하는 정적 산출물 루트
+ */
 const root = resolve('build/site');
 createServer(async (request, response) => {
   // 정적 산출물 밖의 파일은 제공하지 않음

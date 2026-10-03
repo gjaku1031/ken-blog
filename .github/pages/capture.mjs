@@ -1,7 +1,5 @@
 import { isSlug } from '../../src/main/resources/web/shared/site-path.ts';
 
-
-
 /**
  * 스냅샷 SHA-256 형식
  */

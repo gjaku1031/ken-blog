@@ -3,6 +3,7 @@ import { mkdir, writeFile, copyFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import nunjucks from "nunjucks";
 import { createHash } from 'node:crypto';
+import { deploymentManifest } from '../shared/deployment-status.ts';
 
 /**
  * 공개 글에서 사용하는 분류의 표시 이름과 저장 순서
@@ -337,11 +338,6 @@ interface Input {
   };
 }
 
-
-
-
-
-
 /**
  * 날짜 표시 형식 변환
  */
@@ -361,7 +357,6 @@ const unique = (values: string[]) => [...new Set(values.filter(Boolean))].sort()
  * 출간 시각·ID 오름차순 비교
  */
 const chronological = (a: Post, b: Post) => a.publishedAt.localeCompare(b.publishedAt) || a.id - b.id;
-
 
 /**
  * 렌더된 본문에서 검색용 텍스트 추출
@@ -483,6 +478,8 @@ export async function generateSite(payload: Input, output: string) {
     base: BASE, section, adminHref: payload.adminHref,
     nav: [["posts/", "Posts"], ["projects/", "Projects"]].map(([href, label]) => ({ href: route(href), label, active: label === section })),
   });
+  // 배포가 성공한 산출물에만 노출되는 공개 메타데이터 지문 기록
+  await write("deployment.json", JSON.stringify(await deploymentManifest(snapshot)));
   // 관리자 데이터는 포함하지 않고 로그인 화면과 API·자산 주소만 전달
   // 관리·작성 전용 페이지 생성
   await write("manage/index.html", engine.render("manage.njk", { apiBase: admin.apiBase, adminCss: admin.css, adminJs: admin.js, editor: "", ...header("Manage") }));

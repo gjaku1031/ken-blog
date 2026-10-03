@@ -9,11 +9,11 @@ import jakarta.persistence.Table
  */
 @Entity
 @Table(name = "content_state")
-class ContentStateEntity protected constructor() {
+open class ContentStateEntity protected constructor() {
     /**
      * ID
      */
     @Id
-    var id: Byte = 1
+    open var id: Byte = 1
         protected set
 }

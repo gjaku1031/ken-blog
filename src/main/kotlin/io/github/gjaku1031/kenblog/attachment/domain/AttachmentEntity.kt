@@ -41,41 +41,41 @@ enum class AttachmentStatus {
  */
 @Entity
 @Table(name = "attachments")
-class AttachmentEntity protected constructor() {
+open class AttachmentEntity protected constructor() {
     /**
      * ID
      */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    var id: Long? = null
+    open var id: Long? = null
         protected set
 
     /**
      * 저장 루트 기준 객체 경로
      */
     @Column(name = "object_key", nullable = false, length = 255, unique = true, columnDefinition = "varchar(255) character set ascii collate ascii_bin")
-    lateinit var objectKey: String
+    open lateinit var objectKey: String
         protected set
 
     /**
      * 원본 파일명
      */
     @Column(name = "original_filename", nullable = false, length = 255)
-    lateinit var originalFilename: String
+    open lateinit var originalFilename: String
         protected set
 
     /**
      * MIME 타입
      */
     @Column(name = "content_type", nullable = false, length = 32)
-    lateinit var contentType: String
+    open lateinit var contentType: String
         protected set
 
     /**
      * 파일 크기, 바이트 단위
      */
     @Column(name = "byte_size", nullable = false)
-    var byteSize: Long = 0
+    open var byteSize: Long = 0
         protected set
 
     /**
@@ -83,7 +83,7 @@ class AttachmentEntity protected constructor() {
      */
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "uploaded_by", nullable = false)
-    lateinit var uploadedBy: UserEntity
+    open lateinit var uploadedBy: UserEntity
         protected set
 
     /**
@@ -91,28 +91,28 @@ class AttachmentEntity protected constructor() {
      */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 16)
-    lateinit var status: AttachmentStatus
+    open lateinit var status: AttachmentStatus
         protected set
 
     /**
      * 정리 대기 여부
      */
     @Column(name = "pending_cleanup", nullable = false)
-    var pendingCleanup: Boolean = false
+    open var pendingCleanup: Boolean = false
         protected set
 
     /**
      * 생성 시각
      */
     @Column(name = "created_at", nullable = false, columnDefinition = "datetime(6)")
-    lateinit var createdAt: LocalDateTime
+    open lateinit var createdAt: LocalDateTime
         protected set
 
     /**
      * 수정 시각
      */
     @Column(name = "updated_at", nullable = false, columnDefinition = "datetime(6)")
-    lateinit var updatedAt: LocalDateTime
+    open lateinit var updatedAt: LocalDateTime
         protected set
 
 }

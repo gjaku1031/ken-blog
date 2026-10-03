@@ -313,7 +313,6 @@ function excludedMask(source: string, root: Root): Uint8Array {
   return mask;
 }
 
-
 /**
  * 한 줄의 균형 잡힌 후보를 익명 정의·이름 정의·재참조·원문으로 분류함
  *
@@ -418,9 +417,6 @@ function prepare(source: string, found: Candidate[], prefix: string): string {
   // 마지막 후보 뒤의 원문 보존
   return transformed + source.slice(cursor);
 }
-
-
-
 
 /**
  * 후보는 최종 문서 해석 전까지도 텍스트로만 렌더해 이미지·HTML 실행을 막음

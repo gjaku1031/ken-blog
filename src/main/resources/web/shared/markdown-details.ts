@@ -396,9 +396,6 @@ function markerIndex(node: RootContent, prefix: string): number | null {
   return match ? Number(match[1]) : null;
 }
 
-
-
-
 /**
  * 수식 파서가 복원한 수정 문자열 위치를 다시 실제 게시글 원문 위치로 옮김
  */
