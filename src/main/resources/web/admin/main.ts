@@ -6,9 +6,9 @@ import '../shared/forms.css';
 import '../shared/category-tree.css';
 import { connectHeader, updateHeaderSession } from '../shared/header';
 import { request, mutate, refreshCsrf, clearCsrf, HttpError } from '../shared/admin-api';
-import { el, setMessage, field, area, choice, submit, value, stackIcon, type Badge } from '../shared/forms';
+import { el, setMessage, field, submit, value, stackIcon, type Badge } from '../shared/forms';
 import { seriesEditor, type Series } from '../shared/series-editor';
-import { taxonomyFields, postCreateFields, postPayload, postTags, type Category, type Tag } from '../shared/post-fields';
+import { postFields, postPayload, type Category, type Tag } from '../shared/post-fields';
 
 /**
  * 페이지 조회 결과
@@ -382,14 +382,6 @@ function form(onSubmit: (data: FormData) => Promise<unknown>, success: string): 
 }
 
 /**
- * 선택 숫자 입력 변환, 빈 값이면 null
- */
-function optionalNumber(data: FormData, name: string): number | null {
-  const raw = value(data, name);
-  return raw ? Number(raw) : null;
-}
-
-/**
  * 목록 항목의 제목·보조 설명 생성
  */
 function itemHeading(title: string, detail = '') {
@@ -568,34 +560,37 @@ function renderPosts(data: AdminData) {
 }
 
 /**
- * 글 메타데이터 편집 폼 구성
+ * 글쓰기와 같은 입력·저장 버튼으로 메타데이터 수정
  *
- * 1. 제목·요약·분류 입력 구성, 프로젝트 글은 태그 비움
- * 2. 시리즈 소속·순서·관련 프로젝트를 별도 저장
- * 3. 첨부·위키 연결 패널을 포함해 대화상자 표시
+ * 1. 기존 값을 공통 폼에 반영
+ * 2. 기본 정보 저장 후 변경된 소속·순서만 저장, 첨부·위키 선언 유지
+ * 3. 소속 저장 실패 시 부분 저장 안내와 입력을 유지해 재시도 허용
  */
 function editPost(post: Post, data: AdminData) {
-  const content = el('div');
-  content.append(el('p', 'source-path mono', `content/posts/${post.slug}.md`));
-  // 제목·요약·분류 입력 구성, 프로젝트 글은 태그 비움
-  const edit = form(input => mutate(`/admin/posts/${post.id}/metadata`, 'PATCH', {
-    title: value(input, 'title'), summary: value(input, 'summary'),
-    categoryId: optionalNumber(input, 'categoryId'), tags: post.section === 'PROJECT' ? [] : postTags(input),
-  }), '글 메타데이터를 저장했습니다.');
-  field(edit, '제목', 'title', post.title, { required: true, max: 200 });
-  field(edit, '요약', 'summary', post.summary, { max: 120 });
-  taxonomyFields(edit, data, post, post.section !== 'PROJECT');
-  submit(edit, '메타데이터 저장'); content.append(edit);
-  // 시리즈 소속·순서·관련 프로젝트를 별도 저장
-  const membership = form(input => mutate(`/admin/posts/${post.id}/series`, 'PUT', {
-    seriesId: optionalNumber(input, 'seriesId'), relatedSeriesId: optionalNumber(input, 'relatedSeriesId'), order: optionalNumber(input, 'order'),
-  }), '시리즈와 문서 순서를 저장했습니다.');
-  seriesFields(membership, data, post.series?.id ?? null, post.seriesOrder, post.relatedSeriesId);
-  submit(membership, '시리즈·순서 저장'); content.append(membership);
-  // 첨부·위키 연결 패널을 포함해 대화상자 표시
-  content.append(postDeclarations(post));
-
-  openDialog('글 수정', content);
+  // 기존 값을 공통 폼에 반영
+  const initial = {
+    title: post.title, summary: post.summary, categoryId: post.category?.id ?? null, tags: post.tags,
+    seriesId: post.series?.id ?? null, order: post.seriesOrder, relatedSeriesId: post.relatedSeriesId,
+  };
+  const edit = form(async input => {
+    // 분류 변경이 소속·순서 검증에 반영되도록 기본 정보를 먼저 저장
+    const { seriesId, order, relatedSeriesId, ...metadata } = postPayload(input);
+    await mutate(`/admin/posts/${post.id}/metadata`, 'PATCH', metadata);
+    // 소속·순서 변경이 없으면 불필요한 재저장 생략
+    if (seriesId === initial.seriesId && order === initial.order && relatedSeriesId === initial.relatedSeriesId) return;
+    try {
+      await mutate(`/admin/posts/${post.id}/series`, 'PUT', { seriesId, order, relatedSeriesId });
+    } catch (error) {
+      // 두 요청은 별도 저장이므로 이미 저장한 정보와 실패 범위를 구분
+      const detail = error instanceof Error ? error.message : '요청에 실패했습니다.';
+      const message = `기본 정보는 저장했지만 소속·문서 순서를 저장하지 못했습니다. ${detail} 다시 저장해 주세요.`;
+      if (error instanceof HttpError) throw new HttpError(error.status, message);
+      throw new Error(message);
+    }
+  }, '글 정보를 저장했습니다.');
+  postFields(edit, data, post.section === 'PROJECT', initial);
+  submit(edit, '글 정보 저장');
+  openDialog(post.section === 'PROJECT' ? 'Projects 글 수정' : 'Posts 글 수정', edit);
 }
 
 /**
@@ -630,76 +625,13 @@ function renderEditor(data: AdminData) {
     container.replaceChildren(done);
   }, '미발행 글로 저장했습니다.');
   const project = editorMode === 'project';
-  postCreateFields(create, data, project, new URLSearchParams(location.search).get('project') ?? '');
+  postFields(create, data, project, { seriesId: Number(new URLSearchParams(location.search).get('project')) || null });
   // 프로젝트 글 작성에서는 새 프로젝트 생성 동작도 연결
   if (project) {
     const add = el('button', 'text-button new-project', '+ 새 프로젝트'); add.type = 'button';
     add.addEventListener('click', () => openDialog('새 프로젝트', createSeriesForm(latestData, true))); create.append(add);
   }
   submit(create, '글 정보 저장'); container.append(create);
-}
-
-/**
- * 목록에는 없는 선언 관계는 펼칠 때 상세 API로 조회
- *
- * 1. 연결 정보 패널 생성, 처음 펼칠 때 상세 조회
- * 2. 중복 조회·이미 완료한 조회 차단
- * 3. 양수 첨부 ID와 최대 개수 검증 후 전체 교체
- * 4. 줄별 위키 대상 제목으로 전체 교체 요청 구성
- * 5. 조회 실패 시 재시도 버튼 제공
- */
-function postDeclarations(post: Post): HTMLDetailsElement {
-  // 연결 정보 패널 생성, 처음 펼칠 때 상세 조회
-  const panel = el('details', 'declarations');
-  panel.append(el('summary', '', '첨부·위키 연결'));
-  const content = el('div');
-  panel.append(content);
-  let loaded = false;
-  let loading = false;
-
-  /**
-   * 펼친 글의 상세 정보를 한 번 조회해 편집 폼 구성
-   */
-  const load = async () => {
-    // 중복 조회·이미 완료한 조회 차단
-    if (!panel.open || loaded || loading) return;
-    loading = true;
-    content.replaceChildren(el('p', 'muted', '연결 정보를 읽는 중입니다.'));
-    try {
-      const detail = await request<PostDetail>(`/admin/posts/${post.id}`);
-      if (!panel.isConnected || !sessionReady) return;
-      // 양수 첨부 ID와 최대 개수 검증 후 전체 교체
-      const attachments = form(input => {
-        const values = value(input, 'attachmentIds').split(/[\s,]+/).filter(Boolean);
-        const ids = values.map(Number);
-        if (values.length > 100 || values.some((raw, i) => !/^[0-9]+$/.test(raw) || !Number.isSafeInteger(ids[i]) || ids[i] <= 0))
-          throw new Error('첨부 ID는 양의 정수로 최대 100개까지 입력하세요.');
-        return mutate(`/admin/posts/${post.id}/attachments`, 'PUT', { attachmentIds: ids });
-      }, '첨부 연결을 저장했습니다.');
-      field(attachments, '첨부 ID (쉼표 구분)', 'attachmentIds', detail.attachmentIds.join(', '), { wide: true });
-      attachments.append(el('p', 'wide muted', '등록된 이미지의 ID를 입력하세요. 비우고 저장하면 이 글의 연결만 해제됩니다.'));
-      submit(attachments, '첨부 연결 저장');
-      // 줄별 위키 대상 제목으로 전체 교체 요청 구성
-      const wiki = form(input => mutate(`/admin/posts/${post.id}/wiki-links`, 'PUT', {
-        wikiTargets: value(input, 'wikiTargets').split('\n').map(title => title.trim()).filter(Boolean),
-      }), '위키 연결을 저장했습니다.');
-      area(wiki, '위키 대상 제목 (한 줄에 하나)', 'wikiTargets', detail.wikiTargets.join('\n'), 26000);
-      wiki.append(el('p', 'wide muted', '최대 128개 제목을 입력하세요. 본문의 [[제목]]과 함께 맞춰야 하며, 이 저장은 원고 파일을 바꾸지 않습니다.'));
-      submit(wiki, '위키 연결 저장');
-      content.replaceChildren(attachments, wiki);
-      loaded = true;
-    } catch (error) {
-      if (error instanceof HttpError && error.status === 401) { showLogin(error.message); return; }
-      const notice = el('p', 'notice error', error instanceof Error ? error.message : '연결 정보를 읽지 못했습니다.');
-      notice.setAttribute('role', 'alert');
-      // 조회 실패 시 재시도 버튼 제공
-      const retry = el('button', 'button ghost', '다시 시도');
-      retry.type = 'button'; retry.addEventListener('click', () => { void load(); });
-      content.replaceChildren(notice, retry);
-    } finally { loading = false; }
-  };
-  panel.addEventListener('toggle', () => { void load(); });
-  return panel;
 }
 
 /**
@@ -799,15 +731,6 @@ function renderCategories(data: AdminData) {
     const add = el('li', 'category-add-row'); add.append(addButton(parent)); ul.append(add); return ul;
   };
   list.append(tree(data.categories, null));
-}
-
-/**
- * 시리즈 소속·순서·관련 프로젝트 입력 생성
- */
-function seriesFields(parent: HTMLElement, data: AdminData, selected: number | null, order: number | null, related: number | null) {
-  choice(parent, '시리즈', 'seriesId', [['', '없음'], ...data.series.map(item => [String(item.id), `${item.kind === 'PROJECT' ? '프로젝트' : '일반'} · ${item.name}`] as [string, string])], String(selected ?? ''));
-  field(parent, '문서 순서 (비우면 마지막)', 'order', String(order ?? ''), { type: 'number' }).min = '1';
-  choice(parent, '관련 프로젝트', 'relatedSeriesId', [['', '없음'], ...data.series.filter(item => item.kind === 'PROJECT').map(item => [String(item.id), item.name] as [string, string])], String(related ?? ''));
 }
 
 /**

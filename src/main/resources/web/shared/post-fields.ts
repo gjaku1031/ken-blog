@@ -213,17 +213,20 @@ export function taxonomyFields(parent: HTMLElement, data: PostOptions, post?: {
 }
 
 /**
- * 일반 글·프로젝트 소속 글 생성 입력 구성
+ * 글 작성·수정에 공통으로 사용하는 메타데이터 입력 구성
+ * 생략한 초기값은 빈 입력, 프로젝트 글은 태그·관련 프로젝트 제외
  */
-export function postCreateFields(parent: HTMLElement, data: PostOptions, project: boolean, projectId = '') {
-  field(parent, '제목', 'title', '', { required: true, max: 200, wide: true });
-  area(parent, '요약', 'summary', '', 120);
-  taxonomyFields(parent, data, undefined, !project);
+export function postFields(parent: HTMLElement, data: PostOptions, project: boolean, initial: Partial<ReturnType<typeof postPayload>> = {}) {
+  // 제목·요약·분류·태그의 기존 값 반영
+  field(parent, '제목', 'title', initial.title ?? '', { required: true, max: 200, wide: true });
+  area(parent, '요약', 'summary', initial.summary ?? '', 120);
+  taxonomyFields(parent, data, { category: initial.categoryId ? { id: initial.categoryId } : null, tags: initial.tags ?? [] }, !project);
+  // 글 섹션에 맞는 소속만 선택 가능, 프로젝트 글은 소속 필수
   const groups = data.series.filter(item => item.kind === (project ? 'PROJECT' : 'TECH'));
-  const select = choice(parent, project ? '프로젝트' : '시리즈', 'seriesId', [['', project ? '프로젝트 선택' : '없음'], ...groups.map(item => [String(item.id), item.name] as [string, string])], groups.some(item => String(item.id) === projectId) ? projectId : '');
+  const select = choice(parent, project ? '프로젝트' : '시리즈', 'seriesId', [['', project ? '프로젝트 선택' : '없음'], ...groups.map(item => [String(item.id), item.name] as [string, string])], groups.some(item => item.id === initial.seriesId) ? String(initial.seriesId) : '');
   select.required = project;
-  field(parent, '문서 순서 (비우면 마지막)', 'order', '', { type: 'number' }).min = '1';
-  if (!project) choice(parent, '관련 프로젝트', 'relatedSeriesId', [['', '없음'], ...data.series.filter(item => item.kind === 'PROJECT').map(item => [String(item.id), item.name] as [string, string])]);
+  field(parent, '문서 순서 (비우면 마지막)', 'order', String(initial.order ?? ''), { type: 'number' }).min = '1';
+  if (!project) choice(parent, '관련 프로젝트', 'relatedSeriesId', [['', '없음'], ...data.series.filter(item => item.kind === 'PROJECT').map(item => [String(item.id), item.name] as [string, string])], String(initial.relatedSeriesId ?? ''));
 }
 
 /**
@@ -232,7 +235,7 @@ export function postCreateFields(parent: HTMLElement, data: PostOptions, project
 export const postTags = (data: FormData) => data.getAll('tags').map(String);
 
 /**
- * 글 작성 폼을 메타데이터 생성 요청으로 변환
+ * 글 작성·수정 폼을 메타데이터 값으로 변환
  */
 export function postPayload(input: FormData) {
   /**

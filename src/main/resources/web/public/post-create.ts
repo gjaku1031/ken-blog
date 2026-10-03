@@ -1,7 +1,7 @@
 import '../shared/forms.css';
 import { request, mutate, HttpError } from '../shared/admin-api';
 import { el, setMessage, submit } from '../shared/forms';
-import { postCreateFields, postPayload, type Category, type Tag } from '../shared/post-fields';
+import { postFields, postPayload, type Category, type Tag } from '../shared/post-fields';
 import type { Series } from '../shared/series-editor';
 import { updateHeaderSession } from '../shared/header';
 
@@ -42,7 +42,7 @@ export function connectPostCreator() {
       if (run !== generation || !dialog.open) return;
       setMessage(message, '');
       const form = el('form', 'field-grid');
-      postCreateFields(form, { categories, tags, series }, project, trigger.dataset.project ?? '');
+      postFields(form, { categories, tags, series }, project, { seriesId: Number(trigger.dataset.project) || null });
       submit(form, '글 정보 저장');
       // 유효 입력만 저장하고 중복 제출 차단
       form.addEventListener('submit', async event => {

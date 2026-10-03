@@ -95,11 +95,7 @@ main:focus{outline:none}
 .text-link{font-size:13px;color:var(--accent-dark)}
 .boot{text-align:center;margin:15vh 20px;color:var(--muted)}
 .source-path{font-size:12px;color:var(--muted);padding:10px 12px;border-radius:6px;background:var(--soft);overflow-wrap:anywhere;margin-bottom:24px}
-/* 첨부·위키 연결 펼침 영역 */
-.declarations{margin:24px 0 0;border-top:1px solid var(--line);padding-top:18px}
-.declarations summary{cursor:pointer;color:var(--muted);font-size:13px}
-.declarations form{margin-top:18px}
-.declarations p{font-size:12px;margin:0}
+/* 독립 글쓰기 화면 */
 .editor-layout{width:min(calc(100% - 40px),760px);margin:48px auto 72px;flex:1}
 .back-link{font-size:13px;color:var(--muted);display:inline-block;margin-bottom:22px}
 .editor-card{padding:32px}
