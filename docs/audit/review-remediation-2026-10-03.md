@@ -35,7 +35,7 @@
 | UI-09 | 검색 상태에 role=status·aria-live=polite·atomic 추가 | 생성 HTML·브라우저 속성 확인 |
 | UI-10 | 관리자 전체 목록을 단일 REPEATABLE_READ API로 조회 | 조회 중 별도 트랜잭션의 글 변경에도 300개 목록 시점/건수 보존 |
 | PI-01 | 공유 첨부의 모든 글/첨부 권한을 조회한 뒤 같은 바이트만 재사용 | 앞/뒤 어느 소유 글이 거부돼도 빌드 실패, 정상일 때 파일 하나 |
-| PI-02 | VERIFY_IDENTITY와 사설 CA truststore 마운트 예시 | 같은 Connector/J로 정상 CA/호스트 성공·다른 CA/호스트·평문 서버 거부 |
+| PI-02 | VERIFY_IDENTITY와 사설 CA truststore 마운트, 비밀번호의 URL 분리 | 같은 Connector/J로 정상 CA/호스트 성공·다른 CA/호스트·평문 서버 거부, 실제 앱의 TLS 속성 바인딩·시작 로그 미노출 |
 | PI-03 | 백엔드 PR·deploy/Compose/환경 파일 변경에 검증 연결 | YAML 파싱·Compose/Caddy 구성 및 실제 라우팅 검사 |
 | PI-04 | fixture를 우회하지 않는 실제 HTTP capture→build 검사 | revision 변경·리다이렉트·MIME/크기/시그니처·원고 누락/링크·출력 보존·공개 해제·캐시 손상 |
 | PI-05 | 빌드와 Pages 배포 권한 분리, 전체 action SHA 고정 | upstream 태그/commit 확인, source SHA 전달·발행 직전 입력 차이 검사 유지 |
