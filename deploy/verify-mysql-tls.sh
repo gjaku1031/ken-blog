@@ -61,10 +61,13 @@ for ken_tls_attempt in $(seq 1 90); do
   sleep 1
 done
 curl -fsS --max-time 3 "http://127.0.0.1:$ken_tls_api_port/actuator/health" | python3 -c 'import json,sys; assert json.load(sys.stdin)["status"] == "UP"'
-if rg -q 'test-store-only|ci_tls_only|Database JDBC URL' "$ken_tls_dir/app.log"; then
-  echo 'JDBC startup log disclosed connection information' >&2
-  exit 1
-fi
+# CI에 추가 검색 도구가 없어도 로그 비밀 값 검사를 반드시 실행
+python3 - "$ken_tls_dir/app.log" <<'PY'
+from pathlib import Path
+import sys
+log = Path(sys.argv[1]).read_text()
+assert not any(value in log for value in ('test-store-only', 'ci_tls_only', 'Database JDBC URL')), 'JDBC startup log disclosed connection information'
+PY
 kill "$ken_tls_app_pid"
 wait "$ken_tls_app_pid" || true
 ken_tls_app_pid=
