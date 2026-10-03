@@ -1,3 +1,5 @@
+import { ARCHITECTURE_LAYOUT, architectureIconError, styleArchitectureSvg } from "./mermaid-architecture.ts";
+
 /**
  * Mermaid 밝은·어두운 테마
  */
@@ -109,14 +111,14 @@ export function mermaidThemeSource(source: string, theme: MermaidTheme): string 
 }
 
 /**
- * 지원 도식의 크기를 제한하고, 색상 classDef 이외의 설정·CSS·외부 참조를 거부함
+ * 지원 도식의 크기를 제한하고, 색상 classDef·로컬 아이콘 이외의 설정·CSS·외부 참조를 거부함
  */
 export function mermaidSourceError(source: string): string | null {
   const lines = source.split(/\r\n|\r|\n/);
   const lineCount = lines.length - (lines.at(-1) === "" ? 1 : 0);
   if (new TextEncoder().encode(source).length > MAX_MERMAID_LENGTH || lineCount > MAX_MERMAID_LINES)
     return "도식이 길어 원문으로 표시합니다.";
-  if (!/^(?:flowchart|graph|sequenceDiagram|classDiagram|stateDiagram(?:-v2)?|erDiagram)\b/.test(source.trimStart()))
+  if (!/^(?:flowchart|graph|sequenceDiagram|classDiagram|stateDiagram(?:-v2)?|erDiagram|architecture-beta)\b/.test(source.trimStart()))
     return "지원하지 않는 Mermaid 도식은 원문으로 표시합니다.";
   if (/[\u0000-\u0008\u000b\u000c\u000e-\u001f\u007f-\u009f\u202a-\u202e\u2066-\u2069]/.test(source))
     return "제어 문자가 있는 도식은 원문으로 표시합니다.";
@@ -124,7 +126,7 @@ export function mermaidSourceError(source: string): string | null {
   if (/%%\s*\{|^\s*---(?:\s|$)|@\s*\{|(?:^|[;\r\n])\s*(?:click|callback|link|links|style|classDef|linkStyle|cssClass)\b/im.test(lines.map(line => colorClass(line) ? "" : line).join("\n")) ||
     /(?:\b(?:https?|ftp|file|data|blob|javascript):|\/\/|url\s*\(|@import\b|@font-face\b|\b(?:-webkit-)?image-set\s*\(|\bcross-fade\s*\(|\bpaint\s*\(|\b(?:src|href|img|image|icon)\s*[:=]|\bfa:|!\[|<\s*\/?\s*[a-z!]|&#|&(?:lt|gt|amp|quot|apos);)/i.test(source))
     return "외부 자원이나 사용자 설정이 포함된 도식은 원문으로 표시합니다.";
-  return null;
+  return /^\s*architecture-beta\b/.test(source) ? architectureIconError(source) : null;
 }
 
 /**
@@ -264,23 +266,45 @@ async function drainQueue(): Promise<void> {
       }
       let container: HTMLDivElement | null = null;
       try {
+        const architecture = /^\s*architecture-beta\b/.test(job.source);
+        // 기준 배치와 어긋난 원고는 무거운 Mermaid 초기화·자동 배치 전에 거부
+        const reference = architecture && /^\s*%% layout: /m.test(job.source)
+          ? await import('./mermaid-reference-layout.ts') : null;
+        reference?.validateReferenceLayout(job.source);
+        if (job.signal.aborted) continue;
         const { default: mermaid } = await import("mermaid");
+        if (architecture) {
+          // Architecture에서만 로컬 아이콘 팩을 로딩하며 외부 아이콘 API에는 연결하지 않음
+          const { default: icons } = await import("./architecture-icons.json", { with: { type: "json" } });
+          mermaid.registerIconPacks([{ name: "ken", icons }]);
+        }
         if (job.signal.aborted) continue;
         mermaid.initialize({ startOnLoad: false, securityLevel: "strict", htmlLabels: false,
           suppressErrorRendering: true, maxTextSize: MAX_MERMAID_LENGTH, maxEdges: MAX_MERMAID_EDGES,
           theme: job.theme === "dark" ? "dark" : "default",
+          ...(architecture ? { fontSize: ARCHITECTURE_LAYOUT.fontSize,
+            themeVariables: { fontSize: `${ARCHITECTURE_LAYOUT.fontSize}px` } } : {}),
           // 그룹과 교차 FK가 있는 ERD는 ELK로 배치하고 다른 도식의 배치는 유지함
           layout: /^\s*erDiagram\b/.test(job.source) ? "elk" : "dagre", look: "classic",
           fontFamily: "Arial, sans-serif", arrowMarkerAbsolute: false,
+          architecture: ARCHITECTURE_LAYOUT,
           secure: ["securityLevel", "startOnLoad", "maxTextSize", "maxEdges", "suppressErrorRendering", "theme",
-            "themeVariables", "themeCSS", "htmlLabels", "fontFamily", "layout", "look", "arrowMarkerAbsolute"] });
+            "themeVariables", "themeCSS", "htmlLabels", "fontFamily", "fontSize", "layout", "look", "arrowMarkerAbsolute", "architecture"] });
         container = document.createElement("div");
         container.style.cssText = "position:fixed;left:-100000px;top:0;opacity:0;pointer-events:none;z-index:-1";
         container.setAttribute("aria-hidden", "true");
         document.body.appendChild(container);
         const id = `ken_mermaid_${++sequence}_${crypto.randomUUID().replaceAll("-", "")}`;
         const result = await mermaid.render(id, mermaidThemeSource(job.source, job.theme), container);
-        if (!job.signal.aborted) job.resolve(sanitizeMermaidSvg(result.svg));
+        if (!job.signal.aborted) {
+          let svg = sanitizeMermaidSvg(result.svg);
+          if (reference) {
+            // 특정 원본 도식의 배치만 적용하며 구성·연결이 바뀌면 검증에서 중단함
+            svg = sanitizeMermaidSvg(reference.applyReferenceLayout(svg, job.source, job.theme));
+          }
+          if (!job.signal.aborted) job.resolve(architecture
+            ? sanitizeMermaidSvg(styleArchitectureSvg(svg, job.theme)) : svg);
+        }
       } catch {
         if (!job.signal.aborted) job.reject(new Error("도식을 표시할 수 없습니다."));
       } finally {
@@ -298,13 +322,17 @@ async function drainQueue(): Promise<void> {
  * 취소할 수 있는 렌더 작업을 예약하며 결과 SVG는 컴포넌트가 만든 Blob URL에만 사용함
  *
  * 1. 이미 취소된 요청은 큐에 넣지 않음
- * 2. 대기 중 취소 시 큐 제거·실패 전달
- * 3. 취소 구독 후 직렬 렌더 큐에 등록
+ * 2. 도식 원문과 아이콘 허용 목록 검증
+ * 3. 대기 중 취소 시 큐 제거·실패 전달
+ * 4. 취소 구독 후 직렬 렌더 큐에 등록
  */
 export function renderMermaid(source: string, theme: MermaidTheme, signal: AbortSignal): Promise<string> {
   return new Promise((resolve, reject) => {
     // 이미 취소된 요청은 큐에 넣지 않음
     if (signal.aborted) { reject(new DOMException("취소됨", "AbortError")); return; }
+    // 직접 호출에서도 원문 제한과 로컬 아이콘 허용 목록 적용
+    const sourceError = mermaidSourceError(source);
+    if (sourceError) { reject(new Error(sourceError)); return; }
     // 대기 중 취소 시 큐 제거·실패 전달
     const job: Job = { source, theme, signal, resolve, reject, onAbort: () => {
       const index = jobs.indexOf(job);

@@ -1,5 +1,7 @@
+import { readFileSync } from 'node:fs';
+
 /**
- * 공개 생성·브라우저 검사에 사용하는 가상 글, 실제 운영 자료와 무관
+ * 공개 생성·브라우저 검사에 사용하는 가상 글, 도식은 저장소 원고 표본 포함
  */
 export const fixture = {
   version: 2,
@@ -41,3 +43,10 @@ fixture.posts.push({ ...fixture.posts[1], ...cover, section: 'PROJECT', category
   series: { ...project, items: [cover], position: 1 } });
 fixture.series.push({ ...project, visibility: 'PUBLIC', description: '검사 프로젝트 개요', sortOrder: 0,
   projectStatus: 'DEV', startPeriod: '2026.01', endPeriod: null, stackBadges: [], cover, postCount: 1 });
+
+// 현재 원고의 두 고정 배치도 실제 브라우저 렌더 경로로 검증
+for (const slug of ['doc-340352c9-5fde-4bae-bc0b-4ecd744719a8', 'project-8d420603-48bb-4e29-8983-e08a6e649f80']) {
+  const body = readFileSync(new URL(`../../content/posts/${slug}.md`, import.meta.url), 'utf8');
+  const diagram = body.match(/```mermaid\n(architecture-beta[\s\S]*?)\n```/)[0];
+  fixture.posts.at(-1).body += '\n\n' + diagram;
+}

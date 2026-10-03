@@ -10,7 +10,7 @@ let pickerSequence = 0;
  * 기존 분류 트리를 사용하는 단일 분류 선택 입력
  *
  * 1. 분류 없음과 현재 선택값을 제출할 숨김 입력 준비
- * 2. 깊이 안내선·접기 버튼·글 수를 포함한 분류 목록 구성
+ * 2. 깊이 안내선·접기 버튼·글 수를 포함한 스크롤 목록 구성
  * 3. 선택 표시와 분류 ID 동기화, 접기는 선택값 유지
  */
 export function categoryTreePicker(parent: HTMLElement, categories: Category[], selected: number | null = null) {
@@ -19,7 +19,8 @@ export function categoryTreePicker(parent: HTMLElement, categories: Category[], 
   const group = el('fieldset', 'post-category-picker');
   group.append(el('legend', '', '분류'));
   const hidden = el('input'); hidden.type = 'hidden'; hidden.name = 'categoryId';
-  const selection = el('p', 'category-selection'); selection.setAttribute('aria-live', 'polite');
+  // 선택 결과는 스크린 리더로만 안내, 화면에서는 선택한 분류 버튼으로 표시
+  const selection = el('p', 'sr-only'); selection.setAttribute('aria-live', 'polite');
   const buttons = new Map<string, HTMLButtonElement>();
 
   /**
@@ -77,10 +78,19 @@ export function categoryTreePicker(parent: HTMLElement, categories: Category[], 
   }
   // 분류가 없어도 연결 해제 가능, 초기 선택은 목록에 존재하는 ID만 반영
   const clear = option('', '분류 없음', '분류 없음'); clear.classList.add('category-clear');
+  // 긴 목록만 스크롤하며 분류 해제 버튼은 목록 밖에 유지
+  const viewport = el('div', 'category-tree-scroll scroll-region');
+  viewport.tabIndex = 0; viewport.setAttribute('role', 'region'); viewport.setAttribute('aria-label', '분류 목록');
   const list = tree(categories);
-  group.append(hidden, clear, list);
-  if (!categories.length) group.append(el('p', 'stack-empty', '등록된 분류가 없습니다.'));
+  viewport.append(list); group.append(hidden, clear, viewport);
+  if (!categories.length) viewport.append(el('p', 'stack-empty', '등록된 분류가 없습니다.'));
   group.append(selection); parent.append(group);
   const current = buttons.get(String(selected));
   select(current ? String(selected) : '', current?.title ?? '분류 없음');
+  // 수정 창에서 아래쪽 분류도 즉시 보이도록 목록 내부만 이동
+  if (current) requestAnimationFrame(() => {
+    if (!viewport.isConnected) return;
+    const offset = current.getBoundingClientRect().top - viewport.getBoundingClientRect().top;
+    if (offset + current.offsetHeight > viewport.clientHeight) viewport.scrollTop += offset - viewport.clientHeight / 2 + current.offsetHeight / 2;
+  });
 }

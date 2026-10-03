@@ -2,11 +2,90 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 import { mermaidSourceError, mermaidThemeSource } from "../../src/main/resources/web/shared/mermaid-render.ts";
+import { ARCHITECTURE_ICONS } from "../../src/main/resources/web/shared/mermaid-architecture.ts";
+import { validateReferenceLayout } from "../../src/main/resources/web/shared/mermaid-reference-layout.ts";
 
 /**
  * ERD 검증용 원문
  */
 const diagram = "erDiagram\n  posts ||--o{ post_tags : post_id\n";
+
+/**
+ * Architecture의 로컬 아이콘만 허용하고 외부 팩과 설정 덮어쓰기를 거부함
+ */
+test("architecture accepts bundled icons and rejects remote packs and configuration", () => {
+  for (const icon of [...ARCHITECTURE_ICONS.map(name => `ken:${name}`), "cloud", "database", "disk", "internet", "server"])
+    assert.equal(mermaidSourceError(`architecture-beta\nservice api(${icon})[API]`), null);
+  for (const icon of ["logos:spring-icon", "ken:missing", "https://example.com/icon.svg", "@host:ken:spring"])
+    assert.notEqual(mermaidSourceError(`architecture-beta\nservice api(${icon})[API]`), null);
+  assert.notEqual(mermaidSourceError("%%{init: {securityLevel: 'loose'}}%%\narchitecture-beta\nservice api(ken:spring)[API]"), null);
+});
+
+/**
+ * 아이콘 목록과 실제 SVG 자산의 일치 및 크기·외부 자원 제외 확인
+ */
+test("every architecture icon is bundled with explicit dimensions and no external resources", async () => {
+  const pack = JSON.parse(await readFile(new URL("../../src/main/resources/web/shared/architecture-icons.json", import.meta.url), "utf8"));
+  assert.deepEqual(Object.keys(pack.icons).sort(), [...ARCHITECTURE_ICONS].sort());
+  for (const icon of Object.values(pack.icons)) {
+    assert.ok(icon.width > 0 && icon.height > 0);
+    assert.doesNotMatch(icon.body, /<(?:image|use|script|foreignObject)\b|\b(?:href|on\w+)\s*=|(?:https?|data):/i);
+  }
+});
+
+/**
+ * 두 프로젝트 원고의 Architecture와 기존 도식이 공개 렌더러 제한을 만족함
+ */
+test("project architecture articles use supported diagrams", async () => {
+  for (const [slug, architectureCount] of [
+    ["doc-340352c9-5fde-4bae-bc0b-4ecd744719a8", 1],
+    ["project-8d420603-48bb-4e29-8983-e08a6e649f80", 1],
+  ]) {
+    const body = await readFile(new URL(`../../content/posts/${slug}.md`, import.meta.url), "utf8");
+    const sources = [...body.matchAll(/```mermaid\n([\s\S]*?)\n```/g)].map(match => match[1]);
+    assert.equal(sources.filter(source => source.startsWith("architecture-beta")).length, architectureCount);
+    for (const source of sources) assert.equal(mermaidSourceError(source), null);
+  }
+});
+
+/**
+ * Vowser 단일 도식이 원본 구성을 보존하고 이후 연결·소속 변경을 숨기지 않음
+ */
+test("Vowser keeps the full original architecture and rejects stale reference geometry", async () => {
+  const body = await readFile(new URL("../../content/posts/project-8d420603-48bb-4e29-8983-e08a6e649f80.md", import.meta.url), "utf8");
+  const source = body.match(/```mermaid\n(architecture-beta[\s\S]*?)\n```/)[1];
+  assert.match(source, /%% layout: vowser-infrastructure/);
+  assert.deepEqual([...validateReferenceLayout(source).keys()].sort(), [
+    "actions", "runner", "origin", "app", "website", "ecr", "dns", "alb", "backend", "agent", "db", "vpn",
+    "watch", "events", "lambda", "redis", "neo4j",
+  ].sort());
+  assert.throws(() => validateReferenceLayout(source.replace("  runner:R -[Push]-> L:ecr", "")));
+  assert.throws(() => validateReferenceLayout(source.replace("RDS MySQL] in vpc", "RDS MySQL] in external")));
+  assert.throws(() => validateReferenceLayout(source.replace("L:backend{group}", "L:backend")));
+  assert.throws(() => validateReferenceLayout(source + "\n  dns:B --> T:alb"));
+  assert.throws(() => validateReferenceLayout(source + "\n  dns:B <--> T:alb"));
+  assert.throws(() => validateReferenceLayout(source.replace("-\u003e L:ecr", "-\u003e L:db")));
+});
+
+/**
+ * 사이트 자동 배포와 API 수동 배포·데이터 접근을 구분하고 잘못된 배치 선택을 거부함
+ */
+test("ken-blog includes both deployment paths without mixing reference profiles", async () => {
+  const body = await readFile(new URL("../../content/posts/doc-340352c9-5fde-4bae-bc0b-4ecd744719a8.md", import.meta.url), "utf8");
+  const source = body.match(/```mermaid\n(architecture-beta[\s\S]*?)\n```/)[1];
+  assert.deepEqual([...validateReferenceLayout(source).keys()].sort(), [
+    "writer", "repo", "sitebuild", "pages", "apibuild", "archive", "operator", "reader", "admin", "caddy", "api", "disk", "db",
+  ].sort());
+  assert.throws(() => validateReferenceLayout(source.replace("  operator:B -[Manual deploy]-> T:api", "  apibuild:B -[Auto deploy]-> T:api")));
+  assert.throws(() => validateReferenceLayout(source.replace("MySQL] in data", "MySQL] in compose")));
+  assert.throws(() => validateReferenceLayout(source.replace("  api:B -[Read only]-> T:disk", "")));
+  assert.throws(() => validateReferenceLayout(source.replace("ken-blog-infrastructure", "vowser-infrastructure")));
+  assert.throws(() => validateReferenceLayout(source.replace("ken-blog-infrastructure", "unknown")));
+  assert.throws(() => validateReferenceLayout(source + "\n  %% layout: vowser-infrastructure"));
+  assert.throws(() => validateReferenceLayout(source.replace('[Manual deploy]', '[Auto deploy]')));
+  assert.throws(() => validateReferenceLayout(source.replace('group ops[Manual operation]', 'group ops[Automatic operation]')));
+  assert.throws(() => validateReferenceLayout(source.replace('operator:B -[Manual deploy]-> T:api', 'operator:T -[Manual deploy]-> B:api')));
+});
 
 test("ERD role colors allow hex fills, borders and text with a bounded line width", () => {
   assert.equal(mermaidSourceError(diagram +

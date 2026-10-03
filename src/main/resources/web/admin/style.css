@@ -142,11 +142,11 @@ body { -webkit-font-smoothing:antialiased; }
 /* 화면 폭에 맞춘 배치 조정 */
 @media(max-width:640px){.admin-sidebar nav{flex-wrap:wrap}.admin-sidebar .admin-deploy{margin:8px 0 0}}
 
-/* 전체 글 상태 필터와 배포 확인 안내 */
+/* 글 상태·시리즈 종류 필터와 배포 확인 안내 */
 .post-filter-bar{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:10px}
-.post-filters{display:flex;gap:6px;flex-wrap:wrap}
-.post-filters button{border:1px solid var(--line2);border-radius:6px;background:var(--card);color:var(--text2);font-size:12px;padding:7px 11px}
-.post-filters button[aria-pressed=true]{border-color:var(--accent);background:var(--tint);color:var(--accent-d)}
+.post-filters,.series-filters{display:flex;gap:6px;flex-wrap:wrap}
+.post-filters button,.series-filters button{border:1px solid var(--line2);border-radius:6px;background:var(--card);color:var(--text2);font-size:12px;padding:7px 11px}
+.post-filters button[aria-pressed=true],.series-filters button[aria-pressed=true]{border-color:var(--accent);background:var(--tint);color:var(--accent-d)}
 .deployment-help{font-size:12px;margin:0 0 16px}
 .status.pending{color:var(--pending-status,#9a6700)}
 .status.unknown{color:var(--muted)}

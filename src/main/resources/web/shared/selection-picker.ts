@@ -1,5 +1,6 @@
 import { el } from './dom';
 import { listbox } from './dropdown';
+import { sortableChips } from './sortable-chips';
 
 /**
  * 여러 값 선택 입력의 후보
@@ -100,6 +101,18 @@ export function selectionPicker(parent: HTMLElement, options: PickerOptions) {
   const input = el('input', 'stack-search'); input.type = 'text'; input.autocomplete = 'off'; input.placeholder = options.placeholder;
   input.setAttribute('aria-label', options.searchLabel); input.setAttribute('aria-autocomplete', 'list');
   if (options.createMaxLength) input.maxLength = options.createMaxLength * 2;
+  // 정렬 결과를 같은 선택 상태와 제출값에 반영, 태그·기술별 중복 구현 방지
+  const sorting = sortableChips(chips, order => { selected = order; syncValues(); });
+
+  /**
+   * 현재 선택·정렬 순서의 숨김 폼 값 갱신
+   */
+  function syncValues() {
+    values.replaceChildren();
+    for (const value of selected) {
+      const hidden = el('input'); hidden.type = 'hidden'; hidden.name = options.name; hidden.value = value; values.append(hidden);
+    }
+  }
 
   /**
    * 후보·선택 비교용 대소문자 정규화
@@ -127,23 +140,23 @@ export function selectionPicker(parent: HTMLElement, options: PickerOptions) {
   function label(target: HTMLElement, value: string) {
     const icon = options.items.find(item => key(item.value) === key(value))?.icon?.();
     if (icon) target.append(icon);
-    target.append(document.createTextNode(caption(value)));
+    target.append(el('span', 'chip-label', caption(value)));
   }
 
   /**
    * 선택 순서대로 칩과 제출 값을 함께 갱신
    */
   function render() {
-    chips.replaceChildren(); values.replaceChildren();
+    sorting.cancel(); chips.replaceChildren();
     for (const value of selected) {
-      const chip = el('span', 'stack-chip'); label(chip, value);
+      const chip = el('span', 'stack-chip'); chip.dataset.sortKey = value; chip.title = caption(value); label(chip, value);
       const remove = el('button', 'chip-remove', '×'); remove.type = 'button'; remove.setAttribute('aria-label', options.removeLabel(value));
       remove.addEventListener('click', () => {
         selected = selected.filter(item => item !== value); input.setCustomValidity(''); render(); input.focus(); popup.refresh();
       });
       chip.append(remove); chips.append(chip);
-      const hidden = el('input'); hidden.type = 'hidden'; hidden.name = options.name; hidden.value = value; values.append(hidden);
     }
+    syncValues(); sorting.refresh();
   }
 
   /**

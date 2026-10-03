@@ -290,3 +290,159 @@ test('mobile posts, project and admin panels fit the viewport', async ({ page })
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   }
 });
+
+// 공용 입력에서도 키보드·포인터 정렬과 취소가 실제 제출 순서에 반영되는지 검증
+test('sortable tags preserve submitted order through keyboard, drag and cancellation', async ({ page }) => {
+  await mockApi(page); await page.goto('/ken-blog/posts/new/');
+  const input = page.getByRole('combobox', { name: '태그 검색' });
+  for (const name of ['tag0', 'tag1', 'tag2']) { await input.fill(name); await input.press(','); }
+
+  /**
+   * 현재 제출되는 태그 순서
+   */
+  const values = () => page.locator('input[name=tags]').evaluateAll(inputs => inputs.map(input => input.value));
+  await page.getByRole('button', { name: 'tag0 순서 이동, 1/3' }).press('End');
+  expect(await values()).toEqual(['tag1', 'tag2', 'tag0']);
+  // 실제 포인터로 마지막 칩 앞으로 이동한 뒤 Escape는 기존 제출 순서를 유지
+  const first = await page.locator('[data-sort-key=tag1] .chip-drag-handle').boundingBox();
+  const last = await page.locator('[data-sort-key=tag0]').boundingBox();
+  await page.mouse.move(first.x + first.width / 2, first.y + first.height / 2); await page.mouse.down();
+  await page.mouse.move(last.x + last.width - 4, last.y + last.height / 2, { steps: 5 });
+  await expect(page.locator('.chip-drag-preview')).toHaveCount(1);
+  await page.keyboard.press('Escape'); await page.mouse.up();
+  await expect(page.locator('.chip-drag-preview')).toHaveCount(0);
+  expect(await values()).toEqual(['tag1', 'tag2', 'tag0']);
+  // 같은 이동을 놓아서 확정하면 숨김 값과 화면 순서가 일치
+  await page.mouse.move(first.x + first.width / 2, first.y + first.height / 2); await page.mouse.down();
+  await page.mouse.move(last.x + last.width - 4, last.y + last.height / 2, { steps: 5 }); await page.mouse.up();
+  await expect.poll(values).toEqual(['tag2', 'tag0', 'tag1']);
+  await expect(page.locator('.chip-drag-preview')).toHaveCount(0);
+  await page.getByRole('button', { name: 'tag0 태그 제거', exact: true }).click();
+  expect(await values()).toEqual(['tag2', 'tag1']);
+});
+
+// 드래그 종료 애니메이션 중 창을 닫고 새 폼을 열어도 이전 손잡이가 포커스를 빼앗지 않음
+test('closing a drag editor leaves the reopened form focused', async ({ page }) => {
+  await mockApi(page); await page.goto('/ken-blog/manage/#series');
+  await page.getByRole('button', { name: '+ 새 프로젝트', exact: true }).click();
+  const input = page.getByRole('combobox', { name: '기술 스택 검색' });
+  for (const name of ['Alpha', 'Beta', 'Gamma']) { await input.fill(name); await input.press('ArrowDown'); await input.press('Enter'); }
+  const first = await page.locator('[data-sort-key=Alpha] .chip-drag-handle').boundingBox();
+  const last = await page.locator('[data-sort-key=Gamma]').boundingBox();
+  await page.mouse.move(first.x + first.width / 2, first.y + first.height / 2); await page.mouse.down();
+  await page.mouse.move(last.x + last.width - 4, last.y + last.height / 2, { steps: 5 });
+  await expect(page.locator('.chip-drag-preview')).toHaveCount(1);
+  // 닫기·재열기를 같은 이벤트 순서로 수행하여 착지 콜백과 경쟁시킴
+  await page.mouse.up();
+  await page.evaluate(() => {
+    document.querySelector('#edit-dialog').close();
+    [...document.querySelectorAll('#series-create button')].find(button => button.textContent === '+ 새 프로젝트').click();
+    document.querySelector('#edit-dialog input[name=name]').focus();
+  });
+  await expect(page.locator('.chip-drag-preview')).toHaveCount(0);
+  await expect(page.locator('#edit-dialog input[name=name]')).toBeFocused();
+});
+
+// 긴 분류 트리의 선택 위치는 자체 스크롤로 표시하고 사이드바 전환은 키보드 지원
+test('category scroll and sidebar radio navigation remain independent', async ({ page }) => {
+  await mockApi(page, async (route, path) => {
+    if (path !== '/admin/categories') return false;
+    const categories = Array.from({ length: 60 }, (_, index) => ({
+      id: index + 100, name: `추가 분류 ${index}`, path: `extra-${index}`, depth: 1, sortOrder: index, directCount: 1, children: [],
+    }));
+    categories.push({ id: 2, name: '기존 선택', path: 'selected', depth: 1, sortOrder: 61, directCount: 1, children: [] });
+    await route.fulfill({ json: categories }); return true;
+  });
+  await page.goto('/ken-blog/manage/');
+  await page.getByRole('button', { name: '검사 글 1', exact: true }).click();
+  const scroll = page.locator('.category-tree-scroll');
+  await expect.poll(() => scroll.evaluate(element => element.scrollTop)).toBeGreaterThan(0);
+  await expect(page.locator('#edit-dialog input[name=categoryId]')).toHaveValue('2');
+  expect(await scroll.evaluate(element => element.scrollHeight > element.clientHeight)).toBe(true);
+  await page.goto('/ken-blog/posts/');
+  await expect(page.locator('#sidebar-categories')).toBeVisible();
+  await expect(page.locator('#sidebar-series')).toBeHidden();
+  await page.getByRole('radio', { name: '분류', exact: true }).focus(); await page.keyboard.press('ArrowRight');
+  await expect(page.locator('#sidebar-series')).toBeVisible();
+  await expect(page.locator('#sidebar-categories')).toBeHidden();
+  await page.keyboard.press('Tab'); await expect(page.locator('#sidebar-series')).toBeFocused();
+});
+
+// 종류 필터는 목록만 좁히며 조회 없이 이동하고 늦은 생성 결과는 사용자의 새 선택을 덮지 않음
+test('series kind filters survive an older creation response', async ({ page }) => {
+  let finish;
+  await mockApi(page, async (route, path) => {
+    if (path !== '/admin/series' || route.request().method() !== 'POST') return false;
+    await new Promise(resolve => { finish = resolve; });
+    await route.fulfill({ json: { ...fixture.series[0], ...route.request().postDataJSON().metadata } }); return true;
+  });
+  await page.goto('/ken-blog/manage/#series');
+  await page.locator('[data-series-filter=PROJECT]').click();
+  await expect(page.locator('#series-list')).toContainText('UI 검사 프로젝트');
+  await page.getByRole('button', { name: '+ 새 프로젝트', exact: true }).click();
+  await page.locator('#edit-dialog input[name=name]').fill('새 프로젝트');
+  await page.locator('#edit-dialog input[name=startPeriod]').fill('2026.10');
+  await page.locator('#edit-dialog button[type=submit]').click();
+  await expect.poll(() => !!finish).toBe(true);
+  await page.locator('#dialog-close').click(); await page.locator('[data-series-filter=TECH]').click();
+  finish();
+  await expect(page.locator('#dashboard-message')).toContainText('저장했습니다');
+  await expect(page.locator('[data-series-filter=TECH]')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#series-list')).toContainText('등록된 시리즈가 없습니다.');
+});
+
+// 실제 프로젝트 원고의 고정 배치·로고·테마를 브라우저 SVG 경계까지 검증
+test('reference architecture diagrams render completely in both themes', async ({ page }) => {
+  test.setTimeout(90000);
+  await page.addInitScript(() => {
+    window.diagramSvgs = [];
+    const create = URL.createObjectURL;
+    URL.createObjectURL = blob => {
+      if (blob.type === 'image/svg+xml') void blob.text().then(svg => window.diagramSvgs.push(svg));
+      return create.call(URL, blob);
+    };
+  });
+  await mockApi(page); await page.goto('/ken-blog/post/project-intro/');
+  const diagrams = page.locator('.ken-mermaid');
+  await expect(diagrams).toHaveCount(2);
+  for (const theme of ['light', 'dark']) {
+    if (theme === 'dark') await page.locator('#theme-toggle').click();
+    for (const diagram of await diagrams.all()) {
+      await diagram.scrollIntoViewIfNeeded();
+      await expect(diagram.locator('img')).toBeVisible({ timeout: 35000 });
+      await expect(diagram).toHaveAttribute('data-enhanced', theme, { timeout: 35000 });
+    }
+  }
+  const rendered = await page.evaluate(() => window.diagramSvgs.map(svg => {
+    const doc = new DOMParser().parseFromString(svg, 'image/svg+xml');
+    return { services: doc.querySelectorAll('.architecture-service').length, external: !!doc.querySelector('image,script,foreignObject'),
+      texts: doc.documentElement.textContent, width: +doc.documentElement.getAttribute('width') };
+  }));
+  expect(rendered.map(item => item.services).sort()).toEqual([13, 13, 17, 17]);
+  expect(rendered.every(item => !item.external && item.width > 1000)).toBe(true);
+  expect(rendered.filter(item => item.services === 13).every(item => item.texts.includes('API 컨테이너 교체'))).toBe(true);
+});
+
+// 좁은 화면의 여러 줄 칩도 터치로 이동하고 동작 축소 설정에서 정렬 유지
+test('touch sorting works across wrapped rows with reduced motion', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 }); await page.emulateMedia({ reducedMotion: 'reduce' });
+  await mockApi(page); await page.goto('/ken-blog/posts/new/');
+  const input = page.getByRole('combobox', { name: '태그 검색' });
+  for (let index = 0; index < 8; index++) { await input.fill(`tag${index}`); await input.press(','); }
+  // 위로 열리는 후보 목록을 닫은 뒤 실제 손잡이 좌표로 터치
+  await input.press('Escape');
+  await page.locator('.sortable-chips').scrollIntoViewIfNeeded();
+  const first = await page.locator('[data-sort-key=tag0] .chip-drag-handle').boundingBox();
+  const last = await page.locator('[data-sort-key=tag7]').boundingBox();
+  expect(last.y).toBeGreaterThan(first.y);
+  const session = await page.context().newCDPSession(page);
+  await session.send('Emulation.setTouchEmulationEnabled', { enabled: true, maxTouchPoints: 1 });
+  await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: first.x + first.width / 2, y: first.y + first.height / 2 }] });
+  await session.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: last.x + last.width - 4, y: last.y + last.height / 2 }] });
+  await expect(page.locator('.chip-drag-preview')).toHaveCount(1);
+  await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await expect(page.locator('.chip-drag-preview')).toHaveCount(0);
+  expect(await page.locator('input[name=tags]').evaluateAll(inputs => inputs.map(input => input.value)))
+    .toEqual(['tag1', 'tag2', 'tag3', 'tag4', 'tag5', 'tag6', 'tag7', 'tag0']);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});

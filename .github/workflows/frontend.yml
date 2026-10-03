@@ -1,11 +1,12 @@
 # 배포 자격 증명 없이 공개 가상 자료와 모의 API만 검증
 name: Frontend
 on:
+  # 고정 아키텍처 표본을 포함하므로 원고만 바뀐 경우도 브라우저 검사
   pull_request:
-    paths: ['src/main/resources/web/**', '.github/pages/**', 'package*.json', 'tsconfig.json', '.github/workflows/frontend.yml']
+    paths: ['src/main/resources/web/**', 'content/posts/**', '.github/pages/**', 'package*.json', 'tsconfig.json', '.github/workflows/frontend.yml']
   push:
-    branches: ['codex/**']
-    paths: ['src/main/resources/web/**', '.github/pages/**', 'package*.json', 'tsconfig.json', '.github/workflows/frontend.yml']
+    branches: [main, 'codex/**']
+    paths: ['src/main/resources/web/**', 'content/posts/**', '.github/pages/**', 'package*.json', 'tsconfig.json', '.github/workflows/frontend.yml']
 permissions:
   contents: read
 jobs:

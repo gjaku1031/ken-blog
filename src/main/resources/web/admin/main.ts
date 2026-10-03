@@ -260,6 +260,16 @@ let postPage = 0;
 let postFilter: PostFilter = 'all';
 
 /**
+ * 시리즈·프로젝트 목록의 종류 필터
+ */
+type SeriesFilter = 'all' | Series['kind'];
+
+/**
+ * 목록 재조회·수정 후에도 유지하는 종류 선택
+ */
+let seriesFilter: SeriesFilter = 'all';
+
+/**
  * 자동 갱신 중복 실행 차단
  */
 let refreshingStatus = false;
@@ -845,6 +855,8 @@ function createSeriesForm(data: AdminData, project: boolean, item?: Series) {
     onSaved: async created => {
       if (!context.current()) return;
       if (project && !item && context.ownsDialog()) selectedProject = created.id;
+      // 같은 생성 창의 결과에만 새 항목을 보여 줄 종류 필터 적용
+      if (!item && context.ownsDialog() && seriesFilter !== 'all') seriesFilter = created.kind;
       if (context.ownsDialog()) dialog.close();
       await saved('저장했습니다.', context);
     },
@@ -860,14 +872,25 @@ function createSeriesForm(data: AdminData, project: boolean, item?: Series) {
  * 시리즈·프로젝트 목록과 편집 동작 구성
  */
 function renderSeries(data: AdminData) {
+  // 전체 목록에서 종류별 건수와 현재 필터의 결과 구성
+  const filtered = data.series.filter(item => seriesFilter === 'all' || item.kind === seriesFilter);
+  for (const button of document.querySelectorAll<HTMLButtonElement>('[data-series-filter]')) {
+    const filter = button.dataset.seriesFilter as SeriesFilter;
+    const label = { all: '전체', TECH: '시리즈', PROJECT: '프로젝트' }[filter];
+    const count = filter === 'all' ? data.series.length : data.series.filter(item => item.kind === filter).length;
+    button.textContent = `${label} ${count}`;
+    button.setAttribute('aria-pressed', String(filter === seriesFilter));
+  }
+  // 현재 필터와 관계없이 두 종류 모두 생성 가능
   const add = el('button', 'button ghost', '+ 새 시리즈'); add.type = 'button';
   add.addEventListener('click', () => openDialog('새 시리즈', createSeriesForm(data, false)));
   const addProject = el('button', 'button ghost', '+ 새 프로젝트'); addProject.type = 'button';
   addProject.addEventListener('click', () => openDialog('새 프로젝트', createSeriesForm(data, true)));
   get('series-create').replaceChildren(add, addProject);
   const list = get('series-list'); list.replaceChildren();
-  if (!data.series.length) list.append(el('p', 'empty', '등록된 시리즈가 없습니다.'));
-  for (const item of data.series) {
+  if (!filtered.length) list.append(el('p', 'empty', seriesFilter === 'PROJECT' ? '등록된 프로젝트가 없습니다.' : seriesFilter === 'TECH' ? '등록된 시리즈가 없습니다.' : '등록된 시리즈·프로젝트가 없습니다.'));
+  // 필터 결과의 기존 정렬과 항목별 수정 동작 유지
+  for (const item of filtered) {
     const article = el('article', 'item series-row');
     const info = el('div'); info.append(itemHeading(item.name, item.kind === 'PROJECT' ? 'Projects' : 'Posts'));
     if (item.description) info.append(el('p', 'muted', item.description));
@@ -952,6 +975,14 @@ for (const button of document.querySelectorAll<HTMLButtonElement>('[data-post-fi
   button.addEventListener('click', () => {
     postFilter = button.dataset.postFilter as PostFilter; postPage = 0;
     if (latestData) renderPosts(latestData);
+  });
+}
+
+// 종류 선택은 목록에 즉시 반영하고 수정·재조회 이후에도 유지
+for (const button of document.querySelectorAll<HTMLButtonElement>('[data-series-filter]')) {
+  button.addEventListener('click', () => {
+    seriesFilter = button.dataset.seriesFilter as SeriesFilter;
+    if (latestData) renderSeries(latestData);
   });
 }
 
