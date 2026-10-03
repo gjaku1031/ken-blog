@@ -193,13 +193,15 @@ test('delayed search autofocus preserves an earlier keyboard destination', async
   await expect(destination).toBeFocused();
 });
 
-// 본문 검색 색인과 추가 표시가 카드 DOM을 필요한 결과로 제한하는지 검증
-test('search loads body text separately and renders results in batches', async ({ page }) => {
-  await mockApi(page); await page.goto('/ken-blog/search/?q=needle-');
-  await expect(page.locator('[data-search-card]')).toHaveCount(20);
-  await expect(page.locator('#search-filter')).toContainText('34편');
-  await page.getByRole('button', { name: '더 보기', exact: true }).click();
+// 목록과 본문 검색에서 조건에 맞는 전체 글을 추가 조작 없이 표시하는지 검증
+test('listing and search show all matching posts without a more button', async ({ page }) => {
+  await mockApi(page); await page.goto('/ken-blog/posts/');
+  await expect(page.locator('[data-search-card]:visible')).toHaveCount(34);
+  await expect(page.getByRole('button', { name: '더 보기', exact: true })).toHaveCount(0);
+  await page.goto('/ken-blog/search/?q=needle-');
   await expect(page.locator('[data-search-card]')).toHaveCount(34);
+  await expect(page.locator('#search-filter')).toContainText('34편');
+  await expect(page.getByRole('button', { name: '더 보기', exact: true })).toHaveCount(0);
   await page.locator('#site-search').fill('needle-34');
   await expect(page.locator('[data-search-card]')).toHaveCount(1);
   await expect(page.locator('.post-list')).toContainText('검사 글 34');
