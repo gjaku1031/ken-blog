@@ -2,9 +2,12 @@ package io.github.gjaku1031.kenblog
 
 import io.github.gjaku1031.kenblog.fixture.TestMysqlConfig
 import io.github.gjaku1031.kenblog.post.domain.InvalidPostRequestException
+import io.github.gjaku1031.kenblog.post.domain.PostEntity
 import io.github.gjaku1031.kenblog.post.domain.PostVisibility
 import io.github.gjaku1031.kenblog.post.dto.PostMetadataCreateRequest
 import io.github.gjaku1031.kenblog.post.service.PostService
+import jakarta.persistence.EntityManager
+import org.hibernate.Hibernate
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -21,6 +24,7 @@ import org.springframework.jdbc.datasource.init.ResourceDatabasePopulator
 import org.springframework.transaction.PlatformTransactionManager
 import org.springframework.transaction.support.TransactionTemplate
 import java.time.Instant
+import java.time.LocalDateTime
 import java.time.ZoneOffset
 
 /**
@@ -43,6 +47,11 @@ class PostPersistenceIntegrationTest(
      * 테스트 트랜잭션 관리자
      */
     @Autowired private val transactionManager: PlatformTransactionManager,
+
+    /**
+     * 현재 트랜잭션의 엔티티·프록시 조회기
+     */
+    @Autowired private val entityManager: EntityManager,
 ) {
     /**
      * 테스트 간 영향을 막기 위해 글 초기화
@@ -69,6 +78,40 @@ class PostPersistenceIntegrationTest(
         val storedInstant = byId.createdAt.toInstant(ZoneOffset.UTC)
         assertFalse(storedInstant.isBefore(beforeCreate))
         assertFalse(storedInstant.isAfter(afterCreate))
+    }
+
+    /**
+     * 지연 프록시의 프로퍼티 조회·도메인 변경과 DB 반영 검증
+     *
+     * 1. 기존 글의 프록시가 프로퍼티 조회 전까지 초기화되지 않음을 확인
+     * 2. 새 프록시에서 도메인 메서드를 호출하여 초기화·변경 수행
+     * 3. 커밋 뒤 제목·요약·수정 시각을 다시 조회
+     */
+    @Test
+    fun loadsAndUpdatesMetadataThroughLazyProxy() {
+        val created = service.createMetadata(PostMetadataCreateRequest("변경 전", "lazy-proxy"))
+        val updatedAt = LocalDateTime.of(2026, 10, 3, 12, 0)
+
+        TransactionTemplate(transactionManager).executeWithoutResult {
+            // 프록시의 getter가 실제 행 조회와 초기화를 수행하는지 확인
+            val reference = entityManager.getReference(PostEntity::class.java, created.id)
+            assertFalse(Hibernate.isInitialized(reference))
+            assertEquals("변경 전", reference.title)
+            assertTrue(Hibernate.isInitialized(reference))
+
+            // 이미 초기화된 인스턴스를 비우고 도메인 메서드의 프록시 호출 검증
+            entityManager.clear()
+            val freshReference = entityManager.getReference(PostEntity::class.java, created.id)
+            assertFalse(Hibernate.isInitialized(freshReference))
+            freshReference.replaceMetadata("변경 후", "프록시 변경", updatedAt)
+            assertTrue(Hibernate.isInitialized(freshReference))
+        }
+
+        // 트랜잭션 밖에서 재조회하여 변경 감지와 커밋 결과 확인
+        val reloaded = service.adminMetadata(created.id)
+        assertEquals("변경 후", reloaded.title)
+        assertEquals("프록시 변경", reloaded.summary)
+        assertEquals(updatedAt, reloaded.updatedAt)
     }
 
     /**

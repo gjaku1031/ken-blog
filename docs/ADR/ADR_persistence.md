@@ -41,6 +41,22 @@ MCP·RepositoryMarkdown 제거 후에도 옛 Post body/body_sha256 매핑과 Pos
 
 첨부 CRUD Repository와 엔티티 생성·상태 전환 메서드 제거. `AttachmentEntity`와 `PostAttachmentEntity`의 기존 열·상태 enum·FK는 읽기와 코드 생성의 원본으로 유지하며 운영 자료/스키마 삭제 없음. 글 연결 교체 시 필요한 ID별 READY 확인은 기존 `PostQueries.lockAttachmentStatus`의 단일 상태 열 `FOR UPDATE` 조회로 이전. 부모 글→정렬된 첨부 ID 순서·Spring 공유 트랜잭션·JPA 연결 쓰기를 유지하여 외부 DB 상태 변경과 검증/연결 사이의 경합을 방지. 생성 DDL은 변경 전과 바이트 동일. 격리 DB의 외부 상태 변경 잠금에 대기한 연결 요청이 변경 상태를 확인해 409를 반환하며 기존 연결 보존 확인. 잘못된 첨부를 포함한 글 생성은 같은 트랜잭션에서 롤백 확인.
 
+## JPA 엔티티의 프록시 상속 허용 — 2026-10-03
+
+엔티티의 클래스·접근자가 기본 `final`인 상태에서 `protected` 생성자·setter를 사용하는 불일치 확인. 일반 클래스의 내부 상태는 `private`로 제한하되, JPA 엔티티는 Hibernate 프록시를 위해 클래스와 접근자의 상속 가능 여부를 함께 보장하는 결정.
+
+기존 `kotlin("plugin.spring")`의 all-open 기능에 `jakarta.persistence.Entity`와 `jakarta.persistence.MappedSuperclass` 추가. 앱과 DDL 생성용 `jpaModel` 소스셋에 같은 설정 적용. 각 엔티티의 `protected constructor()`·`protected set`과 필드 매핑 유지. 복합 키 `@Embeddable`의 값 비교와 일반 클래스의 기본 `final`은 유지. 별도 no-arg 플러그인이나 경고 억제 추가 없음.
+
+코드 작성 기준은 [CODE.md](../convention/CODE.md)에 기록. 기존 `PostPersistenceIntegrationTest`에 초기화 전 프록시의 getter·도메인 메서드 호출과 커밋 후 재조회 검증 추가.
+
+- 변경 전 설정에서 프록시가 즉시 초기화되어 새 지연 조회 검사 실패 확인. 변경 후 같은 검사 통과.
+- 앱·`jpaModel` 각각 엔티티 11개와 인스턴스 메서드 153개의 `final` 해제, 보호된 setter 72개와 인자 없는 생성자 11개 유지 확인. 복합 키 두 타입은 `final` 유지.
+- 생성 DDL의 변경 전후 바이트 동일성 확인. 테이블·열·FK·인덱스 변경 없음.
+- 격리 MySQL을 사용하는 기존 HTTP·인증·영속성·분류·slug 검사와 로컬 저장소 검사 포함 총 40건 통과. 실패·오류·건너뜀 0.
+- 기존 컴파일 경고 34건 유지, 새 경고 0. Jackson 비권장 API 31건과 null 검사 3건은 이번 `ProtectedInFinal` 정리와 별도 범위.
+
+검증은 로컬 격리 빌드·DB 범위이며 운영 DB 변경이나 서버 재배포는 포함하지 않음.
+
 ## 검증과 적용 범위
 
 - 생성 로직을 `build.gradle.kts`로 옮긴 뒤 생성 DDL의 SHA-256이 이전 독립 생성기 결과와 동일함을 확인. 저장소에 별도 생성기 소스나 수동 DDL 없음.
