@@ -147,7 +147,10 @@ export function connectHeader(options: {
   if (route === "search" && search) {
     search.value = new URLSearchParams(location.search).get("q") ?? "";
     if (!search.value.trim()) location.replace(homePath);
-    else requestAnimationFrame(() => search.focus({ preventScroll: true }));
+    else requestAnimationFrame(() => {
+      // 첫 프레임을 기다리는 동안 사용자가 시작한 키보드·포인터 탐색의 포커스 보존
+      if (document.activeElement === document.body) search.focus({ preventScroll: true });
+    });
   }
   // 로그아웃 또는 세션 만료 시 헤더 인증 상태 갱신
   document.getElementById('logout')?.addEventListener('click', async () => {

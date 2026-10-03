@@ -164,10 +164,33 @@ test('removing a tag clears the capacity error', async ({ page }) => {
 // 키보드로 검색 입력에 진입했을 때 가시적 포커스 표시 검증
 test('search focus remains visible for keyboard users', async ({ page }) => {
   await mockApi(page); await page.goto('/ken-blog/search/?q=검사');
+  // 첫 프레임의 자동 포커스가 적용된 뒤 키보드 이동 시작
+  await expect(page.locator('#site-search')).toBeFocused();
   await page.keyboard.press('Tab');
   await page.keyboard.press('Shift+Tab');
   await expect(page.locator('#site-search')).toBeFocused();
   expect(await page.locator('.header-search-unit').evaluate(element => getComputedStyle(element).outlineStyle)).toBe('solid');
+});
+
+// 초기 렌더가 늦어져도 먼저 시작한 키보드 탐색의 포커스는 유지
+test('delayed search autofocus preserves an earlier keyboard destination', async ({ page }) => {
+  await page.addInitScript(() => {
+    const frame = window.requestAnimationFrame;
+    const pending = [];
+    // 초기 프레임을 잡아 두고 사용자 탐색 뒤 같은 콜백을 실행
+    window.requestAnimationFrame = callback => pending.push(callback);
+    window.releaseInitialFrames = () => {
+      window.requestAnimationFrame = frame;
+      for (const callback of pending.splice(0)) frame(callback);
+      return new Promise(resolve => frame(resolve));
+    };
+  });
+  await mockApi(page); await page.goto('/ken-blog/search/?q=검사');
+  await page.keyboard.press('Tab');
+  const destination = page.getByRole('link', { name: '본문으로 건너뛰기', exact: true });
+  await expect(destination).toBeFocused();
+  await page.evaluate(() => window.releaseInitialFrames());
+  await expect(destination).toBeFocused();
 });
 
 // 본문 검색 색인과 추가 표시가 카드 DOM을 필요한 결과로 제한하는지 검증
