@@ -37,4 +37,10 @@ ECR·ALB·VPN은 [AWS Architecture Icons](https://aws.amazon.com/architecture/ic
 
 Vowser 원고는 `%% layout: vowser-infrastructure` 주석을 사용한다. 기존 첨부 13의 전체 구성(17개 서비스·20개 연결)을 한 장에 유지하기 위해 `vowser-architecture-layout.json`에 영역·좌표·연결 경로·설명을 저장했다. 배포는 위, 실행은 가운데, 확장 제어는 아래에 둔다. 이름은 로고 오른쪽에 배치하고 실행·배포·제어·DNS 선을 구분한다.
 
-공용 렌더러가 Mermaid 원문을 렌더링한 뒤 검증된 SVG에 이 배치를 적용한다. 아이콘은 Mermaid 출력을 사용한다. 원문의 서비스·그룹 소속·연결 방향·그룹 단위 연결을 기준 배치와 대조하므로, 구성이 달라지면 예전 그림을 조용히 표시하지 않고 원문으로 전환한다. 구성 변경 시 원고와 JSON을 함께 수정해야 한다. 다른 Mermaid 뷰어에서도 원문의 구성·연결은 읽을 수 있지만 이 사이트의 좌표 배치는 적용되지 않는다. ken-blog 도식은 기존 자동 배치를 유지한다.
+공용 렌더러가 Mermaid 원문을 렌더링한 뒤 검증된 SVG에 이 배치를 적용한다. 아이콘은 Mermaid 출력을 사용한다. 원문의 서비스·그룹 소속·연결 방향·그룹 단위 연결을 기준 배치와 대조하므로, 구성이 달라지면 예전 그림을 조용히 표시하지 않고 원문으로 전환한다. 구성 변경 시 원고와 JSON을 함께 수정해야 한다. 다른 Mermaid 뷰어에서도 원문의 구성·연결은 읽을 수 있지만 이 사이트의 좌표 배치는 적용되지 않는다.
+
+## ken-blog 전체 배치
+
+ken-blog 원고의 `%% layout: ken-blog-infrastructure`는 `ken-blog-architecture-layout.json`을 선택한다. 13개 구성 요소와 14개 연결로 원고 작성, Pages 생성·배포, 독자·관리자 요청, API CI와 수동 운영 반영, 외부 MySQL과 읽기 전용 이미지 디스크를 표시한다. 기준은 `.github/workflows/pages.yml`, `.github/workflows/ci.yml`, `deploy/compose.production.yaml`, `deploy/Caddyfile`이다.
+
+Vowser와 같은 36px 아이콘, 오른쪽 이름·설명, 역할별 영역 색상을 사용한다. 위쪽 GitHub 구역에서 사이트·API 워크플로를 나누고, 아래쪽에는 OCI의 Compose와 디스크를 둔다. MySQL은 OCI Compose 밖의 외부 서비스로 표시한다. 실행·데이터 요청은 실선, 빌드·산출물 전달은 초록 점선, 검토 후 수동 운영 반영은 보라 점선이다. 범례의 항목과 위치도 각 배치 JSON에서 관리한다. 등록된 두 주석만 허용하며 중복·알 수 없는 배치 이름은 원문으로 전환한다.

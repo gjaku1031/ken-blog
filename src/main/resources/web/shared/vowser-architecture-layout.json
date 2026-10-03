@@ -1,6 +1,12 @@
 {
   "width": 1745,
   "height": 890,
+  "legend": [
+    { "kind": "runtime", "title": "실행·데이터", "x": 640, "y": 867 },
+    { "kind": "delivery", "title": "이미지 배포", "x": 825, "y": 867 },
+    { "kind": "control", "title": "확장 제어", "x": 1010, "y": 867 },
+    { "kind": "reference", "title": "DNS 조회", "x": 1195, "y": 867 }
+  ],
   "groups": {
     "pc": [10, 290, 245, 170, "사용자 PC"],
     "target": [10, 490, 245, 145, "외부 대상 웹사이트"],

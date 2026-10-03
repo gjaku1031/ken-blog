@@ -1,4 +1,20 @@
-import layout from "./vowser-architecture-layout.json" with { type: "json" };
+import vowserLayout from "./vowser-architecture-layout.json" with { type: "json" };
+import kenBlogLayout from "./ken-blog-architecture-layout.json" with { type: "json" };
+
+/**
+ * 게시글에서 선택할 수 있는 로컬 아키텍처 배치
+ */
+const REFERENCE_LAYOUTS = { "vowser-infrastructure": vowserLayout, "ken-blog-infrastructure": kenBlogLayout };
+
+/**
+ * 원고의 명시적 주석으로 기준 배치를 선택하며 누락·중복·미등록 이름은 거부함
+ */
+function referenceLayout(source: string) {
+  const markers = [...source.matchAll(/^\s*%% layout: ([\w-]+)\s*$/gm)];
+  const name = markers[0]?.[1];
+  if (markers.length !== 1 || !Object.hasOwn(REFERENCE_LAYOUTS, name)) throw new Error("등록되지 않은 기준 배치입니다.");
+  return REFERENCE_LAYOUTS[name as keyof typeof REFERENCE_LAYOUTS];
+}
 
 /**
  * SVG 도형을 생성하는 고정 네임스페이스
@@ -21,6 +37,7 @@ const EDGE_STYLES = {
  * 원고에서 연결을 추가하거나 삭제했을 때 고정 배치가 변경을 숨기지 않게 함
  */
 export function validateReferenceLayout(source: string): Map<string, string> {
+  const layout = referenceLayout(source);
   // 원본이 사용하는 단방향 서비스 연결만 읽고 나머지 문법은 명시적으로 거부함
   const services = [...source.matchAll(/^\s*service (\w+)\([^\n]*?\)\[([^\]\n]+)\](?: in (\w+))?\s*$/gm)];
   const groups = [...source.matchAll(/^\s*group (\w+)(?:\([^\n]*?\))?\[[^\]\n]+\](?: in (\w+))?\s*$/gm)];
@@ -28,7 +45,7 @@ export function validateReferenceLayout(source: string): Map<string, string> {
   const recognized = new Set([...services, ...groups, ...edges].map(match => match[0].trim()));
   if (source.split(/\r?\n/).map(line => line.trim()).some(line => line &&
     !/^(?:architecture-beta$|%%|align (?:row|column) \w+(?: \w+)*$)/.test(line) && !recognized.has(line)))
-    throw new Error("Vowser 기준 배치에서 지원하지 않는 구성 문법입니다.");
+    throw new Error("기준 배치에서 지원하지 않는 구성 문법입니다.");
 
   /**
    * 순서와 무관하게 항목·중복 개수까지 일치하는지 비교함
@@ -38,12 +55,12 @@ export function validateReferenceLayout(source: string): Map<string, string> {
     !same(groups.map(([, id, parent]) => `${id}:${parent ?? ""}`), Object.entries(layout.parents).map(([id, parent]) => `${id}:${parent}`)) ||
     !same(edges.map(([, from, groupFrom, to, groupTo]) => `${from}${groupFrom ?? ""}>${to}${groupTo ?? ""}`),
       layout.edges.map(edge => `${edge.source}>${edge.target}${edge.groupTarget ? "{group}" : ""}`)))
-    throw new Error("원고와 Vowser 원본 배치의 구성·연결이 다릅니다.");
+    throw new Error("원고와 기준 배치의 구성·연결이 다릅니다.");
   return new Map(services.map(([, id, title]) => [id, title]));
 }
 
 /**
- * 검증된 Mermaid SVG의 로고를 유지하면서 Vowser 원본의 단일 화면 배치를 적용함
+ * 검증된 Mermaid SVG의 로고를 유지하면서 프로젝트의 단일 화면 배치를 적용함
  *
  * 1. 원고와 기준 배치의 구성·연결 일치 검증
  * 2. 그룹 영역 및 서비스 좌표·이름 재배치
@@ -53,6 +70,7 @@ export function validateReferenceLayout(source: string): Map<string, string> {
 export function applyReferenceLayout(svg: string, source: string, theme: "light" | "dark"): string {
   // 검증된 입력을 별도 XML 문서에서 수정하며 화면 DOM에는 직접 삽입하지 않음
   const titles = validateReferenceLayout(source);
+  const layout = referenceLayout(source);
   const doc = new DOMParser().parseFromString(svg, "image/svg+xml");
   const root = doc.documentElement;
   const groups = doc.querySelector(".architecture-groups")!;
@@ -117,12 +135,11 @@ export function applyReferenceLayout(svg: string, source: string, theme: "light"
   }
   // 범례까지 포함한 단일 화면 경계 지정
   const legend = element("g", {}, root);
-  ["실행·데이터", "이미지 배포", "확장 제어", "DNS 조회"].forEach((title, index) => {
-    const palette = Object.values(EDGE_STYLES)[index];
+  layout.legend.forEach(({ title, kind, x, y }) => {
+    const palette = EDGE_STYLES[kind as keyof typeof EDGE_STYLES];
     const color = palette[theme === "dark" ? 1 : 0];
-    const x = 640 + index * 185;
-    element("path", { d: `M${x},867 h30`, style: `fill:none;stroke:${color};stroke-width:1.5px;stroke-dasharray:${palette[2] || "none"}` }, legend);
-    label(legend, title, x + 39, 871, 12, muted);
+    element("path", { d: `M${x},${y} h30`, style: `fill:none;stroke:${color};stroke-width:1.5px;stroke-dasharray:${palette[2] || "none"}` }, legend);
+    label(legend, title, x + 39, y + 4, 12, muted);
   });
   root.setAttribute("viewBox", `-16 -20 ${layout.width + 32} ${layout.height + 20}`);
   root.setAttribute("style", "max-width:100%;background:transparent");

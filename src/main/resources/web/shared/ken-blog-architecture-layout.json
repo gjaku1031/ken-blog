@@ -1,0 +1,131 @@
+{
+  "width": 1580,
+  "height": 1040,
+  "legend": [
+    {"kind": "runtime", "title": "화면·API 요청 / 데이터 읽기", "x": 300, "y": 1020},
+    {"kind": "delivery", "title": "빌드·산출물 전달", "x": 660, "y": 1020},
+    {"kind": "control", "title": "검토 후 수동 운영 반영", "x": 955, "y": 1020}
+  ],
+  "groups": {
+    "people": [10, 65, 235, 735, "작성 · 열람 · 관리"],
+    "github": [280, 30, 1270, 385, "GitHub · 소스와 독립된 두 빌드"],
+    "site": [650, 70, 825, 135, "Pages workflow · 사이트 자동 배포"],
+    "ci": [650, 255, 825, 140, "API workflow · 검사와 이미지 보관"],
+    "ops": [720, 450, 330, 100, "운영 반영 · 수동"],
+    "oci": [280, 600, 990, 400, "Oracle Cloud · ARM VM"],
+    "compose": [305, 635, 940, 190, "Docker Compose"],
+    "data": [1320, 600, 235, 225, "외부 MySQL 서비스"]
+  },
+  "services": {
+    "writer": [30, 115, "Markdown · 웹·백엔드 코드"],
+    "repo": [310, 115, "main · 원고와 소스 버전 관리"],
+    "sitebuild": [750, 115, "Node · TypeScript · Nunjucks"],
+    "pages": [1230, 115, "HTML · CSS · JS · 복사 이미지"],
+    "apibuild": [750, 330, "Gradle · 테스트 · Buildpacks"],
+    "archive": [1230, 330, "ARM64 JVM · tar.gz + SHA256"],
+    "operator": [750, 485, "이미지 검증 · load · Compose 교체"],
+    "reader": [30, 455, "배포된 글·이미지 읽기"],
+    "admin": [30, 680, "메타데이터 · 발행 상태 관리"],
+    "caddy": [340, 680, "HTTPS · 인증서 · API 프록시"],
+    "api": [865, 680, "Kotlin · Spring Boot · Java 25"],
+    "disk": [865, 900, "VM 영속 디스크 · 이미지 원본"],
+    "db": [1340, 680, "메타데이터 · 계정 · JDBC 세션"]
+  },
+  "members": {
+    "writer": "people",
+    "repo": "github",
+    "sitebuild": "site",
+    "pages": "site",
+    "apibuild": "ci",
+    "archive": "ci",
+    "operator": "ops",
+    "reader": "people",
+    "admin": "people",
+    "caddy": "compose",
+    "api": "compose",
+    "disk": "oci",
+    "db": "data"
+  },
+  "parents": {
+    "people": "",
+    "github": "",
+    "site": "github",
+    "ci": "github",
+    "ops": "",
+    "oci": "",
+    "compose": "oci",
+    "data": ""
+  },
+  "edges": [
+    {
+      "source": "writer", "target": "repo", "groupTarget": false,
+      "points": [[230, 139], [316, 139]],
+      "kind": "delivery", "label": "commit / push", "at": [272, 126]
+    },
+    {
+      "source": "repo", "target": "sitebuild", "groupTarget": false,
+      "points": [[535, 139], [756, 139]],
+      "kind": "delivery", "label": "웹·원고 변경", "at": [635, 126]
+    },
+    {
+      "source": "repo", "target": "apibuild", "groupTarget": false,
+      "points": [[334, 157], [334, 354], [756, 354]],
+      "kind": "delivery", "label": "백엔드 변경", "at": [500, 340]
+    },
+    {
+      "source": "sitebuild", "target": "pages", "groupTarget": false,
+      "points": [[978, 139], [1236, 139]],
+      "kind": "delivery", "label": "정적 산출물 배포", "at": [1118, 126]
+    },
+    {
+      "source": "sitebuild", "target": "caddy", "groupTarget": false,
+      "points": [[992, 153], [1080, 153], [1080, 590], [580, 590], [580, 660], [364, 660], [364, 686]],
+      "kind": "runtime", "label": "공개 snapshot · 이미지 조회", "at": [810, 578]
+    },
+    {
+      "source": "apibuild", "target": "archive", "groupTarget": false,
+      "points": [[980, 354], [1236, 354]],
+      "kind": "delivery", "label": "검사 통과 · 이미지 보관", "at": [1110, 340]
+    },
+    {
+      "source": "archive", "target": "operator", "groupTarget": false,
+      "points": [[1254, 372], [1254, 509], [1030, 509]],
+      "kind": "control", "label": "아카이브 확인", "at": [1160, 496]
+    },
+    {
+      "source": "operator", "target": "api", "groupTarget": false,
+      "points": [[774, 527], [774, 615], [889, 615], [889, 686]],
+      "kind": "control", "label": "API 컨테이너 교체", "at": [932, 605]
+    },
+    {
+      "source": "reader", "target": "pages", "groupTarget": false,
+      "points": [[54, 461], [54, 435], [1490, 435], [1490, 139], [1445, 139]],
+      "kind": "runtime", "label": "공개 글 · 정적 이미지", "at": [1410, 423]
+    },
+    {
+      "source": "admin", "target": "pages", "groupTarget": false,
+      "points": [[54, 686], [54, 570], [1530, 570], [1530, 157], [1445, 157]],
+      "kind": "runtime", "label": "관리 화면 로드", "at": [1410, 558]
+    },
+    {
+      "source": "admin", "target": "caddy", "groupTarget": false,
+      "points": [[231, 704], [346, 704]],
+      "kind": "runtime", "label": "인증 · 관리 API", "at": [287, 690]
+    },
+    {
+      "source": "caddy", "target": "api", "groupTarget": false,
+      "points": [[570, 704], [871, 704]],
+      "kind": "runtime", "label": "내부 HTTP · api:8080", "at": [720, 691]
+    },
+    {
+      "source": "api", "target": "db", "groupTarget": false,
+      "points": [[1120, 704], [1346, 704]],
+      "kind": "runtime", "label": "JPA · jOOQ · JDBC 세션", "at": [1240, 691]
+    },
+    {
+      "source": "api", "target": "disk", "groupTarget": false,
+      "points": [[889, 722], [889, 906]],
+      "kind": "runtime", "label": "read-only 마운트", "at": [986, 864]
+    }
+  ]
+}

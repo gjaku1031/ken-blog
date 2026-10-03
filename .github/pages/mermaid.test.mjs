@@ -67,6 +67,23 @@ test("Vowser keeps the full original architecture and rejects stale reference ge
   assert.throws(() => validateReferenceLayout(source.replace("-\u003e L:ecr", "-\u003e L:db")));
 });
 
+/**
+ * 사이트 자동 배포와 API 수동 배포·데이터 접근을 구분하고 잘못된 배치 선택을 거부함
+ */
+test("ken-blog includes both deployment paths without mixing reference profiles", async () => {
+  const body = await readFile(new URL("../../content/posts/doc-340352c9-5fde-4bae-bc0b-4ecd744719a8.md", import.meta.url), "utf8");
+  const source = body.match(/```mermaid\n(architecture-beta[\s\S]*?)\n```/)[1];
+  assert.deepEqual([...validateReferenceLayout(source).keys()].sort(), [
+    "writer", "repo", "sitebuild", "pages", "apibuild", "archive", "operator", "reader", "admin", "caddy", "api", "disk", "db",
+  ].sort());
+  assert.throws(() => validateReferenceLayout(source.replace("  operator:B -[Manual deploy]-> T:api", "  apibuild:B -[Auto deploy]-> T:api")));
+  assert.throws(() => validateReferenceLayout(source.replace("MySQL] in data", "MySQL] in compose")));
+  assert.throws(() => validateReferenceLayout(source.replace("  api:B -[Read only]-> T:disk", "")));
+  assert.throws(() => validateReferenceLayout(source.replace("ken-blog-infrastructure", "vowser-infrastructure")));
+  assert.throws(() => validateReferenceLayout(source.replace("ken-blog-infrastructure", "unknown")));
+  assert.throws(() => validateReferenceLayout(source + "\n  %% layout: vowser-infrastructure"));
+});
+
 test("ERD role colors allow hex fills, borders and text with a bounded line width", () => {
   assert.equal(mermaidSourceError(diagram +
     "  classDef content fill:#eff6ff,stroke:#2563eb,color:#172554,stroke-width:2px;\n" +

@@ -293,7 +293,7 @@ async function drainQueue(): Promise<void> {
         const result = await mermaid.render(id, mermaidThemeSource(job.source, job.theme), container);
         if (!job.signal.aborted) {
           let svg = sanitizeMermaidSvg(result.svg);
-          if (architecture && /^\s*%% layout: vowser-infrastructure\s*$/m.test(job.source)) {
+          if (architecture && /^\s*%% layout: /m.test(job.source)) {
             // 특정 원본 도식의 배치만 적용하며 구성·연결이 바뀌면 검증에서 중단함
             const { applyReferenceLayout } = await import("./mermaid-reference-layout.ts");
             svg = sanitizeMermaidSvg(applyReferenceLayout(svg, job.source, job.theme));
