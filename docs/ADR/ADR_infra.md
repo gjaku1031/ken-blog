@@ -315,4 +315,6 @@ Pages 의존성 설치·빌드 job은 contents:read만 가진다. 같은 workflo
 
 운영 JDBC 예시는 VERIFY_IDENTITY를 사용하며 사설 CA용 읽기 전용 PKCS12 마운트를 제공한다. 잘못된 CA·호스트명·TLS 없는 서버 거부를 일회용 MySQL로 검사한다. 운영 서버의 CA/SAN·연결 가능성은 별도 확인한다. API와 Caddy에는 같은 32자 이상 프록시 키를 주입하고 Caddy가 전달 헤더를 덮어쓴다. API의 loopback 포트와 이미지의 읽기 전용 마운트를 유지한다.
 
-운영 DDL 자동 갱신·일반 인증 bootstrap을 제거한 전환 순서는 [REVIEW-ROLLOUT.md](../../deploy/REVIEW-ROLLOUT.md) 참조. 이번 로컬 구현에서 운영 DB·Pages·API·자격 증명은 변경하지 않았다. 과거 운영 전환 완료 기록을 이번 변경의 배포 완료로 해석하지 않는다.
+운영 배포 후 시작 로그에서 Hibernate가 JDBC URL의 truststore 비밀번호를 출력하는 것을 확인했다. PKCS12 비밀번호는 `MYSQL_TRUSTSTORE_PASSWORD`에서 Hikari의 `trustCertificateKeyStorePassword` 속성으로 전달하고 URL에서 제거한다. Hibernate 연결 풀의 전체 JDBC URL 정보 로그도 WARN 수준으로 제한한다. 실제 JAR의 사설 CA TLS 기동 검사에 별도 비밀번호 바인딩 성공과 로그의 JDBC URL·비밀번호 부재를 함께 추가한다. 운영 DB 비밀번호와 프록시 키는 이 출력에 포함되지 않았다.
+
+운영 DDL 자동 갱신·일반 인증 bootstrap을 제거한 전환 순서는 [REVIEW-ROLLOUT.md](../../deploy/REVIEW-ROLLOUT.md) 참조. 최초 로컬 검증과 후속 운영 적용은 분리하여 진행했으며 실제 DB·API·Pages 전환과 인증서 검증 결과는 [리뷰 운영 배포 기록](../audit/review-deployment-2026-10-03.md)에 남겼다.

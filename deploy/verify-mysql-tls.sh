@@ -3,8 +3,14 @@
 set -euo pipefail
 ken_tls_dir=$(mktemp -d)
 ken_tls_name="ken-blog-tls-$$"
+# 검사에서 시작한 실제 앱 프로세스
+ken_tls_app_pid=
 # 성공·실패 모두 검증 컨테이너와 비운영 인증서 해제
 cleanup() {
+  if [ -n "$ken_tls_app_pid" ]; then
+    kill "$ken_tls_app_pid" >/dev/null 2>&1 || true
+    wait "$ken_tls_app_pid" >/dev/null 2>&1 || true
+  fi
   docker rm -f -v "$ken_tls_name" "${ken_tls_name}-plain" >/dev/null 2>&1 || true
   rm -rf "$ken_tls_dir"
 }
@@ -37,6 +43,32 @@ ken_tls_options="sslMode=VERIFY_IDENTITY&connectTimeout=3000&socketTimeout=3000&
 java --class-path "$ken_tls_driver" deploy/tests/MysqlTlsProbe.java "jdbc:mysql://127.0.0.1:$ken_tls_port/tls_test?$ken_tls_options" true
 java --class-path "$ken_tls_driver" deploy/tests/MysqlTlsProbe.java "jdbc:mysql://localhost:$ken_tls_port/tls_test?$ken_tls_options" false
 java --class-path "$ken_tls_driver" deploy/tests/MysqlTlsProbe.java "jdbc:mysql://127.0.0.1:$ken_tls_port/tls_test?${ken_tls_options/ca.p12/wrong.p12}" false
+# 실제 앱의 Hikari 속성 바인딩·URL 밖 비밀번호·기동 로그 경계 검사
+cat build/generated/jooq/schema.sql deploy/sql/bootstrap-auth.sql > "$ken_tls_dir/schema.sql"
+printf '\nINSERT INTO content_state (id) VALUES (1);\n' >> "$ken_tls_dir/schema.sql"
+docker exec -i "$ken_tls_name" sh -c 'MYSQL_PWD="$MYSQL_PASSWORD" exec mysql -u"$MYSQL_USER" "$MYSQL_DATABASE"' < "$ken_tls_dir/schema.sql"
+# 검사 앱의 임시 loopback 포트
+ken_tls_api_port=$(python3 -c 'import socket; s=socket.socket(); s.bind(("127.0.0.1", 0)); print(s.getsockname()[1]); s.close()')
+DB_URL="jdbc:mysql://127.0.0.1:$ken_tls_port/tls_test?${ken_tls_options/&trustCertificateKeyStorePassword=test-store-only/}" \
+  DB_USERNAME=tls_probe DB_PASSWORD=ci_tls_only MYSQL_TRUSTSTORE_PASSWORD=test-store-only \
+  APP_JPA_DDL_AUTO=validate APP_SQL_INIT_MODE=never AUTH_PROXY_KEY= ADMIN_USERNAME=tls_admin \
+  APP_CORS_ALLOWED_ORIGINS= APP_AUTH_CORS_ALLOWED_ORIGINS= APP_ASSETS_DIRECTORY= \
+  java -jar build/libs/ken-blog-api.jar --server.port="$ken_tls_api_port" > "$ken_tls_dir/app.log" 2>&1 &
+ken_tls_app_pid=$!
+for ken_tls_attempt in $(seq 1 90); do
+  if curl -fsS --max-time 2 "http://127.0.0.1:$ken_tls_api_port/actuator/health" 2>/dev/null | python3 -c 'import json,sys; assert json.load(sys.stdin)["status"] == "UP"' 2>/dev/null; then break; fi
+  if ! kill -0 "$ken_tls_app_pid" 2>/dev/null; then echo 'TLS application startup failed' >&2; exit 1; fi
+  sleep 1
+done
+curl -fsS --max-time 3 "http://127.0.0.1:$ken_tls_api_port/actuator/health" | python3 -c 'import json,sys; assert json.load(sys.stdin)["status"] == "UP"'
+if rg -q 'test-store-only|ci_tls_only|Database JDBC URL' "$ken_tls_dir/app.log"; then
+  echo 'JDBC startup log disclosed connection information' >&2
+  exit 1
+fi
+kill "$ken_tls_app_pid"
+wait "$ken_tls_app_pid" || true
+ken_tls_app_pid=
+printf 'Spring TLS: separate truststore password accepted; startup log contains no JDBC URL or passwords.\n'
 # TLS가 없는 별도 서버도 거부
 docker run -d --name "${ken_tls_name}-plain" -p 127.0.0.1::3306 \
   -e MYSQL_ROOT_PASSWORD=ci_tls_root_only -e MYSQL_DATABASE=tls_test -e MYSQL_USER=tls_probe -e MYSQL_PASSWORD=ci_tls_only \

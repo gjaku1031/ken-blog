@@ -16,6 +16,10 @@ spring:
     url: ${DB_URL}
     username: ${DB_USERNAME}
     password: ${DB_PASSWORD}
+    # 사설 CA 저장소 비밀번호를 로그에 포함될 수 있는 JDBC URL과 분리
+    hikari:
+      data-source-properties:
+        trustCertificateKeyStorePassword: ${MYSQL_TRUSTSTORE_PASSWORD:}
   # JPA 초기화 뒤 보조 테이블·상태 행 초기화
   sql:
     init:
@@ -26,6 +30,10 @@ spring:
     defer-datasource-initialization: true
     hibernate:
       ddl-auto: ${APP_JPA_DDL_AUTO:update}
+# 시작 시 Hibernate의 전체 JDBC URL 출력 방지, 경고·오류는 유지
+logging:
+  level:
+    org.hibernate.orm.connections.pooling: WARN
 # 수신 포트·전달 헤더·세션 쿠키 정책
 server:
   port: 8080
