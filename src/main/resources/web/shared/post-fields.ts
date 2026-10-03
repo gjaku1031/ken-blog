@@ -142,7 +142,7 @@ export function tagPicker(parent: HTMLElement, tags: Tag[], initial: string[] = 
     chips.replaceChildren(); values.replaceChildren();
     for (const name of selected) {
       const chip = el('span', 'stack-chip', `#${name}`); const remove = el('button', 'chip-remove', '×'); remove.type = 'button'; remove.setAttribute('aria-label', `${name} 태그 제거`);
-      remove.addEventListener('click', () => { selected = selected.filter(tag => tag !== name); render(); input.focus(); popup.refresh(); });
+      remove.addEventListener('click', () => { selected = selected.filter(tag => tag !== name); input.setCustomValidity(''); render(); input.focus(); popup.refresh(); });
       chip.append(remove); chips.append(chip);
       const hidden = el('input'); hidden.type = 'hidden'; hidden.name = 'tags'; hidden.value = name; values.append(hidden);
     }

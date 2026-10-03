@@ -6,6 +6,7 @@ import io.github.gjaku1031.kenblog.fixture.TestMysqlConfig
 import io.github.gjaku1031.kenblog.post.dto.PostMetadataCreateRequest
 import io.github.gjaku1031.kenblog.post.service.PostService
 import io.github.gjaku1031.kenblog.post.service.PublicPostService
+import io.github.gjaku1031.kenblog.pages.PagesSnapshotService
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.assertThrows
@@ -36,6 +37,11 @@ class CategoryHierarchyIntegrationTest(
      * 공개 글 메타데이터 서비스
      */
     @Autowired private val publicPosts: PublicPostService,
+
+    /**
+     * 공개 스냅샷과 분류 revision 조회
+     */
+    @Autowired private val pages: PagesSnapshotService,
 
     /**
      * JDBC 쿼리 실행기
@@ -99,5 +105,23 @@ class CategoryHierarchyIntegrationTest(
         val post = posts.createMetadata(PostMetadataCreateRequest("대분류 글", categoryId = root.id))
         posts.setPublished(post.id, true)
         assertNull(publicPosts.detailMetadata(post.slug).series)
+    }
+
+    /**
+     * 공개 분류와 부모의 표시 이름·순서 보존, 빈 분류 제외와 순서 변경 revision 검증
+     */
+    @Test
+    fun snapshotIncludesOnlyPublicCategoryPathsAndTracksParentOrder() {
+        val child = categories.create("Z First/Child Name")
+        categories.create("Private Empty")
+        val post = posts.createMetadata(PostMetadataCreateRequest("분류 스냅샷", categoryId = child.id))
+        posts.setPublished(post.id, true)
+        val snapshot = pages.snapshot()
+        val visible = snapshot["categories"] as List<*>
+        assertEquals(listOf("Z First", "Child Name"), visible.map { (it as Map<*, *>)["name"] })
+        assertTrue(visible.all { (it as Map<*, *>).containsKey("sortOrder") })
+        val parent = categories.tree().single { it.path == "z-first" }
+        categories.setOrder(parent.id, 99)
+        assertNotEquals(snapshot["revision"], pages.snapshot()["revision"])
     }
 }

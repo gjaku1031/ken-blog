@@ -36,35 +36,11 @@ for (const avatar of document.querySelectorAll<HTMLButtonElement>("button.about-
 document.addEventListener("click", (event) => {
   if (event.button !== 0 || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
   if (!(event.target instanceof Element) || event.target.closest("a,button,input,textarea,select")) return;
-  const card = event.target.closest<HTMLElement>(".project-card,.course-card");
+  const card = event.target.closest<HTMLElement>(".project-card");
   if (!card || !window.getSelection()?.isCollapsed) return;
   const link = card.querySelector<HTMLAnchorElement>("h2 a,h3 a");
   if (link) location.assign(link.href);
 });
-
-/**
- * 기존 slug 쿼리 주소를 생성된 정적 경로로 옮김
- */
-const slug = query.get("slug");
-
-/**
- * 공개 주소 식별자 형식 검사
- */
-const validSlug = (value: string | null): value is string => !!value && value.length <= 160 && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value);
-if (validSlug(slug)) {
-  let target = "";
-  if (route === "post") target = `post/${slug}/`;
-  if (route === "project") target = `project/${slug}/${validSlug(query.get("doc")) ? `docs/${query.get("doc")}/` : ""}`;
-  if (route === "course") target = `course/${slug}/${validSlug(query.get("chapter")) ? `chapters/${query.get("chapter")}/` : ""}`;
-  if (target) {
-    // 배포된 경로 목록에 없는 slug로 이동해 사라진 문서를 추측하지 않음
-    void fetch("/ken-blog/routes.json", { credentials: "omit" }).then(async (response) => {
-      if (!response.ok) return;
-      const routes: unknown = await response.json();
-      if (Array.isArray(routes) && routes.includes(target)) location.replace(`/ken-blog/${target}`);
-    }).catch(() => undefined);
-  }
-}
 
 // 현재 목록의 카테고리·태그·검색 조건만 DOM에서 좁힘
 if (search && route === "search") search.value = query.get("q") ?? "";
@@ -87,7 +63,7 @@ function filterCards(): void {
   for (const card of cards) {
     const path = (card.dataset.category ?? "").toLocaleLowerCase();
     const match = (!term || (card.dataset.searchText ?? "").toLocaleLowerCase().includes(term)) &&
-      (!tag || (card.dataset.tags ?? "").toLocaleLowerCase().split("|").includes(tag)) &&
+      (!tag || (JSON.parse(card.dataset.tags ?? "[]") as string[]).some(value => value.toLocaleLowerCase() === tag)) &&
       (!category || (path === category || path.startsWith(category + "/")));
     card.hidden = !match; if (match) visible++;
   }

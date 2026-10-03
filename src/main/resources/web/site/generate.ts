@@ -3,6 +3,31 @@ import { dirname, join } from "node:path";
 import nunjucks from "nunjucks";
 
 /**
+ * 공개 글에서 사용하는 분류의 표시 이름과 저장 순서
+ */
+type PublicCategory = {
+  /**
+   * 분류 ID
+   */
+  id: number;
+
+  /**
+   * 정규화 경로
+   */
+  path: string;
+
+  /**
+   * 표시 이름
+   */
+  name: string;
+
+  /**
+   * 형제 분류 내 순서
+   */
+  sortOrder: number;
+};
+
+/**
  * 문서 이동 정보
  */
 interface Navigation {
@@ -102,12 +127,7 @@ interface Post {
   /**
    * 분류
    */
-  category: {
-    /**
-     * 분류 경로
-     */
-    path: string
-  } | null;
+  category: PublicCategory | null;
 
   /**
    * 시리즈
@@ -242,6 +262,11 @@ interface Input {
      * 스냅샷 계약 버전
      */
     version: number;
+
+    /**
+     * 공개 분류와 부모, 구 API에서는 생략
+     */
+    categories?: PublicCategory[];
 
     /**
      * 게시글 목록
@@ -379,75 +404,58 @@ function period(project: Series): string {
 /**
  * 분류 경로를 누적 경로·표시 이름으로 분리
  */
-function categoryTrail(path: string) {
-  const parts = path.split('/').filter(Boolean);
-  return parts.map((name, index) => ({ name, path: parts.slice(0, index + 1).join('/') }));
+function categoryTrail(category: Post['category'], categories: PublicCategory[] = []) {
+  const parts = category?.path.split('/').filter(Boolean) ?? [];
+  return parts.map((name, index) => {
+    const path = parts.slice(0, index + 1).join('/');
+    const stored = categories.find(item => item.path === path) ?? (category?.path === path ? category : null);
+    return { name: stored?.name ?? name, path, id: stored?.id ?? 0, sortOrder: stored?.sortOrder ?? 0 };
+  });
 }
 
 /**
  * 공개 글 수를 집계한 대분류·소분류 탐색 트리 생성
  */
-function categoryTree(posts: Post[]) {
-  const roots = new Map<string, {
+function categoryTree(posts: Post[], categories: PublicCategory[]) {
+  /**
+   * 공개 사용 수와 하위 분류를 가진 탐색 항목
+   */
+  type CategoryNode = ReturnType<typeof categoryTrail>[number] & {
     /**
-     * 이름
-     */
-    name: string;
-
-    /**
-     * 분류 경로
-     */
-    path: string;
-
-    /**
-     * 분류의 직접 글과 하위 글 수 합산
+     * 공개 글 수
      */
     count: number;
 
     /**
-     * 하위 분류 목록
+     * 하위 분류
      */
-    children: {
-      /**
-       * 이름
-       */
-      name: string;
-
-      /**
-       * 분류 경로
-       */
-      path: string;
-
-      /**
-       * 분류의 직접 글과 하위 글 수 합산
-       */
-      count: number
-    }[]
-  }>();
+    children: CategoryNode[];
+  };
+  const roots = new Map<string, CategoryNode>();
   for (const post of posts) {
-    const [parent, child] = categoryTrail(post.category?.path ?? '');
+    const [parent, child] = categoryTrail(post.category, categories);
     if (!parent) continue;
     let root = roots.get(parent.path);
     if (!root) { root = { ...parent, count: 0, children: [] }; roots.set(parent.path, root); }
     root.count++;
     if (child) {
       let item = root.children.find(item => item.path === child.path);
-      if (!item) { item = { ...child, count: 0 }; root.children.push(item); }
+      if (!item) { item = { ...child, count: 0, children: [] }; root.children.push(item); }
       item.count++;
     }
   }
-  const sorted = [...roots.values()].sort((a, b) => a.name.localeCompare(b.name, 'ko'));
-  for (const root of sorted) root.children.sort((a, b) => a.name.localeCompare(b.name, 'ko'));
+  const sorted = [...roots.values()].sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id);
+  for (const root of sorted) root.children.sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id);
   return sorted;
 }
 
 /**
  * 공개 글을 목록 카드 데이터로 변환
  */
-function card(post: Post) {
+function card(post: Post, categories: PublicCategory[]) {
   const categoryPath = post.category?.path ?? "", context = post.series && post.series.slug !== categoryPath ? post.series.name : "";
   const tags = post.section === "PROJECT" ? [] : post.tags;
-  return { ...post, tags, href: postPath(post), categoryPath, categoryTrail: categoryTrail(categoryPath), context, tagText: tags.join("|"), label: label(post.section),
+  return { ...post, tags, href: postPath(post), categoryPath, categoryTrail: categoryTrail(post.category, categories), context, tagText: JSON.stringify(tags), label: label(post.section),
     searchText: `${post.title} ${post.summary} ${categoryPath} ${tags.join(" ")} ${context} ${post.searchBody ?? ""}`,
     displayDate: date(post.publishedDate) };
 }
@@ -519,10 +527,10 @@ export async function generateSite(payload: Input, output: string) {
    * 글 목록 페이지 생성
    */
   async function listing(path: string, section: string, title: string, rows: Post[]) {
-    const cards = rows.map(card);
+    const cards = rows.map(post => card(post, snapshot.categories ?? []));
     await page(path, "listing", section, title, `${title} 공개 글 목록`, {
       heading: section === "Search" ? "최근 글" : title, cards,
-      categories: categoryTree(rows), tags: unique(cards.flatMap(c => c.tags)),
+      categories: categoryTree(rows, snapshot.categories ?? []), tags: unique(cards.flatMap(c => c.tags)),
       sidebarSeries: snapshot.series.filter(s => s.kind === "TECH")
         .sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id)
         .map(s => ({ name: s.name, count: s.postCount, href: postPath(s.cover) })),
@@ -574,7 +582,7 @@ export async function generateSite(payload: Input, output: string) {
     const project = projects.find(p => p.id === navigation?.id && p.slug === navigation?.slug) ?? null;
     const relatedProject = projects.find(p => p.id === post.relatedSeries?.id) ?? null;
     await page(`post/${slug(post.slug)}`, "post", post.section === "PROJECT" ? "Project" : "Post", post.title, post.summary, {
-      post: { ...post, categoryTrail: categoryTrail(post.category?.path ?? ""), displayDate: date(post.publishedDate), relatedProject }, project, html: post.rendered.html,
+      post: { ...post, categoryTrail: categoryTrail(post.category, snapshot.categories ?? []), displayDate: date(post.publishedDate), relatedProject }, project, html: post.rendered.html,
       toc: post.rendered.headings.filter(h => h.depth === 2 || h.depth === 3), backlinks: backlinks.get(postPath(post)) ?? [],
       series, previousPost, nextPost, seriesName: navigation?.name ?? "", seriesPosition: navigation?.position ?? 0,
     });
@@ -597,7 +605,12 @@ export async function generateSite(payload: Input, output: string) {
   }
   for (const [path, target] of aliases) {
     if (!/^\/ken-blog\/(?:posts|projects|post\/[a-z0-9-]+)\/$/.test(target)) throw new Error("이동 대상 경로 오류");
-    await write(join(path, "index.html"), engine.render("redirect.njk", { target, canonical: ORIGIN + target, preserveQuery: path === "" }));
+    // 쿼리 주소에는 공개 생성 대상만 허용, 알 수 없는 slug는 목록으로 이동
+    const queryTargets = path === 'post'
+      ? Object.fromEntries(allPosts.map(post => [post.slug, postPath(post)]))
+      : Object.fromEntries([...aliases].filter(([alias]) => alias.startsWith(`${path}/`)).map(([alias, href]) => [alias.slice(path.length + 1), href]));
+    await write(join(path, "index.html"), engine.render("redirect.njk", { target, canonical: ORIGIN + target,
+      preserveQuery: path === "", queryKind: path, queryTargets: JSON.stringify(queryTargets) }));
   }
   await page("404.html", "missing", "", "페이지 없음", "페이지를 찾을 수 없습니다.", {}, false);
   await write("robots.txt", `User-agent: *\nAllow: /ken-blog/\nSitemap: ${ORIGIN}${route("sitemap.xml")}\n`);

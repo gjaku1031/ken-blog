@@ -137,7 +137,7 @@ export function normalizeSnapshot(raw, fixture = false) {
       "public post");
     const category = row.category == null ? null : { id: integer(row.category.id, "category id", 1),
       path: string(row.category.path, "category path"), name: string(row.category.name, "category name"),
-      depth: integer(row.category.depth, "category depth", 1) };
+      depth: integer(row.category.depth, "category depth", 1), sortOrder: signedInteger(row.category.sortOrder ?? 0, "category order") };
     const group = row.series == null ? null : { ...ref(row.series), items: array(row.series.items, "series items").map(navigation),
       position: integer(row.series.position, "position", 1) };
     return { id: integer(row.id, "post id", 1), slug: slug(row.slug, "post slug"), title: string(row.title, "post title"),
@@ -156,7 +156,15 @@ export function normalizeSnapshot(raw, fixture = false) {
       postCount: integer(row.postCount, "post count", 1), stackBadges: array(row.stackBadges, "stack badges").map(b => ({
         id: integer(b.id, "badge id", 1), name: string(b.name, "badge name"), imageUrl: string(b.imageUrl, "badge image") })) };
   });
-  return { version: 2, revision: raw.revision, posts, series };
+  // 구 API의 v2 응답은 기존 경로 표시로 호환, 새 응답은 공개 글의 부모까지 보존
+  const publicPaths = new Set(posts.flatMap(post => post.category ? [post.category.path, post.category.path.split('/')[0]] : []));
+  const categories = array(raw.categories ?? [], "categories").map(row => {
+    requireValue(publicPaths.has(row.path), "public category");
+    return { id: integer(row.id, "category id", 1), path: string(row.path, "category path"),
+      name: string(row.name, "category name"), depth: integer(row.depth, "category depth", 1),
+      sortOrder: signedInteger(row.sortOrder, "category order") };
+  });
+  return { version: 2, revision: raw.revision, posts, series, categories };
 }
 
 /**

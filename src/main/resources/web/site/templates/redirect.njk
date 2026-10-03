@@ -1,6 +1,14 @@
-{# 검증된 이전 주소의 현재 경로 이동 #}<!doctype html><html lang="ko"><head><meta charset="utf-8">{% include "theme-init.njk" %}{% if preserveQuery %}<noscript><meta http-equiv="refresh" content="0;url={{ target }}"></noscript>{% else %}<meta http-equiv="refresh" content="0;url={{ target }}">{% endif %}<link rel="canonical" href="{{ canonical }}"><title>페이지 이동</title></head><body><a id="redirect-target" href="{{ target }}">글로 이동</a>{% if preserveQuery %}<script>
-const destination = new URL(document.getElementById('redirect-target').href);
-destination.search = location.search;
+{# 공개 생성 대상에 한해 이전 경로·slug 쿼리 주소 이동 #}
+<!doctype html><html lang="ko"><head><meta charset="utf-8">{% include "theme-init.njk" %}<noscript><meta http-equiv="refresh" content="0;url={{ target }}"></noscript><link rel="canonical" href="{{ canonical }}"><title>페이지 이동</title></head><body><a id="redirect-target" href="{{ target }}" data-kind="{{ queryKind }}" data-targets="{{ queryTargets }}">글로 이동</a><script>
+// 빌드가 확정한 공개 경로만 조회, 외부 주소나 비공개 slug 추측 제외
+const link = document.getElementById('redirect-target');
+const query = new URLSearchParams(location.search);
+const targets = JSON.parse(link.dataset.targets);
+let key = query.get('slug') || '';
+if (link.dataset.kind === 'project' && query.has('doc')) key += '/docs/' + query.get('doc');
+if (link.dataset.kind === 'course' && query.has('chapter')) key += '/chapters/' + query.get('chapter');
+const destination = new URL(Object.hasOwn(targets, key) ? targets[key] : link.href, location.href);
+{% if preserveQuery %}destination.search = location.search;{% endif %}
 destination.hash = location.hash;
 location.replace(destination.href);
-</script>{% endif %}</body></html>
+</script></body></html>

@@ -46,7 +46,7 @@
     border-color .35s ease, background-color .35s ease; }
 .header-search-unit.is-open{ flex-basis: 320px; width: 320px; border-color: var(--line2); background: var(--bg); }
 .header-search-unit:not(.is-open):hover{ background: var(--soft); }
-.header-search-unit[data-keyboard-focus="true"]:focus-within{ outline: 2px solid var(--accent); outline-offset: 2px; }
+.header-search-unit:has(input:focus-visible){ outline: 2px solid var(--accent); outline-offset: 2px; }
 .header-search-toggle{ display: grid; place-items: center; flex: 0 0 38px; width: 38px; height: 38px; padding: 0;
   border: 0; border-radius: 50%; background: transparent; color: var(--text2); }
 .header-search{ display: flex; align-items: center; flex: 1 1 auto; min-width: 0; width: 0; height: 100%; padding: 0 6px 0 0;

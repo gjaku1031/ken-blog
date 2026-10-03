@@ -378,7 +378,7 @@ button:disabled { cursor: not-allowed; opacity: .6; }
 .math-notice.math-error { color: var(--danger); }
 .math-notice button { margin-left: 8px; border: 0; background: transparent; color: var(--accent-d); text-decoration: underline; }
 /* 본문 표의 가로 스크롤·셀 경계 */
-.markdown-body table { overflow-x: auto; border-collapse: collapse; max-width: 100%; width: 100%; display: table; font-size: 15px; line-height: 1.6; }
+.markdown-body table { overflow-x: auto; border-collapse: collapse; max-width: 100%; width: 100%; display: block; font-size: 15px; line-height: 1.6; }
 .markdown-body th, .markdown-body td { border: 1px solid var(--line2); padding: 8px 12px; min-width: 84px; }
 .markdown-body th { background: var(--soft); text-align: left; }
 .markdown-body input[type="checkbox"] { accent-color: var(--accent); }

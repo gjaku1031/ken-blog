@@ -1,6 +1,7 @@
 package io.github.gjaku1031.kenblog.pages
 
 import io.github.gjaku1031.kenblog.post.service.PublicPostService
+import io.github.gjaku1031.kenblog.category.repository.CategoryRepository
 import io.github.gjaku1031.kenblog.post.dto.PublicPostDetailResponse
 import io.github.gjaku1031.kenblog.post.repository.PostQueries
 import io.github.gjaku1031.kenblog.series.service.SeriesService
@@ -32,6 +33,11 @@ class PagesSnapshotService(
     private val queries: PostQueries,
 
     /**
+     * 공개 글에서 사용하는 분류의 표시 이름·순서 조회
+     */
+    private val categories: CategoryRepository,
+
+    /**
      * JSON 직렬화기
      */
     private val mapper: ObjectMapper
@@ -54,8 +60,14 @@ class PagesSnapshotService(
             rows += result.items.map { posts.detailMetadata(it.slug) }
         } while (page < result.pages)
         // 공개 글·시리즈로 스냅샷 본문 구성
+        // 공개 글의 분류와 그 부모만 포함, 빈 분류와 비공개 글 전용 분류 제외
+        val paths = rows.mapNotNull { it.category?.path }.flatMap { listOf(it, it.substringBefore('/')) }.toSet()
+        val publicCategories = categories.findAllByOrderByDepthAscSortOrderAscIdAsc()
+            .filter { it.path in paths }
+            .map { linkedMapOf("id" to it.id, "path" to it.path, "name" to it.name,
+                "depth" to it.depth, "sortOrder" to it.sortOrder) }
         val payload = linkedMapOf<String, Any?>("version" to 2,
-            "posts" to rows, "series" to series.list(false))
+            "posts" to rows, "series" to series.list(false), "categories" to publicCategories)
         // 메타데이터와 첨부 상태로 revision 계산, Git 원고는 제외
         val digest = MessageDigest.getInstance("SHA-256")
         digest.update(mapper.writeValueAsBytes(payload)); digest.update(0)

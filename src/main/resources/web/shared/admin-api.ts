@@ -50,7 +50,7 @@ export class HttpError extends Error {
  * 3. 오류 본문·상태를 읽어 인증 실패와 일반 실패 구분
  * 4. 빈 성공 응답 또는 JSON 반환
  */
-export async function request<T>(path: string, method = 'GET', body?: object): Promise<T> {
+export async function request<T>(path: string, method = 'GET', body?: object, signal?: AbortSignal): Promise<T> {
   // API 주소 확인, 변경 요청에는 CSRF 토큰 준비
   if (!apiBase) throw new Error('관리자 연결 주소가 설정되지 않았습니다.');
   const headers = new Headers({ Accept: 'application/json' });
@@ -64,9 +64,11 @@ export async function request<T>(path: string, method = 'GET', body?: object): P
     // 쿠키 포함·캐시 금지·리다이렉트 거부로 요청
     response = await fetch(new URL('/api/v1' + path, apiBase), {
       method, headers, credentials: 'include', cache: 'no-store', redirect: 'error',
+      signal,
       body: body ? JSON.stringify(body) : undefined,
     });
-  } catch {
+  } catch (error) {
+    if (signal?.aborted) throw error;
     throw new Error('관리자 연결에 실패했습니다. 인터넷 연결과 브라우저의 사이트 간 쿠키 허용 설정을 확인하세요.');
   }
   // 오류 본문·상태를 읽어 인증 실패와 일반 실패 구분

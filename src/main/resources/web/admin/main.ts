@@ -251,6 +251,16 @@ let postPage = 0;
 let sessionReady = false;
 
 /**
+ * 로그아웃 이전 응답을 폐기하는 세션 세대
+ */
+let sessionGeneration = 0;
+
+/**
+ * 마지막 목록 요청과 취소 신호
+ */
+let dashboardRequest: AbortController | undefined;
+
+/**
  * 요청한 편집 화면 종류
  */
 const editorMode = document.body.dataset.editor ?? '';
@@ -259,6 +269,11 @@ const editorMode = document.body.dataset.editor ?? '';
  * 메타데이터 편집 대화상자
  */
 const dialog = get('edit-dialog') as HTMLDialogElement;
+
+/**
+ * 상세 조회 중 새 편집 창을 열었는지 판별하는 세대
+ */
+let dialogGeneration = 0;
 
 /**
  * 마지막 관리자 조회 결과
@@ -280,6 +295,7 @@ get('dialog-close').addEventListener('click', () => dialog.close());
  * 제목·내용을 설정하고 편집 대화상자 열기
  */
 function openDialog(title: string, content: HTMLElement) {
+  dialogGeneration++;
   get('dialog-title').textContent = title;
   get('dialog-content').replaceChildren(content);
   setMessage(get('dialog-message'), '');
@@ -323,6 +339,9 @@ function clearDashboard() {
  */
 function showLogin(message = '') {
   sessionReady = false;
+  sessionGeneration++;
+  dashboardRequest?.abort();
+  postPage = 0;
   updateHeaderSession(false);
   clearCsrf();
   clearDashboard();
@@ -347,16 +366,47 @@ function showDashboard() {
  * 관리 작업 수행 후 목록 갱신·결과 표시, 세션 만료 시 로그인 전환
  */
 async function action(operation: () => Promise<unknown>, success: string) {
+  const context = operationContext();
   const message = dialog.open ? get('dialog-message') : dashboardMessage;
   setMessage(message, '');
   try {
     await operation();
-    if (dialog.open) dialog.close();
-    await loadDashboard();
-    setMessage(dashboardMessage, success);
+    if (!context.current()) return;
+    if (context.ownsDialog()) dialog.close();
+    await saved(success, context);
   } catch (error) {
+    if (!context.current()) return;
     if (error instanceof HttpError && error.status === 401) showLogin(error.message);
-    else setMessage(dialog.open ? message : dashboardMessage, error instanceof Error ? error.message : '요청에 실패했습니다.', true);
+    else setMessage(context.ownsDialog() ? message : dashboardMessage, error instanceof Error ? error.message : '요청에 실패했습니다.', true);
+  }
+}
+
+/**
+ * 작업 시작 시점의 세션과 대화상자 본문 소유권 보관
+ */
+function operationContext() {
+  const session = sessionGeneration;
+  const content = dialog.open ? get('dialog-content').firstElementChild : null;
+  return {
+    // 새 로그인 세션에는 이전 작업 결과를 반영하지 않음
+    current: () => sessionReady && session === sessionGeneration,
+    // 닫았다가 다른 폼을 연 경우 그 폼을 닫거나 오류를 덮지 않음
+    ownsDialog: () => !!content && dialog.open && get('dialog-content').firstElementChild === content,
+  };
+}
+
+/**
+ * 저장 완료와 후속 조회 실패를 구분하여 중복 생성 재시도 방지
+ */
+async function saved(success: string, context: ReturnType<typeof operationContext>) {
+  try {
+    await loadDashboard();
+    if (context.current()) setMessage(dashboardMessage, success);
+  } catch (error) {
+    if (!context.current()) return;
+    if (error instanceof HttpError && error.status === 401) { showLogin(`${success} ${error.message}`); return; }
+    showDashboard();
+    setMessage(dashboardMessage, `${success} 목록을 새로고침하지 못했습니다. 페이지를 새로고침하세요. ${error instanceof Error ? error.message : ''}`, true);
   }
 }
 
@@ -414,22 +464,30 @@ function smallAction(parent: HTMLElement, title: string, operation: () => Promis
  * 2. 세션 유지 시 화면 갱신
  * 3. 상세 페이지에서 지정한 편집 대상도 최신 정보로 열기
  */
-async function loadDashboard() {
+async function loadDashboard(refreshOptions = true) {
   if (!sessionReady) return;
-  // 글·시리즈·분류·기술·태그 병렬 조회
-  const data = await Promise.all([
-    request<Page<Post>>(`/admin/posts?page=${postPage}&size=10`),
-    request<Series[]>('/admin/series'),
-    request<Category[]>('/admin/categories'),
-    request<Badge[]>('/admin/stack-badges'),
-    request<Tag[]>('/admin/tags'),
-  ]);
-  if (!sessionReady) return;
-  // 세션 유지 시 화면 갱신
-  render({ posts: data[0], series: data[1], categories: data[2], badges: data[3], tags: data[4] });
-  showDashboard();
-  // 상세 페이지에서 지정한 편집 대상도 최신 정보로 열기
-  await openLinkedEditor(latestData);
+  dashboardRequest?.abort();
+  const controller = new AbortController();
+  dashboardRequest = controller;
+  const session = sessionGeneration;
+  const cached = !refreshOptions && latestData;
+  // 페이지 이동은 글만 조회, 저장 후에는 연결 수와 선택 목록도 갱신
+  try {
+    const data = await Promise.all([
+      request<Page<Post>>(`/admin/posts?page=${postPage}&size=10`, 'GET', undefined, controller.signal),
+      cached ? cached.series : request<Series[]>('/admin/series', 'GET', undefined, controller.signal),
+      cached ? cached.categories : request<Category[]>('/admin/categories', 'GET', undefined, controller.signal),
+      cached ? cached.badges : request<Badge[]>('/admin/stack-badges', 'GET', undefined, controller.signal),
+      cached ? cached.tags : request<Tag[]>('/admin/tags', 'GET', undefined, controller.signal),
+    ]);
+    if (!sessionReady || session !== sessionGeneration || controller.signal.aborted) return;
+    render({ posts: data[0], series: data[1], categories: data[2], badges: data[3], tags: data[4] }, !!cached);
+    showDashboard();
+    await openLinkedEditor(latestData);
+  } catch (error) {
+    if (controller.signal.aborted || session !== sessionGeneration) return;
+    throw error;
+  }
 }
 
 /**
@@ -445,6 +503,8 @@ async function openLinkedEditor(data: AdminData): Promise<void> {
   // 편집 전용 화면·재진입·비인증 요청 제외
   if (editorMode || !linkedEditorPending || !sessionReady) return;
   linkedEditorPending = false;
+  const session = sessionGeneration;
+  const generation = dialogGeneration;
   const url = new URL(location.href);
   // URL의 단일 글·프로젝트 ID 검사
   const keys = ['post', 'project'].filter(key => url.searchParams.has(key));
@@ -458,7 +518,7 @@ async function openLinkedEditor(data: AdminData): Promise<void> {
     // 대상 최신 상세를 조회해 글 또는 프로젝트 편집 폼 열기
     if (key === 'post') {
       const post = await request<PostDetail>(`/admin/posts/${id}`);
-      if (!sessionReady) return;
+      if (!sessionReady || session !== sessionGeneration || generation !== dialogGeneration) return;
       editPost(post, data);
     } else {
       const { series } = await request<{
@@ -467,7 +527,7 @@ async function openLinkedEditor(data: AdminData): Promise<void> {
          */
         series: Series
       }>(`/admin/series/${id}`);
-      if (!sessionReady) return;
+      if (!sessionReady || session !== sessionGeneration || generation !== dialogGeneration) return;
       if (series.kind !== 'PROJECT') throw new Error('프로젝트를 찾을 수 없습니다.');
       openDialog('프로젝트 수정', createSeriesForm(data, true, series));
     }
@@ -477,6 +537,7 @@ async function openLinkedEditor(data: AdminData): Promise<void> {
     history.replaceState(history.state, '', url);
     selectPanel();
   } catch (error) {
+    if (!sessionReady || session !== sessionGeneration || generation !== dialogGeneration) return;
     if (error instanceof HttpError && error.status === 401) {
       // 세션 만료 시 로그인 후 재시도할 수 있도록 대기 상태 복원
       linkedEditorPending = true;
@@ -488,10 +549,10 @@ async function openLinkedEditor(data: AdminData): Promise<void> {
 /**
  * 조회 결과로 관리자 목록 렌더
  */
-function render(data: AdminData) {
+function render(data: AdminData, postsOnly = false) {
   latestData = data;
   if (editorMode) renderEditor(data);
-  else { renderPosts(data); renderCategories(data); renderSeries(data); }
+  else { renderPosts(data); if (!postsOnly) { renderCategories(data); renderSeries(data); } }
 }
 
 /**
@@ -544,7 +605,7 @@ function renderPosts(data: AdminData) {
       button.disabled = true;
       const previous = postPage;
       postPage = next;
-      try { await loadDashboard(); }
+      try { await loadDashboard(false); }
       catch (error) {
         postPage = previous;
         if (error instanceof HttpError && error.status === 401) showLogin(error.message);
@@ -617,7 +678,9 @@ function renderEditor(data: AdminData) {
   }
   // 미발행 글 저장 후 원고 경로와 관리 링크 표시
   const create = form(async input => {
+    const session = sessionGeneration;
     const post = await mutate<Post>('/admin/posts', 'POST', postPayload(input));
+    if (!sessionReady || session !== sessionGeneration || !container.isConnected) return;
     const done = el('div', 'creation-complete');
     done.append(el('h2', '', '글 정보가 저장되었습니다.'), el('p', '', post.title), el('p', 'source-path mono', `content/posts/${post.slug}.md`));
     const back = el('a', 'button primary', '목록으로'); back.href = `/ken-blog/${editorMode === 'project' ? 'projects' : 'posts'}/`;
@@ -737,15 +800,20 @@ function renderCategories(data: AdminData) {
  * 일반 시리즈·프로젝트 생성 또는 수정 폼 구성
  */
 function createSeriesForm(data: AdminData, project: boolean, item?: Series) {
+  // 제출 시점의 창만 저장 결과로 닫을 수 있음
+  let context: ReturnType<typeof operationContext>;
   return seriesEditor({ project, badges: data.badges, item,
-    onSaving: () => setMessage(get('dialog-message'), ''),
+    onSaving: () => { context = operationContext(); setMessage(get('dialog-message'), ''); },
     onSaved: async created => {
+      if (!context.current()) return;
       if (project && !item) selectedProject = created.id;
-      dialog.close(); await loadDashboard(); setMessage(dashboardMessage, '저장했습니다.');
+      if (context.ownsDialog()) dialog.close();
+      await saved('저장했습니다.', context);
     },
     onError: error => {
+      if (!context.current()) return;
       if (error instanceof HttpError && error.status === 401) showLogin(error.message);
-      else setMessage(get('dialog-message'), error instanceof Error ? error.message : '저장하지 못했습니다.', true);
+      else setMessage(context.ownsDialog() ? get('dialog-message') : dashboardMessage, error instanceof Error ? error.message : '저장하지 못했습니다.', true);
     },
   });
 }

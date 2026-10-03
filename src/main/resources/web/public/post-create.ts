@@ -62,7 +62,7 @@ export function connectPostCreator() {
           const manage = el('a', 'button', '글 관리'); manage.href = '/ken-blog/manage/#posts';
           const finish = el('button', 'button primary', '완료'); finish.type = 'button'; finish.addEventListener('click', () => dialog.close());
           done.append(manage, finish); content.replaceChildren(done); finish.focus();
-        } catch (error) { showError(error); }
+        } catch (error) { if (run === generation && dialog.open) showError(error); }
         finally { button.disabled = false; }
       });
       content.replaceChildren(form); form.querySelector('input')?.focus();
