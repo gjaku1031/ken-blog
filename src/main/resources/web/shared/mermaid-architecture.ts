@@ -4,7 +4,20 @@
 export const ARCHITECTURE_ICONS = [
   "git", "github", "github-actions", "spring", "mysql", "kotlin", "playwright", "fastapi", "neo4j", "redis",
   "cloudwatch", "eventbridge", "lambda", "fargate", "route53", "rds", "docker", "caddy", "proxmox", "disk", "user",
+  "ecr", "alb", "vpn",
 ] as const;
+
+/**
+ * Architecture 서비스의 실제 로고 크기(px); 글자 배치 너비와 별도로 조절함
+ */
+export const ARCHITECTURE_ICON_SIZE = 36;
+
+/**
+ * 긴 제품명이 잘리지 않도록 실제 로고보다 넓은 배치 영역 사용
+ */
+export const ARCHITECTURE_LAYOUT = {
+  seed: 24, iconSize: 48, fontSize: 13, nodeSeparation: 70, idealEdgeLengthMultiplier: 2.3, padding: 28,
+};
 
 /**
  * Mermaid가 자체 제공하는 Architecture 아이콘 이름
@@ -65,9 +78,16 @@ export function styleArchitectureSvg(svg: string, theme: "light" | "dark"): stri
     // fill을 생략한 로고 경로도 바깥 Mermaid의 밝은 글자 색을 상속하지 않음
     icon.style.fill = "#263238";
     icon.style.color = "#263238";
+    const size = Number(icon.getAttribute("width"));
+    const renderedSize = icon.closest(".architecture-service") ? ARCHITECTURE_ICON_SIZE : size;
+    const inset = (size - renderedSize) / 2;
+    icon.setAttribute("x", String(inset));
+    icon.setAttribute("y", String(inset));
+    icon.setAttribute("width", String(renderedSize));
+    icon.setAttribute("height", String(renderedSize));
     const tile = doc.createElementNS("http://www.w3.org/2000/svg", "rect");
-    tile.setAttribute("x", "-4");
-    tile.setAttribute("y", "-4");
+    tile.setAttribute("x", String(inset - 4));
+    tile.setAttribute("y", String(inset - 4));
     tile.setAttribute("width", String(Number(icon.getAttribute("width")) + 8));
     tile.setAttribute("height", String(Number(icon.getAttribute("height")) + 8));
     tile.setAttribute("rx", "8");

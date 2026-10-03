@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 import { mermaidSourceError, mermaidThemeSource } from "../../src/main/resources/web/shared/mermaid-render.ts";
 import { ARCHITECTURE_ICONS } from "../../src/main/resources/web/shared/mermaid-architecture.ts";
+import { validateReferenceLayout } from "../../src/main/resources/web/shared/mermaid-reference-layout.ts";
 
 /**
  * ERD 검증용 원문
@@ -38,13 +39,32 @@ test("every architecture icon is bundled with explicit dimensions and no externa
 test("project architecture articles use supported diagrams", async () => {
   for (const [slug, architectureCount] of [
     ["doc-340352c9-5fde-4bae-bc0b-4ecd744719a8", 1],
-    ["project-8d420603-48bb-4e29-8983-e08a6e649f80", 2],
+    ["project-8d420603-48bb-4e29-8983-e08a6e649f80", 1],
   ]) {
     const body = await readFile(new URL(`../../content/posts/${slug}.md`, import.meta.url), "utf8");
     const sources = [...body.matchAll(/```mermaid\n([\s\S]*?)\n```/g)].map(match => match[1]);
     assert.equal(sources.filter(source => source.startsWith("architecture-beta")).length, architectureCount);
     for (const source of sources) assert.equal(mermaidSourceError(source), null);
   }
+});
+
+/**
+ * Vowser 단일 도식이 원본 구성을 보존하고 이후 연결·소속 변경을 숨기지 않음
+ */
+test("Vowser keeps the full original architecture and rejects stale reference geometry", async () => {
+  const body = await readFile(new URL("../../content/posts/project-8d420603-48bb-4e29-8983-e08a6e649f80.md", import.meta.url), "utf8");
+  const source = body.match(/```mermaid\n(architecture-beta[\s\S]*?)\n```/)[1];
+  assert.match(source, /%% layout: vowser-infrastructure/);
+  assert.deepEqual([...validateReferenceLayout(source).keys()].sort(), [
+    "actions", "runner", "origin", "app", "website", "ecr", "dns", "alb", "backend", "agent", "db", "vpn",
+    "watch", "events", "lambda", "redis", "neo4j",
+  ].sort());
+  assert.throws(() => validateReferenceLayout(source.replace("  runner:R -[Push]-> L:ecr", "")));
+  assert.throws(() => validateReferenceLayout(source.replace("RDS MySQL] in vpc", "RDS MySQL] in external")));
+  assert.throws(() => validateReferenceLayout(source.replace("L:backend{group}", "L:backend")));
+  assert.throws(() => validateReferenceLayout(source + "\n  dns:B --> T:alb"));
+  assert.throws(() => validateReferenceLayout(source + "\n  dns:B <--> T:alb"));
+  assert.throws(() => validateReferenceLayout(source.replace("-\u003e L:ecr", "-\u003e L:db")));
 });
 
 test("ERD role colors allow hex fills, borders and text with a bounded line width", () => {

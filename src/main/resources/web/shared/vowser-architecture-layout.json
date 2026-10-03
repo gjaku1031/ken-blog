@@ -1,0 +1,164 @@
+{
+  "width": 1745,
+  "height": 890,
+  "groups": {
+    "pc": [10, 290, 245, 170, "사용자 PC"],
+    "target": [10, 490, 245, 145, "외부 대상 웹사이트"],
+    "onprem": [280, 55, 275, 380, "On-premise / Proxmox"],
+    "aws": [640, 20, 805, 820, "AWS Cloud"],
+    "vpc": [660, 250, 765, 315, "VPC"],
+    "ecs": [975, 275, 215, 205, "ECS services / Fargate"],
+    "control": [660, 700, 765, 110, "부하 관측 · 확장 제어"],
+    "external": [1490, 275, 235, 205, "외부 관리형 클라우드"]
+  },
+  "services": {
+    "actions": [40, 120, "배포 워크플로"],
+    "runner": [300, 120, "self-hosted · 이미지 빌드"],
+    "origin": [300, 350, "Spring Boot · FastAPI"],
+    "app": [30, 350, "Kotlin / Compose · Playwright"],
+    "website": [30, 545, "Playwright 브라우저 조작"],
+    "ecr": [685, 120, "컨테이너 이미지"],
+    "dns": [1210, 120, "백엔드 API 주소"],
+    "alb": [685, 325, "서로 다른 2개 AZ의 public subnet"],
+    "backend": [995, 325, "public IP · 평소 중지"],
+    "agent": [995, 415, "public IP · 평소 중지"],
+    "db": [1210, 505, "공유 회원 · 설정"],
+    "vpn": [685, 615, "온프레미스 ↔ VPC"],
+    "watch": [685, 755, "CPU · 메모리 임계값"],
+    "events": [935, 755, "알람 상태 변경"],
+    "lambda": [1210, 755, "서비스 기동 · DNS 변경"],
+    "redis": [1510, 325, "공유 인증 토큰"],
+    "neo4j": [1510, 415, "공유 경로 · 임베딩"]
+  },
+  "members": {
+    "actions": "",
+    "runner": "onprem",
+    "origin": "onprem",
+    "app": "pc",
+    "website": "target",
+    "ecr": "aws",
+    "dns": "aws",
+    "alb": "vpc",
+    "backend": "ecs",
+    "agent": "ecs",
+    "db": "vpc",
+    "vpn": "aws",
+    "watch": "control",
+    "events": "control",
+    "lambda": "control",
+    "redis": "external",
+    "neo4j": "external"
+  },
+  "parents": {
+    "pc": "",
+    "target": "",
+    "onprem": "",
+    "aws": "",
+    "vpc": "aws",
+    "ecs": "vpc",
+    "control": "aws",
+    "external": ""
+  },
+  "edges": [
+    {
+      "source": "actions", "target": "runner", "groupTarget": false,
+      "points": [[230, 144], [306, 144]],
+      "kind": "delivery", "label": "작업 실행", "at": [263, 130]
+    },
+    {
+      "source": "runner", "target": "ecr", "groupTarget": false,
+      "points": [[521, 144], [691, 144]],
+      "kind": "delivery", "label": "이미지 push", "at": [599, 130]
+    },
+    {
+      "source": "ecr", "target": "backend", "groupTarget": true,
+      "points": [[877, 144], [1019, 144], [1019, 275]],
+      "kind": "delivery", "label": "이미지 pull", "at": [975, 210]
+    },
+    {
+      "source": "app", "target": "origin", "groupTarget": false,
+      "points": [[235, 374], [306, 374]],
+      "kind": "runtime", "label": "평상시 API", "at": [270, 360]
+    },
+    {
+      "source": "app", "target": "alb", "groupTarget": false,
+      "points": [[54, 356], [54, 225], [709, 225], [709, 331]],
+      "kind": "runtime", "label": "확장 시 API", "at": [422, 214]
+    },
+    {
+      "source": "app", "target": "dns", "groupTarget": false,
+      "points": [[36, 374], [0, 374], [0, 0], [1234, 0], [1234, 126]],
+      "kind": "reference", "label": "DNS 조회", "at": [580, 15]
+    },
+    {
+      "source": "app", "target": "website", "groupTarget": false,
+      "points": [[54, 392], [54, 551]],
+      "kind": "runtime", "label": "브라우저 조작", "at": [128, 478]
+    },
+    {
+      "source": "alb", "target": "backend", "groupTarget": false,
+      "points": [[940, 349], [1001, 349]],
+      "kind": "runtime", "label": "API", "at": [968, 313]
+    },
+    {
+      "source": "backend", "target": "agent", "groupTarget": false,
+      "points": [[1019, 367], [1019, 421]],
+      "kind": "runtime", "label": "WebSocket", "at": [1080, 396]
+    },
+    {
+      "source": "backend", "target": "db", "groupTarget": false,
+      "points": [[1175, 349], [1234, 349], [1234, 511]],
+      "kind": "runtime", "label": "", "at": [0, 0]
+    },
+    {
+      "source": "backend", "target": "redis", "groupTarget": false,
+      "points": [[1175, 349], [1516, 349]],
+      "kind": "runtime", "label": "", "at": [0, 0]
+    },
+    {
+      "source": "agent", "target": "neo4j", "groupTarget": false,
+      "points": [[1175, 439], [1516, 439]],
+      "kind": "runtime", "label": "", "at": [0, 0]
+    },
+    {
+      "source": "origin", "target": "vpn", "groupTarget": false,
+      "points": [[324, 392], [324, 639], [691, 639]],
+      "kind": "runtime", "label": "VPN / DB 접속", "at": [495, 626]
+    },
+    {
+      "source": "vpn", "target": "db", "groupTarget": false,
+      "points": [[915, 639], [1234, 639], [1234, 547]],
+      "kind": "runtime", "label": "", "at": [0, 0]
+    },
+    {
+      "source": "origin", "target": "redis", "groupTarget": true,
+      "points": [[515, 374], [575, 374], [575, 675], [1625, 675], [1625, 480]],
+      "kind": "runtime", "label": "공유 Redis · Neo4j", "at": [1500, 660]
+    },
+    {
+      "source": "origin", "target": "watch", "groupTarget": false,
+      "points": [[510, 387], [595, 387], [595, 779], [691, 779]],
+      "kind": "control", "label": "지표 전송", "at": [635, 763]
+    },
+    {
+      "source": "watch", "target": "events", "groupTarget": false,
+      "points": [[901, 779], [941, 779]],
+      "kind": "control", "label": "알람 이벤트", "at": [917, 750]
+    },
+    {
+      "source": "events", "target": "lambda", "groupTarget": false,
+      "points": [[1115, 779], [1216, 779]],
+      "kind": "control", "label": "함수 호출", "at": [1160, 763]
+    },
+    {
+      "source": "lambda", "target": "agent", "groupTarget": true,
+      "points": [[1234, 761], [1234, 694], [1155, 694], [1155, 480]],
+      "kind": "control", "label": "서비스 기동", "at": [1093, 618]
+    },
+    {
+      "source": "lambda", "target": "dns", "groupTarget": false,
+      "points": [[1400, 779], [1438, 779], [1438, 206], [1234, 206], [1234, 162]],
+      "kind": "control", "label": "레코드 변경", "at": [1356, 192]
+    }
+  ]
+}

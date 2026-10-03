@@ -1,4 +1,4 @@
-import { architectureIconError, styleArchitectureSvg } from "./mermaid-architecture.ts";
+import { ARCHITECTURE_LAYOUT, architectureIconError, styleArchitectureSvg } from "./mermaid-architecture.ts";
 
 /**
  * Mermaid 밝은·어두운 테마
@@ -277,20 +277,30 @@ async function drainQueue(): Promise<void> {
         mermaid.initialize({ startOnLoad: false, securityLevel: "strict", htmlLabels: false,
           suppressErrorRendering: true, maxTextSize: MAX_MERMAID_LENGTH, maxEdges: MAX_MERMAID_EDGES,
           theme: job.theme === "dark" ? "dark" : "default",
+          ...(architecture ? { fontSize: ARCHITECTURE_LAYOUT.fontSize,
+            themeVariables: { fontSize: `${ARCHITECTURE_LAYOUT.fontSize}px` } } : {}),
           // 그룹과 교차 FK가 있는 ERD는 ELK로 배치하고 다른 도식의 배치는 유지함
           layout: /^\s*erDiagram\b/.test(job.source) ? "elk" : "dagre", look: "classic",
           fontFamily: "Arial, sans-serif", arrowMarkerAbsolute: false,
-          architecture: { seed: 24, iconSize: 64, fontSize: 17, nodeSeparation: 100, idealEdgeLengthMultiplier: 1.9, padding: 36 },
+          architecture: ARCHITECTURE_LAYOUT,
           secure: ["securityLevel", "startOnLoad", "maxTextSize", "maxEdges", "suppressErrorRendering", "theme",
-            "themeVariables", "themeCSS", "htmlLabels", "fontFamily", "layout", "look", "arrowMarkerAbsolute", "architecture"] });
+            "themeVariables", "themeCSS", "htmlLabels", "fontFamily", "fontSize", "layout", "look", "arrowMarkerAbsolute", "architecture"] });
         container = document.createElement("div");
         container.style.cssText = "position:fixed;left:-100000px;top:0;opacity:0;pointer-events:none;z-index:-1";
         container.setAttribute("aria-hidden", "true");
         document.body.appendChild(container);
         const id = `ken_mermaid_${++sequence}_${crypto.randomUUID().replaceAll("-", "")}`;
         const result = await mermaid.render(id, mermaidThemeSource(job.source, job.theme), container);
-        if (!job.signal.aborted) job.resolve(sanitizeMermaidSvg(
-          architecture ? styleArchitectureSvg(sanitizeMermaidSvg(result.svg), job.theme) : result.svg));
+        if (!job.signal.aborted) {
+          let svg = sanitizeMermaidSvg(result.svg);
+          if (architecture && /^\s*%% layout: vowser-infrastructure\s*$/m.test(job.source)) {
+            // 특정 원본 도식의 배치만 적용하며 구성·연결이 바뀌면 검증에서 중단함
+            const { applyReferenceLayout } = await import("./mermaid-reference-layout.ts");
+            svg = sanitizeMermaidSvg(applyReferenceLayout(svg, job.source, job.theme));
+          }
+          if (!job.signal.aborted) job.resolve(architecture
+            ? sanitizeMermaidSvg(styleArchitectureSvg(svg, job.theme)) : svg);
+        }
       } catch {
         if (!job.signal.aborted) job.reject(new Error("도식을 표시할 수 없습니다."));
       } finally {
