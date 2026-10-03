@@ -1,3 +1,4 @@
+import { escaped, originalOffset, lineStarts, sourcePoint as point } from './source-position';
 import type { Root, RootContent } from "mdast";
 import { annotationSourceMask, parseAnnotationMarkdown, type AnnotationItem } from "./annotation-syntax";
 import { parseMathMarkdown } from "./math-syntax";
@@ -212,14 +213,6 @@ function excludedMask(source: string, root: Root): Uint8Array {
   return mask;
 }
 
-/**
- * 역슬래시 홀짝에 따라 이스케이프된 시작 대괄호를 구별함
- */
-function escaped(source: string, position: number): boolean {
-  let count = 0;
-  for (let index = position - 1; index >= 0 && source[index] === "\\"; index--) count++;
-  return count % 2 === 1;
-}
 
 /**
  * 안전한 닫힘과 제목·표시명만 후보로 반환하며 나머지는 Markdown 원문으로 둠
@@ -271,77 +264,15 @@ export function wikiSourceMask(source: string): Uint8Array {
   return mask;
 }
 
-/**
- * 마커를 원문 offset으로 역매핑해 접기와 Mermaid의 위치 계약을 보존함
- *
- * 1. 치환 시작점 기준 이분 탐색
- */
-function originalOffset(offset: number, ranges: Replacement[], endBoundary: boolean): number {
-  // 치환 시작점 기준 이분 탐색
-  let left = 0;
-  let right = ranges.length;
-  while (left < right) {
-    const middle = (left + right) >>> 1;
-    if (ranges[middle].transformedStart <= offset) left = middle + 1;
-    else right = middle;
-  }
-  // 치환 내부는 요청한 경계로, 외부는 누적 길이 차이로 복원
-  if (left === 0) return offset;
-  const range = ranges[left - 1];
-  if (offset === range.transformedStart) return range.start;
-  if (offset < range.transformedEnd) return endBoundary ? range.end : range.start;
-  return offset + range.end - range.transformedEnd;
-}
 
-/**
- * 긴 원문의 각 AST 위치를 일정한 비용으로 되찾도록 줄 시작을 한 번만 모음
- */
-function lineStarts(source: string): number[] {
-  const starts = [0];
-  for (let index = 0; index < source.length; index++) if (source[index] === "\n") starts.push(index + 1);
-  return starts;
-}
 
-/**
- * 원문 줄·열을 포함한 위치를 이분 탐색으로 만듦
- *
- * 1. 오프셋이 속한 원문 줄을 이분 탐색
- * 2. 원문 기준 행·열·오프셋 반환
- */
-function point(starts: readonly number[], offset: number): {
-  /**
-   * 행 번호
-   */
-  line: number;
-
-  /**
-   * 열 번호
-   */
-  column: number;
-
-  /**
-   * 원문 오프셋
-   */
-  offset: number
-} {
-  // 오프셋이 속한 원문 줄을 이분 탐색
-  let left = 0;
-  let right = starts.length;
-  while (left < right) {
-    const middle = (left + right) >>> 1;
-    if (starts[middle] <= offset) left = middle + 1;
-    else right = middle;
-  }
-  // 원문 기준 행·열·오프셋 반환
-  return { line: left, column: offset - starts[left - 1] + 1, offset };
-}
 
 /**
  * 보이지 않는 임의 URL 없이 원문 title/label을 HAST 텍스트 노드로 전달함
  */
 function wikiNode(starts: readonly number[], candidate: WikiLinkCandidate): RootContent {
   return { type: "kenWikiLink", data: { hName: "span", hProperties: { className: ["ken-wiki-link"],
-    "data-wiki-title": candidate.title, "data-wiki-raw": candidate.raw },
+    "data-wiki-title": candidate.title },
     hChildren: [{ type: "text", value: candidate.label }] },
   position: { start: point(starts, candidate.start), end: point(starts, candidate.end) } } as unknown as RootContent;
 }

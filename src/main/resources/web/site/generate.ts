@@ -1,3 +1,4 @@
+import { BASE, ORIGIN, sitePath as route, checkedSlug as slug, postPath, wikiKey } from '../shared/site-path.ts';
 import { mkdir, writeFile, copyFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import nunjucks from "nunjucks";
@@ -336,38 +337,10 @@ interface Input {
   };
 }
 
-/**
- * 사이트 기준 경로
- */
-const BASE = "/ken-blog/";
 
-/**
- * 공개 사이트 출처
- */
-const ORIGIN = "https://gjaku1031.github.io";
 
-/**
- * 사이트 기준 경로 결합
- */
-const route = (path = "") => BASE + path;
 
-/**
- * 공개 주소 식별자 형식 검사
- */
-function slug(value: string): string {
-  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(value)) throw new Error("공개 slug 형식 오류");
-  return value;
-}
 
-/**
- * 검증된 글 주소 생성
- */
-const postPath = (post: {
-  /**
-   * 공개 주소 식별자
-   */
-  slug: string
-}) => route(`post/${slug(post.slug)}/`);
 
 /**
  * 날짜 표시 형식 변환
@@ -389,10 +362,6 @@ const unique = (values: string[]) => [...new Set(values.filter(Boolean))].sort()
  */
 const chronological = (a: Post, b: Post) => a.publishedAt.localeCompare(b.publishedAt) || a.id - b.id;
 
-/**
- * 위키 제목의 대소문자 비교 키 생성
- */
-const wikiKey = (title: string) => title.toLocaleLowerCase("und");
 
 /**
  * 렌더된 본문에서 검색용 텍스트 추출
@@ -634,8 +603,9 @@ export async function generateSite(payload: Input, output: string) {
       throw new Error("이전 공개 경로 형식 오류");
     if (!aliases.has(old)) aliases.set(old, postPath(post));
   }
+  const destinations = new Set([route('posts/'), route('projects/'), ...allPosts.map(postPath)]);
   for (const [path, target] of aliases) {
-    if (!/^\/ken-blog\/(?:posts|projects|post\/[a-z0-9-]+)\/$/.test(target)) throw new Error("이동 대상 경로 오류");
+    if (!destinations.has(target)) throw new Error("이동 대상 경로 오류");
     // 쿼리 주소에는 공개 생성 대상만 허용, 알 수 없는 slug는 목록으로 이동
     const queryTargets = path === 'post'
       ? Object.fromEntries(allPosts.map(post => [post.slug, postPath(post)]))
@@ -644,7 +614,7 @@ export async function generateSite(payload: Input, output: string) {
       preserveQuery: path === "", queryKind: path, queryTargets: JSON.stringify(queryTargets) }));
   }
   await page("404.html", "missing", "", "페이지 없음", "페이지를 찾을 수 없습니다.", {}, false);
-  await write("robots.txt", `User-agent: *\nAllow: /ken-blog/\nSitemap: ${ORIGIN}${route("sitemap.xml")}\n`);
+  await write("robots.txt", `User-agent: *\nAllow: ${BASE}\nSitemap: ${ORIGIN}${route("sitemap.xml")}\n`);
   await write("sitemap.xml", `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${
     pages.map(path => `<url><loc>${ORIGIN}${route(path ? `${path}/` : "")}</loc></url>`).join("")}</urlset>`);
   await write("routes.json", JSON.stringify(pages.map(path => path ? `${path}/` : "")));

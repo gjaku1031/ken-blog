@@ -17,7 +17,7 @@
     <h1 id="login-title">관리자 로그인</h1>
     <p id="login-message" class="notice error" role="alert" hidden></p>
     <form id="login-form" autocomplete="on"><label for="password">비밀번호</label><input id="password" name="password" type="password" autocomplete="current-password" required><label class="check"><input name="rememberMe" type="checkbox"> 30일 동안 로그인 유지</label><button class="button primary" type="submit">로그인</button></form>
-    <a class="text-link" href="/ken-blog/">블로그로 돌아가기</a>
+    <a class="text-link" href="{{ base }}">블로그로 돌아가기</a>
   </section>
   <div id="dashboard" class="{{ 'editor-layout' if editor else 'admin-layout' }}" hidden>
     {% if not editor %}<aside class="admin-sidebar"><nav aria-label="관리 메뉴"><a href="#posts" data-panel-link="posts">글 관리</a><a href="#categories" data-panel-link="categories">분류 관리</a><a href="#series" data-panel-link="series">시리즈·프로젝트</a><a class="admin-deploy button" href="https://github.com/gjaku1031/ken-blog/actions/workflows/pages.yml" target="_blank" rel="noopener noreferrer">
@@ -27,7 +27,7 @@
     <main id="content" tabindex="-1">
       <p id="dashboard-message" class="notice" role="status" hidden></p>
       {% if editor %}
-      <a class="back-link" href="/ken-blog/{{ 'projects' if editor == 'project' else 'posts' }}/">← {{ 'Projects' if editor == 'project' else 'Posts' }}</a>
+      <a class="back-link" href="{{ base }}{{ 'projects' if editor == 'project' else 'posts' }}/">← {{ 'Projects' if editor == 'project' else 'Posts' }}</a>
       <div class="page-heading"><h1>{{ 'Projects' if editor == 'project' else 'Posts' }} 글쓰기</h1></div>
       <div id="editor-content" class="card editor-card"></div>
       {% else %}

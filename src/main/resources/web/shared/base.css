@@ -1,0 +1,19 @@
+/* 공개·관리 화면의 공통 글꼴과 요소 기본값 */
+@import '@fontsource-variable/noto-sans-kr/index.css';
+@import '@fontsource/ibm-plex-mono/400.css';
+:root { font-family:var(--font-sans),system-ui,sans-serif; }
+* { box-sizing:border-box; }
+[hidden] { display:none!important; }
+body { margin:0; background:var(--bg); color:var(--text); -webkit-font-smoothing:antialiased; }
+button, input, select, textarea { font:inherit; }
+button { cursor:pointer; }
+button:disabled { cursor:wait; opacity:.55; }
+a { color:inherit; text-decoration:none; }
+a:hover { color:var(--accent-d); }
+/* 공통 키보드 포커스와 본문 바로가기 */
+:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
+.skip-link { position:absolute; left:12px; top:-80px; z-index:100; background:var(--card); padding:8px 12px; }
+.skip-link:focus { top:10px; }
+/* 공통 카드와 고정폭 숫자 */
+.card { background:var(--card); border:1px solid var(--line); border-radius:10px; box-shadow:var(--shadow); }
+.mono { font-family:var(--font-mono),ui-monospace,monospace; font-variant-numeric:tabular-nums; }

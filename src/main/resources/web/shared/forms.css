@@ -8,8 +8,8 @@
 .field-grid .wide,.field-grid .form-actions{grid-column:1/-1}
 .form-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:4px}
 .button{display:inline-flex;align-items:center;justify-content:center;border:1px solid var(--line2);border-radius:6px;padding:8px 14px;background:var(--card);color:var(--text2);font-size:13px;font-weight:500;min-height:36px}
-.button.primary{background:#147a68;border-color:#147a68;color:#fff}
-.button.primary:hover{background:#0d6656}
+.button.primary{background:var(--button-bg);border-color:var(--button-bg);color:var(--on-accent)}
+.button.primary:hover{background:var(--button-hover)}
 .button.ghost{background:transparent}
 .notice{padding:12px 16px;border-radius:7px;border:1px solid var(--accent);background:var(--tint);margin:0 0 22px;font-size:13px;overflow-wrap:anywhere}
 .notice.error{color:var(--danger);border-color:var(--danger);background:var(--card)}

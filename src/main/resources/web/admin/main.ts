@@ -1,3 +1,5 @@
+import "../shared/base.css";
+import { sitePath } from '../shared/site-path';
 import "../shared/theme.css";
 import "../shared/stack-icons.css";
 import './style.css';
@@ -683,8 +685,8 @@ function renderEditor(data: AdminData) {
     if (!sessionReady || session !== sessionGeneration || !container.isConnected) return;
     const done = el('div', 'creation-complete');
     done.append(el('h2', '', '글 정보가 저장되었습니다.'), el('p', '', post.title), el('p', 'source-path mono', `content/posts/${post.slug}.md`));
-    const back = el('a', 'button primary', '목록으로'); back.href = `/ken-blog/${editorMode === 'project' ? 'projects' : 'posts'}/`;
-    const manage = el('a', 'button ghost', '글 관리'); manage.href = '/ken-blog/manage/#posts'; done.append(back, manage);
+    const back = el('a', 'button primary', '목록으로'); back.href = sitePath(`${editorMode === 'project' ? 'projects' : 'posts'}/`);
+    const manage = el('a', 'button ghost', '글 관리'); manage.href = sitePath('manage/#posts'); done.append(back, manage);
     container.replaceChildren(done);
   }, '미발행 글로 저장했습니다.');
   const project = editorMode === 'project';
@@ -806,7 +808,7 @@ function createSeriesForm(data: AdminData, project: boolean, item?: Series) {
     onSaving: () => { context = operationContext(); setMessage(get('dialog-message'), ''); },
     onSaved: async created => {
       if (!context.current()) return;
-      if (project && !item) selectedProject = created.id;
+      if (project && !item && context.ownsDialog()) selectedProject = created.id;
       if (context.ownsDialog()) dialog.close();
       await saved('저장했습니다.', context);
     },

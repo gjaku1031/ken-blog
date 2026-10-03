@@ -1,3 +1,4 @@
+import { originalOffset, lineStarts, sourcePoint } from './source-position';
 import type { Root, RootContent } from "mdast";
 import { mathSourceMask } from "./math-syntax";
 import { annotationSourceMask, resolveAnnotationDocument,
@@ -41,22 +42,22 @@ type OffsetShift = {
   /**
    * 원문 시작 위치
    */
-  originalStart: number;
+  start: number;
 
   /**
    * 원문 끝 위치
    */
-  originalEnd: number;
+  end: number;
 
   /**
    * 수정된 문자열의 시작 위치
    */
-  modifiedStart: number;
+  transformedStart: number;
 
   /**
    * 수정된 문자열의 끝 위치
    */
-  modifiedEnd: number
+  transformedEnd: number
 };
 
 /**
@@ -395,71 +396,8 @@ function markerIndex(node: RootContent, prefix: string): number | null {
   return match ? Number(match[1]) : null;
 }
 
-/**
- * 접기 마커 치환 전후의 길이 차이로 바뀐 offset을 원문 위치로 되돌림
- *
- * 1. 치환 시작점 기준 이분 탐색
- * 2. 치환 내부는 요청한 경계로, 외부는 누적 길이 차이로 복원
- */
-function originalOffset(offset: number, shifts: OffsetShift[], endBoundary: boolean): number {
-  // 치환 시작점 기준 이분 탐색
-  let left = 0;
-  let right = shifts.length;
-  while (left < right) {
-    const middle = (left + right) >>> 1;
-    if (shifts[middle].modifiedStart <= offset) left = middle + 1;
-    else right = middle;
-  }
-  const shift = shifts[left - 1];
-  // 치환 내부는 요청한 경계로, 외부는 누적 길이 차이로 복원
-  if (!shift) return offset;
-  if (offset === shift.modifiedStart) return shift.originalStart;
-  if (offset < shift.modifiedEnd) return endBoundary ? shift.originalEnd : shift.originalStart;
-  return offset + shift.originalEnd - shift.modifiedEnd;
-}
 
-/**
- * 원본의 CRLF도 한 줄로 세며 각 줄의 시작 offset을 모음
- */
-function lineStarts(source: string): number[] {
-  const starts = [0];
-  for (let index = 0; index < source.length; index++) if (source[index] === "\n") starts.push(index + 1);
-  return starts;
-}
 
-/**
- * 원본 offset으로 unist의 행·열·offset을 다시 계산함
- *
- * 1. 오프셋이 속한 원문 줄을 이분 탐색
- * 2. 원문 기준 행·열·오프셋 반환
- */
-function sourcePoint(starts: number[], offset: number): {
-  /**
-   * 행 번호
-   */
-  line: number;
-
-  /**
-   * 열 번호
-   */
-  column: number;
-
-  /**
-   * 원문 오프셋
-   */
-  offset: number
-} {
-  // 오프셋이 속한 원문 줄을 이분 탐색
-  let left = 0;
-  let right = starts.length;
-  while (left < right) {
-    const middle = (left + right) >>> 1;
-    if (starts[middle] <= offset) left = middle + 1;
-    else right = middle;
-  }
-  // 원문 기준 행·열·오프셋 반환
-  return { line: left, column: offset - starts[left - 1] + 1, offset };
-}
 
 /**
  * 수식 파서가 복원한 수정 문자열 위치를 다시 실제 게시글 원문 위치로 옮김
@@ -646,10 +584,10 @@ export function remarkSafeDetails() {
     const shifts: OffsetShift[] = [];
     replacements.forEach((item, index) => {
       modified += source.slice(from, item.start);
-      const modifiedStart = modified.length;
+      const transformedStart = modified.length;
       modified += `\n\n${prefix}${index}END\n\n`;
-      shifts.push({ originalStart: item.start, originalEnd: item.end,
-        modifiedStart, modifiedEnd: modified.length });
+      shifts.push({ start: item.start, end: item.end,
+        transformedStart, transformedEnd: modified.length });
       from = item.end;
     });
     modified += source.slice(from);

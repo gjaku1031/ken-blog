@@ -1,3 +1,4 @@
+import { escaped, originalOffset, lineStarts, sourcePoint } from './source-position';
 import type { Root, RootContent } from "mdast";
 import remarkGfm from "remark-gfm";
 import remarkParse from "remark-parse";
@@ -301,14 +302,6 @@ function blockRanges(source: string, mask: Uint8Array): MathRange[] {
   return result;
 }
 
-/**
- * 바로 앞 역슬래시의 홀짝으로 Markdown 이스케이프 여부를 판단함
- */
-function escaped(source: string, position: number): boolean {
-  let count = 0;
-  for (let index = position - 1; index >= 0 && source[index] === "\\"; index--) count++;
-  return count % 2 === 1;
-}
 
 /**
  * 엄격한 한 쌍의 단일 달러만 인라인 수식으로 모음
@@ -391,71 +384,8 @@ function prepare(source: string, ranges: MathRange[]): string {
   return transformed + source.slice(cursor);
 }
 
-/**
- * 자리표시자로 달라진 offset을 원문 위치로 다시 옮김
- *
- * 1. 치환 시작점 기준 이분 탐색
- * 2. 치환 내부는 요청한 경계로, 외부는 누적 길이 차이로 복원
- */
-function originalOffset(offset: number, ranges: MathRange[], endBoundary: boolean): number {
-  // 치환 시작점 기준 이분 탐색
-  let left = 0;
-  let right = ranges.length;
-  while (left < right) {
-    const middle = (left + right) >>> 1;
-    if (ranges[middle].transformedStart <= offset) left = middle + 1;
-    else right = middle;
-  }
-  const range = ranges[left - 1];
-  // 치환 내부는 요청한 경계로, 외부는 누적 길이 차이로 복원
-  if (!range) return offset;
-  if (offset === range.transformedStart) return range.start;
-  if (offset < range.transformedEnd) return endBoundary ? range.end : range.start;
-  return offset + range.end - range.transformedEnd;
-}
 
-/**
- * 원문의 개행 시작점을 한 번만 모아 위치 복원을 로그 시간으로 제한함
- */
-function lineStarts(source: string): number[] {
-  const starts = [0];
-  for (let index = 0; index < source.length; index++) if (source[index] === "\n") starts.push(index + 1);
-  return starts;
-}
 
-/**
- * 원문의 offset으로 행·열을 다시 계산함
- *
- * 1. 오프셋이 속한 원문 줄을 이분 탐색
- * 2. 원문 기준 행·열·오프셋 반환
- */
-function sourcePoint(starts: number[], offset: number): {
-  /**
-   * 행 번호
-   */
-  line: number;
-
-  /**
-   * 열 번호
-   */
-  column: number;
-
-  /**
-   * 원문 오프셋
-   */
-  offset: number
-} {
-  // 오프셋이 속한 원문 줄을 이분 탐색
-  let left = 0;
-  let right = starts.length;
-  while (left < right) {
-    const middle = (left + right) >>> 1;
-    if (starts[middle] <= offset) left = middle + 1;
-    else right = middle;
-  }
-  // 원문 기준 행·열·오프셋 반환
-  return { line: left, column: offset - starts[left - 1] + 1, offset };
-}
 
 /**
  * TeX 원문을 안전한 text child로 전달하는 읽기용 mdast 노드를 만듦

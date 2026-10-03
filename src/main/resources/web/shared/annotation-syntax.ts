@@ -1,3 +1,4 @@
+import { escaped, originalOffset, lineStarts, sourcePoint } from './source-position';
 import type { Root, RootContent } from "mdast";
 import { parseMathMarkdown } from "./math-syntax";
 
@@ -19,11 +20,6 @@ export type AnnotationItem = {
    * 본문 내용
    */
   content: string;
-
-  /**
-   * 첫 참조 순번
-   */
-  firstRef: number;
 
   /**
    * 참조 순번 목록
@@ -317,14 +313,6 @@ function excludedMask(source: string, root: Root): Uint8Array {
   return mask;
 }
 
-/**
- * 바로 앞 역슬래시의 홀짝으로 현재 구두점이 이스케이프됐는지 판단함
- */
-function escaped(source: string, position: number): boolean {
-  let count = 0;
-  for (let index = position - 1; index >= 0 && source[index] === "\\"; index--) count++;
-  return count % 2 === 1;
-}
 
 /**
  * 한 줄의 균형 잡힌 후보를 익명 정의·이름 정의·재참조·원문으로 분류함
@@ -431,71 +419,8 @@ function prepare(source: string, found: Candidate[], prefix: string): string {
   return transformed + source.slice(cursor);
 }
 
-/**
- * 치환 뒤의 offset을 원문 offset으로 이분 탐색해 복원함
- *
- * 1. 치환 시작점 기준 이분 탐색
- * 2. 치환 내부는 요청한 경계로, 외부는 누적 길이 차이로 복원
- */
-function originalOffset(offset: number, found: Candidate[], endBoundary: boolean): number {
-  // 치환 시작점 기준 이분 탐색
-  let left = 0;
-  let right = found.length;
-  while (left < right) {
-    const middle = (left + right) >>> 1;
-    if (found[middle].transformedStart <= offset) left = middle + 1;
-    else right = middle;
-  }
-  const candidate = found[left - 1];
-  // 치환 내부는 요청한 경계로, 외부는 누적 길이 차이로 복원
-  if (!candidate) return offset;
-  if (offset === candidate.transformedStart) return candidate.start;
-  if (offset < candidate.transformedEnd) return endBoundary ? candidate.end : candidate.start;
-  return offset + candidate.end - candidate.transformedEnd;
-}
 
-/**
- * CRLF도 한 줄로 취급하기 위해 원문 줄 시작 offset을 모음
- */
-function lineStarts(source: string): number[] {
-  const starts = [0];
-  for (let index = 0; index < source.length; index++) if (source[index] === "\n") starts.push(index + 1);
-  return starts;
-}
 
-/**
- * 원문 offset을 행·열·offset을 갖춘 unist 위치로 만듦
- *
- * 1. 오프셋이 속한 원문 줄을 이분 탐색
- * 2. 원문 기준 행·열·오프셋 반환
- */
-function sourcePoint(starts: number[], offset: number): {
-  /**
-   * 행 번호
-   */
-  line: number;
-
-  /**
-   * 열 번호
-   */
-  column: number;
-
-  /**
-   * 원문 오프셋
-   */
-  offset: number
-} {
-  // 오프셋이 속한 원문 줄을 이분 탐색
-  let left = 0;
-  let right = starts.length;
-  while (left < right) {
-    const middle = (left + right) >>> 1;
-    if (starts[middle] <= offset) left = middle + 1;
-    else right = middle;
-  }
-  // 원문 기준 행·열·오프셋 반환
-  return { line: left, column: offset - starts[left - 1] + 1, offset };
-}
 
 /**
  * 후보는 최종 문서 해석 전까지도 텍스트로만 렌더해 이미지·HTML 실행을 막음
@@ -691,7 +616,7 @@ export function resolveAnnotationDocument(root: Root): AnnotationItem[] {
     if (node.kind === "anonymous" && valid.get(node)) {
       anonymousNumber++;
       item = { index: items.length, label: String(anonymousNumber), content: node.content!,
-        firstRef: occurrence, refs: [] };
+        refs: [] };
       items.push(item);
     } else if ((node.kind === "definition" && valid.get(node)) || node.kind === "reference") {
       const content = node.name ? definitions.get(node.name) : undefined;
@@ -699,7 +624,7 @@ export function resolveAnnotationDocument(root: Root): AnnotationItem[] {
         item = named.get(node.name);
         // 정의가 없거나 잘못된 후보는 텍스트로 유지
         if (!item) {
-          item = { index: items.length, label: node.name, content, firstRef: occurrence, refs: [] };
+          item = { index: items.length, label: node.name, content, refs: [] };
           named.set(node.name, item);
           items.push(item);
         }

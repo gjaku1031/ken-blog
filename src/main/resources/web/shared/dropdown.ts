@@ -114,12 +114,7 @@ export function listbox(anchor: HTMLElement, list: HTMLElement, render: () => vo
       if (index >= 0) highlight(index);
     }
   });
-  return { open, close, refresh, toggle: () => opened ? close() : open(),
-
-  /**
-   * 현재 활성 선택 항목의 인덱스
-   */
-  get active() { return active; } };
+  return { open, close, refresh, toggle: () => opened ? close() : open() };
 }
 
 /**

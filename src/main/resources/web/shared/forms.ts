@@ -1,4 +1,7 @@
-import { listbox, styleChoice } from './dropdown';
+import { el } from './dom';
+export { el } from './dom';
+import { selectionPicker } from './selection-picker';
+import { styleChoice } from './dropdown';
 
 /**
  * 기술 뱃지
@@ -64,16 +67,6 @@ export type SeriesMetadata = {
  * 관리자 API 기준 URL
  */
 const apiBase = document.body.dataset.apiBase ?? '';
-
-/**
- * 태그·클래스·텍스트로 DOM 요소 생성
- */
-export function el<K extends keyof HTMLElementTagNameMap>(tag: K, className = '', text = ''): HTMLElementTagNameMap[K] {
-  const item = document.createElement(tag);
-  if (className) item.className = className;
-  if (text) item.textContent = text;
-  return item;
-}
 
 /**
  * 결과 메시지와 오류 표시 갱신
@@ -182,67 +175,12 @@ export function stackIcon(badge: Badge) {
 }
 
 /**
- * 검색·다중 선택·해제를 지원하는 기술 입력 구성
- *
- * 1. 현재 기술 선택 순서 보존
- * 2. 검색어와 선택 개수 제한에 맞는 후보 구성
- * 3. 선택 기술 칩·제출 값을 함께 갱신
- * 4. 검색 포커스·입력·키보드 처리를 선택 목록에 연결
+ * 기술 목록에서 선택 순서를 보존하며 최대 30개 지정
  */
 export function stackPicker(parent: HTMLElement, badges: Badge[], initial: string[] = []) {
-  const group = el('fieldset', 'wide stack-picker');
-  group.append(el('legend', '', '기술 스택'));
-  // 현재 기술 선택 순서 보존
-  let selected = [...initial];
-  const chips = el('div', 'stack-chips');
-  const input = el('input', 'stack-search');
-  input.type = 'search'; input.placeholder = '기술 스택 검색'; input.autocomplete = 'off';
-  input.setAttribute('aria-label', '기술 스택 검색'); input.setAttribute('aria-autocomplete', 'list');
-  const list = el('div');
-  const values = el('div');
-  // 검색어와 선택 개수 제한에 맞는 후보 구성
-
-  /**
-   * 검색어에 맞는 미선택 기술 후보 표시
-   */
-  function options() {
-    list.replaceChildren();
-    const matches = badges.filter(b => !selected.includes(b.name) && b.name.toLocaleLowerCase().includes(input.value.trim().toLocaleLowerCase()));
-    for (const badge of matches) {
-      const option = el('button', 'picker-option stack-option'); option.type = 'button'; option.tabIndex = -1;
-      option.setAttribute('role', 'option'); option.setAttribute('aria-selected', 'false');
-      option.append(stackIcon(badge), document.createTextNode(badge.name));
-      option.addEventListener('mousedown', event => event.preventDefault());
-      option.addEventListener('click', () => {
-        if (selected.length >= 30) return;
-        selected.push(badge.name); input.value = ''; render(); input.focus(); popup.refresh();
-      }); list.append(option);
-    }
-    if (!matches.length) list.append(el('p', 'stack-empty', badges.length ? '선택할 기술 스택이 없습니다.' : '등록된 기술 스택이 없습니다.'));
-    if (selected.length >= 30) list.replaceChildren(el('p', 'stack-empty', '기술 스택은 최대 30개까지 선택할 수 있습니다.'));
-  }
-  // 선택 기술 칩·제출 값을 함께 갱신
-
-  /**
-   * 선택 기술을 칩·숨김 폼 값으로 갱신
-   */
-  function render() {
-    chips.replaceChildren(); values.replaceChildren();
-    for (const name of selected) {
-      const chip = el('span', 'stack-chip');
-      const badge = badges.find(b => b.name === name); if (badge) chip.append(stackIcon(badge));
-      chip.append(document.createTextNode(name));
-      const remove = el('button', 'chip-remove', '×'); remove.type = 'button'; remove.setAttribute('aria-label', `${name} 선택 해제`);
-      remove.addEventListener('click', () => { selected = selected.filter(item => item !== name); render(); input.focus(); popup.refresh(); });
-      chip.append(remove); chips.append(chip);
-      const hidden = el('input'); hidden.type = 'hidden'; hidden.name = 'stackBadgeNames'; hidden.value = name; values.append(hidden);
-    }
-  }
-  group.append(chips, input, list, values); parent.append(group); render();
-  // 검색 포커스·입력·키보드 처리를 선택 목록에 연결
-  const popup = listbox(input, list, options);
-  input.addEventListener('focus', popup.open); input.addEventListener('input', popup.open);
-  input.addEventListener('keydown', event => { if (event.key === 'Enter' && !event.isComposing) event.preventDefault(); });
+  selectionPicker(parent, { title: '기술 스택', name: 'stackBadgeNames', className: 'stack-picker',
+    placeholder: '기술 스택 검색', searchLabel: '기술 스택 검색', initial, maximum: 30,
+    items: badges.map(badge => ({ value: badge.name, icon: () => stackIcon(badge) })), removeLabel: value => `${value} 선택 해제` });
 }
 
 /**

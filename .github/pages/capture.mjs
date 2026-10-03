@@ -1,7 +1,6 @@
-/**
- * 공개 주소 식별자 패턴
- */
-const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+import { isSlug } from '../../src/main/resources/web/shared/site-path.ts';
+
+
 
 /**
  * 스냅샷 SHA-256 형식
@@ -62,7 +61,7 @@ const signedInteger = (value, context) => {
  */
 const slug = (value, context) => {
   string(value, context);
-  requireValue(value.length <= 160 && slugPattern.test(value), context);
+  requireValue(isSlug(value), context);
   return value;
 };
 

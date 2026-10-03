@@ -14,10 +14,6 @@ export type CodeToken = {
    */
   color?: string;
 
-  /**
-   * 토큰 글꼴 스타일
-   */
-  fontStyle?: number
 };
 
 /**
@@ -200,7 +196,7 @@ function copyTokens(lines: ThemedToken[][], source: string[]): CodeToken[][] {
   if (lines.length !== source.length) throw new Error("구문 강조 줄 수 불일치");
   return lines.map((line, index) => {
     if (line.map((token) => token.content).join("") !== source[index]) throw new Error("구문 강조 원문 불일치");
-    return line.map(({ content, color, fontStyle }) => ({ content, color, fontStyle }));
+    return line.map(({ content, color }) => ({ content, color }));
   });
 }
 

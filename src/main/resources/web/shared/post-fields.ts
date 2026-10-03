@@ -1,5 +1,5 @@
+import { selectionPicker } from './selection-picker';
 import { el, field, area, choice, value } from './forms';
-import { listbox } from './dropdown';
 import type { Series } from './series-editor';
 
 /**
@@ -114,79 +114,13 @@ export function categoryPicker(parent: HTMLElement, categories: Category[], sele
 }
 
 /**
- * 기존 태그 검색과 새 태그 입력 구성
- *
- * 1. 기존 태그 선택 목록 준비
- * 2. 길이·개수·대소문자 중복 검사 후 추가
- * 3. 기존 태그 검색과 새 태그 생성 후보 구성
- * 4. Enter 없이 저장해도 입력 중인 태그를 선택에 반영
+ * 기존·새 태그를 최대 16개 선택, 이름은 40 코드포인트까지 허용
  */
 export function tagPicker(parent: HTMLElement, tags: Tag[], initial: string[] = []) {
-  const group = el('fieldset', 'wide tag-picker'); group.append(el('legend', '', '태그'));
-  // 기존 태그 선택 목록 준비
-  let selected = [...initial];
-  const chips = el('div', 'stack-chips'); const values = el('div');
-  const input = el('input'); input.type = 'text'; input.placeholder = '기존 태그 검색 또는 새 태그 입력'; input.autocomplete = 'off'; input.maxLength = 80;
-  input.setAttribute('aria-label', '태그 검색'); input.setAttribute('aria-autocomplete', 'list');
-  const list = el('div');
-
-  /**
-   * 대소문자와 무관하게 이미 선택한 태그인지 확인
-   */
-  const has = (name: string) => selected.some(tag => tag.toLowerCase() === name.toLowerCase());
-
-  /**
-   * 선택 태그 칩과 제출할 폼 값 갱신
-   */
-  function render() {
-    chips.replaceChildren(); values.replaceChildren();
-    for (const name of selected) {
-      const chip = el('span', 'stack-chip', `#${name}`); const remove = el('button', 'chip-remove', '×'); remove.type = 'button'; remove.setAttribute('aria-label', `${name} 태그 제거`);
-      remove.addEventListener('click', () => { selected = selected.filter(tag => tag !== name); input.setCustomValidity(''); render(); input.focus(); popup.refresh(); });
-      chip.append(remove); chips.append(chip);
-      const hidden = el('input'); hidden.type = 'hidden'; hidden.name = 'tags'; hidden.value = name; values.append(hidden);
-    }
-  }
-  // 길이·개수·대소문자 중복 검사 후 추가
-
-  /**
-   * 유효한 태그를 중복 없이 선택 목록에 추가
-   */
-  function add(raw: string) {
-    const name = raw.trim().replace(/^#/, '');
-    const error = [...name].length > 40 ? '태그는 40자까지 입력하세요.' : name && !has(name) && selected.length >= 16 ? '태그는 16개까지 선택하세요.' : '';
-    input.setCustomValidity(error);
-    if (error) { input.reportValidity(); return; }
-    if (name && !has(name)) selected.push(name);
-    input.value = ''; render(); popup.refresh();
-  }
-  // 기존 태그 검색과 새 태그 생성 후보 구성
-  const popup = listbox(input, list, () => {
-    list.replaceChildren(); const term = input.value.trim().replace(/^#/, '');
-    const matches = tags.filter(tag => !has(tag.name) && tag.name.toLocaleLowerCase().includes(term.toLocaleLowerCase()));
-
-    /**
-     * 이름·표시 문구·사용 건수로 태그 후보 생성
-     */
-    const option = (name: string, caption: string, count?: number) => {
-      const row = el('button', 'picker-option', caption); row.type = 'button'; row.tabIndex = -1; row.setAttribute('role', 'option'); row.setAttribute('aria-selected', 'false');
-      if (count !== undefined) row.append(el('span', 'picker-count', String(count)));
-      row.addEventListener('click', () => add(name)); list.append(row);
-    };
-    matches.forEach(tag => option(tag.name, `#${tag.name}`, tag.count));
-    if (term && !has(term) && !tags.some(tag => tag.name.toLowerCase() === term.toLowerCase())) option(term, `＋ “${term}” 추가`);
-    if (!list.childElementCount) list.append(el('p', 'stack-empty', term ? '이미 선택한 태그입니다.' : '태그를 입력하고 Enter로 추가하세요.'));
-  });
-  input.addEventListener('focus', popup.open); input.addEventListener('input', () => { input.setCustomValidity(''); popup.open(); });
-  input.addEventListener('keydown', event => {
-    if (!event.isComposing && (event.key === 'Enter' || event.key === ',')) {
-      if (!event.defaultPrevented) add(input.value); event.preventDefault();
-    }
-  });
-  // Enter 없이 저장해도 입력 중인 태그를 선택에 반영
-  // Enter 없이 저장해도 입력 중인 태그를 선택에 반영
-  input.addEventListener('blur', () => { if (input.value.trim()) add(input.value); });
-  group.append(chips, input, list, values); parent.append(group); render();
+  selectionPicker(parent, { title: '태그', name: 'tags', className: 'tag-picker',
+    placeholder: '기존 태그 검색 또는 새 태그 입력', searchLabel: '태그 검색', initial, maximum: 16, createMaxLength: 40,
+    items: tags.map(tag => ({ value: tag.name, count: tag.count })), normalize: value => value.replace(/^#/, ''),
+    caption: value => `#${value}`, removeLabel: value => `${value} 태그 제거` });
 }
 
 /**

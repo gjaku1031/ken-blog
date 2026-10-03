@@ -1,3 +1,4 @@
+import { BASE, sitePath as route, checkedSlug, postPath, wikiKey } from '../../src/main/resources/web/shared/site-path.ts';
 import { build as bundle } from "esbuild";
 import { capture, confirmRevision, normalizeSnapshot } from "./capture.mjs";
 import { buildWebAssets } from "../../src/main/resources/web/build.mjs";
@@ -24,35 +25,11 @@ const staging = join(root, "build/site-staging");
  */
 const output = join(root, "build/site");
 
-/**
- * 사이트 기준 경로
- */
-const basePath = "/ken-blog/";
 
-/**
- * 공개 주소 식별자 패턴
- */
-const slugPattern = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
-/**
- * 사이트 기준 경로 결합
- */
-const route = (path = "") => `${basePath}${path}`;
 
-/**
- * 공개 주소 식별자의 타입·길이·형식 검사
- */
-const checkedSlug = (value) => { if (typeof value !== "string" || value.length > 160 || !slugPattern.test(value)) throw new Error("공개 slug 형식 오류"); return value; };
 
-/**
- * 검증된 글 주소 생성
- */
-const postPath = post => route(`post/${checkedSlug(post.slug)}/`);
 
-/**
- * 위키 제목의 대소문자 비교 키 생성
- */
-const wikiKey = (title) => title.toLocaleLowerCase("und");
 
 /**
  * 공개 API의 같은 출처만 이미지 다운로드 원본으로 허용함
@@ -229,7 +206,7 @@ async function markdownSource(file, fixture) {
  * 7. 검증 완료한 임시 산출물로 출력 디렉터리 교체
  */
 async function main() {
-  if (process.env.SITE_BASE_PATH && process.env.SITE_BASE_PATH !== "/ken-blog") throw new Error("SITE_BASE_PATH는 /ken-blog여야 합니다.");
+  if (process.env.SITE_BASE_PATH && process.env.SITE_BASE_PATH !== BASE.slice(0, -1)) throw new Error("SITE_BASE_PATH는 /ken-blog여야 합니다.");
   // 빌드 입력을 fixture 또는 공개 API 스냅샷으로 선택
   const fixtureArg = process.argv.find((arg) => arg === "--fixture" || arg.startsWith("--fixture=") || arg === "--empty");
   const fixture = !!fixtureArg;

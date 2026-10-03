@@ -1,3 +1,4 @@
+import { sitePath } from '../shared/site-path';
 import { request, mutate, HttpError } from '../shared/admin-api';
 import { el, setMessage, submit } from '../shared/forms';
 import { postFields, postPayload, type Category, type Tag } from '../shared/post-fields';
@@ -23,7 +24,7 @@ export function connectPostCreator() {
   const message = el('p', 'notice'); message.hidden = true;
   const content = el('div'); dialog.append(heading, message, content); document.body.append(dialog);
   close.addEventListener('click', () => dialog.close());
-  let generation = 0; dialog.addEventListener('close', () => { generation++; });
+  let generation = 0; dialog.addEventListener('close', () => { if (!dialog.open) generation++; });
   // 일반 클릭만 받아 작성 대상을 선택하고 요청 세대 갱신
   return async (trigger: HTMLElement) => {
     const run = ++generation;
@@ -55,7 +56,7 @@ export function connectPostCreator() {
           // 현재 세대의 결과만 완료 화면에 반영
           const done = el('div', 'creation-complete');
           done.append(el('h3', '', '미발행 글로 저장했습니다.'), el('p', '', post.title));
-          const manage = el('a', 'button', '글 관리'); manage.href = '/ken-blog/manage/#posts';
+          const manage = el('a', 'button', '글 관리'); manage.href = sitePath('manage/#posts');
           const finish = el('button', 'button primary', '완료'); finish.type = 'button'; finish.addEventListener('click', () => dialog.close());
           done.append(manage, finish); content.replaceChildren(done); finish.focus();
         } catch (error) { if (run === generation && dialog.open) showError(error); }
@@ -71,7 +72,7 @@ export function connectPostCreator() {
   function showError(error: unknown) {
     if (error instanceof HttpError && error.status === 401) {
       updateHeaderSession(false); content.replaceChildren();
-      const login = el('a', 'button', '관리자 로그인'); login.href = '/ken-blog/manage/'; content.append(login);
+      const login = el('a', 'button', '관리자 로그인'); login.href = sitePath('manage/'); content.append(login);
     }
     setMessage(message, error instanceof Error ? error.message : '글 정보를 저장하지 못했습니다.', true);
   }

@@ -1,7 +1,6 @@
+import "../shared/base.css";
 import "../shared/theme.css";
 import "../shared/stack-icons.css";
-import "@fontsource-variable/noto-sans-kr/index.css";
-import "@fontsource/ibm-plex-mono/400.css";
 import "./style.css";
 import "../shared/header.css";
 import "../shared/category-tree.css";
@@ -88,9 +87,6 @@ function filterCards(): void {
   }
   // 검색 결과 건수와 빈 목록 안내 갱신
   if (more) more.hidden = visible <= cardLimit;
-  const active = document.querySelector<HTMLElement>("#search-filter");
-  if (active) active.innerHTML = term ? `<span class="search-filter"></span><span class="mono feed-total">${visible}편</span><a href="/ken-blog/posts/">필터 해제</a>` : "";
-  if (active && term) active.querySelector<HTMLElement>(".search-filter")!.textContent = `검색: ${search?.value.trim() ?? ""}`;
   const empty = document.querySelector<HTMLElement>("#filter-empty");
   if (empty) empty.hidden = visible > 0 || cards.length === 0;
 }

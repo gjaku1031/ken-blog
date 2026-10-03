@@ -1,3 +1,4 @@
+import { sitePath } from './site-path';
 import { mutate, clearCsrf, HttpError } from './admin-api';
 
 /**
@@ -61,8 +62,8 @@ export function connectHeader(options: {
    * 현재 화면 경로 종류
    */
   const route = document.body.dataset.route;
-  const searchPath = "/ken-blog/search/";
-  const homePath = "/ken-blog/posts/";
+  const searchPath = sitePath('search/');
+  const homePath = sitePath('posts/');
   const searchUnit = document.querySelector<HTMLElement>(".header-search-unit");
   const searchToggle = document.querySelector<HTMLButtonElement>("#header-search-toggle");
   const searchClose = document.querySelector<HTMLButtonElement>("#header-search-close");

@@ -13,7 +13,9 @@ async function mockApi(page, override = async () => false) {
     const data = path === '/auth/me' ? { role: 'ADMIN' } : path === '/auth/csrf' ? { headerName: 'X-CSRF', token: 'fixture' }
       : path === '/admin/posts' ? { items: posts.slice(number * 10, number * 10 + 10), page: number, totalPages: 4, totalElements: 34 }
       : path === '/admin/categories' ? fixture.categories.filter(item => item.depth === 1).map(item => ({ ...item, directCount: 1, children: fixture.categories.filter(child => child.path.startsWith(item.path + '/')).map(child => ({ ...child, directCount: 1, children: [] })) }))
-      : path === '/admin/tags' ? Array.from({ length: 20 }, (_, i) => ({ name: `tag${i}`, count: 1 })) : [];
+      : path === '/admin/tags' ? Array.from({ length: 20 }, (_, i) => ({ name: `tag${i}`, count: 1 }))
+      : path === '/admin/series' ? fixture.series
+      : path === '/admin/stack-badges' ? ['Alpha', 'Beta', 'Gamma'].map((name, index) => ({ id: index + 1, name, imageUrl: `/api/v1/stack-badges/${index + 1}/image` })) : [];
     await route.fulfill({ json: data });
   });
 }
@@ -78,6 +80,10 @@ test('legacy slug redirects only to generated public posts', async ({ page }) =>
   await expect(page).toHaveURL(/\/post\/fixture-1\//);
   await page.goto('/ken-blog/post/?slug=private-missing');
   await expect(page).toHaveURL(/\/posts\/$/);
+  await page.goto('/ken-blog/project/?slug=demo&doc=intro');
+  await expect(page).toHaveURL(/\/post\/project-intro\/$/);
+  await page.goto('/ken-blog/course/?slug=old&chapter=first');
+  await expect(page).toHaveURL(/\/post\/fixture-1\/$/);
 });
 
 // 데스크톱에서도 넓은 표의 오른쪽 열까지 스크롤 가능한지 검증
@@ -177,4 +183,37 @@ test('TOC updates after details toggle and at the document end', async ({ page }
   await page.getByRole('heading', { name: '숨겨진 제목', exact: true }).scrollIntoViewIfNeeded();
   await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
   await expect(page.locator('.post-toc a[aria-current]')).toHaveText('마지막 제목');
+});
+
+// 공용 선택 입력으로 바꾼 뒤에도 기술 순서·키보드 선택·제거 유지 검증
+test('stack picker preserves selection order through keyboard and removal', async ({ page }) => {
+  await mockApi(page); await page.goto('/ken-blog/manage/#series');
+  await page.getByRole('button', { name: '+ 새 프로젝트', exact: true }).click();
+  const input = page.getByRole('combobox', { name: '기술 스택 검색' });
+  for (const value of ['Gamma', 'Alpha']) { await input.fill(value); await input.press('ArrowDown'); await input.press('Enter'); }
+  expect(await page.locator('input[name=stackBadgeNames]').evaluateAll(inputs => inputs.map(input => input.value))).toEqual(['Gamma', 'Alpha']);
+  await page.getByRole('button', { name: 'Gamma 선택 해제' }).click();
+  expect(await page.locator('input[name=stackBadgeNames]').evaluateAll(inputs => inputs.map(input => input.value))).toEqual(['Alpha']);
+});
+
+// 익명 독자에게 관리자 모듈·폼 생성이 발생하지 않는지 검증
+test('anonymous listing has no writer dialog or form stylesheet', async ({ page }) => {
+  await mockApi(page, async (route, path) => {
+    if (path !== '/auth/me') return false;
+    await route.fulfill({ status: 401, json: {} }); return true;
+  });
+  await page.goto('/ken-blog/posts/');
+  await expect(page.locator('[data-post-create]')).toBeHidden();
+  await expect(page.locator('#post-dialog')).toHaveCount(0);
+  expect(await page.locator('link[rel=stylesheet]').count()).toBe(1);
+});
+
+// 좁은 화면에서 정리한 공개·관리 스타일이 가로 페이지 넘침을 만들지 않는지 검증
+test('mobile posts, project and admin panels fit the viewport', async ({ page }) => {
+  await mockApi(page); await page.setViewportSize({ width: 390, height: 844 });
+  for (const path of ['/ken-blog/posts/', '/ken-blog/projects/', '/ken-blog/post/project-intro/', '/ken-blog/manage/']) {
+    await page.goto(path);
+    await expect(page.locator('#main-content, #dashboard').filter({ visible: true }).first()).toBeVisible();
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+  }
 });
