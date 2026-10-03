@@ -389,10 +389,9 @@ function candidates(source: string, mask: Uint8Array): Candidate[] | null {
 /**
  * 접기 태그·편집 모델의 원문 구간 검사에서 주석 안의 HTML 모양 텍스트를 가림
  */
-export function annotationSourceMask(source: string): Uint8Array {
+export function annotationSourceMask(source: string, root: Root = parseMathMarkdown(source)): Uint8Array {
   const mask = new Uint8Array(source.length);
   if (sourceTooLarge(source)) { mask.fill(1); return mask; }
-  const root = parseMathMarkdown(source);
   const found = candidates(source, excludedMask(source, root));
   if (found === null) { mask.fill(1); return mask; }
   for (const candidate of found) mask.fill(1, candidate.start, candidate.end);
@@ -592,10 +591,9 @@ function rawDocument(source: string): Root {
  * 2. 후보를 마커로 가린 뒤 수식 파서로 재해석
  * 3. 후보 노드와 원문 위치를 차례로 복원
  */
-export function parseAnnotationMarkdown(source: string): Root {
+export function parseAnnotationMarkdown(source: string, root: Root = parseMathMarkdown(source)): Root {
   // 입력·후보 수·마커 충돌 제한 검사
   if (sourceTooLarge(source)) return rawDocument(source);
-  const root = parseMathMarkdown(source);
   const found = candidates(source, excludedMask(source, root));
   if (found === null) return rawDocument(source);
   if (!found.length) return root;

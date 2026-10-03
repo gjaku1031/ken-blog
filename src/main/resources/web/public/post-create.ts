@@ -1,4 +1,3 @@
-import '../shared/forms.css';
 import { request, mutate, HttpError } from '../shared/admin-api';
 import { el, setMessage, submit } from '../shared/forms';
 import { postFields, postPayload, type Category, type Tag } from '../shared/post-fields';
@@ -26,10 +25,7 @@ export function connectPostCreator() {
   close.addEventListener('click', () => dialog.close());
   let generation = 0; dialog.addEventListener('close', () => { generation++; });
   // 일반 클릭만 받아 작성 대상을 선택하고 요청 세대 갱신
-  document.addEventListener('click', async event => {
-    const trigger = event.target instanceof Element ? event.target.closest<HTMLElement>('[data-post-create]') : null;
-    if (!trigger || (event instanceof MouseEvent && (event.button || event.ctrlKey || event.metaKey || event.shiftKey || event.altKey))) return;
-    event.preventDefault();
+  return async (trigger: HTMLElement) => {
     const run = ++generation;
     const project = trigger.dataset.postCreate === 'PROJECT';
     title.textContent = project ? 'Projects 글쓰기' : 'Posts 글쓰기';
@@ -67,7 +63,7 @@ export function connectPostCreator() {
       });
       content.replaceChildren(form); form.querySelector('input')?.focus();
     } catch (error) { if (run === generation && dialog.open) showError(error); }
-  });
+  };
 
   /**
    * 작성 실패 메시지 표시

@@ -140,8 +140,8 @@ const INVALID_CHARACTER = /[\u0000-\u001f\u007f-\u009f\u2028\u2029\ud800-\udfff]
  * 2. HTML 여닫는 태그 사이의 텍스트도 제외
  * 3. 닫히지 않은 HTML은 문서 끝까지 제외
  */
-function excludedMask(source: string): Uint8Array {
-  const mask = annotationSourceMask(source);
+function excludedMask(source: string, root: Root): Uint8Array {
+  const mask = annotationSourceMask(source, root);
   const html: Array<{
     /**
      * 구간 시작 위치
@@ -181,7 +181,7 @@ function excludedMask(source: string): Uint8Array {
     for (const child of node.children ?? []) visit(child);
   };
   // AST에서 코드·수식·링크 등 제외 구간 수집
-  visit(parseMathMarkdown(source) as PositionedNode);
+  visit(root as PositionedNode);
   // HTML 여닫는 태그 사이의 텍스트도 제외
   const stack: Array<{
     /**
@@ -226,10 +226,10 @@ function escaped(source: string, position: number): boolean {
  *
  * 1. 기존 Markdown 문법의 제외 영역 계산
  */
-function scan(source: string, maximum: number): WikiLinkCandidate[] {
+function scan(source: string, maximum: number, root: Root = parseMathMarkdown(source)): WikiLinkCandidate[] {
   if (source.length > MAX_SOURCE_BYTES || new TextEncoder().encode(source).length > MAX_SOURCE_BYTES) return [];
   // 기존 Markdown 문법의 제외 영역 계산
-  const mask = excludedMask(source);
+  const mask = excludedMask(source, root);
   const output: WikiLinkCandidate[] = [];
   let attempts = 0;
   // 이스케이프·중첩·줄 경계·제목 길이를 검사하며 후보 수 제한
@@ -356,14 +356,15 @@ function wikiNode(starts: readonly number[], candidate: WikiLinkCandidate): Root
  */
 export function parseWikiMarkdown(source: string, maximum = MAX_CANDIDATES): Root {
   // 후보와 원문 크기 제한 확인
-  const found = scan(source, maximum);
-  if (!found.length) return parseAnnotationMarkdown(source);
+  const base = parseMathMarkdown(source);
+  const found = scan(source, maximum, base);
+  if (!found.length) return parseAnnotationMarkdown(source, base);
   let prefix = "";
   for (let serial = 0; serial < 16; serial++) {
     const candidate = `KENBLOGWIKI${serial}BOUNDARY`;
     if (!source.includes(candidate)) { prefix = candidate; break; }
   }
-  if (!prefix) return parseAnnotationMarkdown(source);
+  if (!prefix) return parseAnnotationMarkdown(source, base);
   const ranges: Replacement[] = [];
   // 후보별 마커와 원문 위치 대응 기록
   let modified = "";

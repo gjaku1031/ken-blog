@@ -22,6 +22,21 @@ export type RenderOptions = {
   attachmentUrl?: (id: number) => string | null;
 
   /**
+   * 공개 이미지 헤더의 화면 기준 크기, 테마별 이미지 비율 예약
+   */
+  attachmentSize?: (id: number) => {
+    /**
+     * 화면 너비 픽셀
+     */
+    width: number;
+
+    /**
+     * 화면 높이 픽셀
+     */
+    height: number;
+  } | null;
+
+  /**
    * 위키 제목의 이동 주소 해석기
    */
   wikiUrl?: (title: string) => string | null
@@ -289,7 +304,11 @@ async function decorate(tree: HtmlRoot, options: RenderOptions, headings: TocIte
         node.tagName = "span"; node.properties = { className: ["blocked-image"], role: "note" };
         node.children = [textNode("지원하지 않는 이미지")];
       } else {
+        const size = options.attachmentSize?.(id);
+        const darkSize = metadata.darkAttachmentId ? options.attachmentSize?.(metadata.darkAttachmentId) : null;
         node.properties = { src: light, alt: metadata.caption, loading: "lazy", decoding: "async",
+          ...(size ? { width: size.width, height: size.height, dataLightWidth: size.width, dataLightHeight: size.height } : {}),
+          ...(darkSize ? { dataDarkWidth: darkSize.width, dataDarkHeight: darkSize.height } : {}),
           dataDarkSrc: dark ?? "", dataWidth: String(metadata.width), dataAlign: metadata.align,
           className: ["ken-attachment"] };
         if (parent?.tagName === "p" && parent.children.length === 1) {
@@ -369,19 +388,28 @@ async function decorate(tree: HtmlRoot, options: RenderOptions, headings: TocIte
 }
 
 /**
- * 단일 Markdown 계약으로 파싱·안전 변환·첨부 수집·목차 생성을 수행함
+ * 원문 크기를 검사하고 공용 AST·첨부·위키·목차 정보를 한 번 수집
  */
-export async function renderMarkdown(source: string, options: RenderOptions = {}): Promise<RenderResult> {
+export function prepareMarkdown(source: string) {
   if (typeof source !== "string") throw new TypeError("Markdown 원문이 필요합니다.");
   if (new TextEncoder().encode(source).byteLength > 1024 * 1024) throw new RangeError("Markdown 원문이 1 MiB를 넘습니다.");
-  const parsed = parseAnnotationDocument(source);
-  const headings = headingsOf(parsed.root);
-  const wikiTargets = new Set(collectWikiTitles(parsed.root, parsed.items).titles);
+  // 문서 경계에서 줄바꿈을 통일하여 모든 파서의 위치 기준을 일치시킴
+  const parsed = parseAnnotationDocument(source.replace(/\r\n?/g, "\n"));
+  return { parsed, headings: headingsOf(parsed.root), attachmentIds: collectAttachmentIds(parsed.root),
+    wikiTargets: collectWikiTitles(parsed.root, parsed.items).titles };
+}
+
+/**
+ * 같은 AST를 재사용하여 공개 첨부·위키 주소를 반영한 본문 생성
+ */
+export async function renderPreparedMarkdown(prepared: ReturnType<typeof prepareMarkdown>, options: RenderOptions = {}): Promise<RenderResult> {
+  const { parsed, headings, attachmentIds } = prepared;
+  const wikiTargets = new Set(prepared.wikiTargets);
   const tree = toHast(parsed.root, { allowDangerousHtml: false }) as HtmlRoot;
   await decorate(tree, options, headings, wikiTargets, parsed.items);
   const schema = { ...defaultSchema, clobberPrefix: "", tagNames: [...(defaultSchema.tagNames ?? []), "figure", "figcaption", "button", "details", "summary"], attributes: { ...defaultSchema.attributes,
     "*": ["className", "id", "title", "dataWidth", "dataAlign", "dataDarkSrc", "dataLanguage", "dataMermaidSource", "dataAnnotationIndex", "dataWikiTitle", "dataKatexHtml", "role", "ariaLabel", "tabIndex"],
-    a: ["href", "target", "rel", "className", "ariaLabel", "dataAnnotationReturn"], img: ["src", "alt", "loading", "decoding", "className", "dataDarkSrc"], span: ["className", "style", "id", "role", "tabIndex", "ariaLabel", "dataAnnotationIndex", "dataKatexHtml"],
+    a: ["href", "target", "rel", "className", "ariaLabel", "dataAnnotationReturn"], img: ["src", "alt", "loading", "decoding", "className", "dataDarkSrc", "width", "height", "dataLightWidth", "dataLightHeight", "dataDarkWidth", "dataDarkHeight"], span: ["className", "style", "id", "role", "tabIndex", "ariaLabel", "dataAnnotationIndex", "dataKatexHtml"],
     figure: ["className", "style", "dataWidth", "dataAlign"], input: ["type", "checked", "disabled"], button: ["type", "className"], th: ["align"], td: ["align"] },
     protocols: { ...defaultSchema.protocols, href: ["http", "https", "mailto"], src: ["http", "https"] } };
 
@@ -430,7 +458,14 @@ export async function renderMarkdown(source: string, options: RenderOptions = {}
     }));
     html += `<section class="ken-annotations"><h2>주석</h2><ol role="list">${notes.join("")}</ol></section>`;
   }
-  return { html, headings, attachmentIds: collectAttachmentIds(source), wikiTargets: [...wikiTargets] };
+  return { html, headings, attachmentIds, wikiTargets: [...wikiTargets] };
+}
+
+/**
+ * 단일 문서의 파싱과 최종 HTML 생성을 한 번에 수행
+ */
+export async function renderMarkdown(source: string, options: RenderOptions = {}): Promise<RenderResult> {
+  return renderPreparedMarkdown(prepareMarkdown(source), options);
 }
 
 /**

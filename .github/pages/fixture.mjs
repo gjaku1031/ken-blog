@@ -21,3 +21,6 @@ export const fixture = {
   })),
   series: [],
 };
+
+// 화면 밖 도식의 지연 렌더를 검사할 충분한 문서 길이
+fixture.posts[0].body += '\n\n' + '여백 문단\n\n'.repeat(50) + '```mermaid\ngraph TD\n A-->B\n```';

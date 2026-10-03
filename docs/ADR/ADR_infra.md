@@ -64,7 +64,7 @@ Post의 메타데이터와 저장소 Markdown을 빌드 시 결합해 완성 HTM
 
 ### 빌드·배포 경계
 
-- 사이트 명령은 `npm ci`, `npm test`, `PUBLIC_API_BASE_URL=… npm run build:site`. Node 24.21.0 사용. Java·Gradle·Spring 실행 없는 생성 경로. `npm test`는 기존 타입 검사와 빈 사이트 생성 검사.
+- 사이트 명령은 `npm ci`, `npm test`, `PUBLIC_API_BASE_URL=… npm run build:site`. Node 24.21.0 사용. Java·Gradle·Spring 실행 없는 생성 경로. 현재 Node·Chromium 검사와 자산·검색 색인 분리 기준은 [프론트엔드 ADR](ADR_frontend.md) 참조.
 - API 명령은 `./gradlew build`와 `bootBuildImage`. npm 태스크·`skipWeb`·`writeSiteClasspath` 제거. API JAR에서 웹 소스·템플릿 제외 유지.
 - `pages.yml`은 공개 원고·웹 소스·npm 설정·사이트 빌드 코드 변경 시 실행. `ci.yml`은 Kotlin·런타임 리소스·기존 검사·Gradle 변경 시 실행하고 웹 리소스 제외. 변경 파일 경로 기준이며 커밋 메시지 규칙 없음. DB 메타데이터 변경은 기존 `workflow_dispatch`로 발행. 백엔드 공개 데이터 계약 변경 시 API 반영 후 사이트 수동 발행 필요.
 - 프론트 번들의 입력 키는 브라우저 소스·공용 코드·빌더·package/lockfile·tsconfig·Node 버전·플랫폼의 내용 해시. 페이지 템플릿과 원고는 번들 키에서 제외. 자산 manifest의 모든 파일 해시와 JS/CSS 진입 파일을 검사한 뒤 재사용. 캐시 미존재·손상·입력 변경 시 소스에서 재생성. Actions 캐시 만료가 발행 실패 조건이 아니며, 프론트 컴파일의 영구 생략 보장은 없음. 별도 산출물 Git 브랜치 미도입.

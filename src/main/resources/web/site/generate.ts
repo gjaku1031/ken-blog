@@ -1,6 +1,7 @@
 import { mkdir, writeFile, copyFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import nunjucks from "nunjucks";
+import { createHash } from 'node:crypto';
 
 /**
  * 공개 글에서 사용하는 분류의 표시 이름과 저장 순서
@@ -291,7 +292,22 @@ interface Input {
     /**
      * JavaScript 자산 경로
      */
-    js: string
+    js: string;
+
+    /**
+     * 상세 본문 자산, 직접 생성 검사에서는 생략 가능
+     */
+    articleJs?: string;
+
+    /**
+     * 상세 본문 스타일
+     */
+    articleCss?: string;
+
+    /**
+     * 첫 작성 시 불러올 폼 스타일
+     */
+    formsCss?: string;
   };
 
   /**
@@ -517,6 +533,10 @@ export async function generateSite(payload: Input, output: string) {
     const nav = header(active).nav;
     await write(path === "404.html" ? path : join(path, "index.html"), engine.render("page.njk", {
       view, section, documentTitle, socialTitle: article ? title : documentTitle, summary, canonical,
+      searchIndex: '',
+      articleJs: article && assets.articleJs ? route(`assets/${assets.articleJs}`) : '',
+      articleCss: article && assets.articleCss ? route(`assets/${assets.articleCss}`) : '',
+      formsCss: assets.formsCss ? route(`assets/${assets.formsCss}`) : '',
       ogType: article ? "article" : "website", base: BASE, assetsCss: route(`assets/${assets.css}`), assetsJs: route(`assets/${assets.js}`),
       adminHref: payload.adminHref, apiBase: admin.apiBase, nav, year: new Date().getUTCFullYear(), github: "https://github.com/gjaku1031/ken-blog", ...data,
     }));
@@ -528,13 +548,24 @@ export async function generateSite(payload: Input, output: string) {
    */
   async function listing(path: string, section: string, title: string, rows: Post[]) {
     const cards = rows.map(post => card(post, snapshot.categories ?? []));
+    const searching = section === 'Search';
+    let searchIndex = '';
+    if (searching) {
+      const entries = cards.map(item => ({ text: item.searchText.toLocaleLowerCase('und'),
+        category: item.categoryPath.toLocaleLowerCase('und'), tags: item.tags.map(tag => tag.toLocaleLowerCase('und')),
+        html: engine.render('views/cards.njk', { cards: [{ ...item, searchText: '' }], base: BASE }) }));
+      const json = JSON.stringify(entries);
+      const filename = `assets/search-${createHash('sha256').update(json).digest('hex').slice(0, 16)}.json`;
+      await write(filename, json); searchIndex = route(filename);
+    }
     await page(path, "listing", section, title, `${title} 공개 글 목록`, {
-      heading: section === "Search" ? "최근 글" : title, cards,
+      heading: searching ? '검색' : title, cards: searching ? [] : cards,
+      fallbackCards: searching ? cards.map(item => ({ ...item, searchText: '' })) : [], searchIndex,
       categories: categoryTree(rows, snapshot.categories ?? []), tags: unique(cards.flatMap(c => c.tags)),
       sidebarSeries: snapshot.series.filter(s => s.kind === "TECH")
         .sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id)
         .map(s => ({ name: s.name, count: s.postCount, href: postPath(s.cover) })),
-      searching: section === "Search",
+      searching,
     });
   }
   // 위키 대표 대상과 역링크 구성

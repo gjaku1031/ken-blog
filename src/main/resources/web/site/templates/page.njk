@@ -15,8 +15,8 @@
     <meta name="twitter:title" content="{{ socialTitle }}">
     <meta name="twitter:description" content="{{ summary }}">
     <link rel="canonical" href="{{ canonical }}">
-    <link rel="stylesheet" href="{{ assetsCss }}"></head>
-  <body data-route="{{ section | lower }}" data-api-base="{{ apiBase }}">
+    <link rel="stylesheet" href="{{ assetsCss }}">{% if articleCss %}<link rel="stylesheet" href="{{ articleCss }}">{% endif %}</head>
+  <body data-route="{{ section | lower }}" data-api-base="{{ apiBase }}" data-forms-css="{{ formsCss }}"{% if searchIndex %} data-search-index="{{ searchIndex }}"{% endif %}>
     <div class="site-root">
       <a class="skip-link" href="#main-content">본문으로 건너뛰기</a>
       {% include "header.njk" %}
@@ -30,6 +30,6 @@
         </div>
       </footer>
     </div>
-    {# 본문 상호작용 초기화 #}<script type="module" src="{{ assetsJs }}"></script>
+    {# 본문 상호작용 초기화 #}<script type="module" src="{{ assetsJs }}"></script>{% if articleJs %}<script type="module" src="{{ articleJs }}"></script>{% endif %}
   </body>
 </html>

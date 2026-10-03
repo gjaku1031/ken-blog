@@ -133,7 +133,6 @@ export function connectHeader(options: {
 
   // 한글 조합 중에는 이동을 보류하고 검색을 지연 실행
   search?.addEventListener("input", () => {
-    if (route === "search") options.onSearch?.();
     scheduleSearch();
   });
   search?.addEventListener("compositionstart", () => { searchComposing = true; window.clearTimeout(searchTimer); });

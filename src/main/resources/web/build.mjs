@@ -31,14 +31,23 @@ const publicOutput = join(root, "build/public-assets");
 async function compile(name, entry, output, publicPath) {
   await rm(output, { recursive: true, force: true });
   await mkdir(output, { recursive: true });
-  const result = await build({ entryPoints: { [name]: entry }, outdir: output,
+  const inputs = { [name]: entry };
+  if (name === 'public') { inputs.article = join(source, 'public/article.ts'); inputs.forms = join(source, 'shared/forms.css'); }
+  const result = await build({ entryPoints: inputs, outdir: output,
     bundle: true, splitting: true, format: "esm", platform: "browser", target: "es2022", minify: true,
     entryNames: "[name]-[hash]", chunkNames: "chunk-[hash]", assetNames: "asset-[hash]", publicPath,
     loader: { ".woff": "file", ".woff2": "file", ".ttf": "file", ".svg": "file" }, metafile: true, logLevel: "warning" });
   const entryOutput = Object.entries(result.metafile.outputs).find(([, value]) =>
     value.entryPoint && resolve(value.entryPoint) === entry);
   if (!entryOutput?.[1].cssBundle) throw new Error(`${name} JS/CSS 자산이 필요합니다.`);
-  return { js: basename(entryOutput[0]), css: basename(entryOutput[1].cssBundle) };
+  const paths = { js: basename(entryOutput[0]), css: basename(entryOutput[1].cssBundle) };
+  if (name === 'public') {
+    const article = Object.entries(result.metafile.outputs).find(([, value]) => value.entryPoint && resolve(value.entryPoint) === inputs.article);
+    const forms = Object.entries(result.metafile.outputs).find(([, value]) => value.entryPoint && resolve(value.entryPoint) === inputs.forms);
+    if (!article?.[1].cssBundle || !forms) throw new Error('본문·폼 자산 누락');
+    paths.articleJs = basename(article[0]); paths.articleCss = basename(article[1].cssBundle); paths.formsCss = basename(forms[0]);
+  }
+  return paths;
 }
 
 /**
@@ -89,7 +98,7 @@ export async function buildWebAssets() {
     if (saved.key === key) {
       const files = { admin: await fileHashes(adminOutput), public: await fileHashes(publicOutput) };
       if (JSON.stringify(files) === JSON.stringify(saved.files) && ["admin", "public"].every(name =>
-        ["js", "css"].every(type => files[name][saved.entries?.[name]?.[type]]))) {
+        saved.entries?.[name]?.js && saved.entries[name].css && Object.values(saved.entries[name]).every(file => files[name][file]))) {
         console.log(`프론트 번들 재사용: ${key}`);
         return saved.entries;
       }

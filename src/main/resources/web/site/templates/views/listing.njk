@@ -8,6 +8,8 @@
       {# 현재 검색어·결과 건수 표시 위치 #}{% if searching %}<p id="search-filter" class="active-filters">
       </p>{% endif %}
       <div class="post-list">{% include "views/cards.njk" %}</div>
+      {% if searching %}<noscript><p>검색에는 JavaScript가 필요합니다. 공개 글 목록을 표시합니다.</p>{% set cards = fallbackCards %}{% include "views/cards.njk" %}</noscript>{% endif %}
+      <button id="filter-more" class="write-button" type="button" hidden>더 보기</button>
       <p id="filter-empty" class="message-card card" hidden>검색 결과가 없습니다.</p>
     </section>
     {# 분류·태그 필터 #}{% include "views/sidebar.njk" %}

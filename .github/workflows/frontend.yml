@@ -1,0 +1,24 @@
+# 배포 자격 증명 없이 공개 가상 자료와 모의 API만 검증
+name: Frontend
+on:
+  pull_request:
+    paths: ['src/main/resources/web/**', '.github/pages/**', 'package*.json', 'tsconfig.json', '.github/workflows/frontend.yml']
+  push:
+    branches: ['codex/**']
+    paths: ['src/main/resources/web/**', '.github/pages/**', 'package*.json', 'tsconfig.json', '.github/workflows/frontend.yml']
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions/setup-node@v7.0.0
+        with:
+          node-version: '24.21.0'
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:browser

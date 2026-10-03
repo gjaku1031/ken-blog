@@ -7,6 +7,7 @@ import { createHash } from "node:crypto";
 import { generateSite } from "../../src/main/resources/web/site/generate.ts";
 import { resolve, join } from "node:path";
 import { pathToFileURL } from "node:url";
+import { imageSize } from './image-size.mjs';
 
 /**
  * 저장소 루트
@@ -108,11 +109,12 @@ async function download(url, name) {
   const png = type === "image/png" && [137, 80, 78, 71, 13, 10, 26, 10].every((part, index) => bytes[index] === part);
   const jpg = type === "image/jpeg" && bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255;
   if (!png && !jpg) throw new Error("공개 이미지 형식 오류");
+  const size = imageSize(bytes, type);
   // 내용 해시를 포함한 파일명으로 저장
   const digest = createHash("sha256").update(bytes).digest("hex");
   const filename = `${name}-${digest}.${png ? "png" : "jpg"}`;
   await writeFile(join(staging, "assets", filename), bytes);
-  return route(`assets/${filename}`);
+  return { url: route(`assets/${filename}`), ...size };
 }
 
 /**
@@ -248,7 +250,7 @@ async function main() {
   const rendererFile = join(root, "build/.site-markdown.mjs");
   await bundle({ entryPoints: [join(root, "src/main/resources/web/shared/markdown.ts")], outfile: rendererFile,
     bundle: true, packages: "external", platform: "node", format: "esm", target: "node24", logLevel: "silent" });
-  const { renderMarkdown } = await import(pathToFileURL(rendererFile).href);
+  const { prepareMarkdown, renderPreparedMarkdown } = await import(pathToFileURL(rendererFile).href);
   const allPosts = snapshot.posts;
   const contentArg = process.argv.find((arg) => arg.startsWith("--content-dir="));
   const contentDir = resolve(contentArg ? contentArg.slice("--content-dir=".length) : join(root, "content/posts"));
@@ -262,7 +264,8 @@ async function main() {
   }
   const owners = new Map();
   for (const post of allPosts) {
-    const parsed = await renderMarkdown(post.body);
+    const parsed = prepareMarkdown(post.body);
+    post.prepared = parsed;
     for (const id of parsed.attachmentIds) owners.set(id, post.id);
   }
   // 본문 첨부를 글 권한 경로로 내려받아 정적 주소 구성
@@ -274,7 +277,7 @@ async function main() {
   // 프로젝트 기술 이미지는 ID별로 한 번만 수집
   const badges = new Map();
   for (const project of snapshot.series) for (const badge of project.stackBadges ?? []) if (!badges.has(badge.id)) badges.set(badge.id, badge);
-  for (const badge of badges.values()) badge.imageUrl = await download(imagePath(badge.imageUrl, base, `/api/v1/stack-badges/${badge.id}/image`), `stack-${badge.id}`);
+  for (const badge of badges.values()) badge.imageUrl = (await download(imagePath(badge.imageUrl, base, `/api/v1/stack-badges/${badge.id}/image`), `stack-${badge.id}`)).url;
   for (const project of snapshot.series) for (const badge of project.stackBadges ?? []) badge.imageUrl = badges.get(badge.id).imageUrl;
   // 최초 출간 글을 위키 제목의 대표 주소로 선택
   const links = new Map();
@@ -282,7 +285,8 @@ async function main() {
     const key = wikiKey(post.title); if (!links.has(key)) links.set(key, postPath(post));
   }
   for (const post of allPosts) {
-    const rendered = await renderMarkdown(post.body, { attachmentUrl: (id) => attachmentUrls.get(id) ?? null,
+    const rendered = await renderPreparedMarkdown(post.prepared, { attachmentUrl: (id) => attachmentUrls.get(id)?.url ?? null,
+      attachmentSize: (id) => attachmentUrls.get(id) ?? null,
       wikiUrl: (title) => links.get(wikiKey(title)) ?? null });
     post.rendered = { html: rendered.html, headings: rendered.headings, wikiTargets: rendered.wikiTargets };
   }

@@ -138,9 +138,9 @@ function walk(node: ImageNode, visit: (node: ImageNode) => void): void {
  *
  * @return 중복을 제거한 첨부 ID 오름차순 목록
  */
-export function collectAttachmentIds(body: string): number[] {
+export function collectAttachmentIds(body: string | Root): number[] {
   // 읽기 화면과 동일한 문법으로 문서 파싱
-  const root = parseAnnotationDocument(body).root as Root;
+  const root = typeof body === "string" ? parseAnnotationDocument(body).root : body;
   const tree = root as unknown as ImageNode;
   // 참조형 이미지 주소의 최초 정의 수집
   const definitions = new Map<string, string>();

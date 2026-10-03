@@ -22,27 +22,34 @@ export function connectTableOfContents(): void {
   const rail = toc.closest<HTMLElement>('.post-side-rail');
   let scheduled = false;
   let active: HTMLAnchorElement | null = null;
-  // 헤더 높이·제목 위치·문서 끝을 반영해 현재 절 계산
+  // 레이아웃이 바뀔 때만 제목 위치를 읽고 스크롤 중에는 캐시를 이분 탐색
+  let dirty = true;
+  let threshold = 0;
+  let positions: { entry: typeof entries[number]; top: number }[] = [];
 
   /**
-   * 현재 읽는 제목과 목차의 활성 항목 갱신
+   * 최신 레이아웃과 스크롤 위치로 현재 목차 항목 갱신
    */
   const update = () => {
     scheduled = false;
-    const visible = entries.filter(entry => entry.heading.getClientRects().length);
-    if (!visible.length) return;
-    const threshold = Math.max(
-      (header?.getBoundingClientRect().bottom ?? 0) + 24,
-      parseFloat(getComputedStyle(visible[0].heading).scrollMarginTop) || 0,
-    ) + 2;
-    let current = visible[0];
-    for (const entry of visible) {
-      if (entry.heading.getBoundingClientRect().top <= threshold) current = entry;
-      else break;
+    if (dirty) {
+      positions = entries.filter(entry => entry.heading.getClientRects().length)
+        .map(entry => ({ entry, top: entry.heading.getBoundingClientRect().top + window.scrollY }));
+      threshold = Math.max((header?.getBoundingClientRect().height ?? 0) + 24,
+        parseFloat(getComputedStyle(article).scrollMarginTop) || 90) + 2;
+      dirty = false;
     }
+    if (!positions.length) return;
+    let left = 0, right = positions.length;
+    while (left < right) {
+      const middle = (left + right) >>> 1;
+      if (positions[middle].top <= window.scrollY + threshold) left = middle + 1;
+      else right = middle;
+    }
+    let current = positions[Math.max(0, left - 1)].entry;
     // 마지막 절이 짧아 화면 위까지 올라오지 못하는 문서도 끝에 도달하면 표시함
     if (window.scrollY > 0 && window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 4)
-      current = visible[visible.length - 1];
+      current = positions[positions.length - 1].entry;
     if (active === current.link) return;
     active?.removeAttribute('aria-current');
     active = current.link;
@@ -60,14 +67,19 @@ export function connectTableOfContents(): void {
   const schedule = () => {
     if (!scheduled) { scheduled = true; requestAnimationFrame(update); }
   };
-  // 스크롤·크기·이미지·글꼴 변경을 프레임당 한 번 반영
+  /**
+   * 크기·이미지·접기·글꼴 변경 시 위치 캐시 무효화
+   */
+  const invalidate = () => { dirty = true; schedule(); };
+  // 스크롤은 좌표 계산 없이 예약, 레이아웃 사건만 캐시 갱신
   window.addEventListener('scroll', schedule, { passive: true });
-  window.addEventListener('resize', schedule);
+  window.addEventListener('resize', invalidate);
   window.addEventListener('hashchange', schedule);
-  window.addEventListener('pageshow', schedule);
-  article.addEventListener('load', schedule, true);
-  article.addEventListener('toggle', schedule, true);
-  new ResizeObserver(schedule).observe(article);
-  void document.fonts.ready.then(schedule);
+  window.addEventListener('pageshow', invalidate);
+  article.addEventListener('load', invalidate, true);
+  article.addEventListener('toggle', invalidate, true);
+  const observer = new ResizeObserver(invalidate);
+  observer.observe(article); if (header) observer.observe(header);
+  void document.fonts.ready.then(invalidate);
   schedule();
 }

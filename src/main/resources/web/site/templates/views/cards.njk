@@ -18,4 +18,4 @@
       {% if card.section != 'PROJECT' %}<time class="mono" datetime="{{ card.publishedDate }}">{{ card.displayDate }}</time>{% endif %}
     </div>{% endif %}
   </article>{% endfor %}
-  {# 빈 공개 글 목록 안내 #}{% if not cards | length %}<p class="message-card card">아직 공개된 글이 없습니다.</p>{% endif %}
+  {# 빈 공개 글 목록 안내 #}{% if not cards | length and not searching %}<p class="message-card card">아직 공개된 글이 없습니다.</p>{% endif %}

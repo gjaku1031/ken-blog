@@ -129,3 +129,52 @@ test('search focus remains visible for keyboard users', async ({ page }) => {
   await expect(page.locator('#site-search')).toBeFocused();
   expect(await page.locator('.header-search-unit').evaluate(element => getComputedStyle(element).outlineStyle)).toBe('solid');
 });
+
+// 본문 검색 색인과 추가 표시가 카드 DOM을 필요한 결과로 제한하는지 검증
+test('search loads body text separately and renders results in batches', async ({ page }) => {
+  await mockApi(page); await page.goto('/ken-blog/search/?q=needle-');
+  await expect(page.locator('[data-search-card]')).toHaveCount(20);
+  await expect(page.locator('#search-filter')).toContainText('34편');
+  await page.getByRole('button', { name: '더 보기', exact: true }).click();
+  await expect(page.locator('[data-search-card]')).toHaveCount(34);
+  await page.locator('#site-search').fill('needle-34');
+  await expect(page.locator('[data-search-card]')).toHaveCount(1);
+  await expect(page.locator('.post-list')).toContainText('검사 글 34');
+});
+
+// 목록의 익명 방문에서는 폼·본문 자산을 받지 않고 클릭 후에만 작성 창 연결
+test('writer assets load only after an authenticated click', async ({ page }) => {
+  await mockApi(page); await page.goto('/ken-blog/posts/');
+  await expect(page.getByRole('button', { name: '글쓰기', exact: true })).toBeVisible();
+  await expect(page.locator('#post-dialog')).toHaveCount(0);
+  expect(await page.locator('link[rel=stylesheet]').count()).toBe(1);
+  await page.getByRole('button', { name: '글쓰기', exact: true }).click();
+  await expect(page.locator('#post-dialog')).toBeVisible();
+  await expect(page.locator('#post-dialog input[name=title]')).toBeVisible();
+  expect(await page.locator('link[rel=stylesheet]').count()).toBe(2);
+});
+
+// 화면 밖 도식은 초기화하지 않고 접근·테마 변경 시 올바른 SVG 표시
+test('Mermaid renders on approach and follows theme changes', async ({ page }) => {
+  await mockApi(page); await page.goto('/ken-blog/post/fixture-1/');
+  const diagram = page.locator('.ken-mermaid');
+  await expect(diagram.locator('img')).toHaveCount(0);
+  await diagram.scrollIntoViewIfNeeded();
+  await expect(diagram.locator('img')).toBeVisible({ timeout: 15000 });
+  await expect(diagram).toHaveAttribute('data-enhanced', 'light');
+  await page.locator('#theme-toggle').click();
+  await diagram.scrollIntoViewIfNeeded();
+  await expect(diagram).toHaveAttribute('data-enhanced', 'dark');
+  await page.locator('#theme-toggle').click();
+  await diagram.scrollIntoViewIfNeeded();
+  await expect(diagram).toHaveAttribute('data-enhanced', 'light');
+});
+
+// 접힌 제목은 제외하고 펼치거나 문서 끝에 도달하면 목차 캐시 갱신
+test('TOC updates after details toggle and at the document end', async ({ page }) => {
+  await mockApi(page); await page.goto('/ken-blog/post/fixture-1/');
+  await page.locator('.markdown-body summary').click();
+  await page.getByRole('heading', { name: '숨겨진 제목', exact: true }).scrollIntoViewIfNeeded();
+  await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+  await expect(page.locator('.post-toc a[aria-current]')).toHaveText('마지막 제목');
+});
