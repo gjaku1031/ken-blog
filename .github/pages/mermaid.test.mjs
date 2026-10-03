@@ -2,11 +2,50 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { test } from "node:test";
 import { mermaidSourceError, mermaidThemeSource } from "../../src/main/resources/web/shared/mermaid-render.ts";
+import { ARCHITECTURE_ICONS } from "../../src/main/resources/web/shared/mermaid-architecture.ts";
 
 /**
  * ERD 검증용 원문
  */
 const diagram = "erDiagram\n  posts ||--o{ post_tags : post_id\n";
+
+/**
+ * Architecture의 로컬 아이콘만 허용하고 외부 팩과 설정 덮어쓰기를 거부함
+ */
+test("architecture accepts bundled icons and rejects remote packs and configuration", () => {
+  for (const icon of [...ARCHITECTURE_ICONS.map(name => `ken:${name}`), "cloud", "database", "disk", "internet", "server"])
+    assert.equal(mermaidSourceError(`architecture-beta\nservice api(${icon})[API]`), null);
+  for (const icon of ["logos:spring-icon", "ken:missing", "https://example.com/icon.svg", "@host:ken:spring"])
+    assert.notEqual(mermaidSourceError(`architecture-beta\nservice api(${icon})[API]`), null);
+  assert.notEqual(mermaidSourceError("%%{init: {securityLevel: 'loose'}}%%\narchitecture-beta\nservice api(ken:spring)[API]"), null);
+});
+
+/**
+ * 아이콘 목록과 실제 SVG 자산의 일치 및 크기·외부 자원 제외 확인
+ */
+test("every architecture icon is bundled with explicit dimensions and no external resources", async () => {
+  const pack = JSON.parse(await readFile(new URL("../../src/main/resources/web/shared/architecture-icons.json", import.meta.url), "utf8"));
+  assert.deepEqual(Object.keys(pack.icons).sort(), [...ARCHITECTURE_ICONS].sort());
+  for (const icon of Object.values(pack.icons)) {
+    assert.ok(icon.width > 0 && icon.height > 0);
+    assert.doesNotMatch(icon.body, /<(?:image|use|script|foreignObject)\b|\b(?:href|on\w+)\s*=|(?:https?|data):/i);
+  }
+});
+
+/**
+ * 두 프로젝트 원고의 Architecture와 기존 도식이 공개 렌더러 제한을 만족함
+ */
+test("project architecture articles use supported diagrams", async () => {
+  for (const [slug, architectureCount] of [
+    ["doc-340352c9-5fde-4bae-bc0b-4ecd744719a8", 1],
+    ["project-8d420603-48bb-4e29-8983-e08a6e649f80", 2],
+  ]) {
+    const body = await readFile(new URL(`../../content/posts/${slug}.md`, import.meta.url), "utf8");
+    const sources = [...body.matchAll(/```mermaid\n([\s\S]*?)\n```/g)].map(match => match[1]);
+    assert.equal(sources.filter(source => source.startsWith("architecture-beta")).length, architectureCount);
+    for (const source of sources) assert.equal(mermaidSourceError(source), null);
+  }
+});
 
 test("ERD role colors allow hex fills, borders and text with a bounded line width", () => {
   assert.equal(mermaidSourceError(diagram +
