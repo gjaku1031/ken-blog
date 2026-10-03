@@ -18,8 +18,7 @@ import jakarta.persistence.UniqueConstraint
 @Table(name = "categories", uniqueConstraints = [
     UniqueConstraint(name = "uk_categories_path", columnNames = ["path"]),
 ])
-class CategoryEntity protected constructor(
-    ) {
+open class CategoryEntity protected constructor() {
     // DB 외래 키와 삭제 규칙 저장은 기존 ID 필드를 사용
 
     /**
@@ -34,42 +33,42 @@ class CategoryEntity protected constructor(
      */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    var id: Long? = null
+    open var id: Long? = null
         protected set
 
     /**
      * 부모 분류 ID, 최상위이면 null
      */
     @Column(name = "parent_id")
-    var parentId: Long? = null
+    open var parentId: Long? = null
         protected set
 
     /**
      * 분류 경로
      */
     @Column(nullable = false, length = 256, columnDefinition = "varchar(256) character set utf8mb4 collate utf8mb4_bin")
-    lateinit var path: String
+    open lateinit var path: String
         protected set
 
     /**
      * 이름
      */
     @Column(nullable = false, length = 60)
-    lateinit var name: String
+    open lateinit var name: String
         protected set
 
     /**
      * 분류 깊이
      */
     @Column(nullable = false)
-    var depth: Int = 0
+    open var depth: Int = 0
         protected set
 
     /**
      * 정렬 순서
      */
     @Column(name = "sort_order", nullable = false)
-    var sortOrder: Int = 0
+    open var sortOrder: Int = 0
         protected set
 
     /**
@@ -92,6 +91,6 @@ class CategoryEntity protected constructor(
     /**
      * 같은 부모의 숫자 순서만 바꾸며 경로와 자손은 유지
      */
-    internal fun reorder(order: Int) { sortOrder = order }
+    internal open fun reorder(order: Int) { sortOrder = order }
 
 }

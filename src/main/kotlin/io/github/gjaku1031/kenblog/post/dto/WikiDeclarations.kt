@@ -25,8 +25,8 @@ object WikiDeclarations {
         val titles = LinkedHashSet<String>()
         for (index in 0 until node.size()) {
             val value = node.get(index)
-            if (!value.isTextual) throw InvalidWikiLinkRequestException()
-            titles.add(title(value.textValue()))
+            if (!value.isString) throw InvalidWikiLinkRequestException()
+            titles.add(title(value.stringValue()))
         }
         return titles.toList()
     }

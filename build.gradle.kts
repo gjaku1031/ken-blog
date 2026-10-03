@@ -48,12 +48,6 @@ kotlin {
     }
 }
 
-// Spring 플러그인의 all-open 대상에 JPA 타입을 추가하여 프록시 상속·접근자 재정의 허용
-allOpen {
-    annotation("jakarta.persistence.Entity")
-    annotation("jakarta.persistence.MappedSuperclass")
-}
-
 // API 실행 진입점
 springBoot {
     mainClass = "io.github.gjaku1031.kenblog.KenBlogApiApplicationKt"

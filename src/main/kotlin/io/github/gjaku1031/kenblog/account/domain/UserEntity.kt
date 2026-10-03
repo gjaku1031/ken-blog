@@ -39,27 +39,27 @@ enum class UserRole {
 @Table(name = "users", uniqueConstraints = [
     UniqueConstraint(name = "uk_users_username", columnNames = ["username"]),
 ])
-class UserEntity protected constructor() {
+open class UserEntity protected constructor() {
     /**
      * ID
      */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    var id: Long? = null
+    open var id: Long? = null
         protected set
 
     /**
      * 계정명
      */
     @Column(nullable = false, length = 64, columnDefinition = "varchar(64) character set ascii collate ascii_bin")
-    lateinit var username: String
+    open lateinit var username: String
         protected set
 
     /**
      * 비밀번호 해시
      */
     @Column(name = "password_hash", nullable = false, length = 100)
-    lateinit var passwordHash: String
+    open lateinit var passwordHash: String
         protected set
 
     /**
@@ -67,21 +67,21 @@ class UserEntity protected constructor() {
      */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
-    lateinit var role: UserRole
+    open lateinit var role: UserRole
         protected set
 
     /**
      * 생성 시각
      */
     @Column(name = "created_at", nullable = false, columnDefinition = "datetime(6)")
-    lateinit var createdAt: LocalDateTime
+    open lateinit var createdAt: LocalDateTime
         protected set
 
     /**
      * 표시 이름
      */
     @Column(name = "display_name", length = 100)
-    var displayName: String? = null
+    open var displayName: String? = null
         protected set
 
     /**
@@ -89,6 +89,6 @@ class UserEntity protected constructor() {
      */
     @ColumnDefault("true")
     @Column(nullable = false)
-    var enabled: Boolean = true
+    open var enabled: Boolean = true
         protected set
 }

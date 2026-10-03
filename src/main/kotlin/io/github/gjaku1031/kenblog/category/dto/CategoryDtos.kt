@@ -25,8 +25,8 @@ data class CategoryCreateRequest(
          * @throws InvalidCategoryRequestException path 누락·null·비문자열일 때
          */
         fun fromJson(node: JsonNode): CategoryCreateRequest {
-            if (!node.isObject || !node.has("path") || !node.get("path").isTextual) throw InvalidCategoryRequestException()
-            return CategoryCreateRequest(node.get("path").textValue())
+            if (!node.isObject || !node.has("path") || !node.get("path").isString) throw InvalidCategoryRequestException()
+            return CategoryCreateRequest(node.get("path").stringValue())
         }
     }
 }

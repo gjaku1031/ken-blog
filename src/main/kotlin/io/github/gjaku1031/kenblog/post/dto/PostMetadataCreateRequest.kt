@@ -77,8 +77,8 @@ data class PostMetadataCreateRequest(
             val tags = node.get("tags")?.let {
                 if (!it.isArray || it.size() > 100) throw InvalidPostRequestException()
                 (0 until it.size()).map { index ->
-                    if (!it[index].isTextual) throw InvalidPostRequestException()
-                    it[index].textValue()
+                    if (!it[index].isString) throw InvalidPostRequestException()
+                    it[index].stringValue()
                 }
             } ?: emptyList()
             // 주소 생략은 자동 생성 신호로 유지하고 메타데이터·선언 검증
@@ -92,14 +92,14 @@ data class PostMetadataCreateRequest(
         /**
          * 필수 JSON 문자열 조회, 누락·다른 타입이면 입력 오류
          */
-        private fun requiredString(node: JsonNode, name: String): String = node.get(name)?.takeIf { it.isTextual }
-            ?.textValue() ?: throw InvalidPostRequestException()
+        private fun requiredString(node: JsonNode, name: String): String = node.get(name)?.takeIf { it.isString }
+            ?.stringValue() ?: throw InvalidPostRequestException()
 
         /**
          * 선택 JSON 문자열 조회, 다른 타입이면 입력 오류
          */
         private fun optionalString(node: JsonNode, name: String): String? = node.get(name)?.let {
-            if (it.isNull) null else if (it.isTextual) it.textValue() else throw InvalidPostRequestException()
+            if (it.isNull) null else if (it.isString) it.stringValue() else throw InvalidPostRequestException()
         }
 
         /**

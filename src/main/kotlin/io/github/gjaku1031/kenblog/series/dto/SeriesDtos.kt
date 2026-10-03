@@ -211,8 +211,8 @@ object SeriesRequests {
         val badges = node.get("stackBadgeNames")?.let {
             if (!it.isArray || it.size() > 30) throw InvalidSeriesRequestException()
             (0 until it.size()).map { index ->
-                if (!it[index].isTextual) throw InvalidSeriesRequestException()
-                it[index].textValue()
+                if (!it[index].isString) throw InvalidSeriesRequestException()
+                it[index].stringValue()
             }
         } ?: emptyList()
         // 수정 시각을 파싱하고 시리즈 속성 입력 구성
@@ -233,9 +233,9 @@ object SeriesRequests {
     fun create(node: JsonNode): SeriesCreateRequest {
         // 허용 키와 종류·메타데이터 필수 입력 검사
         val allowed = setOf("slug", "kind", "metadata")
-        if (!node.isObject || node.properties().any { it.key !in allowed } || !node.path("kind").isTextual || !node.has("metadata"))
+        if (!node.isObject || node.properties().any { it.key !in allowed } || !node.path("kind").isString || !node.has("metadata"))
             throw InvalidSeriesRequestException()
-        val kind = SeriesKind.entries.firstOrNull { it.name == node.get("kind").textValue() }
+        val kind = SeriesKind.entries.firstOrNull { it.name == node.get("kind").stringValue() }
             ?: throw InvalidSeriesRequestException()
         // 주소 생략을 허용하고 종류별 메타데이터 검증
         return SeriesCreateRequest(optionalText(node, "slug"), kind, metadata(node.get("metadata")))
@@ -272,7 +272,7 @@ object SeriesRequests {
      * 선택 문자열의 null·타입 검사
      */
     private fun optionalText(node: JsonNode, name: String): String? = node.get(name)?.let {
-        if (it.isNull) null else if (it.isTextual) it.textValue() else throw InvalidSeriesRequestException()
+        if (it.isNull) null else if (it.isString) it.stringValue() else throw InvalidSeriesRequestException()
     }
 
     /**

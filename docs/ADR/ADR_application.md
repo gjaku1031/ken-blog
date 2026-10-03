@@ -105,6 +105,16 @@ Node 타입 검사·빈 Pages와 실제 API snapshot/로컬 원고/아이콘·�
 
 검증 이력: Post·Series 통합 시 기존 JVM 검사 35개, Pages 생성, Native API의 비밀번호 로그인·jOOQ 조회·MCP·이미지 기능 검증 완료. 배포 및 성능 검증의 데이터 범위와 제한은 인프라 ADR에 별도 기록.
 
+## 인증 상태 행 누락 처리 — 2026-10-03
+
+`JdbcTemplate.queryForObject`는 조회 행이 없으면 `EmptyResultDataAccessException` 발생. 기존 `?: return false`·`?: error(...)`는 non-null 매퍼 결과 뒤에 있어 0행 조회를 처리하지 못하는 코드였음.
+
+기존 세션 검증은 상태 행이 없으면 인증 거부 및 세션 폐기. 해당 조회의 `EmptyResultDataAccessException`만 처리하고, DB 연결·SQL 오류는 기존 오류 경계로 전파. 새 로그인과 기동 시 잠금 조회는 단일 상태 행이 반드시 존재해야 하므로 누락 시 시스템 오류로 중단하는 기존 동작 유지. 조용히 상태를 재생성하여 실패 횟수·잠금·인증 버전을 초기화하지 않음.
+
+불필요한 Elvis 연산자와 이미 앞선 조건으로 보장된 `config != null` 제거. 마지막 단일 람다는 괄호 밖으로 이동하고 로그인 결과 변수는 `when` 내부로 범위 제한. 계정·비밀번호·권한·세션 증명 검증은 유지.
+
+격리 MySQL에서 정상 로그인 후 인증 상태 행을 삭제하여 `/auth/me`의 401, 기존 세션 행 삭제, 새 로그인 시 필수 상태 누락 예외 확인. 검사 종료 시 원래 인증 상태 복원. 전체 검사 41건 통과, 실패·오류·건너뜀 0. 운영 인증 상태와 서버 배포는 변경하지 않음.
+
 ## 상태 확인의 Actuator 통일 — 2026-10-02 결정
 
 고정 `UP`만 반환하던 `status` 패키지의 Controller·DTO와 `GET /api/v1/status` 제거. 프론트 소비자는 없으며 실제 사용처는 CI와 테스트뿐. 상태 확인은 이미 사용하는 `GET /actuator/health`로 통일하며 대체 커스텀 API·DTO 미도입.

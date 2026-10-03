@@ -53,89 +53,89 @@ enum class ProjectStatus {
     UniqueConstraint(name = "uk_series_slug", columnNames = ["slug"]),
     UniqueConstraint(name = "uk_series_legacy", columnNames = ["legacy_source", "legacy_id"]),
 ])
-class SeriesEntity protected constructor() {
+open class SeriesEntity protected constructor() {
     /**
      * ID
      */
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    var id: Long? = null
+    open var id: Long? = null
         protected set
 
     /**
      * 공개 주소 식별자
      */
     @Column(nullable = false, length = 160, columnDefinition = "varchar(160) character set ascii collate ascii_bin")
-    lateinit var slug: String
+    open lateinit var slug: String
         protected set
 
     /**
      * 이름
      */
     @Column(nullable = false, length = 200)
-    lateinit var name: String
+    open lateinit var name: String
         protected set
 
     /**
      * 설명
      */
     @Column(nullable = false, length = 1000)
-    var description: String = ""
+    open var description: String = ""
         protected set
 
     /**
      * 시리즈 종류
      */
     @Enumerated(EnumType.STRING) @Column(nullable = false, columnDefinition = "varchar(16)")
-    lateinit var kind: SeriesKind
+    open lateinit var kind: SeriesKind
         protected set
 
     /**
      * 공개 범위
      */
     @Enumerated(EnumType.STRING) @Column(nullable = false, columnDefinition = "varchar(16)")
-    var visibility: PostVisibility = PostVisibility.PUBLIC
+    open var visibility: PostVisibility = PostVisibility.PUBLIC
         protected set
 
     /**
      * 프로젝트 진행 상태
      */
     @Enumerated(EnumType.STRING) @Column(name = "project_status", columnDefinition = "varchar(16)")
-    var projectStatus: ProjectStatus? = null
+    open var projectStatus: ProjectStatus? = null
         protected set
 
     /**
      * 시작 연월
      */
     @Column(name = "start_period", length = 7)
-    var startPeriod: String? = null
+    open var startPeriod: String? = null
         protected set
 
     /**
      * 종료 연월
      */
     @Column(name = "end_period", length = 7)
-    var endPeriod: String? = null
+    open var endPeriod: String? = null
         protected set
 
     /**
      * 정렬 순서
      */
     @Column(name = "sort_order", nullable = false)
-    var sortOrder: Long = 0
+    open var sortOrder: Long = 0
         protected set
 
     /**
      * 생성 시각
      */
     @Column(name = "created_at", nullable = false, columnDefinition = "datetime(6)")
-    lateinit var createdAt: LocalDateTime
+    open lateinit var createdAt: LocalDateTime
         protected set
 
     /**
      * 수정 시각
      */
     @Column(name = "updated_at", nullable = false, columnDefinition = "datetime(6)")
-    lateinit var updatedAt: LocalDateTime
+    open lateinit var updatedAt: LocalDateTime
         protected set
     // 재실행 가능한 기존 자료 이관과 이전 주소 연결에만 사용하는 출처
 
@@ -143,14 +143,14 @@ class SeriesEntity protected constructor() {
      * 이관 전 자료 종류
      */
     @Column(name = "legacy_source", length = 16)
-    var legacySource: String? = null
+    open var legacySource: String? = null
         protected set
 
     /**
      * 이관 전 ID
      */
     @Column(name = "legacy_id")
-    var legacyId: Long? = null
+    open var legacyId: Long? = null
         protected set
 
     /**
@@ -167,7 +167,7 @@ class SeriesEntity protected constructor() {
     /**
      * 종류와 공개 주소는 유지하며 시리즈 메타데이터만 변경
      */
-    internal fun replace(name: String, description: String, projectStatus: ProjectStatus?,
+    internal open fun replace(name: String, description: String, projectStatus: ProjectStatus?,
         startPeriod: String?, endPeriod: String?, now: LocalDateTime) {
         this.name = name
         this.description = description
@@ -180,5 +180,5 @@ class SeriesEntity protected constructor() {
     /**
      * 시리즈 카드의 숫자 순서만 변경
      */
-    internal fun reorder(order: Long) { sortOrder = order }
+    internal open fun reorder(order: Long) { sortOrder = order }
 }

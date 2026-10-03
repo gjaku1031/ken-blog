@@ -43,7 +43,7 @@ enum class PostVisibility {
  */
 @Entity
 @Table(name = "posts", uniqueConstraints = [UniqueConstraint(name = "uk_posts_slug", columnNames = ["slug"])])
-class PostEntity protected constructor() {
+open class PostEntity protected constructor() {
     /**
      * 분류 FK 매핑
      */
@@ -70,21 +70,21 @@ class PostEntity protected constructor() {
      * ID
      */
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
-    var id: Long? = null
+    open var id: Long? = null
         protected set
 
     /**
      * 제목
      */
     @Column(nullable = false, length = 200)
-    lateinit var title: String
+    open lateinit var title: String
         protected set
 
     /**
      * 공개 주소 식별자
      */
     @Column(nullable = false, length = 160, columnDefinition = "varchar(160) character set ascii collate ascii_bin")
-    lateinit var slug: String
+    open lateinit var slug: String
         protected set
     // 옛 DB 원문과 해시는 복구 자료로 유지하며 신규 등록은 빈 값
 
@@ -92,49 +92,49 @@ class PostEntity protected constructor() {
      * 복구·스키마 호환용 이전 본문
      */
     @Column(nullable = false, columnDefinition = "longtext")
-    lateinit var body: String
+    open lateinit var body: String
         protected set
 
     /**
      * 이전 본문의 SHA-256
      */
     @Column(name = "body_sha256", nullable = false, columnDefinition = "char(64)")
-    lateinit var bodySha256: String
+    open lateinit var bodySha256: String
         protected set
 
     /**
      * 요약
      */
     @Column(nullable = false, length = 120)
-    var summary: String = ""
+    open var summary: String = ""
         protected set
 
     /**
      * 분류 ID
      */
     @Column(name = "category_id")
-    var categoryId: Long? = null
+    open var categoryId: Long? = null
         protected set
 
     /**
      * 시리즈 ID
      */
     @Column(name = "series_id")
-    var seriesId: Long? = null
+    open var seriesId: Long? = null
         protected set
 
     /**
      * 관련 프로젝트 시리즈 ID
      */
     @Column(name = "related_series_id")
-    var relatedSeriesId: Long? = null
+    open var relatedSeriesId: Long? = null
         protected set
 
     /**
      * 시리즈 내 정렬 순서
      */
     @Column(name = "series_order")
-    var seriesOrder: Int? = null
+    open var seriesOrder: Int? = null
         protected set
     // 이전 구획은 이관 때 TECH로 정규화 앱의 종류 판단에는 사용하지 않음
 
@@ -148,7 +148,7 @@ class PostEntity protected constructor() {
      * 이전 공개 경로
      */
     @Column(name = "legacy_path", length = 500)
-    var legacyPath: String? = null
+    open var legacyPath: String? = null
         protected set
 
     /**
@@ -167,35 +167,35 @@ class PostEntity protected constructor() {
      * 생성 시각
      */
     @Column(name = "created_at", nullable = false, columnDefinition = "datetime(6)")
-    lateinit var createdAt: LocalDateTime
+    open lateinit var createdAt: LocalDateTime
         protected set
 
     /**
      * 수정 시각
      */
     @Column(name = "updated_at", nullable = false, columnDefinition = "datetime(6)")
-    lateinit var updatedAt: LocalDateTime
+    open lateinit var updatedAt: LocalDateTime
         protected set
 
     /**
      * 출간 상태
      */
     @Enumerated(EnumType.STRING) @Column(nullable = false, columnDefinition = "varchar(16)")
-    var status: PostStatus = PostStatus.DRAFT
+    open var status: PostStatus = PostStatus.DRAFT
         protected set
 
     /**
      * 공개 범위
      */
     @Enumerated(EnumType.STRING) @Column(nullable = false, columnDefinition = "varchar(16)")
-    var visibility: PostVisibility = PostVisibility.PUBLIC
+    open var visibility: PostVisibility = PostVisibility.PUBLIC
         protected set
 
     /**
      * 최초 출간 시각
      */
     @Column(name = "published_at", columnDefinition = "datetime(6)")
-    var publishedAt: LocalDateTime? = null
+    open var publishedAt: LocalDateTime? = null
         protected set
 
     /**
@@ -213,7 +213,7 @@ class PostEntity protected constructor() {
     /**
      * 제목·요약과 수정 시각 변경
      */
-    internal fun replaceMetadata(title: String, summary: String, now: LocalDateTime) {
+    internal open fun replaceMetadata(title: String, summary: String, now: LocalDateTime) {
         this.title = title
         this.summary = summary
         this.updatedAt = now
@@ -222,24 +222,24 @@ class PostEntity protected constructor() {
     /**
      * 분류와 수정 시각 변경
      */
-    internal fun changeCategory(id: Long?, now: LocalDateTime) { categoryId = id; updatedAt = now }
+    internal open fun changeCategory(id: Long?, now: LocalDateTime) { categoryId = id; updatedAt = now }
 
     /**
      * 시리즈 소속·순서·관련 프로젝트 변경
      */
-    internal fun assignSeries(id: Long?, order: Int?, relatedId: Long?, now: LocalDateTime) {
+    internal open fun assignSeries(id: Long?, order: Int?, relatedId: Long?, now: LocalDateTime) {
         seriesId = id; seriesOrder = order; relatedSeriesId = relatedId; updatedAt = now
     }
 
     /**
      * 순서만 바꿔 원고의 수정 시각·해시 보존
      */
-    internal fun reorder(order: Int?) { seriesOrder = order }
+    internal open fun reorder(order: Int?) { seriesOrder = order }
 
     /**
      * 공개 출간으로 전환하고 최초 출간 시각 기록
      */
-    internal fun publish(visibility: PostVisibility, now: LocalDateTime) {
+    internal open fun publish(visibility: PostVisibility, now: LocalDateTime) {
         if (visibility != PostVisibility.PUBLIC) throw InvalidPostRequestException()
         if (status == PostStatus.PUBLISHED && this.visibility == visibility) return
         if (publishedAt == null) publishedAt = now
@@ -249,7 +249,7 @@ class PostEntity protected constructor() {
     /**
      * 초안으로 전환하고 수정 시각 갱신
      */
-    internal fun unpublish(now: LocalDateTime) {
+    internal open fun unpublish(now: LocalDateTime) {
         if (status == PostStatus.DRAFT) return
         status = PostStatus.DRAFT; updatedAt = now
     }

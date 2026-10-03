@@ -8,6 +8,7 @@ import java.time.LocalDateTime
 import java.time.ZoneOffset
 import org.springframework.boot.ApplicationArguments
 import org.springframework.boot.ApplicationRunner
+import org.springframework.dao.EmptyResultDataAccessException
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
@@ -69,7 +70,7 @@ class AdminLoginAttemptService(
             password.toByteArray(Charsets.UTF_8).size <= 72 && encoder.matches(password, account.passwordHash)
         val validOwner = account?.enabled == true && account.role == UserRole.ADMIN
         // 성공 시 실패 상태 초기화 후 세션 증명 반환
-        if (validPassword && validOwner && config != null) {
+        if (validPassword && validOwner) {
             jdbc.update("UPDATE admin_auth_state SET failure_count = 0, locked_until = NULL WHERE id = 1")
             return AdminLoginResult.Success(config.username, sessionProof(config.fingerprint, account.passwordHash), state.authVersion)
         }
@@ -91,32 +92,38 @@ class AdminLoginAttemptService(
      * 요청 세션의 인증 증명과 현재 설정·계정 해시·DB 인증 버전이 일치하는지 검사
      *
      * 1. 현재 관리자 설정과 세션 증명의 타입·내용 확인
-     * 2. DB의 최신 설정 지문·인증 버전과 재대조
+     * 2. DB의 최신 설정 지문·인증 버전과 재대조, 상태 행이 없으면 인증 거부
+     *
+     * DB 연결·쿼리 오류는 인증 불일치로 숨기지 않고 전파
      */
     fun isValidSession(username: String, passwordHash: String, proof: Any?, version: Any?): Boolean {
         // 현재 관리자 설정과 세션 증명의 타입·내용 확인
         val config = settings.configured() ?: return false
         if (username != config.username || proof !is String || version !is Long) return false
         if (!MessageDigest.isEqual(proof.toByteArray(), sessionProof(config.fingerprint, passwordHash).toByteArray())) return false
-        // DB의 최신 설정 지문·인증 버전과 재대조
-        val state = jdbc.queryForObject(
-            "SELECT config_fingerprint, auth_version FROM admin_auth_state WHERE id = 1",
-            { rs, _ -> rs.getString(1) to rs.getLong(2) },
-        ) ?: return false
+        // 행 누락만 인증 실패로 처리하고 다른 DB 오류는 호출자에게 전파
+        val state = try {
+            jdbc.queryForObject(
+                "SELECT config_fingerprint, auth_version FROM admin_auth_state WHERE id = 1",
+            ) { rs, _ -> rs.getString(1) to rs.getLong(2) }
+        } catch (_: EmptyResultDataAccessException) {
+            return false
+        }
         return state.first == config.fingerprint && state.second == version
     }
 
     /**
      * 모든 로그인 시도를 직렬화할 단일 상태 행을 배타적으로 조회
+     *
+     * @throws EmptyResultDataAccessException 필수 인증 상태 행이 없을 때
      */
     private fun lockedState(): AuthState = jdbc.queryForObject(
         "SELECT config_fingerprint, auth_version, failure_count, locked_until FROM admin_auth_state WHERE id = 1 FOR UPDATE",
-        { rs, _ ->
-            AuthState(
-                rs.getString(1), rs.getLong(2), rs.getInt(3), rs.getTimestamp(4)?.toLocalDateTime()?.toInstant(ZoneOffset.UTC),
-            )
-        },
-    ) ?: error("Admin authentication state is missing")
+    ) { rs, _ ->
+        AuthState(
+            rs.getString(1), rs.getLong(2), rs.getInt(3), rs.getTimestamp(4)?.toLocalDateTime()?.toInstant(ZoneOffset.UTC),
+        )
+    }
 
     /**
      * 설정 변경마다 버전을 올리고 이전 설정의 세션은 무효화

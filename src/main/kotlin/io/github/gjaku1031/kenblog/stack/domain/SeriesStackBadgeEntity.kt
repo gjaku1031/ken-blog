@@ -37,7 +37,7 @@ data class SeriesStackBadgeId(
 @Table(name = "series_stack_badges", uniqueConstraints = [
     UniqueConstraint(name = "uk_series_stack_badges_order", columnNames = ["series_id", "sort_order"]),
 ])
-class SeriesStackBadgeEntity protected constructor() {
+open class SeriesStackBadgeEntity protected constructor() {
     // DB 외래 키와 삭제 규칙 저장은 기존 ID 필드를 사용
 
     /**
@@ -60,14 +60,14 @@ class SeriesStackBadgeEntity protected constructor() {
      * ID
      */
     @EmbeddedId
-    lateinit var id: SeriesStackBadgeId
+    open lateinit var id: SeriesStackBadgeId
         protected set
 
     /**
      * 정렬 순서
      */
     @Column(name = "sort_order", nullable = false)
-    var sortOrder: Int = 0
+    open var sortOrder: Int = 0
         protected set
 
     /**

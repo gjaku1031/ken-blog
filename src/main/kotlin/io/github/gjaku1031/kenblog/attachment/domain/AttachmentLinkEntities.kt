@@ -34,7 +34,7 @@ data class PostAttachmentId(
  */
 @Entity
 @Table(name = "post_attachments")
-class PostAttachmentEntity protected constructor() {
+open class PostAttachmentEntity protected constructor() {
     // DB 외래 키와 삭제 규칙 저장은 기존 ID 필드를 사용
 
     /**
@@ -56,7 +56,7 @@ class PostAttachmentEntity protected constructor() {
      * 복합 키
      */
     @EmbeddedId
-    var key: PostAttachmentId = PostAttachmentId()
+    open var key: PostAttachmentId = PostAttachmentId()
         protected set
 
     /**
