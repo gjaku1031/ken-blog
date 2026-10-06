@@ -108,12 +108,6 @@ function openImageZoom(source: string | Blob, title: string, trigger: HTMLElemen
   status.setAttribute("role", "status"); status.textContent = "이미지를 불러오는 중입니다.";
 
   /**
-   * 마우스·터치·키보드 조작 안내
-   */
-  const hint = document.createElement("p"); hint.className = "image-zoom-hint";
-  hint.textContent = "드래그·방향키로 이동 · 휠·두 손가락으로 확대";
-
-  /**
    * 이미지 로드가 끝난 뒤 생성하는 이동·확대 컨트롤러
    */
   let panzoom: PanzoomObject | undefined;
@@ -254,7 +248,7 @@ function openImageZoom(source: string | Blob, title: string, trigger: HTMLElemen
     status.textContent = "이미지를 불러오지 못했습니다."; large.hidden = true;
   }, { once: true, signal: lifetime.signal });
   header.append(heading, close); controls.append(minus, range, plus, output, fit);
-  canvas.append(large); viewport.append(canvas, status); dialog.append(header, controls, hint, viewport);
+  canvas.append(large); viewport.append(canvas, status); dialog.append(header, controls, viewport);
 
   /**
    * 크기 변경 시 중앙 배치를 갱신하며 수동 배율은 보존
