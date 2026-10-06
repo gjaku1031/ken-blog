@@ -875,3 +875,151 @@ test('category touch sorting and cancelled drags preserve the hierarchy', async 
   expect(api.orders).toHaveLength(1);
   await expect(page.locator('#category-list > ul > [data-category-id]').first()).toHaveAttribute('data-category-id', '201');
 });
+
+/**
+ * 큰 도식의 드래그·포인터 기준 휠 확대·화면 맞춤과 닫기 후 재열기 검증
+ */
+test('diagram zoom supports dragging, focal wheel zoom and fit after reopening', async ({ page }) => {
+  await mockApi(page); await page.goto('/ken-blog/post/project-intro/');
+  /**
+   * 실제 Mermaid 경로에서 생성한 큰 구성도
+   */
+  const image = page.locator('.ken-mermaid').first().locator('img');
+  await page.locator('.ken-mermaid').first().scrollIntoViewIfNeeded();
+  await expect(image).toBeVisible({ timeout: 35000 });
+  await image.click();
+  /**
+   * 확대 창의 이미지와 이동 영역
+   */
+  const dialog = page.getByRole('dialog');
+  /**
+   * 확대 이미지
+   */
+  const large = dialog.locator('img');
+  /**
+   * 드래그 영역
+   */
+  const viewport = dialog.locator('.image-zoom-viewport');
+  /**
+   * 배율 슬라이더
+   */
+  const range = dialog.getByRole('slider', { name: '확대 배율' });
+  await expect(range).toBeEnabled();
+  // 화면보다 큰 배율에서 두 축 드래그와 버튼·출력의 공유 상태 확인
+  await range.fill('100'); await range.dispatchEvent('input');
+  await expect(dialog.locator('output')).toHaveText('100%');
+  /**
+   * 포인터 입력 영역 좌표
+   */
+  const area = await viewport.boundingBox();
+  /**
+   * 이동 전 이미지 좌표
+   */
+  const before = await large.boundingBox();
+  /**
+   * 영역 중앙의 포인터 기준점
+   */
+  const x = area.x + area.width / 2, y = area.y + area.height / 2;
+  await page.mouse.move(x, y); await page.mouse.down();
+  await page.mouse.move(x + 130, y + 90, { steps: 8 }); await page.mouse.up();
+  await expect.poll(async () => Math.round((await large.boundingBox()).x - before.x)).toBe(130);
+  expect(Math.round((await large.boundingBox()).y - before.y)).toBe(90);
+  // 화면 중앙 밖의 같은 이미지 좌표가 휠 확대 후에도 포인터 아래 유지
+  /**
+   * 휠 확대 전 이미지 경계
+   */
+  const start = await large.boundingBox();
+  /**
+   * 화면 중앙과 다른 휠 입력 위치
+   */
+  const px = x + 50, py = y - 40;
+  /**
+   * 확대 전 포인터 아래의 이미지 상대 좌표
+   */
+  const relativeX = (px - start.x) / start.width, relativeY = (py - start.y) / start.height;
+  await page.mouse.move(px, py); await page.mouse.wheel(0, -120);
+  await expect.poll(async () => (await large.boundingBox()).width).toBeGreaterThan(start.width);
+  /**
+   * 휠 확대 후 이미지 경계
+   */
+  const zoomed = await large.boundingBox();
+  expect(Math.abs(zoomed.x + relativeX * zoomed.width - px)).toBeLessThan(2);
+  expect(Math.abs(zoomed.y + relativeY * zoomed.height - py)).toBeLessThan(2);
+  // 키보드 이동과 맞춤 복귀가 이미지 양끝을 다시 표시
+  await viewport.focus(); await page.keyboard.press('ArrowLeft');
+  await expect.poll(async () => (await large.boundingBox()).x).toBeGreaterThan(zoomed.x + 30);
+  await dialog.getByRole('button', { name: '화면에 맞추기' }).click();
+  await expect.poll(async () => (await large.boundingBox()).width).toBeLessThanOrEqual(area.width);
+  /**
+   * 화면 맞춤 후 이미지 경계
+   */
+  const fitted = await large.boundingBox();
+  expect(fitted.x).toBeGreaterThanOrEqual(area.x);
+  expect(fitted.y).toBeGreaterThanOrEqual(area.y);
+  expect(fitted.y + fitted.height).toBeLessThanOrEqual(area.y + area.height + 1);
+  // 배경에서 끝난 드래그는 배경 클릭으로 처리하지 않음
+  await page.mouse.move(x, y); await page.mouse.down();
+  await page.mouse.move(5, 5, { steps: 8 }); await page.mouse.up();
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole('button', { name: '화면에 맞추기' }).click();
+  // Escape로 닫으면 원래 도식으로 포커스 복원, 재열기에서 이동 상태 초기화
+  await page.keyboard.press('Escape'); await expect(dialog).toHaveCount(0);
+  await expect(image).toBeFocused();
+  await image.press('Enter'); await expect(range).toBeEnabled();
+  await expect.poll(async () => Math.round((await large.boundingBox()).width)).toBe(Math.round(fitted.width));
+  await dialog.getByRole('button', { name: '확대 창 닫기' }).click();
+});
+
+/**
+ * 모바일의 실제 두 포인터 입력으로 핀치 확대와 한 손가락 이동 검증
+ */
+test('diagram zoom supports touch pinch and drag without scrolling the article', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await mockApi(page); await page.goto('/ken-blog/post/project-intro/');
+  const image = page.locator('.ken-mermaid').first().locator('img');
+  await page.locator('.ken-mermaid').first().scrollIntoViewIfNeeded();
+  await expect(image).toBeVisible({ timeout: 35000 }); await image.click();
+  const dialog = page.getByRole('dialog');
+  /**
+   * 배율 슬라이더
+   */
+  const range = dialog.getByRole('slider', { name: '확대 배율' });
+  await expect(range).toBeEnabled();
+  /**
+   * 포인터 입력 영역 좌표
+   */
+  const area = await dialog.locator('.image-zoom-viewport').boundingBox();
+  /**
+   * 영역 중앙의 포인터 기준점
+   */
+  const x = area.x + area.width / 2, y = area.y + area.height / 2;
+  /**
+   * 핀치 전 배율
+   */
+  const initial = Number(await range.inputValue());
+  /**
+   * 모달을 열었을 때 본문 스크롤 위치
+   */
+  const scrollY = await page.evaluate(() => window.scrollY);
+  /**
+   * 실제 터치 입력용 Chromium 세션
+   */
+  const session = await page.context().newCDPSession(page);
+  // 브라우저의 실제 터치 이벤트로 두 손가락 간격 확대
+  await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x: x - 35, y, id: 1 }, { x: x + 35, y, id: 2 }] });
+  await session.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: x - 85, y, id: 1 }, { x: x + 85, y, id: 2 }] });
+  await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await expect.poll(async () => Number(await range.inputValue())).toBeGreaterThan(initial);
+  // 확대 후 한 손가락 이동, 본문 스크롤은 유지
+  /**
+   * 이동 전 이미지 좌표
+   */
+  const before = await dialog.locator('img').boundingBox();
+  await session.send('Input.dispatchTouchEvent', { type: 'touchStart', touchPoints: [{ x, y, id: 3 }] });
+  await session.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: x + 60, y: y + 45, id: 3 }] });
+  await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
+  await expect.poll(async () => Math.round((await dialog.locator('img').boundingBox()).x - before.x)).toBe(60);
+  expect(Math.round((await dialog.locator('img').boundingBox()).y - before.y)).toBe(45);
+  expect(await page.evaluate(() => window.scrollY)).toBe(scrollY);
+  await session.detach(); await page.keyboard.press('Escape');
+});

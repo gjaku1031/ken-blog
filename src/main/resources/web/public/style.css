@@ -20,9 +20,11 @@
 .image-zoom-controls { display:flex; align-items:center; gap:8px; padding:0 12px 12px; border-bottom:1px solid var(--line); }
 .image-zoom-controls input { flex:1; width:0; min-width:40px; max-width:280px; accent-color:var(--accent); }
 .image-zoom-controls output { min-width:44px; text-align:center; font-size:12px; }
-.image-zoom-viewport { flex:1; min-height:0; overflow:auto; overscroll-behavior:contain; position:relative; }
-.image-zoom-canvas { display:grid; place-items:center; min-width:100%; min-height:100%; }
-.ken-image-zoom img { display:block; max-width:none; max-height:none; object-fit:contain; }
+.image-zoom-viewport { flex:1; min-height:0; overflow:hidden; overscroll-behavior:contain; position:relative; }
+.image-zoom-canvas { position:absolute; inset:0; overflow:hidden; touch-action:none; }
+.ken-image-zoom img { position:absolute; left:0; top:0; display:block; max-width:none; max-height:none; object-fit:contain; }
+/* 드래그·핀치·키보드 이동 안내 */
+.image-zoom-hint { margin:0; padding:6px 12px; color:var(--muted); font-size:12px; }
 /* 이미지 확대·배율·표시 영역 */
 .image-zoom-status { position:absolute; top:40%; width:100%; margin:0; padding:20px; text-align:center; color:var(--muted); }
 /* 공통 박스 크기·입력·링크·키보드 접근성 */
