@@ -108,14 +108,14 @@
 .markdown-body h2 { font-size: var(--heading-2-size); margin: 36px 0 12px; }
 .markdown-body h3 { font-size: var(--heading-3-size); margin: 28px 0 10px; }
 .markdown-body a { color: var(--accent-d); text-decoration: underline; text-underline-offset: 2px; }
-.markdown-body blockquote { border-left: 4px solid var(--accent); border-radius: 0 8px 8px 0; background: var(--bg); margin: 0 0 18px; padding: 14px 18px; color: var(--text2); font-size: 16px; line-height: 1.75; }
+.markdown-body blockquote { border-left: 4px solid var(--accent); border-radius: 0 8px 8px 0; background: var(--bg); margin: 20px 0; padding: 14px 18px; color: var(--text2); font-size: 16px; line-height: 1.75; }
 .markdown-body blockquote p:last-child { margin-bottom: 0; }
 /* 코드 블록·복사 버튼·인라인 코드 */
 .markdown-body pre { overflow-x: auto; max-width: 100%; background: var(--code-bg); color: var(--code-fg); border-radius: 8px; padding: 16px 18px; font: 13px/1.65 var(--font-mono), monospace; }
 .markdown-body code { font-family: var(--font-mono), monospace; font-size: .87em; }
 .markdown-body :not(pre) > code { background: var(--soft); color: var(--inline-fg); border-radius: 4px; padding: 2px 4px; }
 /* 본문 표의 가로 스크롤·셀 경계 */
-.markdown-body table { overflow-x: auto; border-collapse: collapse; max-width: 100%; width: 100%; display: block; font-size: 15px; line-height: 1.6; }
+.markdown-body table { overflow-x: auto; border-collapse: collapse; max-width: 100%; width: 100%; display: block; margin: 20px 0; font-size: 15px; line-height: 1.6; }
 .markdown-body th, .markdown-body td { border: 1px solid var(--line2); padding: 8px 12px; min-width: 84px; }
 .markdown-body th { background: var(--soft); text-align: left; }
 .markdown-body input[type="checkbox"] { accent-color: var(--accent); }

@@ -62,20 +62,44 @@ const LEGEND_LINES = {
 } as const;
 
 /**
- * 원문의 `%% legend: thick=열람; solid=관리 요청; dotted=빌드` 주석을 범례 항목으로 읽음
+ * 범례가 원래 크기로 보이는 도식 표시 폭. 이보다 넓은 도식은 범례를 비례해 키움
  */
-function legendItems(source: string): Array<{ kind: keyof typeof LEGEND_LINES; title: string }> {
+const LEGEND_DISPLAY_WIDTH = 800;
+
+/**
+ * 범례 항목. 선 종류, 노드 모양(round·diamond), ERD 관계 끝(zero·many), 색 견본(color)
+ */
+type LegendItem =
+  | { kind: keyof typeof LEGEND_LINES | "round" | "diamond" | "zero" | "many"; title: string }
+  | { kind: "color"; fill: string; stroke: string; title: string };
+
+/**
+ * 원문의 `%% legend: ...` 주석을 범례 항목으로 읽음
+ *
+ * 항목은 `종류=설명`을 `;`로 구분함. 색 견본은 `color:#채움:#테두리=설명`
+ * 예: `%% legend: color:#eff6ff:#2563eb=독자 행동; round=시작·끝; diamond=판단; solid=요청`
+ */
+function legendItems(source: string): LegendItem[] {
   const line = source.match(/^\s*%%\s*legend:\s*(.+)$/m)?.[1];
   if (!line) return [];
-  return line.split(";").map(part => part.split("=").map(value => value.trim()))
-    .filter((pair): pair is [keyof typeof LEGEND_LINES, string] => pair.length === 2 && pair[0] in LEGEND_LINES && pair[1].length > 0)
-    .slice(0, 6).map(([kind, title]) => ({ kind, title: title.slice(0, 40) }));
+  const items: LegendItem[] = [];
+  for (const part of line.split(";")) {
+    const index = part.indexOf("=");
+    if (index < 0) continue;
+    const key = part.slice(0, index).trim(), title = part.slice(index + 1).trim().slice(0, 40);
+    if (!title) continue;
+    const color = key.match(/^color:(#[0-9a-fA-F]{6}):(#[0-9a-fA-F]{6})$/);
+    if (color) items.push({ kind: "color", fill: color[1], stroke: color[2], title });
+    else if (key in LEGEND_LINES || ["round", "diamond", "zero", "many"].includes(key))
+      items.push({ kind: key as Exclude<LegendItem["kind"], "color">, title });
+  }
+  return items.slice(0, 12);
 }
 
 /**
- * 도식 아래 오른쪽에 선 종류별 범례 상자를 붙이고 viewBox를 그만큼 늘림
+ * 도식 아래 오른쪽에 범례 상자를 붙이고 viewBox를 그만큼 늘림
  */
-function appendLegend(svg: string, items: ReturnType<typeof legendItems>, theme: "light" | "dark"): string {
+function appendLegend(svg: string, items: LegendItem[], theme: "light" | "dark"): string {
   const doc = new DOMParser().parseFromString(svg, "image/svg+xml");
   const root = doc.documentElement;
   const box = root.getAttribute("viewBox")?.trim().split(/[\s,]+/).map(Number);
@@ -87,7 +111,10 @@ function appendLegend(svg: string, items: ReturnType<typeof legendItems>, theme:
   // 글자 폭은 렌더링 전에 잴 수 없어 한글 12px, 그 밖 7px로 어림함
   const textWidth = Math.max(...items.map(({ title }) => [...title].reduce((sum, char) => sum + (/[\u3131-\uD79D]/.test(char) ? 12 : 7), 0)), 24);
   const boxWidth = pad * 2 + 39 + textWidth, boxHeight = pad * 2 + 20 + items.length * row;
-  const x = left + width - boxWidth, y = top + height + gap;
+  // 본문 폭(약 800px)보다 넓은 도식은 화면에서 줄어들므로 범례를 그만큼 키워 표시 크기를 일정하게 유지함
+  const scale = Math.max(1, width / LEGEND_DISPLAY_WIDTH);
+  const originX = left + width - boxWidth * scale, originY = top + height + gap * scale;
+  const x = 0, y = 0;
   const ns = "http://www.w3.org/2000/svg";
   const make = (name: string, attrs: Record<string, string | number>, parent: Element) => {
     const node = doc.createElementNS(ns, name);
@@ -95,16 +122,33 @@ function appendLegend(svg: string, items: ReturnType<typeof legendItems>, theme:
     parent.appendChild(node);
     return node;
   };
-  const group = make("g", {}, root);
+  const stroke = (color = line, width = 1.5, dash = "none") => `fill:none;stroke:${color};stroke-width:${width}px;stroke-dasharray:${dash}`;
+  const group = make("g", { transform: `translate(${originX},${originY}) scale(${scale})` }, root);
   make("rect", { x, y, width: boxWidth, height: boxHeight, rx: 6, style: `fill:none;stroke:${text};stroke-width:1px;stroke-opacity:0.6` }, group);
   make("text", { x: x + pad, y: y + pad + 10, style: `font-size:12px;font-weight:600;fill:${line};font-family:Arial,sans-serif` }, group).textContent = "범례";
-  items.forEach(({ kind, title }, index) => {
-    const lineY = y + pad + 20 + row * index + row / 2;
-    const { width: strokeWidth, dash } = LEGEND_LINES[kind];
-    make("path", { d: `M${x + pad},${lineY} h30`, style: `fill:none;stroke:${line};stroke-width:${strokeWidth}px;stroke-dasharray:${dash}` }, group);
-    make("text", { x: x + pad + 39, y: lineY + 4, style: `font-size:12px;fill:${text};font-family:Arial,sans-serif` }, group).textContent = title;
+  items.forEach((item, index) => {
+    const cy = y + pad + 20 + row * index + row / 2, sx = x + pad;
+    if (item.kind === "color") {
+      // 다크 테마에서는 classDef와 같은 방식으로 채움·테두리를 조정함
+      const fill = theme === "dark" ? mixColor(item.stroke, "#111827", 0.18) : item.fill;
+      const edge = theme === "dark" ? mixColor(item.stroke, "#ffffff", 0.7) : item.stroke;
+      make("rect", { x: sx + 4, y: cy - 7, width: 22, height: 14, rx: 2, style: `fill:${fill};stroke:${edge};stroke-width:1.5px` }, group);
+    } else if (item.kind === "round") {
+      make("rect", { x: sx + 1, y: cy - 7, width: 28, height: 14, rx: 7, style: stroke() }, group);
+    } else if (item.kind === "diamond") {
+      make("path", { d: `M${sx + 15},${cy - 8} L${sx + 25},${cy} L${sx + 15},${cy + 8} L${sx + 5},${cy} Z`, style: stroke() }, group);
+    } else if (item.kind === "zero") {
+      make("path", { d: `M${sx},${cy} h20`, style: stroke() }, group);
+      make("circle", { cx: sx + 25, cy, r: 4, style: stroke() }, group);
+    } else if (item.kind === "many") {
+      make("path", { d: `M${sx},${cy} h30 M${sx + 20},${cy} L${sx + 30},${cy - 6} M${sx + 20},${cy} L${sx + 30},${cy + 6}`, style: stroke() }, group);
+    } else {
+      const { width: strokeWidth, dash } = LEGEND_LINES[item.kind];
+      make("path", { d: `M${sx},${cy} h30`, style: stroke(line, strokeWidth, dash) }, group);
+    }
+    make("text", { x: sx + 39, y: cy + 4, style: `font-size:12px;fill:${text};font-family:Arial,sans-serif` }, group).textContent = item.title;
   });
-  root.setAttribute("viewBox", `${left} ${top} ${width} ${height + gap + boxHeight}`);
+  root.setAttribute("viewBox", `${left} ${top} ${width} ${height + (gap + boxHeight) * scale}`);
   return new XMLSerializer().serializeToString(doc);
 }
 
