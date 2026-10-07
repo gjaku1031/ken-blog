@@ -13,8 +13,11 @@
 .button.ghost{background:transparent}
 .notice{padding:12px 16px;border-radius:7px;border:1px solid var(--accent);background:var(--tint);margin:0 0 22px;font-size:13px;overflow-wrap:anywhere}
 .notice.error{color:var(--danger);border-color:var(--danger);background:var(--card)}
+/* 모달 표면: 라이트 테마는 흰색 대신 눈부심이 덜한 회색, 다크 테마는 카드색 유지 */
+:root{--dialog-bg:#eef0f2;--dialog-line:#d6dadf}
+:root[data-theme=dark]{--dialog-bg:var(--card);--dialog-line:var(--line)}
 /* 페이지 기본 글꼴 크기·줄 높이와 무관한 공통 편집 대화상자 */
-.edit-dialog{font-size:14px;line-height:1.6;width:min(calc(100% - 32px),740px);max-height:88vh;padding:28px 32px;border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--text);box-shadow:var(--shadow);overscroll-behavior:contain}
+.edit-dialog{font-size:14px;line-height:1.6;width:min(calc(100% - 32px),740px);max-height:88vh;padding:28px 32px;border:1px solid var(--dialog-line);border-radius:12px;background:var(--dialog-bg);color:var(--text);box-shadow:var(--shadow);overscroll-behavior:contain}
 .edit-dialog::backdrop{background:#10182066}
 /* 대화상자 제목·내용·닫기 */
 .dialog-heading{display:flex;align-items:center;justify-content:space-between;gap:16px;margin-bottom:24px}

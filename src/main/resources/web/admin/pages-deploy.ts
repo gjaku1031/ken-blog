@@ -1,4 +1,5 @@
 import { request, mutate, HttpError } from '../shared/admin-api';
+import { confirmDialog } from './confirm-dialog';
 
 /**
  * 관리자 API가 요약한 Pages 워크플로 실행 상태
@@ -191,7 +192,10 @@ export function connectPagesDeploy(options: PagesDeployOptions) {
     try {
       const latest = await request<Deployment | undefined>('/admin/pages/deployments/latest');
       if (latest && latest.status !== 'completed') { track(latest); return; }
-      if (!window.confirm('현재 DB 메타데이터와 main의 원고로 공개 사이트를 다시 만들까요?')) { button.disabled = false; return; }
+      const accepted = await confirmDialog({ title: 'GitHub Pages 배포',
+        message: '현재 DB 메타데이터와 main 브랜치의 원고로 공개 사이트를 다시 만듭니다. 보통 1~2분 걸리며 진행 상황은 사이드바에 표시됩니다.',
+        confirmLabel: '배포 시작' });
+      if (!accepted) { button.disabled = false; button.focus(); return; }
       show(0.03, '실행 요청 중', 'queued');
       track(await mutate<Deployment>('/admin/pages/deployments', 'POST'));
     } catch (error) { fail(error); }
