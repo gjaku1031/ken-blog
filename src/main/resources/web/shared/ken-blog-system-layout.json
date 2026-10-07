@@ -1,0 +1,365 @@
+{
+  "width": 1120,
+  "height": 720,
+  "legend": [
+    {
+      "kind": "read",
+      "title": "독자 열람",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "kind": "runtime",
+      "title": "관리 요청 / 데이터 접근",
+      "x": 0,
+      "y": 0
+    },
+    {
+      "kind": "delivery",
+      "title": "빌드 · 산출물 전달",
+      "x": 0,
+      "y": 0
+    }
+  ],
+  "groups": {
+    "users": [
+      10,
+      30,
+      200,
+      190,
+      "사용자"
+    ],
+    "presentation": [
+      240,
+      30,
+      480,
+      190,
+      "표현 계층 · GitHub Pages"
+    ],
+    "build": [
+      800,
+      30,
+      300,
+      190,
+      "빌드 · GitHub Actions"
+    ],
+    "application": [
+      240,
+      290,
+      480,
+      110,
+      "애플리케이션 계층 · OCI VM"
+    ],
+    "data": [
+      240,
+      470,
+      860,
+      110,
+      "데이터 계층"
+    ]
+  },
+  "services": {
+    "reader": [
+      30,
+      70,
+      "글 열람"
+    ],
+    "admin": [
+      30,
+      150,
+      "글 정보 관리"
+    ],
+    "html": [
+      270,
+      70,
+      "글 · 목록 · 검색 색인"
+    ],
+    "manage": [
+      270,
+      150,
+      "관리 화면 스크립트"
+    ],
+    "builder": [
+      830,
+      110,
+      "Node · HTML 생성"
+    ],
+    "caddy": [
+      270,
+      330,
+      "HTTPS · 프록시"
+    ],
+    "api": [
+      500,
+      330,
+      "인증 · 메타데이터 · 스냅샷"
+    ],
+    "db": [
+      270,
+      510,
+      "글 정보 · 세션"
+    ],
+    "disk": [
+      500,
+      510,
+      "이미지 원본"
+    ],
+    "git": [
+      830,
+      510,
+      "Markdown 원고"
+    ]
+  },
+  "members": {
+    "reader": "users",
+    "admin": "users",
+    "html": "presentation",
+    "manage": "presentation",
+    "builder": "build",
+    "caddy": "application",
+    "api": "application",
+    "db": "data",
+    "disk": "data",
+    "git": "data"
+  },
+  "parents": {
+    "users": "",
+    "presentation": "",
+    "build": "",
+    "application": "",
+    "data": ""
+  },
+  "sourceGroups": [
+    "group users[Users]",
+    "group presentation[Presentation]",
+    "group build[Build]",
+    "group application[Application]",
+    "group data[Data]"
+  ],
+  "sourceEdges": [
+    "reader:R -[Read]-> L:html",
+    "admin:R -[Manage]-> L:manage",
+    "manage:B -[Admin API]-> T:caddy",
+    "caddy:R -[HTTP]-> L:api",
+    "api:B -[JDBC]-> T:db",
+    "api:B -[Read only]-> T:disk",
+    "git:T -[Manuscripts]-> B:builder",
+    "api:R -[Snapshot]-> L:builder",
+    "builder:T -[Publish]-> T:html"
+  ],
+  "edges": [
+    {
+      "source": "reader",
+      "target": "html",
+      "groupTarget": false,
+      "points": [
+        [
+          196,
+          92
+        ],
+        [
+          266,
+          92
+        ]
+      ],
+      "kind": "read",
+      "label": "열람",
+      "at": [
+        231,
+        80
+      ]
+    },
+    {
+      "source": "admin",
+      "target": "manage",
+      "groupTarget": false,
+      "points": [
+        [
+          196,
+          172
+        ],
+        [
+          266,
+          172
+        ]
+      ],
+      "kind": "runtime",
+      "label": "관리",
+      "at": [
+        231,
+        160
+      ]
+    },
+    {
+      "source": "manage",
+      "target": "caddy",
+      "groupTarget": false,
+      "points": [
+        [
+          292,
+          196
+        ],
+        [
+          292,
+          326
+        ]
+      ],
+      "kind": "runtime",
+      "label": "관리 API",
+      "at": [
+        292,
+        262
+      ]
+    },
+    {
+      "source": "caddy",
+      "target": "api",
+      "groupTarget": false,
+      "points": [
+        [
+          440,
+          352
+        ],
+        [
+          496,
+          352
+        ]
+      ],
+      "kind": "runtime",
+      "label": "",
+      "at": [
+        0,
+        0
+      ]
+    },
+    {
+      "source": "api",
+      "target": "db",
+      "groupTarget": false,
+      "points": [
+        [
+          516,
+          376
+        ],
+        [
+          516,
+          440
+        ],
+        [
+          292,
+          440
+        ],
+        [
+          292,
+          506
+        ]
+      ],
+      "kind": "runtime",
+      "label": "JDBC",
+      "at": [
+        400,
+        440
+      ]
+    },
+    {
+      "source": "api",
+      "target": "disk",
+      "groupTarget": false,
+      "points": [
+        [
+          528,
+          376
+        ],
+        [
+          528,
+          506
+        ]
+      ],
+      "kind": "runtime",
+      "label": "읽기 전용",
+      "at": [
+        580,
+        448
+      ]
+    },
+    {
+      "source": "git",
+      "target": "builder",
+      "groupTarget": false,
+      "points": [
+        [
+          852,
+          506
+        ],
+        [
+          852,
+          156
+        ]
+      ],
+      "kind": "delivery",
+      "label": "원고",
+      "at": [
+        852,
+        300
+      ]
+    },
+    {
+      "source": "api",
+      "target": "builder",
+      "groupTarget": false,
+      "points": [
+        [
+          740,
+          352
+        ],
+        [
+          780,
+          352
+        ],
+        [
+          780,
+          132
+        ],
+        [
+          826,
+          132
+        ]
+      ],
+      "kind": "delivery",
+      "label": "공개 스냅샷",
+      "at": [
+        780,
+        250
+      ]
+    },
+    {
+      "source": "builder",
+      "target": "html",
+      "groupTarget": false,
+      "points": [
+        [
+          852,
+          108
+        ],
+        [
+          852,
+          14
+        ],
+        [
+          292,
+          14
+        ],
+        [
+          292,
+          66
+        ]
+      ],
+      "kind": "delivery",
+      "label": "HTML 생성 · 배포",
+      "at": [
+        572,
+        14
+      ]
+    }
+  ]
+}

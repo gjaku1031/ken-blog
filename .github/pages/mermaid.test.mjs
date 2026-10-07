@@ -38,7 +38,7 @@ test("every architecture icon is bundled with explicit dimensions and no externa
  */
 test("project architecture articles use supported diagrams", async () => {
   for (const [slug, architectureCount] of [
-    ["doc-340352c9-5fde-4bae-bc0b-4ecd744719a8", 1],
+    ["doc-340352c9-5fde-4bae-bc0b-4ecd744719a8", 2],
     ["project-8d420603-48bb-4e29-8983-e08a6e649f80", 1],
   ]) {
     const body = await readFile(new URL(`../../content/posts/${slug}.md`, import.meta.url), "utf8");
@@ -46,6 +46,19 @@ test("project architecture articles use supported diagrams", async () => {
     assert.equal(sources.filter(source => source.startsWith("architecture-beta")).length, architectureCount);
     for (const source of sources) assert.equal(mermaidSourceError(source), null);
   }
+});
+
+/**
+ * ken-blog 시스템 구조 도식이 고정 배치의 구성·연결과 일치하고 변경을 숨기지 않음
+ */
+test("ken-blog system structure keeps its reference layout", async () => {
+  const body = await readFile(new URL("../../content/posts/doc-340352c9-5fde-4bae-bc0b-4ecd744719a8.md", import.meta.url), "utf8");
+  const source = body.match(/```mermaid(?: [^\n]*)?\n(architecture-beta\n  %% layout: ken-blog-system[\s\S]*?)\n```/)[1];
+  assert.deepEqual([...validateReferenceLayout(source).keys()].sort(), [
+    "reader", "admin", "html", "manage", "builder", "caddy", "api", "db", "disk", "git",
+  ].sort());
+  assert.throws(() => validateReferenceLayout(source.replace("  reader:R -[Read]-> L:html", "")));
+  assert.throws(() => validateReferenceLayout(source.replace("[Git manuscripts] in data", "[Git manuscripts] in build")));
 });
 
 /**
