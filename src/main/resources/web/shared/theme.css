@@ -6,7 +6,7 @@
   --page-width-standard: 1092px; --page-width-wide: 1204px; --page-width-post: 1132px;
   --article-title-size: 32px; --heading-1-size: 28px; --heading-2-size: 24px; --heading-3-size: 20px;
   /* 흰색 대신 밝은 회색 배경 위에 한 단계 어두운 회색 표면(카드·헤더·본문 패널)을 두어 구분 */
-  --bg: #f4f5f7; --card: #e8ebee; --text: #212529; --text2: #495057;
+  --bg: #eef0f2; --card: #e8ebee; --text: #212529; --text2: #495057;
   --muted: #5a636b; --muted2: #5c656e; --line: #d8dde2; --line2: #cdd3d9; --line3: #bfc6cd;
   --soft: #dde1e6; --tint: #e9fbf6; --tint2: #d3f5ea; --accent: #1b9c85; --accent-d: #147a68;
   --sec-bg: #eef2ff; --sec-fg: #3b4fb8; --pv-bg: #fce8e8; --pv-fg: #9a2020;
