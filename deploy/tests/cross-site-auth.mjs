@@ -83,7 +83,7 @@ try {
       categoryId: null, seriesId: null, order: null, relatedSeriesId: null }, csrf);
     assert.equal(created.status, 201);
     const id = created.body.id;
-    const updated = await request(`/admin/posts/${id}/metadata`, 'PATCH', { title: 'HTTPS edited', summary: '', tags: ['HTTPS'],
+    const updated = await request(`/admin/posts/${id}/metadata`, 'PUT', { title: 'HTTPS edited', summary: '', tags: ['HTTPS'],
       categoryId: null, seriesId: null, order: null, relatedSeriesId: null, baseVersion: created.body.editVersion }, csrf);
     assert.equal(updated.status, 200);
     assert.equal((await request(`/admin/posts/${id}`)).body.title, 'HTTPS edited');

@@ -2,7 +2,6 @@ package io.github.gjaku1031.kenblog.category.controller;
 
 import lombok.RequiredArgsConstructor;
 
-import io.github.gjaku1031.kenblog.category.domain.InvalidCategoryRequestException;
 import io.github.gjaku1031.kenblog.category.dto.*;
 import io.github.gjaku1031.kenblog.category.service.CategoryService;
 
@@ -43,24 +42,6 @@ public final class AdminCategoryController {
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<CategoryTreeResponse>> list() {
         return noStore(service.tree());
-    }
-
-    /**
-     * 단일 정수 입력으로 분류 순서 변경
-     */
-    @PutMapping(
-            value = "/{id}/order",
-            consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<CategoryRefResponse> setOrder(
-            @PathVariable("id") long id, @RequestBody JsonNode request) {
-        var order = request.get("order");
-        if (!request.isObject()
-                || request.size() != 1
-                || order == null
-                || !order.isIntegralNumber()
-                || !order.canConvertToLong()) throw new InvalidCategoryRequestException();
-        return noStore(service.setOrder(id, order.longValue()));
     }
 
     /**

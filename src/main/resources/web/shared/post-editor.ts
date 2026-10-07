@@ -112,7 +112,7 @@ export function postEditor(post: EditablePost, data: PostOptions, callbacks: {
     const button = form.querySelector<HTMLButtonElement>('button[type=submit]')!;
     button.disabled = true; callbacks.onSaving();
     try {
-      const saved = await mutate<EditablePost>(`/admin/posts/${post.id}/metadata`, 'PATCH', {
+      const saved = await mutate<EditablePost>(`/admin/posts/${post.id}/metadata`, 'PUT', {
         ...postPayload(new FormData(form)), baseVersion,
       });
       baseVersion = saved.editVersion;

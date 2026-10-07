@@ -16,7 +16,6 @@ import io.github.gjaku1031.kenblog.series.domain.SeriesKind;
 
 import org.jooq.*;
 import org.jooq.Record;
-import org.jooq.impl.SQLDataType;
 import org.springframework.stereotype.Repository;
 
 import java.util.*;
@@ -219,64 +218,6 @@ public class PostQueries {
                 .fetch(
                         record ->
                                 new TagCountResponse(record.value1(), record.value2().longValue()));
-    }
-
-    /**
-     * LOWER 뒤 이진 비교로 대소문자만 무시
-     */
-    private Field<byte[]> titleKey(Field<String> field) {
-        return lower(field).cast(SQLDataType.VARBINARY);
-    }
-
-    /**
-     * 같은 제목의 공개 글 중 최초 출간 글
-     */
-    public PostRow wikiTarget(String title) {
-        return sql.select(fields())
-                .from(joined())
-                .where(readable().and(titleKey(p.TITLE).eq(titleKey(value(title)))))
-                .orderBy(p.PUBLISHED_AT.asc(), p.ID.asc())
-                .limit(1)
-                .fetchOne(this::row);
-    }
-
-    /**
-     * 중복 제목의 대표 글만 남긴 부분 제목 후보 최대 7개
-     */
-    public List<PostRow> titleSearch(String query) {
-        // 동일 제목의 더 이른 공개 글을 별칭으로 조회
-        var older = p.as("older");
-        var parent = s.as("parent");
-        var canonical =
-                notExists(
-                        sql.selectOne()
-                                .from(older.leftJoin(parent).on(older.SERIES_ID.eq(parent.ID)))
-                                .where(
-                                        older.STATUS
-                                                .eq("PUBLISHED")
-                                                .and(older.VISIBILITY.eq("PUBLIC"))
-                                                .and(older.SECTION.eq("TECH"))
-                                                .and(
-                                                        older.SERIES_ID
-                                                                .isNull()
-                                                                .or(parent.VISIBILITY.eq("PUBLIC")))
-                                                .and(titleKey(older.TITLE).eq(titleKey(p.TITLE)))
-                                                .and(
-                                                        older.PUBLISHED_AT
-                                                                .lt(p.PUBLISHED_AT)
-                                                                .or(
-                                                                        older.PUBLISHED_AT
-                                                                                .eq(p.PUBLISHED_AT)
-                                                                                .and(
-                                                                                        older.ID.lt(
-                                                                                                p.ID))))));
-        // 대표 글만 최신순으로 반환하며 검색어의 SQL 와일드카드를 해석하지 않음
-        return sql.select(fields())
-                .from(joined())
-                .where(readable().and(p.TITLE.containsIgnoreCase(query)).and(canonical))
-                .orderBy(newest())
-                .limit(7)
-                .fetch(this::row);
     }
 
     /**

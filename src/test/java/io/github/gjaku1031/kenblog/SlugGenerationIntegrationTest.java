@@ -97,7 +97,6 @@ final class SlugGenerationIntegrationTest {
                                     first.id(),
                                     1,
                                     null,
-                                    List.of(),
                                     List.of()));
             assertEquals(first.id(), post.series().id());
             assertEquals(1, series.detail(first.id()).posts().size());

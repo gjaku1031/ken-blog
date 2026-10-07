@@ -152,18 +152,13 @@ type Post = {
 };
 
 /**
- * 게시글 상세와 첨부·위키 선언
+ * 게시글 상세와 첨부
  */
 type PostDetail = Post & {
   /**
    * 첨부 ID 목록
    */
-  attachmentIds: number[];
-
-  /**
-   * 위키 대상 제목 목록
-   */
-  wikiTargets: string[]
+  attachmentIds: number[]
 };
 
 /**

@@ -50,7 +50,7 @@
 	}
 	# 관리자 메타데이터 변경 경로
 	@admin {
-		method GET POST PUT PATCH DELETE OPTIONS
+		method GET POST PUT DELETE OPTIONS
 		path /api/v1/admin/categories /api/v1/admin/categories/* /api/v1/admin/posts /api/v1/admin/posts/* /api/v1/admin/series /api/v1/admin/series/* /api/v1/admin/tags /api/v1/admin/tags/*
 	}
 

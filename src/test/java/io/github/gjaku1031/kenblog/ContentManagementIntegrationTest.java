@@ -98,7 +98,6 @@ final class ContentManagementIntegrationTest {
                                 project.id(),
                                 null,
                                 null,
-                                List.of(),
                                 List.of()));
         var related =
                 posts.createMetadata(
@@ -111,8 +110,7 @@ final class ContentManagementIntegrationTest {
                                 null,
                                 null,
                                 project.id(),
-                                List.of(),
-                                List.of("대상")));
+                                List.of()));
         assertThrows(SeriesInUseException.class, () -> series.delete(project.id()));
         posts.delete(cover.id());
         assertThrows(SeriesInUseException.class, () -> series.delete(project.id()));
@@ -127,12 +125,6 @@ final class ContentManagementIntegrationTest {
                 0,
                 jdbc.queryForObject(
                         "SELECT COUNT(*) FROM post_tags WHERE post_id=?",
-                        Integer.class,
-                        related.id()));
-        assertEquals(
-                0,
-                jdbc.queryForObject(
-                        "SELECT COUNT(*) FROM post_wiki_links WHERE post_id=?",
                         Integer.class,
                         related.id()));
     }
@@ -160,7 +152,6 @@ final class ContentManagementIntegrationTest {
                                 group.id(),
                                 null,
                                 null,
-                                List.of(),
                                 List.of()));
         posts.setPublished(post.id(), true);
         assertThrows(SeriesInUseException.class, () -> series.delete(group.id()));
@@ -191,7 +182,6 @@ final class ContentManagementIntegrationTest {
                                 null,
                                 null,
                                 null,
-                                List.of(),
                                 List.of()));
         var renamed = categories.rename(parent.id(), "  Backend  Notes  ");
         assertEquals("Backend Notes", renamed.name());

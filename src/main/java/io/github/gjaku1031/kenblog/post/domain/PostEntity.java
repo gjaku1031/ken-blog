@@ -227,13 +227,6 @@ public class PostEntity {
     }
 
     /**
-     * 순서만 바꿔 원고의 수정 시각·해시 보존
-     */
-    public void reorder(Integer order) {
-        seriesOrder = order;
-    }
-
-    /**
      * 공개 출간으로 전환하고 최초 출간 시각 기록
      */
     public void publish(PostVisibility visibility, LocalDateTime now) {

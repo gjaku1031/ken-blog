@@ -67,7 +67,7 @@ async function mockApi(page, override = async () => false) {
       data = { ...body, id, slug: `created-${id}`, editVersion: 0, status: 'DRAFT', visibility: 'PUBLIC', updatedAt: '2026-10-03T00:00:00',
         section: 'TECH', category: null, series: null, seriesOrder: body.order, relatedSeriesId: body.relatedSeriesId };
       posts.push(data); status = 201;
-    } else if (method === 'PATCH' && /^\/admin\/posts\/\d+\/metadata$/.test(path)) {
+    } else if (method === 'PUT' && /^\/admin\/posts\/\d+\/metadata$/.test(path)) {
       expectPostInput(body, true);
       const row = posts.find(post => post.id === Number(path.split('/')[3]));
       if (row.editVersion !== body.baseVersion) { status = 409; data = { detail: '다른 변경이 저장되었습니다.' }; }
@@ -615,7 +615,7 @@ test('touch sorting works across wrapped rows with reduced motion', async ({ pag
 test('post edit is atomic and the latest detail supplies its base version', async ({ page }) => {
   let writes = 0;
   await mockApi(page, async (route, path) => {
-    if (route.request().method() === 'PATCH' && path.endsWith('/metadata')) {
+    if (route.request().method() === 'PUT' && path.endsWith('/metadata')) {
       writes++;
       expect(route.request().postDataJSON().baseVersion).toBe(0);
     }

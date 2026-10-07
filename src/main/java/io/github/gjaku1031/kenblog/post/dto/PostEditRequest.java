@@ -8,7 +8,7 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
- * 본문·주소·선언 관계를 제외한 원자적 편집 요청의 엄격한 JSON 경계
+ * 본문·주소 관계를 제외한 원자적 편집 요청의 엄격한 JSON 경계
  */
 public final class PostEditRequest {
     /**
@@ -62,7 +62,6 @@ public final class PostEditRequest {
                 PostMetadataCreateRequest.optionalLong(node, "seriesId"),
                 PostMetadataCreateRequest.optionalInt(node, "order"),
                 PostMetadataCreateRequest.optionalLong(node, "relatedSeriesId"),
-                List.of(),
                 List.of());
     }
 }

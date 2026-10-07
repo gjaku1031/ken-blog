@@ -139,7 +139,7 @@ public final class SecurityConfig {
     /**
      * 공개 스냅샷·이미지는 지정 origin의 GET, 관리자 변경은 인증 origin의 credential 요청으로 분리
      *
-     * 관리자 경로의 GET·POST·PUT·PATCH·DELETE와 CSRF 헤더를 허용
+     * 관리자 경로의 GET·POST·PUT·DELETE와 CSRF 헤더를 허용
      *
      * 1. 공개·인증 origin 목록 검증
      * 2. 쿠키 없는 공개 읽기·쿠키 포함 읽기·관리자 변경 정책 분리
@@ -163,7 +163,7 @@ public final class SecurityConfig {
         var adminCors =
                 cors(
                         authOrigins,
-                        List.of("GET", "POST", "PUT", "PATCH", "DELETE"),
+                        List.of("GET", "POST", "PUT", "DELETE"),
                         List.of("Accept", "Content-Type", "X-CSRF-TOKEN"),
                         true);
         if (!authOrigins.isEmpty())

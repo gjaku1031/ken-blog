@@ -314,21 +314,15 @@ jobs:
               'categoryId': category['id'], 'tags': ['Kotlin'],
           }, 201))
           assert post['series']['id'] == series['id'] and post['section'] == 'PROJECT' and post['status'] == 'DRAFT', post
-          # 글 수정·첨부·위키 연결 전체 교체 검증
+          # 글 메타데이터와 첨부 연결 교체 검증
           post_path = '/api/v1/admin/posts/' + str(post['id'])
           assert metadata(request('GET', post_path))['slug'] == slug
-          assert metadata(request('PATCH', post_path + '/metadata', {
+          assert metadata(request('PUT', post_path + '/metadata', {
               'title': 'JVM CI Project', 'summary': 'HTTP metadata only', 'categoryId': category['id'], 'tags': ['Spring'],
               'baseVersion': post['editVersion'], 'seriesId': series['id'], 'order': 1, 'relatedSeriesId': None,
           }))['tags'] == ['Spring']
           assert metadata(request('PUT', post_path + '/attachments', {'attachmentIds': attachment_ids}))['attachmentIds'] == attachment_ids
-          assert metadata(request('PUT', post_path + '/wiki-links', {'wikiTargets': ['Target', 'Target']}))['wikiTargets'] == ['Target']
-          request('PUT', post_path + '/wiki-links', {'expectedBodySha256': '0' * 64, 'wikiTargets': []}, 400)
-          request('PUT', post_path + '/wiki-links', {'wikiTargets': ['secret-marker\ninvalid']}, 400)
-          assert metadata(request('GET', post_path))['wikiTargets'] == ['Target']
-          assert metadata(request('PUT', post_path + '/wiki-links', {'wikiTargets': []}))['wikiTargets'] == []
           assert request('GET', '/api/v1/admin/posts')['totalElements'] == 1
-          assert request('GET', '/api/v1/admin/posts/wiki-titles?q=JVM')['items'] == []
           assert request('GET', '/api/v1/admin/series/' + str(series['id']))['posts'][0]['id'] == post['id']
           snapshot = request('GET', '/api/v1/pages/snapshot', authenticated=False)
           assert snapshot['version'] == 3 and len(snapshot['revision']) == 64
@@ -340,7 +334,6 @@ jobs:
           assert len(snapshot['posts']) == 1 and len(snapshot['series']) == 1
           assert snapshot['series'][0]['cover']['id'] == post['id']
           assert metadata(snapshot['posts'][0])['section'] == 'PROJECT'
-          assert request('GET', '/api/v1/admin/posts/wiki-titles?q=JVM')['items'][0]['id'] == post['id']
           for image_id, original in zip(attachment_ids, [png, jpeg]):
               assert request('GET', '/api/v1/posts/' + str(post['id']) + '/attachments/' + str(image_id) + '/content', authenticated=False) == original
           # 발행 취소·로그아웃 후 공개 데이터·인증 상태 회수 확인
@@ -362,7 +355,7 @@ jobs:
           request('GET', series_path, expected=404)
           request('POST', '/api/v1/auth/logout', expected=204)
           request('GET', '/api/v1/auth/me', expected=401)
-          print('PASS HTTP login/logout, metadata/publication/wiki, PNG/JPEG attachments, local 64px icons, jOOQ reads, Pages v3 and removed endpoint; no API Markdown files')
+          print('PASS HTTP login/logout, metadata/publication, PNG/JPEG attachments, local 64px icons, jOOQ reads, Pages v3 and removed endpoint; no API Markdown files')
           PY
       - name: Upload reviewed image archive
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

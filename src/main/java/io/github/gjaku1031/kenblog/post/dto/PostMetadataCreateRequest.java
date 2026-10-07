@@ -10,7 +10,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * 본문 없이 글 주소·시리즈·분류·첨부 선언만 등록
+ * 본문 없이 글 주소·시리즈·분류·첨부만 등록
  * 구획은 시리즈에서 결정
  */
 public record PostMetadataCreateRequest(
@@ -57,21 +57,16 @@ public record PostMetadataCreateRequest(
         /**
          * 첨부 ID 목록
          */
-        List<Long> attachmentIds,
-
-        /**
-         * 위키 대상 제목 목록
-         */
-        List<String> wikiTargets) {
+        List<Long> attachmentIds) {
     /**
      * 제목만 지정한 기본 메타데이터
      */
     public PostMetadataCreateRequest(String title) {
-        this(title, null, "", null, List.of(), null, null, null, List.of(), List.of());
+        this(title, null, "", null, List.of(), null, null, null, List.of());
     }
 
     /**
-     * 허용 키·배열 타입 검사 후 주소 생략과 선택 선언을 보존
+     * 허용 키·배열 타입 검사 후 주소 생략과 선택 연결을 보존
      */
     public static PostMetadataCreateRequest fromJson(JsonNode node) {
         var allowed =
@@ -84,8 +79,7 @@ public record PostMetadataCreateRequest(
                         "seriesId",
                         "order",
                         "relatedSeriesId",
-                        "attachmentIds",
-                        "wikiTargets");
+                        "attachmentIds");
         if (!node.isObject()
                 || node.properties().stream().anyMatch(entry -> !allowed.contains(entry.getKey())))
             throw new InvalidPostRequestException();
@@ -99,9 +93,8 @@ public record PostMetadataCreateRequest(
                 tags.add(value.stringValue());
             }
         }
-        // 메타데이터와 연결 선언을 각 입력 규칙으로 검증
+        // 메타데이터와 첨부 ID를 각 입력 규칙으로 검증
         var attachments = AttachmentIds.parse(node.get("attachmentIds"));
-        var targets = WikiDeclarations.parse(node.get("wikiTargets"));
         String summary = optionalString(node, "summary");
         return new PostMetadataCreateRequest(
                 requiredString(node, "title"),
@@ -112,8 +105,7 @@ public record PostMetadataCreateRequest(
                 optionalLong(node, "seriesId"),
                 optionalInt(node, "order"),
                 optionalLong(node, "relatedSeriesId"),
-                attachments == null ? List.of() : attachments,
-                targets == null ? List.of() : targets);
+                attachments == null ? List.of() : attachments);
     }
 
     /**

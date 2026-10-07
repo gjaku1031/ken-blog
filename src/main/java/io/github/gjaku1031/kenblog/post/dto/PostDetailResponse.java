@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 /**
- * 본문·본문 해시를 제외한 관리자 메타데이터와 선언 관계
+ * 본문·본문 해시를 제외한 관리자 메타데이터
  */
 public record PostDetailResponse(
         /**
@@ -68,11 +68,6 @@ public record PostDetailResponse(
          * 첨부 ID 목록
          */
         List<Long> attachmentIds,
-
-        /**
-         * 위키 대상 제목 목록
-         */
-        List<String> wikiTargets,
 
         /**
          * 시리즈
