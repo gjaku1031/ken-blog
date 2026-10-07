@@ -70,3 +70,8 @@ app:
   # 쿠키 없는 공개 읽기 허용 origin
   cors:
     allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:}
+  # 관리자 화면의 Pages 워크플로 수동 실행; 토큰이 비면 기능 비활성
+  pages:
+    github:
+      api-base: https://api.github.com
+      token: ${APP_PAGES_GITHUB_TOKEN:}

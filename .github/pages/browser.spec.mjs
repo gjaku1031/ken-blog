@@ -110,6 +110,8 @@ async function mockApi(page, override = async () => false) {
     else if (method === 'GET' && /^\/stack-badges\/[123]\/image$/.test(path)) {
       await route.fulfill({ contentType: 'image/png', body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLbtAAAAABJRU5ErkJggg==', 'base64') }); return;
     }
+    // 진행 중 Pages 실행 확인은 기록 없음으로 응답
+    else if (method === 'GET' && path === '/admin/pages/deployments/latest') status = 204;
     else { await route.fulfill({ status: 501, json: { detail: `Unhandled mock: ${method} ${path}` } }); throw new Error(`Unhandled mock: ${method} ${path}`); }
     if (status === 204) await route.fulfill({ status });
     else if (data === undefined) await route.fulfill({ status: 404, json: { detail: '없음' } });
@@ -1025,69 +1027,68 @@ test('diagram zoom supports touch pinch and drag without scrolling the article',
 });
 
 /**
- * Pages 워크플로 API 대역; 실행 상태는 조회할 때마다 순서대로 진행
- * 실제 GitHub에는 요청하지 않고 토큰·요청 본문 계약을 검사
+ * 관리자 Pages 배포 API 대역; 실행 상태는 조회할 때마다 순서대로 진행
  */
-async function mockGitHub(page, runStates) {
+function deploymentRoutes(latest, runStates, start = {}) {
   const calls = [];
-  const runs = 'https://api.github.com/repos/gjaku1031/ken-blog/actions';
   let polled = 0;
-  await page.route('https://api.github.com/**', async route => {
-    const request = route.request();
-    const path = request.url().replace(runs, '');
-    calls.push({ method: request.method(), path, auth: request.headers().authorization, body: request.postDataJSON() });
-    const run = state => ({ id: 42, status: state, conclusion: state === 'completed' ? 'success' : null,
-      html_url: 'https://github.com/gjaku1031/ken-blog/actions/runs/42', created_at: new Date(Date.now() - 20_000).toISOString(),
-      run_started_at: new Date(Date.now() - 20_000).toISOString(), updated_at: new Date().toISOString() });
-    if (path === '/workflows/pages.yml') await route.fulfill({ json: { id: 1, path: '.github/workflows/pages.yml' } });
-    else if (path.startsWith('/workflows/pages.yml/runs?status=success')) await route.fulfill({ json: { workflow_runs: [{ ...run('completed'),
-      run_started_at: '2026-10-07T00:00:00Z', updated_at: '2026-10-07T00:01:00Z' }] } });
-    else if (path === '/workflows/pages.yml/runs?per_page=1') await route.fulfill({ json: { workflow_runs: [run('completed')] } });
-    else if (path === '/workflows/pages.yml/dispatches' && request.method() === 'POST')
-      await route.fulfill({ json: { workflow_run_id: 42, run_url: `${runs}/runs/42`, html_url: 'https://github.com/gjaku1031/ken-blog/actions/runs/42' } });
-    else if (path === '/runs/42') await route.fulfill({ json: run(runStates[Math.min(polled++, runStates.length - 1)]) });
-    else if (path === '/runs/42/jobs') await route.fulfill({ json: { jobs: [{ name: 'build', status: 'in_progress',
-      steps: [{ name: 'Check out source', status: 'completed' }, { name: 'Build site', status: 'in_progress' }] }] } });
-    else await route.fulfill({ status: 501, json: { message: `Unhandled GitHub mock: ${path}` } });
-  });
-  return calls;
+  const run = state => ({ runId: 42, status: state, conclusion: state === 'completed' ? 'success' : null,
+    htmlUrl: 'https://github.com/gjaku1031/ken-blog/actions/runs/42', startedAt: state === 'queued' ? null : new Date(Date.now() - 20_000).toISOString(),
+    completedSteps: 1, totalSteps: 2, currentStep: state === 'in_progress' ? 'build · Build site' : null, estimatedSeconds: 60 });
+  const override = async (route, path) => {
+    if (!path.startsWith('/admin/pages/deployments')) return false;
+    const method = route.request().method();
+    calls.push({ method, path, csrf: route.request().headers()['x-csrf'] });
+    if (method === 'GET' && path === '/admin/pages/deployments/latest') await route.fulfill({ json: run(latest) });
+    else if (method === 'POST' && path === '/admin/pages/deployments') await route.fulfill({ status: start.status ?? 200, json: start.json ?? run('queued') });
+    else if (method === 'GET' && path === '/admin/pages/deployments/42') await route.fulfill({ json: run(runStates[Math.min(polled++, runStates.length - 1)]) });
+    else await route.fulfill({ status: 501, json: { detail: `Unhandled mock: ${method} ${path}` } });
+    return true;
+  };
+  return { calls, override };
 }
 
-// 토큰이 없으면 실행하지 않고 설정 대화상자를 열며, 권한 확인에 성공한 토큰만 저장
-test('pages deploy asks for a token before dispatching', async ({ page }) => {
-  await mockApi(page);
-  const calls = await mockGitHub(page, ['completed']);
-  await page.goto('/ken-blog/manage/');
-  await page.locator('#pages-deploy-run').click();
-  await expect(page.locator('#dialog-title')).toHaveText('GitHub 배포 토큰');
-  expect(calls).toEqual([]);
-  await page.locator('#edit-dialog input[name=token]').fill('github_pat_fixture');
-  await page.locator('#edit-dialog button[type=submit]').click();
-  await expect(page.locator('#edit-dialog')).not.toBeVisible();
-  expect(await page.evaluate(() => localStorage.getItem('ken-blog.pages-deploy-token'))).toBe('github_pat_fixture');
-  expect(calls).toEqual([{ method: 'GET', path: '/workflows/pages.yml', auth: 'Bearer github_pat_fixture', body: null }]);
-});
-
-// 확인 후 main으로 수동 실행하고 실행 ID의 단계 진행과 성공 결과를 표시
-test('pages deploy dispatches and tracks the run to completion', async ({ page }) => {
-  await page.addInitScript(() => localStorage.setItem('ken-blog.pages-deploy-token', 'github_pat_fixture'));
-  await mockApi(page);
-  const calls = await mockGitHub(page, ['queued', 'in_progress', 'completed']);
+// 확인 후 CSRF를 붙여 실행을 요청하고 실행 ID의 단계 진행과 성공 결과를 표시
+test('pages deploy starts a run and tracks it to completion', async ({ page }) => {
+  const { calls, override } = deploymentRoutes('completed', ['in_progress', 'completed']);
+  await mockApi(page, override);
   await page.goto('/ken-blog/manage/');
   await expect(page.locator('#dashboard')).toBeVisible();
   page.once('dialog', dialog => dialog.accept());
   await page.locator('#pages-deploy-run').click();
-  await expect.poll(() => calls.some(call => call.path === '/workflows/pages.yml/dispatches')).toBe(true);
-  expect(calls.find(call => call.path === '/workflows/pages.yml/dispatches').body).toEqual({ ref: 'main', return_run_details: true });
-  expect(calls.every(call => call.auth === 'Bearer github_pat_fixture')).toBe(true);
-  await expect(page.locator('#pages-deploy-run')).toBeDisabled();
   await expect(page.locator('#pages-deploy-status')).toHaveText('대기 중');
+  await expect(page.locator('#pages-deploy-run')).toBeDisabled();
+  expect(calls.filter(call => call.method === 'POST')).toEqual([{ method: 'POST', path: '/admin/pages/deployments', csrf: 'fixture' }]);
   await expect(page.locator('#pages-deploy-status')).toHaveText('build · Build site (1/2단계)', { timeout: 10_000 });
   await expect(page.locator('#pages-deploy-bar')).toHaveAttribute('aria-valuenow', /^3\d$/);
   await expect(page.locator('#pages-deploy-status')).toHaveText('배포 완료', { timeout: 10_000 });
   await expect(page.locator('#pages-deploy-bar')).toHaveAttribute('aria-valuenow', '100');
   await expect(page.locator('#pages-deploy-link')).toHaveAttribute('href', 'https://github.com/gjaku1031/ken-blog/actions/runs/42');
   await expect(page.locator('#pages-deploy-run')).toBeEnabled();
-  // 진행 중 실행 확인 1회 뒤 새 실행 1회만 요청
-  expect(calls.filter(call => call.method === 'POST')).toHaveLength(1);
+});
+
+// 진행 중 실행은 화면 진입 시 이어서 표시하고 버튼을 눌러도 새 실행을 요청하지 않음
+test('pages deploy follows an active run without starting another', async ({ page }) => {
+  const { calls, override } = deploymentRoutes('in_progress', ['in_progress']);
+  await mockApi(page, override);
+  let confirmed = false;
+  page.on('dialog', dialog => { confirmed = true; void dialog.dismiss(); });
+  await page.goto('/ken-blog/manage/');
+  await expect(page.locator('#pages-deploy-status')).toHaveText('build · Build site (1/2단계)');
+  await expect(page.locator('#pages-deploy-run')).toBeDisabled();
+  expect(confirmed).toBe(false);
+  expect(calls.some(call => call.method === 'POST')).toBe(false);
+});
+
+// 서버의 토큰 미설정 등 실행 거부 사유를 실패 상태로 표시하고 버튼을 복구
+test('pages deploy shows a rejected start', async ({ page }) => {
+  const { override } = deploymentRoutes('completed', ['completed'], { status: 503, json: { detail: 'GitHub 배포 토큰이 설정되지 않았습니다.' } });
+  await mockApi(page, override);
+  await page.goto('/ken-blog/manage/');
+  await expect(page.locator('#dashboard')).toBeVisible();
+  page.once('dialog', dialog => dialog.accept());
+  await page.locator('#pages-deploy-run').click();
+  await expect(page.locator('#pages-deploy-status')).toHaveText('GitHub 배포 토큰이 설정되지 않았습니다.');
+  await expect(page.locator('#pages-deploy-progress')).toHaveAttribute('data-state', 'failure');
+  await expect(page.locator('#pages-deploy-run')).toBeEnabled();
 });
