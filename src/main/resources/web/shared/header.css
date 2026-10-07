@@ -76,8 +76,7 @@
 /* 화면 폭에 맞춘 배치 조정 */
 @media (max-width: 760px) {.header-inner { gap: 0; row-gap: 4px; padding: 6px 14px 4px; }
 .brand { margin-right: auto; }
-.main-nav { order: 3; flex-basis: 100%; gap: 0; height: 40px; margin-left: 0; scrollbar-width: none; }
-.main-nav::-webkit-scrollbar { display: none; }
+.main-nav { order: 3; flex-basis: 100%; gap: 0; height: 40px; margin-left: 0; }
 .main-nav a { font-size: 15px; }
 .header-actions { display: contents; }
 .header-actions > * { order: 2; }

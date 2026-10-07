@@ -21,6 +21,39 @@ export const MAX_MERMAID_LINES = 200;
 export const MAX_MERMAID_EDGES = 100;
 
 /**
+ * Mermaid 도식의 최대 기준 글자 크기, 본문에서 확대 없이 표시될 때의 크기
+ */
+const MERMAID_FONT_SIZE = 14;
+
+/**
+ * ERD 그룹 제목 아래에 관계 끝 표시가 놓이지 않도록 확보할 여백
+ */
+const ERD_GROUP_TITLE_MARGIN = { top: 18, bottom: 12 } as const;
+
+/**
+ * ERD 그룹 제목을 둘 그룹 왼쪽 테두리로부터의 거리
+ */
+const ERD_GROUP_LABEL_INSET = 12;
+
+/**
+ * ERD 그룹 제목을 그룹 왼쪽 위로 옮김
+ *
+ * 관계선은 그룹 위쪽 가운데로 자주 들어오므로 가운데 제목이 관계 끝 표시와 겹침
+ */
+function alignErdGroupLabels(svg: string): string {
+  const doc = new DOMParser().parseFromString(svg, "image/svg+xml");
+  for (const cluster of doc.querySelectorAll("g.cluster")) {
+    const rect = cluster.querySelector(":scope > rect");
+    const label = cluster.querySelector(":scope > g.cluster-label");
+    const offset = label?.getAttribute("transform")?.match(/^translate\(\s*-?[\d.]+\s*,\s*(-?[\d.]+)\s*\)$/);
+    const left = Number(rect?.getAttribute("x"));
+    if (!label || !offset || !Number.isFinite(left)) continue;
+    label.setAttribute("transform", `translate(${left + ERD_GROUP_LABEL_INSET}, ${offset[1]})`);
+  }
+  return new XMLSerializer().serializeToString(doc);
+}
+
+/**
  * 허용 SVG 네임스페이스
  */
 const SVG_NS = "http://www.w3.org/2000/svg";
@@ -189,8 +222,8 @@ export function sanitizeMermaidSvg(svg: string): string {
   // 고정 테마 CSS에는 현재 look에서 쓰지 않는 내부 gradient 규칙도 포함됨
   // CSS 자체는 내부 #fragment만 허용하며, 실제 SVG 요소의 참조만 존재 여부를 검사함
   if (references.some((id) => !ids.has(id))) throw new Error("도식 SVG 참조 오류");
-  // Mermaid의 width="100%"는 <img> 안에서 본문 너비만큼 확대됨
-  // viewBox의 실제 치수를 주어 좁은 세로 도식도 원래 글자 크기로 표시함
+  // viewBox 치수를 SVG의 고유 크기로 유지해 작은 도식은 확대되지 않게 함
+  // 본문보다 넓은 도식은 이미지의 max-width가 줄이고 높이도 같은 비율로 조정함
   const bounds = doc.documentElement.getAttribute("viewBox")?.trim().split(/[\s,]+/).map(Number);
   if (!bounds || bounds.length !== 4 || bounds.some(value => !Number.isFinite(value)) || bounds[2] <= 0 || bounds[3] <= 0)
     throw new Error("도식 SVG 크기 오류");
@@ -267,6 +300,8 @@ async function drainQueue(): Promise<void> {
       let container: HTMLDivElement | null = null;
       try {
         const architecture = /^\s*architecture-beta\b/.test(job.source);
+        const erDiagram = /^\s*erDiagram\b/.test(job.source);
+        const fontSize = architecture ? ARCHITECTURE_LAYOUT.fontSize : MERMAID_FONT_SIZE;
         // 기준 배치와 어긋난 원고는 무거운 Mermaid 초기화·자동 배치 전에 거부
         const reference = architecture && /^\s*%% layout: /m.test(job.source)
           ? await import('./mermaid-reference-layout.ts') : null;
@@ -282,14 +317,14 @@ async function drainQueue(): Promise<void> {
         mermaid.initialize({ startOnLoad: false, securityLevel: "strict", htmlLabels: false,
           suppressErrorRendering: true, maxTextSize: MAX_MERMAID_LENGTH, maxEdges: MAX_MERMAID_EDGES,
           theme: job.theme === "dark" ? "dark" : "default",
-          ...(architecture ? { fontSize: ARCHITECTURE_LAYOUT.fontSize,
-            themeVariables: { fontSize: `${ARCHITECTURE_LAYOUT.fontSize}px` } } : {}),
+          fontSize, themeVariables: { fontSize: `${fontSize}px` },
+          flowchart: { subGraphTitleMargin: erDiagram ? ERD_GROUP_TITLE_MARGIN : { top: 0, bottom: 0 } },
           // 그룹과 교차 FK가 있는 ERD는 ELK로 배치하고 다른 도식의 배치는 유지함
-          layout: /^\s*erDiagram\b/.test(job.source) ? "elk" : "dagre", look: "classic",
+          layout: erDiagram ? "elk" : "dagre", look: "classic",
           fontFamily: "Arial, sans-serif", arrowMarkerAbsolute: false,
           architecture: ARCHITECTURE_LAYOUT,
           secure: ["securityLevel", "startOnLoad", "maxTextSize", "maxEdges", "suppressErrorRendering", "theme",
-            "themeVariables", "themeCSS", "htmlLabels", "fontFamily", "fontSize", "layout", "look", "arrowMarkerAbsolute", "architecture"] });
+            "themeVariables", "themeCSS", "htmlLabels", "fontFamily", "fontSize", "flowchart", "layout", "look", "arrowMarkerAbsolute", "architecture"] });
         container = document.createElement("div");
         container.style.cssText = "position:fixed;left:-100000px;top:0;opacity:0;pointer-events:none;z-index:-1";
         container.setAttribute("aria-hidden", "true");
@@ -298,6 +333,7 @@ async function drainQueue(): Promise<void> {
         const result = await mermaid.render(id, mermaidThemeSource(job.source, job.theme), container);
         if (!job.signal.aborted) {
           let svg = sanitizeMermaidSvg(result.svg);
+          if (erDiagram) svg = sanitizeMermaidSvg(alignErdGroupLabels(svg));
           if (reference) {
             // 특정 원본 도식의 배치만 적용하며 구성·연결이 바뀌면 검증에서 중단함
             svg = sanitizeMermaidSvg(reference.applyReferenceLayout(svg, job.source, job.theme));

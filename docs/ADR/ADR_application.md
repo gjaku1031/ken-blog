@@ -255,4 +255,4 @@ GitHub Actions는 저장소 변수 `GA_MEASUREMENT_ID`를 운영 빌드에 전�
 
 글 정보 편집은 `baseVersion`과 편집 필드 7개를 모두 받는 전체 교체 계약이므로 메서드를 `PATCH`에서 `PUT /api/v1/admin/posts/{id}/metadata`로 바꾼다. 요청 키·버전 비교·409·롤백 의미는 2026-10-03 결정과 같다. 관리 화면이 호출하지 않던 `PUT /api/v1/admin/posts/{id}/series`, `PUT /api/v1/admin/posts/{id}/order`, `PUT /api/v1/admin/categories/{id}/order`도 제거한다. 소속·순서는 글 정보 편집으로, 분류 순서는 형제 전체를 보내는 `PUT /api/v1/admin/categories/order`로만 바꾼다. 첨부 연결 교체와 발행 전환 경로는 유지한다.
 
-운영 `post_wiki_links` 테이블은 새 API 배포 후 백업과 복구 확인을 마치고 유지보수 창에서 [검토한 SQL](../../deploy/sql/drop-post-wiki-links-2026-10-07.sql)로 삭제한다. 영속성 변경은 [영속성 ADR](ADR_persistence.md) 참조.
+운영 `post_wiki_links` 테이블은 새 API 배포 후 2026-10-07 [정리 SQL](../../deploy/sql/drop-legacy-tables-2026-10-07.sql)로 삭제했다. 같은 SQL로 현재 코드가 쓰지 않는 이관 전 모델 테이블 12개와 `posts`의 이관 전 열 6개·관련 FK·인덱스도 정리했으며, 사용자 결정으로 백업 없이 실행했다. 영속성 변경은 [영속성 ADR](ADR_persistence.md) 참조.

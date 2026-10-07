@@ -1,0 +1,27 @@
+-- 2026-10-07 운영 실행, 사용자 결정으로 백업 없이 삭제.
+ALTER TABLE posts DROP FOREIGN KEY fk_posts_course;
+ALTER TABLE posts DROP FOREIGN KEY fk_posts_project;
+ALTER TABLE posts DROP FOREIGN KEY fk_posts_related_project;
+ALTER TABLE posts DROP INDEX ix_posts_course_order;
+ALTER TABLE posts DROP INDEX ix_posts_project_order;
+ALTER TABLE posts DROP INDEX ix_posts_related_project;
+ALTER TABLE posts DROP INDEX ix_posts_tech_series;
+ALTER TABLE posts DROP COLUMN project_id;
+ALTER TABLE posts DROP COLUMN related_project_id;
+ALTER TABLE posts DROP COLUMN document_order;
+ALTER TABLE posts DROP COLUMN course_id;
+ALTER TABLE posts DROP COLUMN chapter_order;
+ALTER TABLE posts DROP COLUMN tech_series_order;
+DROP TABLE post_wiki_links;
+DROP TABLE editor_draft_attachments;
+DROP TABLE editor_draft_wiki_links;
+DROP TABLE editor_drafts;
+DROP TABLE project_stack_badges;
+DROP TABLE projects;
+DROP TABLE courses;
+DROP TABLE admin_recovery_codes;
+DROP TABLE content_model_migrations;
+DROP TABLE deployment_state;
+DROP TABLE flyway_schema_history;
+DROP TABLE home_profile;
+DROP TABLE post_model_legacy_metadata;
