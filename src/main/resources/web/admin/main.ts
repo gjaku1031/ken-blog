@@ -15,6 +15,7 @@ import { seriesEditor, type Series } from '../shared/series-editor';
 import { deploymentManifest, readDeploymentManifest, deploymentState, filterPosts, type DeploymentComparison, type PostFilter } from '../shared/deployment-status';
 import { postEditor } from '../shared/post-editor';
 import { postFields, postPayload, type Category, type Tag } from '../shared/post-fields';
+import { connectPagesDeploy } from './pages-deploy';
 
 /**
  * 분류 참조
@@ -324,6 +325,14 @@ window.addEventListener('hashchange', selectPanel);
 selectPanel();
 
 /**
+ * 사이드바 Pages 배포 버튼; 성공하면 배포 대기 표시를 다시 비교
+ */
+const pagesDeploy = connectPagesDeploy({
+  openDialog, closeDialog: () => dialog.close(),
+  onDeployed: () => { if (sessionReady && !editorMode) void loadDashboard(false).catch(() => { /* 다음 주기 갱신에서 재시도 */ }); },
+});
+
+/**
  * 필수 DOM 요소 조회, 없으면 초기화 실패
  */
 function get(id: string): HTMLElement {
@@ -351,6 +360,7 @@ function showLogin(message = '') {
   dashboardRequest?.abort();
   postPage = 0;
   updateHeaderSession(false);
+  pagesDeploy.stop();
   clearCsrf();
   clearDashboard();
   boot.hidden = true;
@@ -364,6 +374,7 @@ function showLogin(message = '') {
  */
 function showDashboard() {
   updateHeaderSession(true);
+  void pagesDeploy.resume();
   boot.hidden = true;
   login.hidden = true;
   dashboard.hidden = false;

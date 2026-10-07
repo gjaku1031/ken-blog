@@ -68,7 +68,7 @@ Post의 메타데이터와 저장소 Markdown을 빌드 시 결합해 완성 HTM
 
 - 사이트 명령은 `npm ci`, `npm test`, `PUBLIC_API_BASE_URL=… npm run build:site`. Node 24.21.0 사용. Java·Gradle·Spring 실행 없는 생성 경로. 현재 Node·Chromium 검사와 자산·검색 색인 분리 기준은 [프론트엔드 ADR](ADR_frontend.md) 참조.
 - API 명령은 `./gradlew build`와 `bootBuildImage`. npm 태스크·`skipWeb`·`writeSiteClasspath` 제거. API JAR에서 웹 소스·템플릿 제외 유지.
-- `pages.yml`은 공개 원고·웹 소스·npm 설정·사이트 빌드 코드 변경 시 실행. `ci.yml`은 Java·런타임 리소스·기존 검사·Gradle 변경 시 실행하고 웹 리소스 제외. 변경 파일 경로 기준이며 커밋 메시지 규칙 없음. DB 메타데이터 변경은 기존 `workflow_dispatch`로 발행. 백엔드 공개 데이터 계약 변경 시 API 반영 후 사이트 수동 발행 필요.
+- `pages.yml`은 공개 원고·웹 소스·npm 설정·사이트 빌드 코드 변경 시 실행. `ci.yml`은 Java·런타임 리소스·기존 검사·Gradle 변경 시 실행하고 웹 리소스 제외. 변경 파일 경로 기준이며 커밋 메시지 규칙 없음. DB 메타데이터 변경은 기존 `workflow_dispatch`로 발행하며, 실행 경로는 [관리자 화면의 Pages 배포 버튼](#관리자-화면의-pages-수동-실행--2026-10-07) 참조. 백엔드 공개 데이터 계약 변경 시 API 반영 후 사이트 수동 발행 필요.
 - 프론트 번들의 입력 키는 브라우저 소스·공용 코드·빌더·package/lockfile·tsconfig·Node 버전·플랫폼의 내용 해시. 페이지 템플릿과 원고는 번들 키에서 제외. 자산 manifest의 모든 파일 해시와 JS/CSS 진입 파일을 검사한 뒤 재사용. 캐시 미존재·손상·입력 변경 시 소스에서 재생성. Actions 캐시 만료가 발행 실패 조건이 아니며, 프론트 컴파일의 영구 생략 보장은 없음. 별도 산출물 Git 브랜치 미도입.
 - Pages 발행 workflow 하나에서 전체 사이트 artifact 구성·배포. workflow 전체 concurrency 유지, 시작 시 main checkout 및 배포 전 현재 main과 사이트 입력 경로 차이 검사. Git 소스·snapshot revision·자산 키를 실행 요약에 기록. 마지막 확인 이후의 변경이나 브라우저 캐시까지 원자적으로 묶는 보장은 없으며 메타데이터 저장과 공개 반영은 별도 단계. [Pages Actions 배포](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)
 
@@ -318,3 +318,14 @@ Pages 의존성 설치·빌드 job은 contents:read만 가진다. 같은 workflo
 운영 배포 후 시작 로그에서 Hibernate가 JDBC URL의 truststore 비밀번호를 출력하는 것을 확인했다. PKCS12 비밀번호는 `MYSQL_TRUSTSTORE_PASSWORD`에서 Hikari의 `trustCertificateKeyStorePassword` 속성으로 전달하고 URL에서 제거한다. Hibernate 연결 풀의 전체 JDBC URL 정보 로그도 WARN 수준으로 제한한다. 실제 JAR의 사설 CA TLS 기동 검사에 별도 비밀번호 바인딩 성공과 로그의 JDBC URL·비밀번호 부재를 함께 추가한다. 운영 DB 비밀번호와 프록시 키는 이 출력에 포함되지 않았다.
 
 운영 DDL 자동 갱신·일반 인증 bootstrap을 제거한 전환 순서는 [REVIEW-ROLLOUT.md](../../deploy/REVIEW-ROLLOUT.md) 참조. 최초 로컬 검증과 후속 운영 적용은 분리하여 진행했으며 실제 DB·API·Pages 전환과 인증서 검증 결과는 [리뷰 운영 배포 기록](../audit/review-deployment-2026-10-03.md)에 남겼다.
+
+## 관리자 화면의 Pages 수동 실행 — 2026-10-07
+
+DB 메타데이터(글 정보·분류·순서·기술 뱃지)는 Git 변경이 없어 `pages.yml`의 push 트리거가 동작하지 않음. 관리자 사이드바의 GitHub 버튼을 Actions 화면 링크에서 `workflow_dispatch` 실행 버튼으로 바꾸고, 실행 ID의 상태·단계를 조회해 진행 막대로 표시함. 공개 사이트를 빌드 시 정적으로 생성하는 구조와 열람 경로에 API가 없는 계약은 유지함.
+
+- 토큰: 관리자가 입력한 fine-grained token을 그 브라우저의 `localStorage`에만 저장. 권한은 `ken-blog` 저장소의 Actions 읽기·쓰기로 제한하고 만료일 지정. 공개 번들·저장소·운영 서버에는 두지 않음. 저장 전 워크플로 조회로 권한 확인.
+- 대안: 운영 API가 서버 env의 토큰으로 GitHub를 호출하는 방식은 관리자 세션으로 실행을 보호할 수 있으나 Java API·Caddy 허용 경로·env·이미지 재배포가 필요함. 2026-10-01에 서버의 배포 상태·dispatch 계층을 제거한 결정과도 어긋나 채택하지 않음. GitHub Secrets는 실행 중인 workflow 안에서만 읽을 수 있어 실행 시작에 사용할 수 없음.
+- 받아들인 비용: 같은 출처(`gjaku1031.github.io`)의 다른 페이지나 XSS가 저장된 토큰을 읽을 수 있음. 노출 시 가능한 동작은 이 저장소 workflow의 실행·취소·재실행·기록 삭제이며 코드·workflow 파일 변경 권한은 없음. 기기·브라우저마다 다시 입력.
+- 실행: 가장 최근 `pages.yml` 실행이 완료 전이면 새로 만들지 않고 그 실행을 추적. 아니면 확인 후 `main`에 `return_run_details`로 dispatch해 실행 ID를 받음. [Workflow dispatch API](https://docs.github.com/en/rest/actions/workflows#create-a-workflow-dispatch-event)
+- 진행 표시: 4초 간격으로 실행·job 단계를 조회. 막대는 최근 성공 수동 실행(없으면 전체 성공 실행, 그것도 없으면 90초)의 소요 시간 대비 경과 비율이며 완료 전에는 95%를 넘기지 않음. 문구는 진행 중 단계 이름과 완료 단계 수. 성공 시 관리자 목록의 배포 대기 비교를 다시 읽음. 단계 수는 시작 전 job을 포함하지 않아 추정치임.
+- 검증: Chromium 회귀 검사에서 GitHub API를 대역으로 두고 토큰 미설정 시 설정 대화상자, 저장 전 권한 확인, dispatch 본문·인증 헤더, 대기→진행→완료 표시를 확인. 실제 GitHub 실행은 이 검사에 포함하지 않음.
