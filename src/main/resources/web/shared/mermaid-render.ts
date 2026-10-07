@@ -36,6 +36,23 @@ const ERD_GROUP_TITLE_MARGIN = { top: 18, bottom: 12 } as const;
 const ERD_GROUP_LABEL_INSET = 12;
 
 /**
+ * ERD 표시 배율. 표 행 높이와 여백이 커서 기준 글자 크기 그대로면 본문보다 커 보임
+ */
+const ERD_DISPLAY_SCALE = 0.85;
+
+/**
+ * SVG의 고유 표시 크기를 배율만큼 줄임. viewBox는 유지해 그림 비율과 확대 보기는 그대로 둠
+ */
+function scaleSvgSize(svg: string, scale: number): string {
+  const doc = new DOMParser().parseFromString(svg, "image/svg+xml");
+  for (const name of ["width", "height"]) {
+    const value = Number(doc.documentElement.getAttribute(name));
+    if (Number.isFinite(value) && value > 0) doc.documentElement.setAttribute(name, String(Math.round(value * scale)));
+  }
+  return new XMLSerializer().serializeToString(doc);
+}
+
+/**
  * ERD 그룹 제목을 그룹 왼쪽 위로 옮김
  *
  * 관계선은 그룹 위쪽 가운데로 자주 들어오므로 가운데 제목이 관계 끝 표시와 겹침
@@ -333,7 +350,7 @@ async function drainQueue(): Promise<void> {
         const result = await mermaid.render(id, mermaidThemeSource(job.source, job.theme), container);
         if (!job.signal.aborted) {
           let svg = sanitizeMermaidSvg(result.svg);
-          if (erDiagram) svg = sanitizeMermaidSvg(alignErdGroupLabels(svg));
+          if (erDiagram) svg = scaleSvgSize(sanitizeMermaidSvg(alignErdGroupLabels(svg)), ERD_DISPLAY_SCALE);
           if (reference) {
             // 특정 원본 도식의 배치만 적용하며 구성·연결이 바뀌면 검증에서 중단함
             svg = sanitizeMermaidSvg(reference.applyReferenceLayout(svg, job.source, job.theme));
