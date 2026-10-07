@@ -10,14 +10,14 @@
 
 ```mermaid
 flowchart LR
-    browser["브라우저"] --> pages["GitHub Pages<br/>공개·관리자 정적 HTML"]
+    browser["브라우저"] --> pages["GitHub Pages · 공개·관리자 정적 HTML"]
     pages -->|"관리자 HTTPS 요청"| caddy["OCI VM · Caddy"]
-    caddy -->|"내부 HTTP 8080"| api["Spring Boot API<br/>Java 25 JVM"]
+    caddy -->|"내부 HTTP 8080"| api["Spring Boot API · Java 25 JVM"]
     api --> db["기존 외부 MySQL"]
     api --> disk["영속 로컬 이미지"]
     source["Git 저장소 Markdown"] --> actions["GitHub Actions"]
     actions -->|"Node·TS·Nunjucks 정적 생성"| pages
-    actions -->|"bootBuildImage · ARM64 이미지 산출물"| image["이미지 + SHA-256<br/>검증 후 별도 운영 반영"]
+    actions -->|"bootBuildImage · ARM64 이미지 산출물"| image["이미지 + SHA-256 · 검증 후 별도 운영 반영"]
 ```
 
 | 결정 | 이유·효과 | 실제 적용 상태 |
@@ -90,7 +90,7 @@ Spring Boot 4.1.1·Java 25 및 `paketobuildpacks/ubuntu-noble-builder:latest`/`u
 
 API 컨테이너 기본 메모리 한도 `1536m`, 운영 CPU 한도 1코어. `BPL_JVM_HEAD_ROOM=10`으로 JVM 외 작업에 10% 여유를 예약하고, 나머지에서 메타스페이스·코드 캐시·스레드 스택을 뺀 힙 크기는 Paketo 메모리 계산기에 위임. MCP가 존재하던 과거 최초 기본 계산의 메타스페이스 약 139MiB에서는 이미지 도구 실행 중 `OutOfMemoryError: Metaspace`와 종료 코드 3 확인. `JAVA_TOOL_OPTIONS=-XX:MaxMetaspaceSize=256m`으로 클래스 정보 공간을 확보하고 그만큼 힙을 줄여 전체 한도 유지. 컨테이너 한도 전체를 `-Xmx`로 지정하지 않는 기준. Caddy·OS 및 테스트 MySQL의 메모리는 별도. [Paketo 메모리 계산기](https://paketo.io/docs/reference/java-reference/#memory-calculator)
 
-CI의 Actuator health·CSRF·직접 준비한 본문 PNG/JPEG 조회·로컬 64px 아이콘·Series/Post·jOOQ 조회·비밀번호 로그인/로그아웃·공개 스냅샷 v2 검사는 인증된 관리자 HTTP로 수행. MCP 도구·문서·프롬프트 검사는 제거하고 원고 디렉터리와 마운트 없이 API 동작 검증. 위키 선언은 해시 없는 새 HTTP 계약으로 확인. 기능 검사를 통과한 이미지·SHA-256을 커밋별 artifact로 90일 보관. 빌더의 `latest`는 변경 가능하므로 실제 이미지 ID와 아카이브 해시가 산출물 식별 기준. Compose는 검증된 이미지를 받아 실행하며 자동 운영 배포·레지스트리 공개는 없는 구성.
+CI의 Actuator health·CSRF·직접 준비한 본문 PNG/JPEG 조회·로컬 64px 아이콘·Series/Post·jOOQ 조회·비밀번호 로그인/로그아웃·공개 스냅샷 v2 검사는 인증된 관리자 HTTP로 수행. MCP 도구·문서·프롬프트 검사는 제거하고 원고 디렉터리와 마운트 없이 API 동작 검증. 위키 선언은 해시 없는 새 HTTP 계약으로 확인(2026-10-07 위키 선언 기능 삭제로 이 검사도 제거, [애플리케이션 ADR](ADR_application.md) 참조). 기능 검사를 통과한 이미지·SHA-256을 커밋별 artifact로 90일 보관. 빌더의 `latest`는 변경 가능하므로 실제 이미지 ID와 아카이브 해시가 산출물 식별 기준. Compose는 검증된 이미지를 받아 실행하며 자동 운영 배포·레지스트리 공개는 없는 구성.
 
 실서버 적용 및 새 용량 검증 결과는 문서 후반의 JVM 전환 기록 참조. 기존 외부 DB 연결·자료 이관·Pages 전환은 별도 잔여 작업이며 테스트 DB의 성공을 운영 완료로 간주하지 않는 원칙.
 
