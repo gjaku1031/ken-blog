@@ -1,6 +1,6 @@
 # Mermaid 다이어그램 작성
 
-게시글·문서의 다이어그램을 새로 그리거나 수정할 때 먼저 읽는 공통 가이드다. 현재 블로그는 Mermaid 12.0.0을 사용하며, 실제 지원 범위는 [package.json](../../package.json)과 [공용 렌더러](../../src/main/resources/web/shared/mermaid-render.ts)를 기준으로 한다.
+게시글·문서의 다이어그램을 새로 그리거나 수정할 때 먼저 읽는 공통 가이드다. 현재 블로그는 Mermaid 12.0.0을 사용하며, 실제 지원 범위는 [package.json](../../../../package.json)과 [공용 렌더러](../../../../src/main/resources/web/shared/mermaid-render.ts)를 기준으로 한다.
 
 ## 종류 선택
 
@@ -10,7 +10,7 @@
 | 요청·응답의 시간 순서 | `sequenceDiagram` | 이 문서 |
 | 클래스 구조·상태 전이 | `classDiagram`, `stateDiagram-v2` | 이 문서의 공통 규칙과 해당 문법 |
 | 테이블·키·관계 | `erDiagram` | [ERD](erd.md) |
-| 서버·배포 영역·기술 스택 | `architecture-beta` | [Mermaid Architecture](mermaid-architecture.md) |
+| 서버·배포 영역·기술 스택 | `architecture-beta` | [Mermaid Architecture](architecture.md) |
 
 `graph`, `stateDiagram`도 허용한다. 공식 Mermaid에 있는 종류라도 블로그 렌더러가 허용하지 않으면 그림으로 표시되지 않는다.
 
@@ -62,6 +62,20 @@ sequenceDiagram
 
 이 예시에서 실선은 요청, 점선은 응답이다. 내부 검증·실패·재시도가 설명의 주제라면 해당 분기만 추가한다. [Sequence 문법](https://mermaid.js.org/syntax/sequenceDiagram.html)을 참고한다.
 
+## 캡션과 범례
+
+- 그림 설명은 펜스 첫 줄의 `caption="설명"`에 쓴다. 그림 아래에 설명 문단을 따로 두지 않는다.
+- 선 종류의 범례는 그림 안 오른쪽 아래 상자로 그린다.
+  - 고정 배치 아키텍처: 배치 JSON의 `legend` 항목이 자동으로 상자에 들어간다.
+  - 그 밖의 도식: 원문에 `%% legend: thick=열람; solid=관리 요청; dotted=빌드` 한 줄을 넣는다. 종류는 `thick`(굵은 실선, 원문 `==>`), `solid`(실선, `-->`), `dotted`(점선, `-.->`)이며 최대 6개. 렌더러가 그림 아래 오른쪽에 상자를 붙인다.
+- 범례를 넣었으면 캡션에는 범례 문장을 반복하지 않는다.
+
+## 크기
+
+- 도식은 원래 크기보다 확대하지 않는다. 기준 글자는 14px, ERD는 표 행과 여백이 커서 0.85배로 표시한다.
+- 본문 폭(약 800px)보다 넓은 도식은 폭에 맞춰 줄어든다. 원래 폭이 본문의 두 배를 넘는 가로 흐름도는 글자가 7px 이하로 작아지므로 `flowchart TD`로 그린다.
+- 작성 후 실제 표시 크기를 미리보기 스크립트로 확인한다.
+
 ## 색상과 가독성
 
 `classDef`와 `class`를 사용하는 도식은 다음 형태로 역할을 지정한다. 이 예시는 flowchart이며 Architecture의 영역 색상은 별도 가이드를 따른다.
@@ -98,7 +112,7 @@ flowchart LR
 
 1. 원본 자료와 비교해 노드·관계·방향·필수/선택 조건·영역이 맞는지 확인한다.
 2. 원고의 코드 블록을 공용 렌더러의 원문 검사와 Mermaid 파서로 검사한다. 고정 배치는 원고와 JSON의 일치도 확인한다.
-3. 변경 범위에 맞는 검사를 실행한다. 공용 렌더러를 수정했다면 `npm test`와 관련 `npm run test:browser` 검사를 실행한다. 명령과 환경은 [package.json](../../package.json), [브라우저 검사 설정](../../.github/pages/playwright.config.mjs)을 따른다.
+3. 변경 범위에 맞는 검사를 실행한다. 공용 렌더러를 수정했다면 `npm test`와 관련 `npm run test:browser` 검사를 실행한다. 명령과 환경은 [package.json](../../../../package.json), [브라우저 검사 설정](../../../../.github/pages/playwright.config.mjs)을 따른다.
 4. 실제 게시글에서 밝은·어두운 테마, 데스크톱·모바일, 확대·축소와 원문 보기를 확인한다. 아이콘 누락, 잘린 이름, 선 겹침, 가로 넘침, 콘솔 오류를 확인한다.
 5. 배포까지 요청받았다면 공개 페이지에서도 확인한다. 로컬 확인과 배포 완료를 구분해서 보고한다.
 

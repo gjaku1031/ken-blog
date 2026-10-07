@@ -11,8 +11,8 @@
 
 ## 다이어그램 작성·수정
 
-- 게시글·문서의 다이어그램을 그리거나 수정하기 전에 [Mermaid 공통 작성 가이드](docs/guide/mermaid.md)를 반드시 읽는다.
-- DB 관계도는 [ERD 작성 가이드](docs/guide/erd.md), 기술 아이콘을 사용하는 시스템 구성도는 [Mermaid Architecture 작성 가이드](docs/guide/mermaid-architecture.md)를 추가로 반드시 읽는다. 두 종류를 함께 다루면 두 문서 모두 확인한다.
+- 게시글·문서의 다이어그램을 그리거나 수정하기 전에 [다이어그램 스킬](.claude/skills/ken-blog-diagrams/SKILL.md)과 그 안의 [Mermaid 공통 작성 가이드](.claude/skills/ken-blog-diagrams/references/mermaid-common.md)를 반드시 읽는다.
+- DB 관계도는 [ERD 작성 가이드](.claude/skills/ken-blog-diagrams/references/erd.md), 기술 아이콘을 사용하는 시스템 구성도는 [Mermaid Architecture 작성 가이드](.claude/skills/ken-blog-diagrams/references/architecture.md)를 추가로 반드시 읽는다. 두 종류를 함께 다루면 두 문서 모두 확인한다.
 - 기존 그림과 실제 코드·스키마·배포 설정을 먼저 대조한다. 구성 요소·관계·배포 경계를 임의로 생략하거나 바꾸지 않는다. 전체도 요청은 전체 구성을 한 장에 유지하고, 상세도는 필요할 때 추가한다.
 - 역할별 색상·범례·설명을 일관되게 작성한다. 고정 Architecture 배치를 수정할 때는 Mermaid 원고와 배치 JSON을 함께 갱신한다.
 - 작성 후 해당 가이드의 검증 절차를 따른다. 문법 검사와 실제 화면 확인을 구분하고, 확인하지 않은 렌더링·배포를 완료했다고 보고하지 않는다.

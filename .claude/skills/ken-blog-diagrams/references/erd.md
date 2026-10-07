@@ -1,6 +1,6 @@
 # ERD 작성
 
-[Mermaid 공통 가이드](mermaid.md)를 먼저 읽는다. 이 문서는 테이블 관계를 `erDiagram`으로 그릴 때 확인할 사실, 표기와 글의 구성을 설명한다. 기본 문법은 [Mermaid ERD 문서](https://mermaid.js.org/syntax/entityRelationshipDiagram.html)를 참고하되, 블로그의 고정 버전과 렌더러에서 동작하는지 확인한다.
+[Mermaid 공통 가이드](mermaid-common.md)를 먼저 읽는다. 이 문서는 테이블 관계를 `erDiagram`으로 그릴 때 확인할 사실, 표기와 글의 구성을 설명한다. 기본 문법은 [Mermaid ERD 문서](https://mermaid.js.org/syntax/entityRelationshipDiagram.html)를 참고하되, 블로그의 고정 버전과 렌더러에서 동작하는지 확인한다.
 
 ## 스키마를 먼저 확인
 
@@ -9,7 +9,7 @@
 - 현재 사용하는 모델인지, 운영 DB의 모든 보존 테이블까지 포함하는지 명시한다. 제외한 과거 테이블·외부 파일 저장소는 본문에서 설명한다.
 - 물리 ERD는 실제 FK를 선으로 표시한다. 코드에서만 사용하는 논리적 연결은 별도 설명으로 남긴다. 논리 모델을 그릴 경우에는 그 범위를 먼저 명시한다.
 
-ken-blog의 근거는 [도메인 코드](../../src/main/java), [영속성 ADR](../ADR/ADR_persistence.md), [기존 ERD 원고](../../content/posts/post-f9235d74-4d5b-4705-8f59-ba3511bd50e9.md)를 함께 읽는다.
+ken-blog의 근거는 [도메인 코드](../../../../src/main/java), [영속성 ADR](../../../../docs/ADR/ADR_persistence.md), [기존 ERD 원고](../../../../content/posts/post-f9235d74-4d5b-4705-8f59-ba3511bd50e9.md)를 함께 읽는다.
 
 ## 전체도와 상세 설명
 
@@ -87,4 +87,4 @@ ken-blog에서 쓰는 역할 색상은 콘텐츠 파랑, 탐색 청록, 기술 �
 - `PK, FK`와 복합 고유 제약의 설명이 실제 스키마와 일치하는지 확인한다.
 - 고립된 테이블을 임의의 FK로 연결하지 않았는지 확인한다.
 - 전체도·상세도의 색상과 관계가 일치하는지 확인한다.
-- [공통 화면 확인 절차](mermaid.md#작성-후-확인)에 따라 실제 렌더링과 확대를 확인한다.
+- [공통 화면 확인 절차](mermaid-common.md#작성-후-확인)에 따라 실제 렌더링과 확대를 확인한다.
