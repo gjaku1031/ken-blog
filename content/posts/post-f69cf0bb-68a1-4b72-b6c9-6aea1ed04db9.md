@@ -13,7 +13,7 @@ JPA는 저장·단일 조회·변경 잠금, jOOQ는 목록·검색·집계·공
 
 수동 `src/jooq/schema.sql`을 유지하면 엔티티와 SQL을 함께 수정해야 하는 중복 발생. 실제 DB 역공학은 빌드에 접속 정보·네트워크·스키마 준비 의존 추가.
 
-컴파일 순서도 제약. 앱은 jOOQ 생성 타입에 의존하지만, 타입 생성의 입력인 JPA 엔티티도 Kotlin 컴파일 필요. 전체 앱 컴파일을 선행하면 순환 의존 발생.
+컴파일 순서도 제약. 앱은 jOOQ 생성 타입에 의존하지만, 타입 생성의 입력인 JPA 엔티티도 먼저 컴파일 필요. 전체 앱 컴파일을 선행하면 순환 의존 발생.
 
 ## 결정
 
@@ -21,10 +21,10 @@ JPA는 저장·단일 조회·변경 잠금, jOOQ는 목록·검색·집계·공
 
 | 단계 | 처리 |
 | --- | --- |
-| `compileJpaModelKotlin` | 원본 domain 클래스와 도메인 예외 공통 부모만 먼저 컴파일 |
+| `compileJpaModelJava` | 원본 domain 클래스와 도메인 예외 공통 부모만 먼저 컴파일 |
 | `generateJpaSchema` | 전용 클래스 로더에서 엔티티 매핑을 읽어 `build/generated/jooq/schema.sql` 출력 |
-| `jooqCodegen` | DDLDatabase로 Kotlin 테이블 타입 생성 |
-| `compileKotlin` | 생성 타입을 포함해 앱 컴파일 |
+| `jooqCodegen` | DDLDatabase로 Java 테이블 타입 생성 |
+| `compileJava` | 생성 타입을 포함해 앱 컴파일 |
 
 서비스·HTTP 변환기는 선행 컴파일 대상에서 제외. 엔티티의 별도 복사본 없이 같은 원본 사용. DDL과 jOOQ 타입은 Git 제외·재생성 가능한 build 산출물.
 
@@ -85,4 +85,4 @@ JPA 엔티티와 프록시 접근자에는 소스의 `open` 명시. 보호된 �
 
 비교 기준은 생성 시간, 매핑 일치, DB 접속 의존, 원본 중복과 운영 이관 책임.
 
-[영속성 결정 원문](https://github.com/gjaku1031/ken-blog/blob/970e66241683ec63e4b9c7882fb1316afc7a3831/docs/ADR/ADR_persistence.md) · [Gradle 구현](https://github.com/gjaku1031/ken-blog/blob/970e66241683ec63e4b9c7882fb1316afc7a3831/build.gradle.kts) · [영속성 통합 검사](https://github.com/gjaku1031/ken-blog/blob/970e66241683ec63e4b9c7882fb1316afc7a3831/src/test/kotlin/io/github/gjaku1031/kenblog/PostPersistenceIntegrationTest.kt)
+[영속성 결정 원문](https://github.com/gjaku1031/ken-blog/blob/3074d80/docs/ADR/ADR_persistence.md) · [Gradle 구현](https://github.com/gjaku1031/ken-blog/blob/3074d80/build.gradle) · [영속성 통합 검사](https://github.com/gjaku1031/ken-blog/blob/3074d80/src/test/java/io/github/gjaku1031/kenblog/PostPersistenceIntegrationTest.java)
