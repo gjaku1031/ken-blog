@@ -139,4 +139,4 @@ JDT LS 프로젝트 갱신·빌드 후 현재 Neovim에 수집된 오류·경고
 
 관리자 위키 선언 기능 삭제([애플리케이션 ADR](ADR_application.md) 참조)에 따라 `PostWikiLinkEntity`와 `PostWikiLinkRepository`, 선언 교체·제목 검색 쿼리를 제거한다. 다음 빌드부터 생성 DDL과 jOOQ 타입에 `post_wiki_links`가 포함되지 않는다. 위키 링크·역링크는 DB에 저장하지 않고 Node 빌드가 원고에서 계산한다.
 
-운영 테이블은 자동으로 삭제하지 않는다. 새 API 배포 후 백업과 복구 확인을 마치고 유지보수 창에서 [검토한 SQL](../../deploy/sql/drop-post-wiki-links-2026-10-07.sql)로 `DROP TABLE`을 실행한다. 글 삭제 시 연결 행을 지우던 `post_id` CASCADE도 테이블과 함께 사라진다.
+운영 테이블은 애플리케이션이 자동으로 삭제하지 않는다. 새 API 배포 후 2026-10-07 [정리 SQL](../../deploy/sql/drop-legacy-tables-2026-10-07.sql)로 `post_wiki_links`를 삭제했고, 같은 SQL로 이관 전 모델 테이블 12개와 `posts`의 이관 전 열 6개·관련 FK 3개·인덱스 4개도 정리했다. 사용자 결정으로 백업 없이 실행했으며, 운영 테이블은 27개에서 14개가 됐다. 글 삭제 시 연결 행을 지우던 `post_id` CASCADE도 테이블과 함께 사라진다.

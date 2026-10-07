@@ -123,7 +123,7 @@ export function applyReferenceLayout(svg: string, source: string, theme: "light"
     const service = doc.querySelector(`[id$="-service-${id}"]`)!;
     service.setAttribute("transform", `translate(${x},${y})`);
     for (const child of Array.from(service.children)) if (child.querySelector("text")) child.remove();
-    label(service, titles.get(id)!, 56, 20, 15, foreground, 600);
+    label(service, titles.get(id)!, 56, 20, 14, foreground, 600);
     label(service, detail, 56, 38, 11, muted);
   }
   // 긴 연결은 구역 바깥을 돌아가도록 하여 아이콘과 영역 이름을 관통하지 않게 함

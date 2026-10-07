@@ -49,7 +49,7 @@
 .post-reading-layout { min-width: 0; }
 .post-reading-layout.has-toc { display: grid; grid-template-columns: minmax(0, 1fr) 225px; align-items: start; gap: 34px; }
 .post-main-content { min-width: 0; max-width: none; }
-.post-toc { position: sticky; top: 86px; max-height: calc(100vh - 104px); overflow: auto; margin-top: 28px;
+.post-toc { position: sticky; top: 86px; max-height: calc(100vh - 104px); overflow: auto; scrollbar-gutter: stable; margin-top: 28px;
   border-left: 1px solid var(--line2); padding: 3px 0 10px 18px; font-size: 13px; }
 .post-toc h2 { margin: 0 0 12px; color: var(--text2); font-size: 14px; }
 .post-toc ol { margin: 0; padding: 0; list-style: none; }
@@ -171,7 +171,7 @@
 }
 /* 화면 폭에 맞춘 배치 조정 */
 @media (min-width:1081px) {.post-page article .post-reading-layout.has-toc .post-side-rail.can-stick {
-    position:sticky; top:96px; max-height:calc(100dvh - 116px); overflow-y:auto; overscroll-behavior:contain;
+    position:sticky; top:96px; max-height:calc(100dvh - 116px); overflow-y:auto; overscroll-behavior:contain; scrollbar-gutter:stable;
   }
 }
 /* 프로젝트 상태·기간·편집 배치 */
@@ -179,7 +179,7 @@
 .project-overview .project-card-top { gap:12px; margin-bottom:14px; }
 .project-description { margin:0 0 16px; color:var(--text2); font-size:15px; line-height:1.7; }
 .project-overview .stack-badges { margin:0; }
-.markdown-body .mermaid-diagram { overflow-x:auto; padding:12px 0; }
+.markdown-body .mermaid-diagram { overflow-x:clip; padding:12px 0; }
 .markdown-body .mermaid-diagram img { width:auto; height:auto; max-width:100%; }
 /* 화면 폭에 맞춘 배치 조정 */
 @media (max-width: 600px) {.series-previous-next { grid-template-columns: minmax(0, 1fr); }
