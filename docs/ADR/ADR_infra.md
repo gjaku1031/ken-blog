@@ -321,11 +321,12 @@ Pages 의존성 설치·빌드 job은 contents:read만 가진다. 같은 workflo
 
 ## 관리자 화면의 Pages 수동 실행 — 2026-10-07
 
-DB 메타데이터(글 정보·분류·순서·기술 뱃지)는 Git 변경이 없어 `pages.yml`의 push 트리거가 동작하지 않음. 관리자 사이드바의 GitHub 버튼을 Actions 화면 링크에서 `workflow_dispatch` 실행 버튼으로 바꾸고, 실행 ID의 상태·단계를 조회해 진행 막대로 표시함. 공개 사이트를 빌드 시 정적으로 생성하는 구조와 열람 경로에 API가 없는 계약은 유지함.
+DB 메타데이터(글 정보·분류·순서·기술 뱃지)는 Git 변경이 없어 `pages.yml`의 push 트리거가 동작하지 않음. 관리자 사이드바의 GitHub 버튼을 Actions 화면 링크에서 실행 버튼으로 바꾸고, 실행 ID의 상태·단계를 조회해 진행 막대로 표시함. 공개 사이트를 빌드 시 정적으로 생성하는 구조와 열람 경로에 API가 없는 계약은 유지함.
 
-- 토큰: 관리자가 입력한 fine-grained token을 그 브라우저의 `localStorage`에만 저장. 권한은 `ken-blog` 저장소의 Actions 읽기·쓰기로 제한하고 만료일 지정. 공개 번들·저장소·운영 서버에는 두지 않음. 저장 전 워크플로 조회로 권한 확인.
-- 대안: 운영 API가 서버 env의 토큰으로 GitHub를 호출하는 방식은 관리자 세션으로 실행을 보호할 수 있으나 Java API·Caddy 허용 경로·env·이미지 재배포가 필요함. 2026-10-01에 서버의 배포 상태·dispatch 계층을 제거한 결정과도 어긋나 채택하지 않음. GitHub Secrets는 실행 중인 workflow 안에서만 읽을 수 있어 실행 시작에 사용할 수 없음.
-- 받아들인 비용: 같은 출처(`gjaku1031.github.io`)의 다른 페이지나 XSS가 저장된 토큰을 읽을 수 있음. 노출 시 가능한 동작은 이 저장소 workflow의 실행·취소·재실행·기록 삭제이며 코드·workflow 파일 변경 권한은 없음. 기기·브라우저마다 다시 입력.
-- 실행: 가장 최근 `pages.yml` 실행이 완료 전이면 새로 만들지 않고 그 실행을 추적. 아니면 확인 후 `main`에 `return_run_details`로 dispatch해 실행 ID를 받음. [Workflow dispatch API](https://docs.github.com/en/rest/actions/workflows#create-a-workflow-dispatch-event)
-- 진행 표시: 4초 간격으로 실행·job 단계를 조회. 막대는 최근 성공 수동 실행(없으면 전체 성공 실행, 그것도 없으면 90초)의 소요 시간 대비 경과 비율이며 완료 전에는 95%를 넘기지 않음. 문구는 진행 중 단계 이름과 완료 단계 수. 성공 시 관리자 목록의 배포 대기 비교를 다시 읽음. 단계 수는 시작 전 job을 포함하지 않아 추정치임.
-- 검증: Chromium 회귀 검사에서 GitHub API를 대역으로 두고 토큰 미설정 시 설정 대화상자, 저장 전 권한 확인, dispatch 본문·인증 헤더, 대기→진행→완료 표시를 확인. 실제 GitHub 실행은 이 검사에 포함하지 않음.
+- 경로: `POST /api/v1/admin/pages/deployments`(실행), `GET …/latest`(최근 실행, 없으면 204), `GET …/{runId}`(상태·단계). 기존 관리자 경로와 같이 ADMIN 세션·CSRF·인증 origin CORS를 적용하고 Caddy 관리자 허용 목록에 추가.
+- 토큰: 운영 `production.env`의 `APP_PAGES_GITHUB_TOKEN`. `gjaku1031/ken-blog` 저장소의 Actions 읽기·쓰기만 가진 fine-grained token이며 만료일 지정. 응답·로그에 포함하지 않고, 비어 있으면 모든 경로가 503. 저장소·워크플로(`pages.yml`)·브랜치(`main`)는 코드 고정값이며 요청으로 바꿀 수 없음. 상태 조회는 `pages.yml` 실행만 허용하고 다른 실행 ID는 404.
+- 대안: 관리자 브라우저의 `localStorage`에 토큰을 두고 GitHub API를 직접 호출하는 방식을 먼저 구현했으나 기기마다 입력해야 하고 같은 출처(`gjaku1031.github.io`)의 다른 페이지가 토큰을 읽을 수 있어 같은 날 서버 보관으로 대체함. GitHub Secrets는 실행 중인 workflow 안에서만 읽을 수 있어 실행 시작에 사용할 수 없음. 2026-10-01에 제거한 서버의 배포 상태·콜백·변경 차단 계층은 되살리지 않고, 실행 요청과 상태 조회만 GitHub에 위임함.
+- 받아들인 비용: API가 GitHub API에 의존하고 운영 서버에 쓰기 권한 토큰이 생김. 노출 시 가능한 동작은 이 저장소 workflow의 실행·취소·재실행·기록 삭제이며 코드·workflow 파일 변경 권한은 없음. 토큰 만료 시 운영 env 갱신과 API 재기동 필요.
+- 실행: 가장 최근 `pages.yml` 실행이 완료 전이면 새로 만들지 않고 그 실행을 반환. 아니면 `main`에 `return_run_details`로 dispatch해 실행 ID를 받음. 생성 직후 실행 조회가 404면 대기 상태로 응답. [Workflow dispatch API](https://docs.github.com/en/rest/actions/workflows#create-a-workflow-dispatch-event)
+- 진행 표시: 화면이 4초 간격으로 상태를 조회하고 서버는 조회마다 실행·job 단계를 GitHub에서 읽음. 막대는 최근 성공 수동 실행(없으면 전체 성공 실행, 그것도 없으면 90초)의 소요 시간 대비 경과 비율이며 완료 전에는 95%를 넘기지 않음. 예상 시간은 10분간 재사용. 단계 수는 시작 전 job을 포함하지 않아 추정치임. 성공 시 관리자 목록의 배포 대기 비교를 다시 읽고, 화면 진입 시 진행 중 실행이 있으면 이어서 표시.
+- 검증: GitHub API 대역 서버로 서비스의 dispatch 본문·인증 헤더·중복 실행 방지·생성 직후 404·다른 워크플로 거부·토큰 미설정 503·인증 실패 502를 검사. Chromium 회귀 검사에서 관리자 API를 대역으로 두고 CSRF 포함 실행 요청, 대기→진행→완료 표시, 진행 중 실행 이어 보기, 실행 거부 표시를 확인. 실제 GitHub 실행은 이 검사에 포함하지 않음.

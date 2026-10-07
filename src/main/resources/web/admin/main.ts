@@ -328,7 +328,7 @@ selectPanel();
  * 사이드바 Pages 배포 버튼; 성공하면 배포 대기 표시를 다시 비교
  */
 const pagesDeploy = connectPagesDeploy({
-  openDialog, closeDialog: () => dialog.close(),
+  onUnauthorized: message => showLogin(message),
   onDeployed: () => { if (sessionReady && !editorMode) void loadDashboard(false).catch(() => { /* 다음 주기 갱신에서 재시도 */ }); },
 });
 
