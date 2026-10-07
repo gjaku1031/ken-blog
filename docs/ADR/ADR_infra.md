@@ -38,7 +38,7 @@ Caddy는 운영 Compose에서 `caddy run`으로 직접 실행하는 선택. 고�
 
 로컬 실행용 `compose.yaml`은 루트에 유지하고 운영용은 `deploy/compose.production.yaml`로 이동. Caddy 설정·운영 환경 예시와 같은 폴더에서 관리. 운영 파일은 로컬 Compose와 합치는 override가 아닌 독립 스택.
 
-저장소 루트에서 `docker compose --env-file /absolute/path/production.env -f deploy/compose.production.yaml up -d`로 실행하는 구성. 환경 파일과 이미지 저장소는 기존대로 저장소 밖 절대 경로 사용. Caddy 마운트는 Compose 파일 기준 `./Caddyfile`로 수정. 디렉터리 이동 때문에 프로젝트·컨테이너·볼륨 이름이 바뀌지 않도록 기존 기본값 `name: ken-blog` 명시. 기존 배포에서 `-p`로 별도 이름을 지정했다면 같은 이름을 계속 사용하는 기준.
+저장소 루트에서 `docker compose --env-file /absolute/path/production.env -f deploy/compose.production.yaml up -d`로 실행하는 구성. 사설 CA의 MySQL TLS를 쓰는 현재 운영은 `deploy/compose.mysql-tls.yaml`을 함께 지정하며, 이미지 교체 절차는 [운영 API 이미지 교체](../../deploy/API-RELEASE.md) 참조. 환경 파일과 이미지 저장소는 기존대로 저장소 밖 절대 경로 사용. Caddy 마운트는 Compose 파일 기준 `./Caddyfile`로 수정. 디렉터리 이동 때문에 프로젝트·컨테이너·볼륨 이름이 바뀌지 않도록 기존 기본값 `name: ken-blog` 명시. 기존 배포에서 `-p`로 별도 이름을 지정했다면 같은 이름을 계속 사용하는 기준.
 
 검증: 저장소 밖 가짜 환경 파일로 이동 전후 `docker compose config`의 전체 해석 결과 일치 확인. 포트·환경·마운트·자원 제한·볼륨 이름 동일. 컨테이너 실행·운영 배포 미수행.
 
