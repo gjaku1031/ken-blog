@@ -1,0 +1,378 @@
+
+## csr_html
+URL: https://csr.127.0.0.1.nip.io:18444/project/?slug=ken-blog
+-- HEAD --
+HTTP/2 200 
+alt-svc: h3=":443"; ma=2592000
+cache-control: max-age=600
+content-encoding: gzip
+content-type: text/html; charset=utf-8
+etag: "dlyj1wm8xhmg8nk-gzip"
+last-modified: Wed, 07 Oct 2026 10:17:46 GMT
+server: Caddy
+vary: Accept-Encoding
+content-length: 20
+date: Wed, 07 Oct 2026 10:26:45 GMT
+
+-- GET headers (body discarded) --
+HTTP/2 200 
+alt-svc: h3=":443"; ma=2592000
+cache-control: max-age=600
+content-encoding: gzip
+content-type: text/html; charset=utf-8
+etag: "dlyj1wm8xhmg8nk-gzip"
+last-modified: Wed, 07 Oct 2026 10:17:46 GMT
+server: Caddy
+vary: Accept-Encoding
+content-length: 3112
+date: Wed, 07 Oct 2026 10:26:45 GMT
+
+-- Conditional HEAD --
+HTTP/2 304 
+alt-svc: h3=":443"; ma=2592000
+cache-control: max-age=600
+etag: "dlyj1wm8xhmg8nk"
+server: Caddy
+vary: Accept-Encoding
+date: Wed, 07 Oct 2026 10:26:45 GMT
+
+
+## csr_js
+URL: https://csr.127.0.0.1.nip.io:18444/_next/static/chunks/2ul8ophnk13y-.js
+-- HEAD --
+HTTP/2 200 
+alt-svc: h3=":443"; ma=2592000
+cache-control: max-age=600
+content-encoding: gzip
+content-type: text/javascript; charset=utf-8
+etag: "dlyj1wm25dy9maz-gzip"
+last-modified: Wed, 07 Oct 2026 10:17:46 GMT
+server: Caddy
+vary: Accept-Encoding
+content-length: 20
+date: Wed, 07 Oct 2026 10:26:45 GMT
+
+-- GET headers (body discarded) --
+HTTP/2 200 
+alt-svc: h3=":443"; ma=2592000
+cache-control: max-age=600
+content-encoding: gzip
+content-type: text/javascript; charset=utf-8
+etag: "dlyj1wm25dy9maz-gzip"
+last-modified: Wed, 07 Oct 2026 10:17:46 GMT
+server: Caddy
+vary: Accept-Encoding
+date: Wed, 07 Oct 2026 10:26:45 GMT
+
+-- Conditional HEAD --
+HTTP/2 304 
+alt-svc: h3=":443"; ma=2592000
+cache-control: max-age=600
+etag: "dlyj1wm25dy9maz"
+server: Caddy
+vary: Accept-Encoding
+date: Wed, 07 Oct 2026 10:26:45 GMT
+
+
+## csr_css
+URL: https://csr.127.0.0.1.nip.io:18444/_next/static/chunks/11lz9qhy9uk99.css
+-- HEAD --
+HTTP/2 200 
+alt-svc: h3=":443"; ma=2592000
+cache-control: max-age=600
+content-encoding: gzip
+content-type: text/css; charset=utf-8
+etag: "dlyj1wlxdx3l1r11-gzip"
+last-modified: Wed, 07 Oct 2026 10:17:46 GMT
+server: Caddy
+vary: Accept-Encoding
+content-length: 20
+date: Wed, 07 Oct 2026 10:26:45 GMT
+
+-- GET headers (body discarded) --
+HTTP/2 200 
+alt-svc: h3=":443"; ma=2592000
+cache-control: max-age=600
+content-encoding: gzip
+content-type: text/css; charset=utf-8
+etag: "dlyj1wlxdx3l1r11-gzip"
+last-modified: Wed, 07 Oct 2026 10:17:46 GMT
+server: Caddy
+vary: Accept-Encoding
+date: Wed, 07 Oct 2026 10:26:45 GMT
+
+-- Conditional HEAD --
+HTTP/2 304 
+alt-svc: h3=":443"; ma=2592000
+cache-control: max-age=600
+etag: "dlyj1wlxdx3l1r11"
+server: Caddy
+vary: Accept-Encoding
+date: Wed, 07 Oct 2026 10:26:45 GMT
+
+
+## csr_image
+URL: https://csr.127.0.0.1.nip.io:18444/api/v1/stack-badges/17/image
+-- HEAD --
+HTTP/2 200 
+accept-ranges: bytes
+alt-svc: h3=":443"; ma=2592000
+cache-control: max-age=600
+content-type: image/png
+etag: "dlyh3n6p6w4t1fp"
+last-modified: Wed, 07 Oct 2026 08:46:00 GMT
+server: Caddy
+vary: Accept-Encoding
+content-length: 1861
+date: Wed, 07 Oct 2026 10:26:45 GMT
+
+-- GET headers (body discarded) --
+HTTP/2 200 
+accept-ranges: bytes
+alt-svc: h3=":443"; ma=2592000
+cache-control: max-age=600
+content-type: image/png
+etag: "dlyh3n6p6w4t1fp"
+last-modified: Wed, 07 Oct 2026 08:46:00 GMT
+server: Caddy
+vary: Accept-Encoding
+content-length: 1861
+date: Wed, 07 Oct 2026 10:26:45 GMT
+
+-- Conditional HEAD --
+HTTP/2 304 
+alt-svc: h3=":443"; ma=2592000
+cache-control: max-age=600
+etag: "dlyh3n6p6w4t1fp"
+server: Caddy
+vary: Accept-Encoding
+date: Wed, 07 Oct 2026 10:26:45 GMT
+
+
+## hybrid_html
+URL: https://hybrid.127.0.0.1.nip.io:18444/project/ken-blog/
+-- HEAD --
+HTTP/2 200 
+alt-svc: h3=":443"; ma=2592000
+cache-control: max-age=600
+content-encoding: gzip
+content-type: text/html; charset=utf-8
+etag: "dlyj2ufdlxkdrmn-gzip"
+last-modified: Wed, 07 Oct 2026 10:18:59 GMT
+server: Caddy
+vary: Accept-Encoding
+content-length: 20
+date: Wed, 07 Oct 2026 10:26:45 GMT
+
+-- GET headers (body discarded) --
+HTTP/2 200 
+alt-svc: h3=":443"; ma=2592000
+cache-control: max-age=600
+content-encoding: gzip
+content-type: text/html; charset=utf-8
+etag: "dlyj2ufdlxkdrmn-gzip"
+last-modified: Wed, 07 Oct 2026 10:18:59 GMT
+server: Caddy
+vary: Accept-Encoding
+date: Wed, 07 Oct 2026 10:26:45 GMT
+
+-- Conditional HEAD --
+HTTP/2 304 
+alt-svc: h3=":443"; ma=2592000
+cache-control: max-age=600
+etag: "dlyj2ufdlxkdrmn"
+server: Caddy
+vary: Accept-Encoding
+date: Wed, 07 Oct 2026 10:26:45 GMT
+
+
+## hybrid_js
+URL: https://hybrid.127.0.0.1.nip.io:18444/_next/static/chunks/2ul8ophnk13y-.js
+-- HEAD --
+HTTP/2 200 
+alt-svc: h3=":443"; ma=2592000
+cache-control: max-age=600
+content-encoding: gzip
+content-type: text/javascript; charset=utf-8
+etag: "dlyj2uetpanmmaz-gzip"
+last-modified: Wed, 07 Oct 2026 10:18:59 GMT
+server: Caddy
+vary: Accept-Encoding
+content-length: 20
+date: Wed, 07 Oct 2026 10:26:45 GMT
+
+-- GET headers (body discarded) --
+HTTP/2 200 
+alt-svc: h3=":443"; ma=2592000
+cache-control: max-age=600
+content-encoding: gzip
+content-type: text/javascript; charset=utf-8
+etag: "dlyj2uetpanmmaz-gzip"
+last-modified: Wed, 07 Oct 2026 10:18:59 GMT
+server: Caddy
+vary: Accept-Encoding
+date: Wed, 07 Oct 2026 10:26:45 GMT
+
+-- Conditional HEAD --
+HTTP/2 304 
+alt-svc: h3=":443"; ma=2592000
+cache-control: max-age=600
+etag: "dlyj2uetpanmmaz"
+server: Caddy
+vary: Accept-Encoding
+date: Wed, 07 Oct 2026 10:26:45 GMT
+
+
+## hybrid_css
+URL: https://hybrid.127.0.0.1.nip.io:18444/_next/static/chunks/2s77t-wi87yy4.css
+-- HEAD --
+HTTP/2 200 
+alt-svc: h3=":443"; ma=2592000
+cache-control: max-age=600
+content-encoding: gzip
+content-type: text/css; charset=utf-8
+etag: "dlyj2uetojei1jrq-gzip"
+last-modified: Wed, 07 Oct 2026 10:18:59 GMT
+server: Caddy
+vary: Accept-Encoding
+content-length: 20
+date: Wed, 07 Oct 2026 10:26:45 GMT
+
+-- GET headers (body discarded) --
+HTTP/2 200 
+alt-svc: h3=":443"; ma=2592000
+cache-control: max-age=600
+content-encoding: gzip
+content-type: text/css; charset=utf-8
+etag: "dlyj2uetojei1jrq-gzip"
+last-modified: Wed, 07 Oct 2026 10:18:59 GMT
+server: Caddy
+vary: Accept-Encoding
+date: Wed, 07 Oct 2026 10:26:45 GMT
+
+-- Conditional HEAD --
+HTTP/2 304 
+alt-svc: h3=":443"; ma=2592000
+cache-control: max-age=600
+etag: "dlyj2uetojei1jrq"
+server: Caddy
+vary: Accept-Encoding
+date: Wed, 07 Oct 2026 10:26:45 GMT
+
+
+## hybrid_image
+URL: https://hybrid.127.0.0.1.nip.io:18444/api/v1/stack-badges/17/image
+-- HEAD --
+HTTP/2 200 
+accept-ranges: bytes
+alt-svc: h3=":443"; ma=2592000
+cache-control: max-age=600
+content-type: image/png
+etag: "dlyh3n6p6w4t1fp"
+last-modified: Wed, 07 Oct 2026 08:46:00 GMT
+server: Caddy
+vary: Accept-Encoding
+content-length: 1861
+date: Wed, 07 Oct 2026 10:26:45 GMT
+
+-- GET headers (body discarded) --
+HTTP/2 200 
+accept-ranges: bytes
+alt-svc: h3=":443"; ma=2592000
+cache-control: max-age=600
+content-type: image/png
+etag: "dlyh3n6p6w4t1fp"
+last-modified: Wed, 07 Oct 2026 08:46:00 GMT
+server: Caddy
+vary: Accept-Encoding
+content-length: 1861
+date: Wed, 07 Oct 2026 10:26:45 GMT
+
+-- Conditional HEAD --
+HTTP/2 304 
+alt-svc: h3=":443"; ma=2592000
+cache-control: max-age=600
+etag: "dlyh3n6p6w4t1fp"
+server: Caddy
+vary: Accept-Encoding
+date: Wed, 07 Oct 2026 10:26:45 GMT
+
+
+## static_html
+URL: https://static.127.0.0.1.nip.io:18444/ken-blog/post/post-f9235d74-4d5b-4705-8f59-ba3511bd50e9/
+-- HEAD --
+HTTP/2 200 
+alt-svc: h3=":443"; ma=2592000
+cache-control: max-age=600
+content-encoding: gzip
+content-type: text/html; charset=utf-8
+etag: "dlyg4wnbmxvkyvb-gzip"
+last-modified: Wed, 07 Oct 2026 08:00:38 GMT
+server: Caddy
+vary: Accept-Encoding
+content-length: 20
+date: Wed, 07 Oct 2026 10:26:45 GMT
+
+-- GET headers (body discarded) --
+HTTP/2 200 
+alt-svc: h3=":443"; ma=2592000
+cache-control: max-age=600
+content-encoding: gzip
+content-type: text/html; charset=utf-8
+etag: "dlyg4wnbmxvkyvb-gzip"
+last-modified: Wed, 07 Oct 2026 08:00:38 GMT
+server: Caddy
+vary: Accept-Encoding
+date: Wed, 07 Oct 2026 10:26:45 GMT
+
+-- Conditional HEAD --
+HTTP/2 304 
+alt-svc: h3=":443"; ma=2592000
+cache-control: max-age=600
+etag: "dlyg4wnbmxvkyvb"
+server: Caddy
+vary: Accept-Encoding
+date: Wed, 07 Oct 2026 10:26:45 GMT
+
+
+## static_js
+URL: https://static.127.0.0.1.nip.io:18444/ken-blog/assets/public-FWLTE7VH.js
+-- HEAD --
+HTTP/2 200 
+alt-svc: h3=":443"; ma=2592000
+cache-control: max-age=600
+content-encoding: gzip
+content-type: text/javascript; charset=utf-8
+etag: "dlyg4vq8w0003mx-gzip"
+last-modified: Wed, 07 Oct 2026 08:00:36 GMT
+server: Caddy
+vary: Accept-Encoding
+content-length: 20
+date: Wed, 07 Oct 2026 10:26:45 GMT
+
+-- GET headers (body discarded) --
+HTTP/2 200 
+alt-svc: h3=":443"; ma=2592000
+cache-control: max-age=600
+content-encoding: gzip
+content-type: text/javascript; charset=utf-8
+etag: "dlyg4vq8w0003mx-gzip"
+last-modified: Wed, 07 Oct 2026 08:00:36 GMT
+server: Caddy
+vary: Accept-Encoding
+content-length: 1962
+date: Wed, 07 Oct 2026 10:26:46 GMT
+
+-- Conditional HEAD --
+HTTP/2 304 
+alt-svc: h3=":443"; ma=2592000
+cache-control: max-age=600
+etag: "dlyg4vq8w0003mx"
+server: Caddy
+vary: Accept-Encoding
+date: Wed, 07 Oct 2026 10:26:46 GMT
+
+
+## static_css
+URL: https://static.127.0.1.nip.io:18444/ken-blog/assets/public-MS3AGEKC.css
+-- HEAD --

@@ -1,0 +1,78 @@
+https://csr.127.0.0.1.nip.io {
+  tls internal
+  encode gzip
+
+  @stack path_regexp stack ^/api/v1/stack-badges/([0-9]+)/image$
+  handle @stack {
+    root * /srv/old-assets
+    rewrite * /stack-{re.stack.1}.png
+    header Cache-Control "max-age=600"
+    file_server
+  }
+  @attachment path_regexp attachment ^/api/v1/posts/[0-9]+/attachments/([0-9]+)/content$
+  handle @attachment {
+    root * /srv/old-assets
+    rewrite * /attachment-{re.attachment.1}.png
+    header Cache-Control "max-age=600"
+    file_server
+  }
+  handle /actuator/* {
+    reverse_proxy api-csr:8080
+  }
+  handle /api/* {
+    reverse_proxy api-csr:8080
+  }
+  handle {
+    root * /srv/csr
+    header Cache-Control "max-age=600"
+    try_files {path} {path}index.html
+    file_server
+  }
+}
+
+https://hybrid.127.0.0.1.nip.io {
+  tls internal
+  encode gzip
+
+  @stack path_regexp stack ^/api/v1/stack-badges/([0-9]+)/image$
+  handle @stack {
+    root * /srv/old-assets
+    rewrite * /stack-{re.stack.1}.png
+    header Cache-Control "max-age=600"
+    file_server
+  }
+  @attachment path_regexp attachment ^/api/v1/posts/[0-9]+/attachments/([0-9]+)/content$
+  handle @attachment {
+    root * /srv/old-assets
+    rewrite * /attachment-{re.attachment.1}.png
+    header Cache-Control "max-age=600"
+    file_server
+  }
+  handle /actuator/* {
+    reverse_proxy api-hybrid:8080
+  }
+  handle /api/* {
+    reverse_proxy api-hybrid:8080
+  }
+  handle {
+    root * /srv/hybrid
+    header Cache-Control "max-age=600"
+    try_files {path} {path}index.html
+    file_server
+  }
+}
+
+https://static.127.0.0.1.nip.io {
+  tls internal
+  encode gzip
+
+  handle_path /ken-blog/* {
+    root * /srv/static
+    header Cache-Control "max-age=600"
+    try_files {path} {path}index.html
+    file_server
+  }
+  handle {
+    respond "Not found" 404
+  }
+}

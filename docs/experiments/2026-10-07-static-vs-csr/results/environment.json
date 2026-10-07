@@ -1,0 +1,64 @@
+{
+  "experiment_date_utc": "2026-10-07",
+  "experiment_workspace": "<redacted>",
+  "sources": {
+    "pure_csr": {
+      "commit": "f29ef3500f7af5723581d6cd6de5305dba8d8e45",
+      "extraction": "git archive",
+      "api_image": "kenblog-perf-api-csr:f29ef35",
+      "api_image_id": "sha256:4a56d77e78955f8945a8f66838709a2c2d5fab3bde997ac6d412dba18e643f0d"
+    },
+    "hybrid": {
+      "commit": "135169fa080ec6b331e0e1f289323e4ee578748f",
+      "api_image": "kenblog-perf-old-api:135169f",
+      "api_image_id": "sha256:75a0ca861cbd830d585b960fda8a5798fdb7f48e16c6848b2d12144d5f018a67"
+    },
+    "static": {
+      "pages_head": "811c95f0efa89ae4117d756b89ae17031648434f",
+      "artifact_run": "37590862774",
+      "artifact_created_utc": "2026-10-07T08:00:38.405Z"
+    }
+  },
+  "runtime": {
+    "node": "v24.21.0",
+    "playwright": "1.63.0",
+    "mysql_image": "mysql:8.4.11",
+    "mysql_image_id": "sha256:6ea90827b1100f8f2ae306a539f86d2c264a26ed435a2a9f75551dd5c3aeb242",
+    "caddy_image": "caddy:2.11.4-alpine",
+    "caddy_image_id": "sha256:6aeddd44c3078b0f9a35206472a11420648a79c184603ef95957d0a20044cb2b",
+    "api_cpu_limit": "1 CPU",
+    "api_memory_limit": "1536 MiB"
+  },
+  "database": {
+    "mysql_volume": "kenblogperfv2_mysql_data",
+    "seed_sha256": "b6caa6f1b6569c9eed3f33b39049f85561ced0dfc743d2518356f1ee683606e1",
+    "posts": 16,
+    "projects": 6,
+    "stack_badges": 11
+  },
+  "network": {
+    "caddy_host_bindings": [
+      "127.0.0.1:18444",
+      "Tailscale-IP:18444"
+    ],
+    "api_and_mysql_host_ports": [],
+    "static_cache_control": "max-age=600",
+    "api_json_cache_control": "no-store"
+  },
+  "target_matrix": {
+    "implementations": 3,
+    "scenarios": 5,
+    "profiles": [
+      "R",
+      "M"
+    ],
+    "caches": [
+      "cold",
+      "warm"
+    ],
+    "measured_per_cell": 15,
+    "warmups_per_cell": 2,
+    "measured_target": 900,
+    "warmup_target": 120
+  }
+}

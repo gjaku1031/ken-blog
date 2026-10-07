@@ -1,0 +1,92 @@
+services:
+  mysql:
+    image: mysql:8.4.11
+    container_name: kenblog-v2-mysql
+    environment:
+      MYSQL_DATABASE: ken_blog
+      MYSQL_USER: ${DB_USERNAME:?}
+      MYSQL_PASSWORD: ${DB_PASSWORD:?}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:?}
+    command: ["--character-set-server=utf8mb4", "--collation-server=utf8mb4_0900_ai_ci"]
+    volumes:
+      - mysql_v2:/var/lib/mysql
+    healthcheck:
+      test: ["CMD-SHELL", "MYSQL_PWD=$$MYSQL_ROOT_PASSWORD mysqladmin ping -h 127.0.0.1 -uroot --silent"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 30s
+  api-csr:
+    image: kenblog-perf-api-csr:f29ef35
+    container_name: kenblog-v2-api-csr
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      DB_URL: <redacted>
+      DB_USERNAME: ${DB_USERNAME:?}
+      DB_PASSWORD: ${DB_PASSWORD:?}
+      SERVER_FORWARD_HEADERS_STRATEGY: framework
+      SESSION_COOKIE_SECURE: "true"
+      SESSION_COOKIE_SAME_SITE: none
+      SESSION_COOKIE_PARTITIONED: "true"
+      APP_MCP_ENABLED: "false"
+      CACHE_REDIS_ENABLED: "false"
+      GA4_PROPERTY_ID: ""
+      GA4_SERVICE_ACCOUNT_JSON_BASE64: ""
+      APP_CORS_ALLOWED_ORIGINS: https://csr.127.0.0.1.nip.io:18444
+      APP_AUTH_CORS_ALLOWED_ORIGINS: https://csr.127.0.0.1.nip.io:18444
+    expose:
+      - "8080"
+    cpus: 1.0
+    mem_limit: 1536m
+  api-hybrid:
+    image: kenblog-perf-old-api:135169f
+    container_name: kenblog-v2-api-hybrid
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      DB_URL: <redacted>
+      DB_USERNAME: ${DB_USERNAME:?}
+      DB_PASSWORD: ${DB_PASSWORD:?}
+      SERVER_FORWARD_HEADERS_STRATEGY: framework
+      SESSION_COOKIE_SECURE: "true"
+      SESSION_COOKIE_SAME_SITE: none
+      SESSION_COOKIE_PARTITIONED: "true"
+      APP_MCP_ENABLED: "false"
+      CACHE_REDIS_ENABLED: "false"
+      GA4_PROPERTY_ID: ""
+      GA4_SERVICE_ACCOUNT_JSON_BASE64: ""
+      APP_CORS_ALLOWED_ORIGINS: https://hybrid.127.0.0.1.nip.io:18444
+      APP_AUTH_CORS_ALLOWED_ORIGINS: https://hybrid.127.0.0.1.nip.io:18444
+    expose:
+      - "8080"
+    cpus: 1.0
+    mem_limit: 1536m
+  caddy:
+    image: caddy:2.11.4-alpine
+    container_name: kenblog-v2-caddy
+    depends_on:
+      api-csr:
+        condition: service_started
+      api-hybrid:
+        condition: service_started
+    ports:
+      - "127.0.0.1:18444:443"
+      - "<redacted>:18444:443"
+    volumes:
+      - ./Caddyfile.v2:/etc/caddy/Caddyfile:ro
+      - ./old-csr/apps/web/out:/srv/csr:ro
+      - ./old/apps/web/out:/srv/hybrid:ro
+      - ./new/site:/srv/static:ro
+      - ./old-assets:/srv/old-assets:ro
+      - caddy_v2_data:/data
+      - caddy_v2_config:/config
+volumes:
+  mysql_v2:
+    name: kenblogperfv2_mysql_data
+  caddy_v2_data:
+    name: kenblogperfv2_caddy_data
+  caddy_v2_config:
+    name: kenblogperfv2_caddy_config

@@ -1,0 +1,7 @@
+implementation	page	marker	server_html_contains_marker	bytes
+f29ef35 CSR project	old-csr/apps/web/out/project/index.html	개발 배경	false	11216
+f29ef35 CSR ERD	old-csr/apps/web/out/project/index.html	전체 ERD	false	11216
+135169f hybrid project	old/apps/web/out/project/ken-blog/index.html	개발 배경	true	35807
+135169f hybrid ERD	old/apps/web/out/project/ken-blog/docs/post-f9235d74-4d5b-4705-8f59-ba3511bd50e9/index.html	전체 ERD	true	73579
+static project	new/site/post/project-06840552-43a2-4870-83a9-d3e848c71d7e/index.html	개발 배경	true	22457
+static ERD	new/site/post/post-f9235d74-4d5b-4705-8f59-ba3511bd50e9/index.html	전체 ERD	true	45191
