@@ -1,0 +1,6 @@
+Pure CSR source: f29ef3500f7af5723581d6cd6de5305dba8d8e45 (git archive)
+Hybrid source: 135169fa080ec6b331e0e1f289323e4ee578748f
+Migration directories: identical (24 files in each)
+Seed SQL: setup/seed.sql and setup-v2/seed.sql have the same SHA-256 b6caa6f1b6569c9eed3f33b39049f85561ced0dfc743d2518356f1ee683606e1
+Loaded local DB counts: 16 posts, 6 projects, 11 stack badges
+DB: isolated kenblogperfv2_mysql_data volume, MySQL 8.4.11

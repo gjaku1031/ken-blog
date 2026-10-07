@@ -1,0 +1,229 @@
+## hybrid_html
+URL: https://<redacted>:18443/project/ken-blog/
+-- HEAD --
+HTTP/2 200 
+alt-svc: h3=":443"; ma=2592000
+content-encoding: gzip
+content-type: text/html; charset=utf-8
+etag: "dlyh91cd3zvyrlq-gzip"
+last-modified: Wed, 07 Oct 2026 08:53:02 GMT
+server: Caddy
+vary: Accept-Encoding
+content-length: 20
+date: Wed, 07 Oct 2026 10:13:23 GMT
+
+-- GET headers (body discarded) --
+HTTP/2 200 
+alt-svc: h3=":443"; ma=2592000
+content-encoding: gzip
+content-type: text/html; charset=utf-8
+etag: "dlyh91cd3zvyrlq-gzip"
+last-modified: Wed, 07 Oct 2026 08:53:02 GMT
+server: Caddy
+vary: Accept-Encoding
+date: Wed, 07 Oct 2026 10:13:23 GMT
+
+
+## hybrid_js
+URL: https://<redacted>:18443/_next/static/chunks/0faw5g-o8u_uw.js
+-- HEAD --
+HTTP/2 200 
+alt-svc: h3=":443"; ma=2592000
+content-encoding: gzip
+content-type: text/javascript; charset=utf-8
+etag: "dlyh91c3ccctgp6-gzip"
+last-modified: Wed, 07 Oct 2026 08:53:02 GMT
+server: Caddy
+vary: Accept-Encoding
+content-length: 20
+date: Wed, 07 Oct 2026 10:13:23 GMT
+
+-- GET headers (body discarded) --
+HTTP/2 200 
+alt-svc: h3=":443"; ma=2592000
+content-encoding: gzip
+content-type: text/javascript; charset=utf-8
+etag: "dlyh91c3ccctgp6-gzip"
+last-modified: Wed, 07 Oct 2026 08:53:02 GMT
+server: Caddy
+vary: Accept-Encoding
+date: Wed, 07 Oct 2026 10:13:23 GMT
+
+
+## hybrid_css
+URL: https://<redacted>:18443/_next/static/chunks/11lz9qhy9uk99.css
+-- HEAD --
+HTTP/2 200 
+alt-svc: h3=":443"; ma=2592000
+content-encoding: gzip
+content-type: text/css; charset=utf-8
+etag: "dlyh91c3xryn1r11-gzip"
+last-modified: Wed, 07 Oct 2026 08:53:02 GMT
+server: Caddy
+vary: Accept-Encoding
+content-length: 20
+date: Wed, 07 Oct 2026 10:13:23 GMT
+
+-- GET headers (body discarded) --
+HTTP/2 200 
+alt-svc: h3=":443"; ma=2592000
+content-encoding: gzip
+content-type: text/css; charset=utf-8
+etag: "dlyh91c3xryn1r11-gzip"
+last-modified: Wed, 07 Oct 2026 08:53:02 GMT
+server: Caddy
+vary: Accept-Encoding
+date: Wed, 07 Oct 2026 10:13:23 GMT
+
+
+## hybrid_api_json
+URL: https://<redacted>:18443/api/v1/projects/ken-blog
+-- GET headers (body discarded; HEAD is not supported by this endpoint) --
+HTTP/2 200 
+alt-svc: h3=":443"; ma=2592000
+cache-control: no-store
+content-type: application/json
+date: Wed, 07 Oct 2026 10:13:23 GMT
+strict-transport-security: max-age=31536000 ; includeSubDomains
+vary: Origin
+vary: Access-Control-Request-Method
+vary: Access-Control-Request-Headers
+via: 1.1 Caddy
+x-content-type-options: nosniff
+x-frame-options: DENY
+x-xss-protection: 0
+
+
+## hybrid_api_badge_image
+URL: https://<redacted>:18443/api/v1/stack-badges/17/image
+-- HEAD --
+HTTP/2 200 
+accept-ranges: bytes
+alt-svc: h3=":443"; ma=2592000
+cache-control: public, max-age=300
+content-type: image/png
+etag: "dlyh3n6p6w4t1fp"
+last-modified: Wed, 07 Oct 2026 08:46:00 GMT
+server: Caddy
+vary: Accept-Encoding
+content-length: 1861
+date: Wed, 07 Oct 2026 10:13:23 GMT
+
+-- GET headers (body discarded) --
+HTTP/2 200 
+accept-ranges: bytes
+alt-svc: h3=":443"; ma=2592000
+cache-control: public, max-age=300
+content-type: image/png
+etag: "dlyh3n6p6w4t1fp"
+last-modified: Wed, 07 Oct 2026 08:46:00 GMT
+server: Caddy
+vary: Accept-Encoding
+content-length: 1861
+date: Wed, 07 Oct 2026 10:13:23 GMT
+
+
+## static_html
+URL: https://<redacted>:18443/ken-blog/post/post-f9235d74-4d5b-4705-8f59-ba3511bd50e9/
+-- HEAD --
+HTTP/2 200 
+alt-svc: h3=":443"; ma=2592000
+content-encoding: gzip
+content-type: text/html; charset=utf-8
+etag: "dlyg4wnbmxvkyvb-gzip"
+last-modified: Wed, 07 Oct 2026 08:00:38 GMT
+server: Caddy
+vary: Accept-Encoding
+content-length: 20
+date: Wed, 07 Oct 2026 10:13:23 GMT
+
+-- GET headers (body discarded) --
+HTTP/2 200 
+alt-svc: h3=":443"; ma=2592000
+content-encoding: gzip
+content-type: text/html; charset=utf-8
+etag: "dlyg4wnbmxvkyvb-gzip"
+last-modified: Wed, 07 Oct 2026 08:00:38 GMT
+server: Caddy
+vary: Accept-Encoding
+date: Wed, 07 Oct 2026 10:13:23 GMT
+
+
+## static_js
+URL: https://<redacted>:18443/ken-blog/assets/article-VQACUMIV.js
+-- HEAD --
+HTTP/2 200 
+alt-svc: h3=":443"; ma=2592000
+content-encoding: gzip
+content-type: text/javascript; charset=utf-8
+etag: "dlyg4vq8w000ds7-gzip"
+last-modified: Wed, 07 Oct 2026 08:00:36 GMT
+server: Caddy
+vary: Accept-Encoding
+content-length: 20
+date: Wed, 07 Oct 2026 10:13:23 GMT
+
+-- GET headers (body discarded) --
+HTTP/2 200 
+alt-svc: h3=":443"; ma=2592000
+content-encoding: gzip
+content-type: text/javascript; charset=utf-8
+etag: "dlyg4vq8w000ds7-gzip"
+last-modified: Wed, 07 Oct 2026 08:00:36 GMT
+server: Caddy
+vary: Accept-Encoding
+date: Wed, 07 Oct 2026 10:13:23 GMT
+
+
+## static_css
+URL: https://<redacted>:18443/ken-blog/assets/article-HUSK3OYH.css
+-- HEAD --
+HTTP/2 200 
+alt-svc: h3=":443"; ma=2592000
+content-encoding: gzip
+content-type: text/css; charset=utf-8
+etag: "dlyg4vq8w000sw1-gzip"
+last-modified: Wed, 07 Oct 2026 08:00:36 GMT
+server: Caddy
+vary: Accept-Encoding
+content-length: 20
+date: Wed, 07 Oct 2026 10:13:23 GMT
+
+-- GET headers (body discarded) --
+HTTP/2 200 
+alt-svc: h3=":443"; ma=2592000
+content-encoding: gzip
+content-type: text/css; charset=utf-8
+etag: "dlyg4vq8w000sw1-gzip"
+last-modified: Wed, 07 Oct 2026 08:00:36 GMT
+server: Caddy
+vary: Accept-Encoding
+date: Wed, 07 Oct 2026 10:13:23 GMT
+
+
+## static_image
+URL: https://<redacted>:18443/ken-blog/assets/stack-17-b49115b257a12acbee18264e8f466fcab0913c5b9b217d08ca3f803f43aaa573.png
+-- HEAD --
+HTTP/2 200 
+accept-ranges: bytes
+alt-svc: h3=":443"; ma=2592000
+content-type: image/png
+etag: "dlyg4w6s9gxs1fp"
+last-modified: Wed, 07 Oct 2026 08:00:37 GMT
+server: Caddy
+vary: Accept-Encoding
+content-length: 1861
+date: Wed, 07 Oct 2026 10:13:23 GMT
+
+-- GET headers (body discarded) --
+HTTP/2 200 
+accept-ranges: bytes
+alt-svc: h3=":443"; ma=2592000
+content-type: image/png
+etag: "dlyg4w6s9gxs1fp"
+last-modified: Wed, 07 Oct 2026 08:00:37 GMT
+server: Caddy
+vary: Accept-Encoding
+content-length: 1861
+date: Wed, 07 Oct 2026 10:13:23 GMT
+
