@@ -22,7 +22,7 @@ description: ken-blog 게시글·문서의 Mermaid 다이어그램(아키텍처 
 - **사실 먼저**: 코드·스키마·배포 설정과 대조해 구성 요소와 연결을 목록으로 만든 뒤 그린다. 보기 좋게 하려고 관계를 빼거나 바꾸지 않는다.
 - **로고 구성도는 고정 배치로**: `architecture-beta` 자동 배치는 그룹이 겹치고 노드가 그룹 밖으로 나가 쓸 수 없다. 로고가 필요한 중요 도식(인프라 구성도, 시스템 구조)은 배치 JSON을 만들어 `%% layout: 이름`으로 고정한다. 그 밖의 구조도는 로고 없이 `flowchart`로 그린다.
 - **캡션**: 펜스 첫 줄 `` ```mermaid caption="설명" ``. 그림 아래 설명 문단은 두지 않는다.
-- **범례는 상자로**: 고정 배치는 JSON `legend`, 그 밖의 도식은 원문에 `%% legend: thick=…; solid=…; dotted=…`. 범례를 넣었으면 캡션에서 범례 문장을 빼고 설명만 남긴다.
+- **범례는 상자로**: 고정 배치는 JSON `legend`, 그 밖의 도식은 원문에 `%% legend: …`(선 종류, `color:#채움:#테두리` 색 견본, `round`·`diamond` 노드 모양, `zero`·`many` ERD 관계 끝. 문법표는 mermaid-common.md '캡션과 범례'). 색·모양·선 설명("파랑은 ~", "둥근 노드는 ~", "실선은 ~")은 캡션에 쓰지 않는다. 범례를 넣었으면 캡션에서 범례 문장을 빼고 설명만 남긴다. 시퀀스처럼 간단한 도식도 예외 없이 상자로 넣는다(예: 시퀀스 `%% legend: solid=요청; dotted=응답`, 다이어그램 선언 다음 줄에 둠). "실선은 ~, 점선은 ~" 같은 문장을 캡션에 쓰지 않는다.
 - **금지**: 노드 ID에 `link`, `click`, `style`, `linkStyle`, `classDef`, `callback`, `cssClass` 같은 지시어 이름, `init`·frontmatter 설정, `style`·`linkStyle`(선 색 지정 불가), HTML 태그(`<br>` 포함), 외부 URL.
 - **선 구분**: 선 색을 지정할 수 없으므로 모양으로 구분한다. `==>` 굵은 선, `-->` 실선, `-.->` 점선.
 - **노드 색**: `classDef 이름 fill:#RRGGBB,stroke:#RRGGBB,color:#RRGGBB,stroke-width:2px`만. 다크 모드 색은 렌더러가 조정한다.
