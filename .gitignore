@@ -8,6 +8,8 @@
 .local-security/
 # GA4 서비스 계정 키·로컬 연결 설정
 /deploy/ga4/
+# DB 접속 정보·TLS 개인키·인증서 로컬 보관
+/deploy/secrets/
 # 생성 자산·빌드 산출물
 /bin/
 # 로컬 의존성 디렉터리
