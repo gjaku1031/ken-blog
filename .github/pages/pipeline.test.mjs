@@ -43,7 +43,7 @@ test('real capture pipeline validates every owner and preserves the previous art
     } else response.writeHead(404).end();
   });
   await new Promise(resolve => server.listen(0, '127.0.0.1', resolve));
-  const env = { ...process.env, PUBLIC_API_BASE_URL: `http://127.0.0.1:${server.address().port}` };
+  const env = { ...process.env, PUBLIC_API_BASE_URL: `http://127.0.0.1:${server.address().port}`, GA_MEASUREMENT_ID: 'G-TEST123456' };
 
   /**
    * 테스트마다 요청 기록을 초기화하고 운영 빌드 경로 실행
@@ -55,6 +55,7 @@ test('real capture pipeline validates every owner and preserves the previous art
   try {
     for (const id of [1, 2]) await writeFile(join(content, `post-${id}.md`), '![shared](attachment:1)');
     await build();
+    assert.match(await readFile(join(output, 'posts/index.html'), 'utf8'), /gtag\/js\?id=G-TEST123456/);
     assert.ok(calls.includes('/api/v1/posts/1/attachments/1/content'));
     assert.ok(calls.includes('/api/v1/posts/2/attachments/1/content'));
     assert.equal((await readdir(join(output, 'assets'))).filter(name => name.startsWith('attachment-1-')).length, 1);

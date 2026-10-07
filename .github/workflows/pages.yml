@@ -64,7 +64,12 @@ jobs:
         env:
           PUBLIC_API_BASE_URL: ${{ vars.BLOG_API_BASE_URL }}
           SITE_BASE_PATH: /ken-blog
-        run: npm run build:site
+          # 공개 측정 ID만 전달하며 서비스 계정 키는 빌드에 사용하지 않음
+          GA_MEASUREMENT_ID: ${{ vars.GA_MEASUREMENT_ID }}
+        run: |
+          # 설정 누락으로 방문 추적이 빠진 운영 산출물의 배포 방지
+          test -n "$GA_MEASUREMENT_ID" || { echo 'GA_MEASUREMENT_ID repository variable is required.' >&2; exit 1; }
+          npm run build:site
       - name: Verify public site artifact
         run: |
           # 필수 페이지 존재와 내부 파일 미포함 확인
