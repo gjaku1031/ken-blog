@@ -1,0 +1,205 @@
+import jakarta.persistence.Entity
+import org.hibernate.boot.MetadataSources
+import org.hibernate.boot.registry.BootstrapServiceRegistryBuilder
+import org.hibernate.boot.registry.StandardServiceRegistryBuilder
+import org.hibernate.tool.schema.spi.DelayedDropRegistryNotAvailableImpl
+import org.hibernate.tool.schema.spi.SchemaManagementToolCoordinator
+
+// 앱과 같은 Boot BOM으로 DDL 생성용 Hibernate 버전 관리
+buildscript {
+    repositories { mavenCentral() }
+    dependencies {
+        classpath platform('org.springframework.boot:spring-boot-dependencies:4.1.1')
+        classpath 'org.hibernate.orm:hibernate-core'
+    }
+}
+
+// Java·Spring Boot·jOOQ 빌드 플러그인
+plugins {
+    id 'java'
+    id 'eclipse'
+    id 'org.springframework.boot' version '4.1.1'
+    id 'org.jooq.jooq-codegen-gradle' version '3.21.8'
+    id 'io.spring.dependency-management' version '1.1.7'
+}
+
+// 배포 좌표와 jOOQ 버전
+group = 'io.github.gjaku1031'
+version = '0.0.1-SNAPSHOT'
+ext['jooq.version'] = '3.21.8'
+
+// 애플리케이션 의존성 저장소
+repositories { mavenCentral() }
+
+// JDK·바이트코드 버전과 Spring의 매개변수 이름 조회 지원
+java { toolchain { languageVersion = JavaLanguageVersion.of(25) } }
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+    options.compilerArgs.add('-parameters')
+}
+
+// API 실행 진입점
+springBoot { mainClass = 'io.github.gjaku1031.kenblog.KenBlogApiApplication' }
+
+// API 런타임·통합 테스트·코드 생성 의존성
+dependencies {
+    // 생성자 주입용 코드 생성; 버전은 Boot BOM에서 관리하고 런타임에서는 제외
+    compileOnly 'org.projectlombok:lombok'
+    annotationProcessor 'org.projectlombok:lombok'
+    implementation 'org.springframework.boot:spring-boot-starter-actuator'
+    implementation 'org.springframework.boot:spring-boot-starter-webmvc'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.springframework.boot:spring-boot-starter-jooq'
+    implementation 'org.springframework.boot:spring-boot-starter-security'
+    implementation 'org.springframework.boot:spring-boot-starter-session-jdbc'
+    runtimeOnly 'com.mysql:mysql-connector-j'
+    testImplementation 'org.springframework.boot:spring-boot-starter-webmvc-test'
+    testImplementation 'org.springframework.boot:spring-boot-testcontainers'
+    testImplementation 'org.testcontainers:testcontainers-mysql'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    jooqCodegen 'org.jooq:jooq-meta-extensions:3.21.8'
+}
+
+// jOOQ 타입과 독립적인 JPA 원본을 선행 컴파일; 별도 클래스는 API JAR에 포함하지 않음
+sourceSets {
+    jpaModel {
+        java {
+            srcDir 'src/main/java'
+            include '**/domain/**', '**/global/error/BusinessException.java', '**/global/text/Text.java'
+        }
+    }
+    main {
+        java.srcDir 'build/generated-src/jooq/main'
+        resources.exclude 'web/**'
+    }
+    test { resources.srcDir 'deploy/sql' }
+}
+configurations.jpaModelImplementation.extendsFrom configurations.implementation
+
+// JPA에서 추출할 MySQL DDL 출력 경로
+def jpaSchema = layout.buildDirectory.file('generated/jooq/schema.sql')
+
+// 엔티티 선행 컴파일 → DB 접속 없는 DDL 생성 → 리소스 해제
+tasks.register('generateJpaSchema') {
+    group = 'jooq'
+    description = 'JPA 엔티티에서 jOOQ 코드 생성용 MySQL DDL을 만든다. DB에는 접속하지 않는다.'
+    dependsOn tasks.named('jpaModelClasses')
+    inputs.files(sourceSets.jpaModel.runtimeClasspath).withPropertyName('jpaModelClasspath')
+        .withNormalizer(ClasspathNormalizer)
+    outputs.file(jpaSchema)
+    doLast {
+        // 지난 DDL을 비우고 생성 스크립트 출력 경로 준비
+        def output = jpaSchema.get().asFile
+        output.parentFile.mkdirs()
+        output.delete()
+        def settings = [
+            'hibernate.dialect': 'org.hibernate.dialect.MySQLDialect',
+            'hibernate.boot.allow_jdbc_metadata_access': false,
+            'hibernate.physical_naming_strategy': 'org.hibernate.boot.model.naming.PhysicalNamingStrategySnakeCaseImpl',
+            'jakarta.persistence.schema-generation.database.action': 'none',
+            'jakarta.persistence.schema-generation.scripts.action': 'create',
+            'jakarta.persistence.schema-generation.scripts.create-target': output.absolutePath,
+            'hibernate.hbm2ddl.schema-generation.script.append': false,
+        ]
+        // Spring 앱을 기동하지 않고 컴파일된 엔티티만 로딩
+        def urls = sourceSets.jpaModel.runtimeClasspath.collect { it.toURI().toURL() } as URL[]
+        new URLClassLoader(urls, Entity.classLoader).withCloseable { loader ->
+            def bootstrap = new BootstrapServiceRegistryBuilder().applyClassLoader(loader).build()
+            def registry = new StandardServiceRegistryBuilder(bootstrap).applySettings(settings).build()
+            try {
+                def sources = new MetadataSources(registry)
+                def entities = sourceSets.jpaModel.output.classesDirs.collectMany { directory ->
+                    fileTree(directory).matching { include '**/*.class' }.collect { file ->
+                        directory.toPath().relativize(file.toPath()).toString()
+                            .replace(File.separator, '.').replaceAll(/\.class$/, '')
+                    }
+                }.sort().collect { loader.loadClass(it) }.findAll { it.isAnnotationPresent(Entity) }
+                if (entities.empty) throw new GradleException('jOOQ 스키마 생성에 사용할 JPA 엔티티가 없습니다.')
+                // 엔티티 등록 후 DDL 생성 및 빈 결과 검사
+                entities.each { sources.addAnnotatedClass(it) }
+                SchemaManagementToolCoordinator.process(sources.buildMetadata(), registry, settings,
+                    DelayedDropRegistryNotAvailableImpl.INSTANCE)
+                if (output.length() == 0) throw new GradleException('Hibernate가 스키마를 생성하지 않았습니다.')
+            } finally {
+                // 성공·실패 모두 Hibernate 레지스트리 해제
+                StandardServiceRegistryBuilder.destroy(registry)
+            }
+        }
+    }
+}
+
+// Hibernate DDL에서 Java 테이블 타입 생성; 수동 스키마·운영 DB 연결 불필요
+jooq {
+    configuration {
+        generator {
+            name = 'org.jooq.codegen.JavaGenerator'
+            database {
+                name = 'org.jooq.meta.extensions.ddl.DDLDatabase'
+                forcedTypes {
+                    forcedType { name = 'VARCHAR'; includeTypes = '(?i:ENUM.*)' }
+                }
+                properties {
+                    property { key = 'scripts'; value = jpaSchema.get().asFile.absolutePath }
+                    property { key = 'unqualifiedSchema'; value = 'none' }
+                    property { key = 'defaultNameCase'; value = 'lower' }
+                }
+            }
+            generate {
+                pojos = false
+                daos = false
+                // 명시적인 JOIN만 사용하고 자기 참조 경로 이름 충돌 방지
+                implicitJoinPathsToOne = false
+                implicitJoinPathsToMany = false
+                implicitJoinPathsManyToMany = false
+            }
+            target {
+                packageName = 'io.github.gjaku1031.kenblog.jooq'
+                directory = 'build/generated-src/jooq/main'
+            }
+        }
+    }
+}
+
+// DDL 생성 → jOOQ 생성 → 애플리케이션 컴파일 순서 보장
+tasks.named('jooqCodegen') {
+    dependsOn tasks.named('generateJpaSchema')
+    inputs.file(jpaSchema)
+}
+tasks.named('compileJava') { dependsOn tasks.named('jooqCodegen') }
+
+// JDT LS·Buildship에는 앱·테스트만 등록하여 같은 Java 경로의 jpaModel 필터 충돌 방지
+eclipse {
+    classpath {
+        sourceSets = [project.sourceSets.main, project.sourceSets.test]
+        // 이전 가져오기에서 남은 빌드 전용 소스 항목도 병합 전에 제거
+        file.beforeMerged { classpath ->
+            classpath.entries.removeAll { entry ->
+                entry.kind == 'src' && entry.entryAttributes['gradle_scope'] == 'jpaModel'
+            }
+        }
+    }
+    // 처음 프로젝트를 가져올 때도 조회 코드가 참조하는 jOOQ 타입 준비
+    synchronizationTasks tasks.named('jooqCodegen')
+}
+
+// JUnit Platform 테스트 실행
+tasks.withType(Test).configureEach { useJUnitPlatform() }
+
+// 배포용 실행 JAR 이름 고정
+tasks.named('bootJar') { archiveFileName = 'ken-blog-api.jar' }
+
+// 운영 이미지와 같은 Noble base 스택 사용
+tasks.named('bootBuildImage') {
+    builder = 'paketobuildpacks/ubuntu-noble-builder:latest'
+    runImage = 'paketobuildpacks/ubuntu-noble-run:latest'
+    environment = ['BP_JVM_VERSION': '25']
+}
+
+// 실행 불가능한 일반 JAR 생성 비활성화
+tasks.named('jar') { enabled = false }
+
+// CI 독립 TLS 검사에 앱과 같은 Connector/J 런타임 제공
+tasks.register('prepareMysqlTlsVerification', Copy) {
+    from provider { configurations.runtimeClasspath.findAll { it.name.startsWith('mysql-connector-j-') } }
+    into layout.buildDirectory.dir('verification')
+}

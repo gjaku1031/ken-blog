@@ -11,11 +11,11 @@ JPA는 저장·단일 조회·변경 잠금, jOOQ는 목록·검색·집계·위
 빌드 순서는 다음과 같음.
 
 ```text
-원본 domain Kotlin → compileJpaModelKotlin → generateJpaSchema
-  → build/generated/jooq/schema.sql → jooqCodegen → compileKotlin
+원본 domain Java → compileJpaModelJava → generateJpaSchema
+  → build/generated/jooq/schema.sql → jooqCodegen → compileJava
 ```
 
-빌드 전용 `jpaModel` 소스셋에서 `src/main/kotlin`의 원본 도메인 클래스와 도메인 예외의 공통 부모 `global/error/BusinessException`만 먼저 컴파일. HTTP 응답 변환기와 서비스는 제외. 생성 로직은 `build.gradle.kts`의 `generateJpaSchema` 태스크에 통합하고 별도 `src/jooq/kotlin` 생성기 파일은 제거. Gradle의 빌드용 Hibernate 의존성도 앱과 같은 Spring Boot BOM으로 관리. 앱과 동일한 Hibernate 버전·MySQL dialect·snake_case 물리 이름 정책으로 JPA 매핑을 읽어 DDL 출력. JDBC 메타데이터 접근과 DB schema action은 비활성화. jOOQ `DDLDatabase`가 생성된 DDL을 읽고 Kotlin 테이블 타입 생성.
+빌드 전용 `jpaModel` 소스셋에서 `src/main/java`의 원본 도메인 클래스와 도메인 예외의 공통 부모 `global/error/BusinessException`·문자열 공통 함수 `global/text/Text`만 먼저 컴파일. HTTP 응답 변환기와 서비스는 제외. 생성 로직은 `build.gradle`의 `generateJpaSchema` 태스크에 통합하고 별도 `src/jooq/kotlin` 생성기 파일은 제거. Gradle의 빌드용 Hibernate 의존성도 앱과 같은 Spring Boot BOM으로 관리. 앱과 동일한 Hibernate 버전·MySQL dialect·snake_case 물리 이름 정책으로 JPA 매핑을 읽어 DDL 출력. JDBC 메타데이터 접근과 DB schema action은 비활성화. jOOQ `DDLDatabase`가 생성된 DDL을 읽고 Java 테이블 타입 생성.
 
 `build/`의 DDL과 테이블 코드는 재생성 가능한 Git 제외 산출물. 엔티티를 수정하면 Gradle 의존 관계에 따라 재생성하며 개발·CI에서 실제 DB 접속 불필요. 도메인을 별도 저장소나 모듈로 옮기지 않고 먼저 컴파일하여 앱 컴파일과 jOOQ 생성 간 순환 의존을 해소. 태스크는 전용 클래스 로더로 엔티티를 읽고 종료 시 레지스트리·로더 정리. Spring 앱을 기동하지 않으며 빌드 전용 클래스 출력은 API JAR에 포함하지 않음.
 
@@ -94,8 +94,43 @@ MCP·RepositoryMarkdown 제거 후에도 옛 Post body/body_sha256 매핑과 Pos
 
 `posts.edit_version BIGINT NOT NULL`을 추가한다. 기존 행은 명시 마이그레이션에서 0으로 시작한다. 비관적 글 잠금 안의 서비스가 버전을 증가시키므로 JPA `@Version`과 일괄 JPQL 갱신을 혼용하지 않는다. 분류 삭제의 일괄 이동도 버전을 증가시키고 기존 body·body_sha256·series_order는 보존한다. 관리자 상세는 본문 열 없는 jOOQ projection으로 읽는다.
 
-Series 생성자는 재정의 가능한 `replace` 호출 대신 필드를 직접 초기화한다. Post 버전 접근자·변경 메서드를 포함하여 앱·jpaModel 모두 명시적 open·protected setter 계약을 유지한다. 생성 DDL을 리뷰 기준 `7299253`과 대조하면 JPA 변경은 edit_version 열 하나이며 FK·인덱스는 동일하다. 비 JPA `admin_login_sources`와 인증 상태의 별도 bootstrap·복구는 검토 가능한 SQL로 관리한다.
+Series 생성자는 재정의 가능한 `replace` 호출 대신 필드를 직접 초기화한다. Post 버전 접근자·변경 메서드를 포함하여 앱·jpaModel 모두 상속 가능한 클래스·접근자와 protected setter 계약을 유지한다. 생성 DDL을 리뷰 기준 `7299253`과 대조하면 JPA 변경은 edit_version 열 하나이며 FK·인덱스는 동일하다. 비 JPA `admin_login_sources`와 인증 상태의 별도 bootstrap·복구는 검토 가능한 SQL로 관리한다.
 
 운영은 `ddl-auto=validate`, `sql.init.mode=never`로 고정한다. 개발의 update/보조 테이블 초기화는 유지하지만 인증 상태 행은 최초 설치 때만 별도로 만든다. 기존 DB에는 [한 번 실행하는 이관 SQL](../../deploy/sql/review-2026-10-03.sql), 새 DB에는 검토한 전체 생성 DDL과 bootstrap을 사용한다. MySQL DDL 전체가 하나의 롤백 가능한 트랜잭션이라고 가정하지 않으며 유지보수 창·백업·열 존재 확인을 먼저 수행한다.
 
 격리 DB에서 실제 잠금 경쟁·태그 롤백·분류 일괄 이동·프록시 변경 감지와 300개 글의 공개·관리자 스냅샷을 검사한다. 공개 snapshot의 ORM+jOOQ SELECT 합계는 10개 이하, 300개 탐색 그룹의 JSON은 500KB 미만을 검사한다. 이 값은 해당 fixture의 회귀 기준이며 모든 운영 자료의 지연·메모리 상한을 실측한 값은 아니다. 전체 응답 상한에 이르면 조용히 자르지 않고 실패한다.
+
+
+## Java 전환 — 2026-10-06
+
+애플리케이션·테스트를 Java 25로 옮기고 Gradle은 Groovy DSL로 전환. Kotlin 컴파일·Spring 플러그인, reflection·Jackson Kotlin 모듈을 제거하고 jOOQ도 Java 타입을 생성. 앞선 Kotlin `open`·플러그인 설정 이력은 현재 구현에 적용하지 않음. 현재 계약은 [Java 코드 컨벤션](../convention/CODE.md) 적용.
+
+JPA의 필드 매핑·보호된 기본 생성자·setter와 프록시 상속 가능성을 보존. DTO는 record 또는 기본값·비밀값 문자열 처리를 명시한 클래스로 구성. 로그인 `rememberMe` 생략 시 false, 비밀번호·CSRF의 로그 문자열 숨김, Unicode 공백 정규화 계약 유지.
+
+- `clean build prepareMysqlTlsVerification` 성공. 기존 68개 테스트를 모두 Java로 옮겨 실패·오류·건너뜀 없이 통과.
+- 전환 전후 생성 DDL 바이트 동일. 앱·`jpaModel` 각각 엔티티 11개의 상속 허용, 보호된 기본 생성자 11개와 setter 73개 확인. 프록시 지연 조회·변경 감지와 실제 MySQL 잠금 경쟁은 영속성 통합 테스트로 검증.
+- 배포 설정 검사, 실제 JAR의 MySQL TLS 연결, Chromium의 교차 사이트 HTTPS 로그인·CSRF·편집·로그아웃 및 DB 장애·인증 상태 복구 검사 통과.
+- 실행 JAR에 Kotlin 런타임·소스 없음. Kotlin 원본 폴더와 프로젝트 컴파일러 캐시 제거.
+
+언어 전환에 따른 운영 DB 이관은 없으며 서버 배포는 별도 작업.
+
+### Java IDE 소스 경로 — 2026-10-06
+
+앱과 DDL 생성용 `jpaModel`이 같은 `src/main/java`를 사용하므로 Buildship의 기본
+Eclipse 모델에서 도메인 전용 포함 필터가 앱 소스 경로에 적용되는 문제 확인.
+Gradle 컴파일은 성공하지만 JDT LS는 앱 서비스·DTO를 찾지 못하는 상태였음.
+
+`eclipse.classpath.sourceSets`에는 `main`·`test`만 등록하고, `beforeMerged`에서
+이전에 가져온 `gradle_scope=jpaModel` 소스 항목을 제거. `synchronizationTasks`에는
+`jooqCodegen`을 연결하여 첫 가져오기에도 생성 타입 준비. 실제 DDL 생성은 기존
+`jpaModel`을 계속 사용. 생성 `.classpath`의 수동 수정이나 진단 억제 없음.
+
+Java 전환에서 누락된 원본 KDoc의 입력·반환·예외 계약도 해당 Java 선언의 Javadoc으로
+복원. 인자 이름은 현재 시그니처에 맞추고, 합쳐진 도우미의 계약은 호출 메서드에 유지.
+예외 객체를 반환하는 팩터리는 `@throws` 대신 실제 동작에 맞는 `@return` 사용.
+
+`eclipseClasspath` 반복 생성 후 앱 경로에 포함 필터와 `jpaModel` 항목이 없는 것 확인.
+JDT LS 프로젝트 갱신·빌드 후 현재 Neovim에 수집된 오류·경고 0건 확인.
+미사용 import를 제거하고 테스트 컨테이너는 지역 변수로 생성·설정한 뒤 반환하여
+분석기가 자원 소유권의 이전을 추적할 수 있도록 정리. 시작·종료는 Spring 테스트
+컨텍스트가 관리. 영속성 통합 테스트와 Javadoc 문서 생성 검사 통과.

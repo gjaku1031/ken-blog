@@ -154,7 +154,7 @@ async function checkArtifact() {
       if (++files > 20_000) throw new Error("Pages 파일 수 초과");
       bytes += (await stat(filename)).size;
       if (bytes > 900 * 1024 * 1024) throw new Error("Pages 산출물 크기 초과");
-      if (entry.name.startsWith(".env") || /^(AGENTS\.md|pom\.xml|build\.gradle\.kts|settings\.gradle\.kts|gradlew(?:\.bat)?|gradle\.properties|package(?:-lock)?\.json)$/i.test(entry.name))
+      if (entry.name.startsWith(".env") || /^(AGENTS\.md|pom\.xml|build\.gradle(?:\.kts)?|settings\.gradle(?:\.kts)?|gradlew(?:\.bat)?|gradle\.properties|package(?:-lock)?\.json)$/i.test(entry.name))
         throw new Error(`내부 파일이 Pages 산출물에 포함됨: ${entry.name}`);
     }
   };

@@ -10,6 +10,6 @@ trim_trailing_whitespace = true
 indent_style = space
 indent_size = 2
 
-# Kotlin은 공백 4칸 들여쓰기
-[*.kt]
+# Java·Gradle은 공백 4칸 들여쓰기
+[*.{java,gradle}]
 indent_size = 4
