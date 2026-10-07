@@ -1,10 +1,11 @@
 import vowserLayout from "./vowser-architecture-layout.json" with { type: "json" };
 import kenBlogLayout from "./ken-blog-architecture-layout.json" with { type: "json" };
+import kenBlogSystemLayout from "./ken-blog-system-layout.json" with { type: "json" };
 
 /**
  * 게시글에서 선택할 수 있는 로컬 아키텍처 배치
  */
-const REFERENCE_LAYOUTS = { "vowser-infrastructure": vowserLayout, "ken-blog-infrastructure": kenBlogLayout };
+const REFERENCE_LAYOUTS = { "vowser-infrastructure": vowserLayout, "ken-blog-infrastructure": kenBlogLayout, "ken-blog-system": kenBlogSystemLayout };
 
 /**
  * 원고의 명시적 주석으로 기준 배치를 선택하며 누락·중복·미등록 이름은 거부함
@@ -22,9 +23,10 @@ function referenceLayout(source: string) {
 const SVG_NS = "http://www.w3.org/2000/svg";
 
 /**
- * 원본의 실행·배포·제어·DNS 연결 구분
+ * 원본의 열람·실행·배포·제어·DNS 연결 구분. 네 번째 값은 선 두께(px), 생략하면 1.5
  */
 const EDGE_STYLES = {
+  read: ["#2563eb", "#7aa7ff", "", "3"],
   runtime: ["#566675", "#b5c1ce", ""],
   delivery: ["#287d53", "#75cb9f", "7 4"],
   control: ["#8658a8", "#c19bdf", "3 4"],
@@ -133,7 +135,7 @@ export function applyReferenceLayout(svg: string, source: string, theme: "light"
     const color = palette[theme === "dark" ? 1 : 0];
     const group = element("g", { "data-from": edge.source, "data-to": edge.target }, edges);
     element("path", { d: edge.points.map(([x, y], index) => `${index ? "L" : "M"}${x},${y}`).join(" "),
-      style: `fill:none;stroke:${color};stroke-width:1.5px;stroke-dasharray:${palette[2] || "none"};stroke-linejoin:round` }, group);
+      style: `fill:none;stroke:${color};stroke-width:${palette[3] ?? "1.5"}px;stroke-dasharray:${palette[2] || "none"};stroke-linejoin:round` }, group);
     const [x, y] = edge.points.at(-1)!;
     const [previousX, previousY] = edge.points.at(-2)!;
     const angle = Math.atan2(y - previousY, x - previousX);
@@ -143,13 +145,20 @@ export function applyReferenceLayout(svg: string, source: string, theme: "light"
       style: `fill:${color};stroke:none` }, group);
     if (edge.label) label(group, edge.label, edge.at[0], edge.at[1], 11, color, 400, "middle");
   }
-  // 범례까지 포함한 단일 화면 경계 지정
+  // 범례는 오른쪽 아래 빈 영역의 상자 안에 선 종류별로 한 줄씩 배치함
   const legend = element("g", {}, root);
-  layout.legend.forEach(({ title, kind, x, y }) => {
+  const legendRow = 24, legendPad = 14, legendWidth = 250;
+  const legendHeight = legendPad * 2 + 20 + layout.legend.length * legendRow;
+  const legendX = layout.width - legendWidth, legendY = layout.height - legendHeight;
+  element("rect", { x: legendX, y: legendY, width: legendWidth, height: legendHeight, rx: 6,
+    style: `fill:none;stroke:${muted};stroke-width:1px;stroke-opacity:0.6` }, legend);
+  label(legend, "범례", legendX + legendPad, legendY + legendPad + 10, 12, foreground, 600);
+  layout.legend.forEach(({ title, kind }, index) => {
     const palette = EDGE_STYLES[kind as keyof typeof EDGE_STYLES];
     const color = palette[theme === "dark" ? 1 : 0];
-    element("path", { d: `M${x},${y} h30`, style: `fill:none;stroke:${color};stroke-width:1.5px;stroke-dasharray:${palette[2] || "none"}` }, legend);
-    label(legend, title, x + 39, y + 4, 12, muted);
+    const y = legendY + legendPad + 20 + legendRow * index + legendRow / 2;
+    element("path", { d: `M${legendX + legendPad},${y} h30`, style: `fill:none;stroke:${color};stroke-width:${palette[3] ?? "1.5"}px;stroke-dasharray:${palette[2] || "none"}` }, legend);
+    label(legend, title, legendX + legendPad + 39, y + 4, 12, muted);
   });
   root.setAttribute("viewBox", `-16 -20 ${layout.width + 32} ${layout.height + 20}`);
   root.setAttribute("style", "max-width:100%;background:transparent");

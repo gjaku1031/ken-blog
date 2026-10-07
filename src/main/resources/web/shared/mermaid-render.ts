@@ -53,6 +53,62 @@ function scaleSvgSize(svg: string, scale: number): string {
 }
 
 /**
+ * 범례 주석에서 쓸 수 있는 선 종류와 모양
+ */
+const LEGEND_LINES = {
+  thick: { width: 3.5, dash: "none" },
+  solid: { width: 2, dash: "none" },
+  dotted: { width: 2, dash: "3 3" },
+} as const;
+
+/**
+ * 원문의 `%% legend: thick=열람; solid=관리 요청; dotted=빌드` 주석을 범례 항목으로 읽음
+ */
+function legendItems(source: string): Array<{ kind: keyof typeof LEGEND_LINES; title: string }> {
+  const line = source.match(/^\s*%%\s*legend:\s*(.+)$/m)?.[1];
+  if (!line) return [];
+  return line.split(";").map(part => part.split("=").map(value => value.trim()))
+    .filter((pair): pair is [keyof typeof LEGEND_LINES, string] => pair.length === 2 && pair[0] in LEGEND_LINES && pair[1].length > 0)
+    .slice(0, 6).map(([kind, title]) => ({ kind, title: title.slice(0, 40) }));
+}
+
+/**
+ * 도식 아래 오른쪽에 선 종류별 범례 상자를 붙이고 viewBox를 그만큼 늘림
+ */
+function appendLegend(svg: string, items: ReturnType<typeof legendItems>, theme: "light" | "dark"): string {
+  const doc = new DOMParser().parseFromString(svg, "image/svg+xml");
+  const root = doc.documentElement;
+  const box = root.getAttribute("viewBox")?.trim().split(/[\s,]+/).map(Number);
+  if (!box || box.length !== 4 || box.some(value => !Number.isFinite(value))) return svg;
+  const [left, top, width, height] = box;
+  const line = theme === "dark" ? "#c9d1d9" : "#333333";
+  const text = theme === "dark" ? "#bdc8d3" : "#586b7b";
+  const pad = 14, row = 24, gap = 12;
+  // 글자 폭은 렌더링 전에 잴 수 없어 한글 12px, 그 밖 7px로 어림함
+  const textWidth = Math.max(...items.map(({ title }) => [...title].reduce((sum, char) => sum + (/[\u3131-\uD79D]/.test(char) ? 12 : 7), 0)), 24);
+  const boxWidth = pad * 2 + 39 + textWidth, boxHeight = pad * 2 + 20 + items.length * row;
+  const x = left + width - boxWidth, y = top + height + gap;
+  const ns = "http://www.w3.org/2000/svg";
+  const make = (name: string, attrs: Record<string, string | number>, parent: Element) => {
+    const node = doc.createElementNS(ns, name);
+    for (const [key, value] of Object.entries(attrs)) node.setAttribute(key, String(value));
+    parent.appendChild(node);
+    return node;
+  };
+  const group = make("g", {}, root);
+  make("rect", { x, y, width: boxWidth, height: boxHeight, rx: 6, style: `fill:none;stroke:${text};stroke-width:1px;stroke-opacity:0.6` }, group);
+  make("text", { x: x + pad, y: y + pad + 10, style: `font-size:12px;font-weight:600;fill:${line};font-family:Arial,sans-serif` }, group).textContent = "범례";
+  items.forEach(({ kind, title }, index) => {
+    const lineY = y + pad + 20 + row * index + row / 2;
+    const { width: strokeWidth, dash } = LEGEND_LINES[kind];
+    make("path", { d: `M${x + pad},${lineY} h30`, style: `fill:none;stroke:${line};stroke-width:${strokeWidth}px;stroke-dasharray:${dash}` }, group);
+    make("text", { x: x + pad + 39, y: lineY + 4, style: `font-size:12px;fill:${text};font-family:Arial,sans-serif` }, group).textContent = title;
+  });
+  root.setAttribute("viewBox", `${left} ${top} ${width} ${height + gap + boxHeight}`);
+  return new XMLSerializer().serializeToString(doc);
+}
+
+/**
  * ERD 그룹 제목을 그룹 왼쪽 위로 옮김
  *
  * 관계선은 그룹 위쪽 가운데로 자주 들어오므로 가운데 제목이 관계 끝 표시와 겹침
@@ -350,6 +406,8 @@ async function drainQueue(): Promise<void> {
         const result = await mermaid.render(id, mermaidThemeSource(job.source, job.theme), container);
         if (!job.signal.aborted) {
           let svg = sanitizeMermaidSvg(result.svg);
+          const legend = architecture ? [] : legendItems(job.source);
+          if (legend.length) svg = sanitizeMermaidSvg(appendLegend(svg, legend, job.theme));
           if (erDiagram) svg = scaleSvgSize(sanitizeMermaidSvg(alignErdGroupLabels(svg)), ERD_DISPLAY_SCALE);
           if (reference) {
             // 특정 원본 도식의 배치만 적용하며 구성·연결이 바뀌면 검증에서 중단함
