@@ -178,3 +178,18 @@ body { -webkit-font-smoothing:antialiased; }
 .status.pending{color:var(--pending-status,#9a6700)}
 .status.unknown{color:var(--muted)}
 :root[data-theme=dark]{--pending-status:#e3b341}
+/* 시스템 확인창을 대신하는 확인 모달 */
+.confirm-dialog {width:min(calc(100% - 32px),420px);padding:0;border:1px solid var(--dialog-line);border-radius:12px;background:var(--dialog-bg);color:var(--text);box-shadow:var(--shadow2);font-size:14px;line-height:1.6}
+.confirm-dialog[open] {animation:confirm-in .16s ease-out}
+.confirm-dialog::backdrop {background:#10182066}
+.confirm-dialog-body {padding:24px 24px 20px}
+.confirm-dialog-title {margin:0 0 8px;font-size:17px;font-weight:700;letter-spacing:-.3px}
+.confirm-dialog-message {margin:0 0 22px;color:var(--text2);word-break:keep-all;overflow-wrap:anywhere}
+.confirm-dialog-actions {display:flex;justify-content:flex-end;gap:8px}
+.confirm-dialog .button {min-width:76px}
+.confirm-dialog .button.danger {background:var(--danger);border-color:var(--danger);color:var(--card)}
+.confirm-dialog .button.danger:hover {filter:brightness(.92)}
+.confirm-dialog .button:focus-visible {outline:2px solid var(--accent);outline-offset:2px}
+@keyframes confirm-in {from{opacity:0;transform:translateY(6px) scale(.98)}}
+@media(prefers-reduced-motion:reduce){.confirm-dialog[open]{animation:none}}
+@media(max-width:640px){.confirm-dialog-body{padding:20px 18px 16px}.confirm-dialog-actions .button{flex:1}}

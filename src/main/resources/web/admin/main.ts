@@ -16,6 +16,7 @@ import { deploymentManifest, readDeploymentManifest, deploymentState, filterPost
 import { postEditor } from '../shared/post-editor';
 import { postFields, postPayload, type Category, type Tag } from '../shared/post-fields';
 import { connectPagesDeploy } from './pages-deploy';
+import { confirmDialog } from './confirm-dialog';
 
 /**
  * 분류 참조
@@ -469,7 +470,7 @@ function smallAction(parent: HTMLElement, title: string, operation: () => Promis
   const button = el('button', 'button ghost', title);
   button.type = 'button';
   button.addEventListener('click', async () => {
-    if (confirmText && !window.confirm(confirmText)) return;
+    if (confirmText && !await confirmDialog({ title, message: confirmText, confirmLabel: title, danger: title === '삭제' || title === '발행 취소' })) return;
     button.disabled = true;
     await action(operation, success);
     button.disabled = false;

@@ -31,6 +31,16 @@ function expectSeriesInput(body, project, editing = false) {
 }
 
 /**
+ * 관리자 확인 모달이 열리면 확인을 누르고 닫힘까지 대기
+ */
+async function confirmModal(page) {
+  const modal = page.locator('.confirm-dialog');
+  await expect(modal).toBeVisible();
+  await modal.locator('[data-confirm-accept]').click();
+  await expect(modal).toBeHidden();
+}
+
+/**
  * 메서드·필수 필드·편집 버전을 검사하고 저장 결과를 후속 읽기에 반영하는 API 대역
  * 지원하지 않는 경로는 501로 실패하여 계약 누락을 숨기지 않음
  */
@@ -755,26 +765,25 @@ test('series deletion stays blocked until both owned and related posts are remov
     }
     return false;
   });
-  page.on('dialog', dialog => dialog.accept());
   await page.goto('/ken-blog/manage/#series');
   const remove = page.getByRole('button', { name: 'UI 검사 프로젝트 삭제', exact: true });
-  await remove.click(); await expect(page.locator('#dashboard-message')).toContainText('먼저 모두 삭제');
+  await remove.click(); await confirmModal(page); await expect(page.locator('#dashboard-message')).toContainText('먼저 모두 삭제');
   await page.getByRole('link', { name: '글 관리', exact: true }).click();
   await page.getByRole('button', { name: '다음', exact: true }).click();
   await page.getByRole('button', { name: '다음', exact: true }).click();
   await page.getByRole('button', { name: '다음', exact: true }).click();
-  await page.getByRole('button', { name: '프로젝트 소개 삭제', exact: true }).click();
+  await page.getByRole('button', { name: '프로젝트 소개 삭제', exact: true }).click(); await confirmModal(page);
   await expect.poll(() => remaining.has(35)).toBe(false);
   await page.getByRole('link', { name: '시리즈·프로젝트', exact: true }).click();
-  await remove.click(); await expect(page.locator('#dashboard-message')).toContainText('먼저 모두 삭제');
+  await remove.click(); await confirmModal(page); await expect(page.locator('#dashboard-message')).toContainText('먼저 모두 삭제');
   await page.getByRole('link', { name: '글 관리', exact: true }).click();
   await page.getByRole('button', { name: '이전', exact: true }).click();
   await page.getByRole('button', { name: '이전', exact: true }).click();
   await page.getByRole('button', { name: '이전', exact: true }).click();
-  await page.getByRole('button', { name: '검사 글 1 삭제', exact: true }).click();
+  await page.getByRole('button', { name: '검사 글 1 삭제', exact: true }).click(); await confirmModal(page);
   await expect.poll(() => remaining.has(1)).toBe(false);
   await page.getByRole('link', { name: '시리즈·프로젝트', exact: true }).click();
-  await remove.click(); await expect(page.locator('#series-list')).toContainText('등록된 시리즈·프로젝트가 없습니다');
+  await remove.click(); await confirmModal(page); await expect(page.locator('#series-list')).toContainText('등록된 시리즈·프로젝트가 없습니다');
 });
 
 /**
@@ -846,8 +855,7 @@ test('category rows rename and delete inline and reorder complete sibling groups
   await page.getByRole('button', { name: 'Alpha 순서 이동', exact: true }).press('ArrowUp');
   await expect(page.locator('#dashboard-message')).toContainText('순서 저장 충돌');
   await expect(page.locator('#category-list > ul > [data-category-id]').first()).toHaveAttribute('data-category-id', '204');
-  page.on('dialog', dialog => dialog.accept());
-  await page.getByRole('button', { name: 'Renamed 삭제', exact: true }).click();
+  await page.getByRole('button', { name: 'Renamed 삭제', exact: true }).click(); await confirmModal(page);
   await expect(page.getByRole('button', { name: 'Renamed 삭제', exact: true })).toHaveCount(0);
 });
 
@@ -1054,8 +1062,8 @@ test('pages deploy starts a run and tracks it to completion', async ({ page }) =
   await mockApi(page, override);
   await page.goto('/ken-blog/manage/');
   await expect(page.locator('#dashboard')).toBeVisible();
-  page.once('dialog', dialog => dialog.accept());
   await page.locator('#pages-deploy-run').click();
+  await confirmModal(page);
   await expect(page.locator('#pages-deploy-status')).toHaveText('대기 중');
   await expect(page.locator('#pages-deploy-run')).toBeDisabled();
   expect(calls.filter(call => call.method === 'POST')).toEqual([{ method: 'POST', path: '/admin/pages/deployments', csrf: 'fixture' }]);
@@ -1071,12 +1079,10 @@ test('pages deploy starts a run and tracks it to completion', async ({ page }) =
 test('pages deploy follows an active run without starting another', async ({ page }) => {
   const { calls, override } = deploymentRoutes('in_progress', ['in_progress']);
   await mockApi(page, override);
-  let confirmed = false;
-  page.on('dialog', dialog => { confirmed = true; void dialog.dismiss(); });
   await page.goto('/ken-blog/manage/');
   await expect(page.locator('#pages-deploy-status')).toHaveText('build · Build site (1/2단계)');
   await expect(page.locator('#pages-deploy-run')).toBeDisabled();
-  expect(confirmed).toBe(false);
+  await expect(page.locator('.confirm-dialog')).toHaveCount(0);
   expect(calls.some(call => call.method === 'POST')).toBe(false);
 });
 
@@ -1086,9 +1092,36 @@ test('pages deploy shows a rejected start', async ({ page }) => {
   await mockApi(page, override);
   await page.goto('/ken-blog/manage/');
   await expect(page.locator('#dashboard')).toBeVisible();
-  page.once('dialog', dialog => dialog.accept());
   await page.locator('#pages-deploy-run').click();
+  await confirmModal(page);
   await expect(page.locator('#pages-deploy-status')).toHaveText('GitHub 배포 토큰이 설정되지 않았습니다.');
   await expect(page.locator('#pages-deploy-progress')).toHaveAttribute('data-state', 'failure');
   await expect(page.locator('#pages-deploy-run')).toBeEnabled();
+});
+
+// 위험 동작 확인은 시스템 창 없이 모달로 묻고 취소·Escape·배경 클릭은 요청 없이 닫힘
+test('confirm modal replaces system dialogs and cancels without requests', async ({ page }) => {
+  const deletes = [];
+  await mockApi(page, async (route, path) => {
+    if (route.request().method() !== 'DELETE') return false;
+    deletes.push(path); await route.fulfill({ status: 204 }); return true;
+  });
+  const systemDialogs = [];
+  page.on('dialog', dialog => { systemDialogs.push(dialog.message()); void dialog.dismiss(); });
+  await page.goto('/ken-blog/manage/');
+  const remove = page.getByRole('button', { name: '검사 글 1 삭제', exact: true });
+  const modal = page.locator('.confirm-dialog');
+  await remove.click();
+  await expect(modal).toBeVisible();
+  await expect(modal.locator('.confirm-dialog-title')).toHaveText('삭제');
+  await expect(modal.locator('.confirm-dialog-message')).toHaveText('검사 글 1 글을 삭제할까요?');
+  await expect(modal.locator('[data-confirm-accept]')).toHaveClass(/danger/);
+  await expect(modal.locator('[data-confirm-cancel]')).toBeFocused();
+  await page.keyboard.press('Escape'); await expect(modal).toBeHidden();
+  await remove.click(); await modal.locator('[data-confirm-cancel]').click(); await expect(modal).toBeHidden();
+  await remove.click(); await expect(modal).toBeVisible(); await page.mouse.click(5, 5); await expect(modal).toBeHidden();
+  expect(deletes).toEqual([]);
+  await remove.click(); await confirmModal(page);
+  await expect.poll(() => deletes).toEqual(['/admin/posts/1']);
+  expect(systemDialogs).toEqual([]);
 });
