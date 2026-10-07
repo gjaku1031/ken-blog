@@ -318,6 +318,11 @@ interface Input {
   adminHref: string;
 
   /**
+   * 공개 페이지 GA4 측정 ID, 생략하면 방문 추적 비활성화
+   */
+  gaMeasurementId?: string;
+
+  /**
    * 관리자 화면 연결·자산 정보
    */
   admin: {
@@ -454,6 +459,9 @@ export async function generateSite(payload: Input, output: string) {
   // 스냅샷 검증과 프로필 자산·공통 템플릿 준비
   const { snapshot, assets, admin } = payload;
   if (snapshot.version !== 2) throw new Error("공개 스냅샷 버전 오류");
+  // 공개 측정 ID만 템플릿에 전달하며 잘못된 값은 파일 생성 전에 거부
+  const gaMeasurementId = payload.gaMeasurementId?.trim() ?? '';
+  if (gaMeasurementId && !/^G-[A-Z0-9]+$/.test(gaMeasurementId)) throw new Error("GA_MEASUREMENT_ID 형식 오류: G-로 시작하는 측정 ID 필요");
   await mkdir(join(output, "assets"), { recursive: true });
   await copyFile(join(import.meta.dirname, "../public/profile-placeholder.svg"), join(output, "assets/profile-placeholder.svg"));
   const engine = new nunjucks.Environment(new nunjucks.FileSystemLoader(join(import.meta.dirname, "templates")), {
@@ -499,6 +507,7 @@ export async function generateSite(payload: Input, output: string) {
     const nav = header(active).nav;
     await write(path === "404.html" ? path : join(path, "index.html"), engine.render("page.njk", {
       view, section, documentTitle, socialTitle: article ? title : documentTitle, summary, canonical,
+      gaMeasurementId, analyticsOrigin: ORIGIN,
       searchIndex: '',
       articleJs: article && assets.articleJs ? route(`assets/${assets.articleJs}`) : '',
       articleCss: article && assets.articleCss ? route(`assets/${assets.articleCss}`) : '',

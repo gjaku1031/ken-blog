@@ -1,0 +1,22 @@
+{# 공개 운영 페이지에서만 GA4 방문 추적, 관리자 템플릿에서는 사용하지 않음 #}
+{% if gaMeasurementId %}
+<script>
+  // 로컬·미리보기 페이지의 통계 수집과 Google 스크립트 요청 방지
+  if (window.location.origin === '{{ analyticsOrigin }}') {
+    // Google 태그를 읽기 전에 명령을 보관하는 전역 큐
+    window.dataLayer = window.dataLayer || [];
+    /**
+     * Google 태그 명령을 로딩 순서대로 큐에 추가
+     */
+    window.gtag = function () { window.dataLayer.push(arguments); };
+    window.gtag('js', new Date());
+    // config의 기본 page_view 전송 사용, 별도 이벤트로 중복 전송하지 않음
+    window.gtag('config', '{{ gaMeasurementId }}');
+    // 운영 출처에서만 측정 스크립트 비동기 로드
+    const tag = document.createElement('script');
+    tag.async = true;
+    tag.src = 'https://www.googletagmanager.com/gtag/js?id={{ gaMeasurementId }}';
+    document.head.appendChild(tag);
+  }
+</script>
+{% endif %}

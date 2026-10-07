@@ -272,6 +272,7 @@ async function main() {
   }
   // 정적 문서를 생성하고 산출물 검사
   await generateSite({ snapshot, assets, adminHref: route("manage/"),
+    gaMeasurementId: process.env.GA_MEASUREMENT_ID,
     admin: { apiBase: base?.origin ?? "", css: route(`assets/${admin.css}`), js: route(`assets/${admin.js}`) } }, staging);
   await checkArtifact();
   // API 데이터 revision이 빌드 중 바뀌지 않았는지 재확인
