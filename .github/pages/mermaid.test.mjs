@@ -42,7 +42,7 @@ test("project architecture articles use supported diagrams", async () => {
     ["project-8d420603-48bb-4e29-8983-e08a6e649f80", 1],
   ]) {
     const body = await readFile(new URL(`../../content/posts/${slug}.md`, import.meta.url), "utf8");
-    const sources = [...body.matchAll(/```mermaid\n([\s\S]*?)\n```/g)].map(match => match[1]);
+    const sources = [...body.matchAll(/```mermaid(?: [^\n]*)?\n([\s\S]*?)\n```/g)].map(match => match[1]);
     assert.equal(sources.filter(source => source.startsWith("architecture-beta")).length, architectureCount);
     for (const source of sources) assert.equal(mermaidSourceError(source), null);
   }
@@ -53,7 +53,7 @@ test("project architecture articles use supported diagrams", async () => {
  */
 test("Vowser keeps the full original architecture and rejects stale reference geometry", async () => {
   const body = await readFile(new URL("../../content/posts/project-8d420603-48bb-4e29-8983-e08a6e649f80.md", import.meta.url), "utf8");
-  const source = body.match(/```mermaid\n(architecture-beta[\s\S]*?)\n```/)[1];
+  const source = body.match(/```mermaid(?: [^\n]*)?\n(architecture-beta[\s\S]*?)\n```/)[1];
   assert.match(source, /%% layout: vowser-infrastructure/);
   assert.deepEqual([...validateReferenceLayout(source).keys()].sort(), [
     "actions", "runner", "origin", "app", "website", "ecr", "dns", "alb", "backend", "agent", "db", "vpn",
@@ -72,7 +72,7 @@ test("Vowser keeps the full original architecture and rejects stale reference ge
  */
 test("ken-blog includes both deployment paths without mixing reference profiles", async () => {
   const body = await readFile(new URL("../../content/posts/doc-340352c9-5fde-4bae-bc0b-4ecd744719a8.md", import.meta.url), "utf8");
-  const source = body.match(/```mermaid\n(architecture-beta[\s\S]*?)\n```/)[1];
+  const source = body.match(/```mermaid(?: [^\n]*)?\n(architecture-beta[\s\S]*?)\n```/)[1];
   assert.deepEqual([...validateReferenceLayout(source).keys()].sort(), [
     "writer", "repo", "sitebuild", "pages", "apibuild", "archive", "operator", "reader", "admin", "caddy", "api", "disk", "db",
   ].sort());
@@ -112,7 +112,7 @@ test("color support keeps arbitrary CSS, references and settings blocked", () =>
 
 test("all ERD article diagrams fit the public renderer limits", async () => {
   const body = await readFile(new URL("../../content/posts/post-f9235d74-4d5b-4705-8f59-ba3511bd50e9.md", import.meta.url), "utf8");
-  const diagrams = [...body.matchAll(/```mermaid\n([\s\S]*?)\n```/g)];
+  const diagrams = [...body.matchAll(/```mermaid(?: [^\n]*)?\n([\s\S]*?)\n```/g)];
   assert.equal(diagrams.length, 6);
   for (const [, source] of diagrams) {
     assert.equal(mermaidSourceError(source), null);

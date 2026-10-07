@@ -14,7 +14,7 @@
     "ops": [720, 450, 330, 100, "운영 반영 · 수동"],
     "oci": [280, 600, 990, 400, "Oracle Cloud · ARM VM"],
     "compose": [305, 635, 940, 190, "Docker Compose"],
-    "data": [1320, 600, 235, 225, "외부 MySQL 서비스"]
+    "data": [1320, 600, 235, 225, "OCI managed DB"]
   },
   "services": {
     "writer": [30, 115, "Markdown · 웹·백엔드 코드"],
@@ -136,7 +136,7 @@
     "group ops[Manual operation]",
     "group oci[OCI ARM VM]",
     "group compose(ken:docker)[Docker Compose] in oci",
-    "group data[External database]"
+    "group data[OCI managed DB]"
   ],
   "sourceEdges": [
     "writer:R -[Push]-> L:repo",
