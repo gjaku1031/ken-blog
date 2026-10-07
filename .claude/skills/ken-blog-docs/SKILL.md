@@ -101,8 +101,8 @@ ken-blog 문서는 대학원 진학용 포트폴리오이자, 이후 다른 프�
 2. **도식 검사**: `check-mermaid.mts`.
 3. **테스트**: `npm test` (필요하면 `npm run test:browser`).
 4. **미리보기**: `.claude/skills/ken-blog-docs/scripts/preview.sh <scratchpad>` 후 `node .claude/skills/ken-blog-docs/scripts/preview-shots.cjs <slug> <저장 디렉터리>`. 출력된 도식 크기와 캡처를 직접 본다.
-5. **커밋·push**: 바뀐 게시 원고만 스테이징하고 `git push https://github.com/gjaku1031/ken-blog.git main` (SSH 원격은 호스트 키 문제로 실패함, force 금지). 커밋 메시지 끝에 `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
-6. **Pages 확인**: 해당 커밋의 Pages 실행을 기다려 결과를 확인한다. 배포 직전 `main`이 바뀌면 Pages가 의도적으로 실패하고 다음 실행이 반영하므로 최신 실행을 본다. 공개 주소 `https://gjaku1031.github.io/ken-blog/post/{slug}/`에서 바뀐 문구를 `curl`로 확인하고 주소를 사용자에게 알린다.
+5. **커밋·push·배포 요청**: 배포 전담 pane `deployment`가 있으면 직접 커밋하지 않고 `herdr agent prompt deployment`로 요청한다. 요청에는 요청자 이름, 커밋할 파일 목록(정확한 경로), 커밋 메시지, 확인할 공개 주소를 적는다. deployment가 없을 때만 직접 한다: 바뀐 게시 원고만 스테이징하고 `git push https://github.com/gjaku1031/ken-blog.git main`(SSH 원격은 호스트 키 문제로 실패, force 금지), 커밋 메시지 끝에 `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
+6. **Pages 확인**: 해당 커밋의 Pages 실행 결과를 확인한다. 배포 직전 `main`이 바뀌면 Pages가 의도적으로 실패하고 다음 실행이 반영하므로 최신 실행을 본다. 공개 주소 `https://gjaku1031.github.io/ken-blog/post/{slug}/`에서 바뀐 문구를 확인하고 주소를 사용자에게 알린다.
 
 ## 글 메타데이터(DB)
 
