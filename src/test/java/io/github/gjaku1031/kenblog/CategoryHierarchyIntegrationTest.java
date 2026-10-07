@@ -141,12 +141,8 @@ final class CategoryHierarchyIntegrationTest {
                 List.of("Z First", "Child Name"),
                 visible.stream().map(item -> ((Map<?, ?>) item).get("name")).toList());
         assertTrue(visible.stream().allMatch(item -> ((Map<?, ?>) item).containsKey("sortOrder")));
-        var parent =
-                categories.tree().stream()
-                        .filter(item -> item.path().equals("z-first"))
-                        .findFirst()
-                        .orElseThrow();
-        categories.setOrder(parent.id(), 99);
+        var roots = categories.tree();
+        categories.reorder(null, roots.reversed().stream().map(item -> item.id()).toList());
         assertNotEquals(snapshot.get("revision"), pages.snapshot().get("revision"));
     }
 
@@ -155,6 +151,6 @@ final class CategoryHierarchyIntegrationTest {
      */
     private PostMetadataCreateRequest inCategory(String title, long categoryId, Integer order) {
         return new PostMetadataCreateRequest(
-                title, null, "", categoryId, List.of(), null, order, null, List.of(), List.of());
+                title, null, "", categoryId, List.of(), null, order, null, List.of());
     }
 }

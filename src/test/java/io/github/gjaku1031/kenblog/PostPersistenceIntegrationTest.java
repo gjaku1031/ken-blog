@@ -110,7 +110,6 @@ final class PostPersistenceIntegrationTest {
                         null,
                         null,
                         null,
-                        List.of(),
                         List.of());
         var edited = service.updateMetadata(created.id(), input, created.editVersion());
         assertEquals(created.editVersion() + 1, edited.editVersion());
@@ -128,7 +127,6 @@ final class PostPersistenceIntegrationTest {
                                         null,
                                         null,
                                         null,
-                                        List.of(),
                                         List.of()),
                                 created.editVersion()));
         assertThrows(
@@ -145,7 +143,6 @@ final class PostPersistenceIntegrationTest {
                                         null,
                                         3,
                                         null,
-                                        List.of(),
                                         List.of()),
                                 edited.editVersion()));
         var reloaded = service.adminMetadata(created.id());
@@ -208,7 +205,6 @@ final class PostPersistenceIntegrationTest {
                                 null,
                                 3,
                                 null,
-                                List.of(),
                                 List.of()));
         categories.delete(category);
         assertEquals(created.editVersion() + 1, service.adminMetadata(created.id()).editVersion());
@@ -282,7 +278,7 @@ final class PostPersistenceIntegrationTest {
                                                         new PostMetadataCreateRequest(
                                                                 "동시 변경", null, "", category,
                                                                 List.of(), null, null, null,
-                                                                List.of(), List.of()),
+                                                                List.of()),
                                                         target.editVersion()));
                         assertDoesNotThrow(() -> future.get(15, TimeUnit.SECONDS));
                         assertEquals(before, service.snapshot());
@@ -335,7 +331,6 @@ final class PostPersistenceIntegrationTest {
                                                         ids.get(owner),
                                                         null,
                                                         ids.get(1 - owner),
-                                                        List.of(),
                                                         List.of()));
                                     }));
                 }
@@ -501,7 +496,7 @@ final class PostPersistenceIntegrationTest {
     }
 
     /**
-     * 글 삭제 시 태그·위키 선언 FK 연쇄 삭제
+     * 글 삭제 시 태그 FK 연쇄 삭제
      */
     @Test
     void deletingPostCascadesToItsMetadata() {
@@ -510,18 +505,11 @@ final class PostPersistenceIntegrationTest {
                 "INSERT INTO post_tags (post_id, position, tag_name, display_name) VALUES (?, 0,"
                     + " 'kotlin', 'Kotlin')",
                 id);
-        jdbc.update(
-                "INSERT INTO post_wiki_links (post_id, position, target_title) VALUES (?, 0, '다른"
-                    + " 글')",
-                id);
         jdbc.update("DELETE FROM posts WHERE id = ?", id);
-        for (String table : List.of("post_tags", "post_wiki_links"))
-            assertEquals(
-                    0,
-                    jdbc.queryForObject(
-                            "SELECT COUNT(*) FROM " + table + " WHERE post_id = ?",
-                            Integer.class,
-                            id));
+        assertEquals(
+                0,
+                jdbc.queryForObject(
+                        "SELECT COUNT(*) FROM post_tags WHERE post_id = ?", Integer.class, id));
     }
 
     /**
@@ -550,7 +538,7 @@ final class PostPersistenceIntegrationTest {
      */
     private PostMetadataCreateRequest request(String title, String slug, String summary) {
         return new PostMetadataCreateRequest(
-                title, slug, summary, null, List.of(), null, null, null, List.of(), List.of());
+                title, slug, summary, null, List.of(), null, null, null, List.of());
     }
 
     /**

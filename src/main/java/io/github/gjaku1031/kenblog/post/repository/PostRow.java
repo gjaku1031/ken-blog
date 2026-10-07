@@ -83,16 +83,4 @@ public record PostRow(
          * 관리자 편집 버전
          */
         long editVersion) {
-    /**
-     * 공개 제목 검색용 이동 정보
-     */
-    public WikiNavigationItem navigationItem() {
-        return new WikiNavigationItem(
-                id,
-                title,
-                slug,
-                series == null ? "TECH" : series.kind().name(),
-                series == null ? null : series.slug(),
-                series == null ? null : series.name());
-    }
 }

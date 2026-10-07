@@ -253,52 +253,6 @@ final class AuthHttpIntegrationTest {
     }
 
     /**
-     * 분류 순서의 문자열·소수·범위 초과·알 수 없는 키 거부
-     */
-    @Test
-    void categoryOrderRejectsCoercion() throws Exception {
-        var client = newClient().client();
-        assertEquals(
-                200,
-                send(
-                                client,
-                                "POST",
-                                "/api/v1/auth/login",
-                                csrfToken(client),
-                                loginBody(TEST_PASSWORD, "missing"))
-                        .statusCode());
-        String token = csrfToken(client);
-        var category =
-                send(
-                        client,
-                        "POST",
-                        "/api/v1/admin/categories",
-                        token,
-                        "{\"path\":\"order-" + UUID.randomUUID() + "\"}");
-        assertEquals(201, category.statusCode());
-        long id = mapper.readTree(category.body()).path("id").longValue();
-        for (String body :
-                List.of(
-                        "{\"order\":\"3\"}",
-                        "{\"order\":1.5}",
-                        "{\"order\":9223372036854775808}",
-                        "{\"order\":1,\"extra\":true}"))
-            assertEquals(
-                    400,
-                    send(client, "PUT", "/api/v1/admin/categories/" + id + "/order", token, body)
-                            .statusCode());
-        assertEquals(
-                200,
-                send(
-                                client,
-                                "PUT",
-                                "/api/v1/admin/categories/" + id + "/order",
-                                token,
-                                "{\"order\":-3}")
-                        .statusCode());
-    }
-
-    /**
      * 일반 스키마 재실행·기동 검사는 누락된 인증 상태를 복구하지 않음
      */
     @Test
@@ -384,7 +338,7 @@ final class AuthHttpIntegrationTest {
     }
 
     /**
-     * HTTP 전체 편집·순서 변경의 필수 기준 버전·키와 오래된 요청 거부
+     * HTTP 전체 편집의 필수 기준 버전·키와 오래된 요청 거부
      */
     @Test
     void metadataHttpContractRequiresVersionAndAtomicFields() throws Exception {
@@ -415,14 +369,18 @@ final class AuthHttpIntegrationTest {
         var saved =
                 send(
                         client,
-                        "PATCH",
+                        "PUT",
                         path + "/metadata",
                         token,
                         mapper.writeValueAsString(payload));
         assertEquals(200, saved.statusCode());
         assertEquals(
-                409,
+                405,
                 send(client, "PATCH", path + "/metadata", token, mapper.writeValueAsString(payload))
+                        .statusCode());
+        assertEquals(
+                409,
+                send(client, "PUT", path + "/metadata", token, mapper.writeValueAsString(payload))
                         .statusCode());
         var missing = new LinkedHashMap<>(payload);
         missing.remove("baseVersion");
@@ -433,31 +391,14 @@ final class AuthHttpIntegrationTest {
                     400,
                     send(
                                     client,
-                                    "PATCH",
+                                    "PUT",
                                     path + "/metadata",
                                     token,
                                     mapper.writeValueAsString(invalid))
                             .statusCode());
-        assertEquals(
-                400, send(client, "PUT", path + "/order", token, "{\"order\":null}").statusCode());
-        long version = mapper.readTree(saved.body()).path("editVersion").longValue();
-        assertEquals(
-                200,
-                send(
-                                client,
-                                "PUT",
-                                path + "/order",
-                                token,
-                                "{\"order\":null,\"baseVersion\":" + version + "}")
-                        .statusCode());
-        payload.put("baseVersion", version);
-        assertEquals(
-                409,
-                send(client, "PATCH", path + "/metadata", token, mapper.writeValueAsString(payload))
-                        .statusCode());
         var fresh = mapper.readTree(send(client, "GET", path).body());
         assertEquals("원자적 변경", fresh.path("title").stringValue());
-        assertEquals(version + 1, fresh.path("editVersion").longValue());
+        assertEquals(row.path("editVersion").longValue() + 1, fresh.path("editVersion").longValue());
     }
 
     /**

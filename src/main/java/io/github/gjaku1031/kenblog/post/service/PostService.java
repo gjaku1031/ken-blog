@@ -28,7 +28,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 /**
- * 게시글의 DB 메타데이터·출간 상태·첨부 및 위키 관계 관리
+ * 게시글의 DB 메타데이터·출간 상태·첨부 연결 관리
  */
 @Service
 @RequiredArgsConstructor
@@ -59,11 +59,6 @@ public class PostService {
     private final AttachmentLinkService attachmentLinks;
 
     /**
-     * 위키 선언 관리 서비스
-     */
-    private final WikiLinkMetadata wikiLinks;
-
-    /**
      * 시리즈 저장소
      */
     private final SeriesRepository series;
@@ -84,7 +79,7 @@ public class PostService {
     private static final Pattern SLUG_PATTERN = Pattern.compile("[a-z0-9]+(?:-[a-z0-9]+)*");
 
     /**
-     * 입력 검증·글 저장·태그·첨부·위키 선언을 같은 트랜잭션에서 수행
+     * 입력 검증·글 저장·태그·첨부를 같은 트랜잭션에서 수행
      */
     @Transactional
     public PostDetailResponse createMetadata(PostMetadataCreateRequest request) {
@@ -118,7 +113,6 @@ public class PostService {
         long id = Objects.requireNonNull(saved.getId(), "Persisted post has no ID");
         saveTags(id, normalizedTags);
         attachmentLinks.replacePost(id, request.attachmentIds());
-        wikiLinks.replacePost(id, request.wikiTargets());
         return adminDetail(saved);
     }
 
@@ -181,7 +175,6 @@ public class PostService {
                 view.category(),
                 view.tags(),
                 attachmentLinks.postIds(id),
-                wikiLinks.postTitles(id),
                 row.series(),
                 row.seriesOrder(),
                 row.relatedSeriesId(),
@@ -264,52 +257,6 @@ public class PostService {
     }
 
     /**
-     * 글 잠금과 기준 버전 검사를 거쳐 문서 순서 저장
-     */
-    @Transactional
-    public PostDetailResponse setOrder(long id, Integer order, long baseVersion) {
-        if (id <= 0 || order != null && order <= 0)
-            throw new InvalidPostRequestException();
-        var post = lockedPost(id);
-        requireVersion(post, baseVersion);
-        if (order != null && post.getSeriesId() == null && post.getCategoryId() == null)
-            throw new InvalidPostRequestException();
-        post.reorder(order);
-        post.advanceEdit(now());
-        repository.saveAndFlush(post);
-        return adminDetail(post);
-    }
-
-    /**
-     * 소속·관련 시리즈를 ID 순서로 잠근 뒤 글 소속·순서를 함께 변경
-     */
-    @Transactional
-    public PostDetailResponse setSeries(
-            long id, Long seriesId, Integer order, Long relatedId, long baseVersion) {
-        if (id <= 0 || order != null && order <= 0)
-            throw new InvalidPostRequestException();
-        lockSeries(seriesId, relatedId);
-        var post = lockedPost(id);
-        requireVersion(post, baseVersion);
-        if (order != null && seriesId == null && post.getCategoryId() == null)
-            throw new InvalidPostRequestException();
-        post.assignSeries(seriesId, order, relatedId, now());
-        post.advanceEdit(now());
-        repository.saveAndFlush(post);
-        return adminDetail(post);
-    }
-
-    /**
-     * 원고 접근 없이 위키 대상 선언 전체 교체, 마지막 저장 선언 사용
-     */
-    @Transactional
-    public PostDetailResponse replaceWikiLinks(long id, List<String> wikiTargets) {
-        var post = lockedPost(id);
-        wikiLinks.replacePost(id, wikiTargets);
-        return adminDetail(post);
-    }
-
-    /**
      * Git 원고의 첨부 참조에 대한 공개 다운로드 권한 선언
      */
     @Transactional
@@ -340,7 +287,7 @@ public class PostService {
     }
 
     /**
-     * 현재 분류·태그·시리즈·첨부·위키를 관리자 응답에 결합
+     * 현재 분류·태그·시리즈·첨부를 관리자 응답에 결합
      */
     private PostDetailResponse adminDetail(PostEntity post) {
         long id = Objects.requireNonNull(post.getId(), "Persisted post has no ID");
@@ -366,7 +313,6 @@ public class PostService {
                 view.category(),
                 view.tags(),
                 attachmentLinks.postIds(id),
-                wikiLinks.postTitles(id),
                 ref,
                 post.getSeriesOrder(),
                 post.getRelatedSeriesId(),

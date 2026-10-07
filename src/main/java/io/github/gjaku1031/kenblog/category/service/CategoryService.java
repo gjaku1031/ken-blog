@@ -155,24 +155,6 @@ public class CategoryService {
     }
 
     /**
-     * 트리·분류를 잠근 뒤 저장 가능한 정수 순서만 변경
-     */
-    @Transactional
-    public CategoryRefResponse setOrder(long id, long order) {
-        if (id <= 0 || order < Integer.MIN_VALUE || order > Integer.MAX_VALUE)
-            throw new InvalidCategoryRequestException();
-        try {
-            lockTree();
-            var category = categories.findLockedById(id);
-            if (category == null) throw new CategoryNotFoundException();
-            category.reorder((int) order);
-            return CategoryRefResponse.from(categories.saveAndFlush(category));
-        } catch (DataIntegrityViolationException | PessimisticLockingFailureException exception) {
-            throw new CategoryConflictException();
-        }
-    }
-
-    /**
      * 경로·글 연결을 유지하며 같은 부모의 표시 이름 중복을 검사하여 이름 변경
      */
     @Transactional
