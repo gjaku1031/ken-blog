@@ -185,3 +185,8 @@
 @media (max-width: 600px) {.series-previous-next { grid-template-columns: minmax(0, 1fr); }
 .series-previous-next .series-start { display: none; }
 }
+/* 본문 패널: 배경과 구분되는 표면. 페이지 바깥 여백과 최대 폭을 패널 좌우 여백만큼 조정해 .markdown-body 폭과 도식 축소 비율 유지 */
+.post-page { width: min(100% - 32px, calc(var(--page-width-post) + 56px)); max-width: calc(var(--page-width-post) + 56px); }
+.post-main-content { padding: 16px 28px 28px; border-radius: 12px; background: var(--card); box-shadow: 0 0 0 1px var(--line); }
+@media (max-width: 760px) {.post-main-content { padding: 8px 16px 20px; border-radius: 10px; }
+}
