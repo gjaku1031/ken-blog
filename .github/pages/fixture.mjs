@@ -50,6 +50,6 @@ for (const post of fixture.posts.slice(0, 5)) post.relatedSeries = project;
 // 현재 원고의 두 고정 배치도 실제 브라우저 렌더 경로로 검증
 for (const slug of ['doc-340352c9-5fde-4bae-bc0b-4ecd744719a8', 'project-8d420603-48bb-4e29-8983-e08a6e649f80']) {
   const body = readFileSync(new URL(`../../content/posts/${slug}.md`, import.meta.url), 'utf8');
-  const diagram = body.match(/```mermaid\n(architecture-beta[\s\S]*?)\n```/)[0];
+  const diagram = body.match(/```mermaid(?: [^\n]*)?\n(architecture-beta[\s\S]*?)\n```/)[0];
   fixture.posts.at(-1).body += '\n\n' + diagram;
 }

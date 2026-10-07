@@ -22,6 +22,29 @@ test('prepared Markdown shares parsing without losing mixed syntax or image refe
   assert.equal(first.headings.length, 2);
 });
 
+// 캡션이 지정된 Mermaid를 이미지 figure와 같은 캡션 요소로 감쌈
+test('Mermaid captions follow the diagram and keep source controls inside the block', async () => {
+  const rendered = await renderMarkdown('```mermaid caption="요청, 저장·응답."\nflowchart LR\nA-->B\n```');
+  assert.match(rendered.html, /^<figure class="mermaid-figure"><div class="ken-mermaid"/);
+  assert.match(rendered.html, /<\/div><figcaption>요청, 저장·응답\.<\/figcaption><\/figure>$/);
+  assert.match(rendered.html, /class="mermaid-source-toggle">원문 보기<\/button>/);
+  assert.match(rendered.html, /class="mermaid-source">flowchart LR/);
+  assert.match(rendered.html, /class="mermaid-diagram"><\/div>/);
+});
+
+// caption 메타를 생략하면 기존 Mermaid HTML을 그대로 유지
+test('Mermaid without a caption preserves the existing HTML', async () => {
+  const rendered = await renderMarkdown('```mermaid\nflowchart LR\nA-->B\n```');
+  assert.equal(rendered.html, '<div class="ken-mermaid" data-mermaid-source="flowchart LR\nA-->B\n"><button type="button" class="mermaid-source-toggle">원문 보기</button><pre class="mermaid-source">flowchart LR\nA-->B\n</pre><div class="mermaid-diagram"></div></div>');
+});
+
+// HTML 문자가 든 캡션도 텍스트로 출력하여 태그 주입을 차단
+test('Mermaid caption HTML characters are escaped as text', async () => {
+  const rendered = await renderMarkdown('```mermaid caption="<img src=x onerror=alert(1)> & 안전"\nflowchart LR\nA-->B\n```');
+  assert.match(rendered.html, /<figcaption>&#x3C;img src=x onerror=alert\(1\)> &#x26; 안전<\/figcaption>/);
+  assert.doesNotMatch(rendered.html, /<img src=x/);
+});
+
 // 줄바꿈 형식이 달라도 수식·접기 뒤의 제목 위치·ID가 유지되는지 검증
 test('LF, CRLF and CR produce identical headings and HTML', async () => {
   const source = '## A\n\n$x$\n\n## B\n\n$y$\n\n<details>\n<summary>More</summary>\n\n## C\n\n</details>';

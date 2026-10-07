@@ -25,6 +25,8 @@
 .markdown-body .attachment-figure { margin:24px auto; max-width:100%; width:100%; text-align:center; }
 .markdown-body .attachment-figure[data-align="left"] { margin-left:0; }
 .markdown-body .attachment-figure[data-align="right"] { margin-right:0; }
+/* 캡션이 있는 Mermaid figure의 너비·정렬 */
+.markdown-body .mermaid-figure { margin:24px auto; max-width:100%; width:100%; text-align:center; }
 /* 문단·링크·표 안의 첨부도 원본 비율 유지 */
 .markdown-body img.ken-attachment { max-width:100%; height:auto; }
 .markdown-body .attachment-figure img { display:block; max-width:100%; height:auto; margin:auto; cursor:zoom-in; }

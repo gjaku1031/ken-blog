@@ -37,6 +37,16 @@ flowchart LR
 
 `LR`은 왼쪽에서 오른쪽, `TB`는 위에서 아래로 읽는 흐름에 사용한다. 화살표는 처리 순서인지 데이터 전달인지 문장으로 설명한다. 분기에는 조건을 적고, 상세한 오류 처리까지 넣어 전체 흐름이 묻히지 않게 한다. [Flowchart 문법](https://mermaid.js.org/syntax/flowchart.html)을 참고한다.
 
+필요하면 펜스 첫 줄의 정보 문자열에 `caption="설명 문장"`을 지정해 도식 아래에 캡션을 표시한다. 캡션은 HTML이 아닌 텍스트로 출력되며, 도식의 색상·기호·선에 대한 범례도 캡션에 적는다.
+
+````markdown
+```mermaid caption="실선은 요청, 점선은 응답·결과를 나타냄."
+sequenceDiagram
+    Admin->>API: 요청
+    API-->>Admin: 응답
+```
+````
+
 요청과 응답을 구분해야 하면 시퀀스 다이어그램을 사용한다.
 
 ```mermaid

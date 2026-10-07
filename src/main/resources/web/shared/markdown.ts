@@ -201,6 +201,13 @@ const element = (tagName: string, properties: Element["properties"], children: E
 const textNode = (value: string): Text => ({ type: "text", value });
 
 /**
+ * 코드 펜스 정보에서 큰따옴표로 감싼 Mermaid caption 값을 읽음
+ */
+function mermaidCaption(meta: string | null | undefined): string | undefined {
+  return meta?.match(/(?:^|\s)caption="([^"]*)"(?:\s|$)/u)?.[1];
+}
+
+/**
  * 제목의 독자 표시 텍스트를 기존 앵커 규칙으로 변환함
  */
 function headingText(node: Positioned): string {
@@ -246,7 +253,7 @@ function headingsOf(root: Root): TocItem[] {
  * 2. 첨부 주소·대체 이미지·캡션을 허용 규칙에 맞게 조립
  * 3. 본문 주석의 참조·복귀 링크 조립
  * 4. 수식 크기를 제한하고 신뢰 기능을 끈 KaTeX로 변환
- * 5. Mermaid 검증 또는 코드 강조·복사 버튼 구성
+ * 5. Mermaid 캡션·원문 표시 또는 코드 강조·복사 버튼 구성
  * 6. 본문 하위 노드에 변환 적용
  */
 async function decorate(tree: HtmlRoot, options: RenderOptions, headings: TocItem[], wiki: Set<string>, annotations: Array<{
@@ -354,14 +361,26 @@ async function decorate(tree: HtmlRoot, options: RenderOptions, headings: TocIte
       if (code?.type === "element" && code.tagName === "code") {
         const source = code.children.map((child) => child.type === "text" ? child.value : "").join("");
         const language = (Array.isArray(code.properties.className) ? code.properties.className : []).find((part) => typeof part === "string" && part.startsWith("language-"))?.slice(9);
+        const caption = language === "mermaid" ? mermaidCaption(code.data?.meta) : undefined;
         const mermaidError = language === "mermaid" ? mermaidSourceError(source) : null;
         if (language === "mermaid" && mermaidError) {
           node.tagName = "div";
           node.properties = { className: ["ken-mermaid-error"] };
           node.children = [element("p", { role: "alert" }, [textNode(mermaidError)]), element("pre", {}, [textNode(source)])];
         } else if (language === "mermaid") {
-          node.tagName = "div"; node.properties = { className: ["ken-mermaid"], dataMermaidSource: source };
-          node.children = [element("button", { type: "button", className: ["mermaid-source-toggle"] }, [textNode("원문 보기")]), element("pre", { className: ["mermaid-source"] }, [textNode(source)]), element("div", { className: ["mermaid-diagram"] })];
+          const diagram = element("div", { className: ["ken-mermaid"], dataMermaidSource: source }, [
+            element("button", { type: "button", className: ["mermaid-source-toggle"] }, [textNode("원문 보기")]),
+            element("pre", { className: ["mermaid-source"] }, [textNode(source)]),
+            element("div", { className: ["mermaid-diagram"] }),
+          ]);
+          if (caption === undefined) {
+            // 캡션을 생략한 Mermaid는 기존 HTML 구조와 속성을 유지
+            node.tagName = diagram.tagName; node.properties = diagram.properties; node.children = diagram.children;
+          } else {
+            // 캡션은 HTML로 해석하지 않고 figure 아래 텍스트 노드로 출력
+            node.tagName = "figure"; node.properties = { className: ["mermaid-figure"] };
+            node.children = [diagram, element("figcaption", {}, [textNode(caption)])];
+          }
         } else {
           node.properties.className = ["ken-code"];
           if (language) node.properties.dataLanguage = language;
