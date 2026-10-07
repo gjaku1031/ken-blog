@@ -68,7 +68,7 @@ Post의 메타데이터와 저장소 Markdown을 빌드 시 결합해 완성 HTM
 
 - 사이트 명령은 `npm ci`, `npm test`, `PUBLIC_API_BASE_URL=… npm run build:site`. Node 24.21.0 사용. Java·Gradle·Spring 실행 없는 생성 경로. 현재 Node·Chromium 검사와 자산·검색 색인 분리 기준은 [프론트엔드 ADR](ADR_frontend.md) 참조.
 - API 명령은 `./gradlew build`와 `bootBuildImage`. npm 태스크·`skipWeb`·`writeSiteClasspath` 제거. API JAR에서 웹 소스·템플릿 제외 유지.
-- `pages.yml`은 공개 원고·웹 소스·npm 설정·사이트 빌드 코드 변경 시 실행. `ci.yml`은 Kotlin·런타임 리소스·기존 검사·Gradle 변경 시 실행하고 웹 리소스 제외. 변경 파일 경로 기준이며 커밋 메시지 규칙 없음. DB 메타데이터 변경은 기존 `workflow_dispatch`로 발행. 백엔드 공개 데이터 계약 변경 시 API 반영 후 사이트 수동 발행 필요.
+- `pages.yml`은 공개 원고·웹 소스·npm 설정·사이트 빌드 코드 변경 시 실행. `ci.yml`은 Java·런타임 리소스·기존 검사·Gradle 변경 시 실행하고 웹 리소스 제외. 변경 파일 경로 기준이며 커밋 메시지 규칙 없음. DB 메타데이터 변경은 기존 `workflow_dispatch`로 발행. 백엔드 공개 데이터 계약 변경 시 API 반영 후 사이트 수동 발행 필요.
 - 프론트 번들의 입력 키는 브라우저 소스·공용 코드·빌더·package/lockfile·tsconfig·Node 버전·플랫폼의 내용 해시. 페이지 템플릿과 원고는 번들 키에서 제외. 자산 manifest의 모든 파일 해시와 JS/CSS 진입 파일을 검사한 뒤 재사용. 캐시 미존재·손상·입력 변경 시 소스에서 재생성. Actions 캐시 만료가 발행 실패 조건이 아니며, 프론트 컴파일의 영구 생략 보장은 없음. 별도 산출물 Git 브랜치 미도입.
 - Pages 발행 workflow 하나에서 전체 사이트 artifact 구성·배포. workflow 전체 concurrency 유지, 시작 시 main checkout 및 배포 전 현재 main과 사이트 입력 경로 차이 검사. Git 소스·snapshot revision·자산 키를 실행 요약에 기록. 마지막 확인 이후의 변경이나 브라우저 캐시까지 원자적으로 묶는 보장은 없으며 메타데이터 저장과 공개 반영은 별도 단계. [Pages Actions 배포](https://docs.github.com/en/pages/getting-started-with-github-pages/using-custom-workflows-with-github-pages)
 
@@ -113,8 +113,8 @@ CI의 PNG/JPEG 준비를 격리 DB INSERT·로컬 파일 배치로 변경하고 
 | 대상 | 규칙 |
 | --- | --- |
 | `stack_badges.id` | 신규만 DB AUTO_INCREMENT 사용, 이름/아이콘 변경 시 기존 ID 유지 |
-| `name` | 앞뒤 공백 제거, 비어 있지 않은 100자 이하, ISO 제어문자 금지; Kotlin String 길이 기준 |
-| `name_key` | name에 Kotlin `lowercase(Locale.ROOT)`와 동일한 소문자 변환, 기존 utf8mb4_bin UNIQUE 확인; DB 로케일의 LOWER 결과에 무조건 의존하지 않는 기준 |
+| `name` | 앞뒤 공백 제거, 비어 있지 않은 100자 이하, ISO 제어문자 금지; Java String 길이 기준 |
+| `name_key` | name에 Java `toLowerCase(Locale.ROOT)`와 동일한 소문자 변환, 기존 utf8mb4_bin UNIQUE 확인; DB 로케일의 LOWER 결과에 무조건 의존하지 않는 기준 |
 | `object_key` | 고유 상대 키 `{prefix}/{UUID}.png`, 기본 prefix `ken-blog/attachments`; prefix는 영문·숫자·밑줄·하이픈 세그먼트와 `/`만 허용, 전체 키 255자 이하. 절대 경로·점 세그먼트·역슬래시 금지 |
 | 시각 | created_at·updated_at은 UTC datetime(6), 신규는 둘 다 지정. 변경은 created_at 보존, updated_at을 이전 값과 다른 새 UTC 마이크로초 시각으로 갱신 |
 | 아이콘 | 미리 디코딩 검증한 64×64 PNG, 비율 유지·투명 여백, 불필요 메타데이터 제거. Node 다운로드 상한 10MiB 이하. JPEG/SVG 등을 `.png`로 이름만 바꿔 등록 금지 |

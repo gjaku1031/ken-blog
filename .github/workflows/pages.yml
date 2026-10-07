@@ -70,7 +70,7 @@ jobs:
           # 필수 페이지 존재와 내부 파일 미포함 확인
           test -s build/site/index.html
           test -s build/site/manage/index.html
-          if find build/site -type f | grep -E '/(AGENTS\.md|\.env[^/]*|build\.gradle\.kts|settings\.gradle\.kts|gradlew)$'; then
+          if find build/site -type f | grep -E '/(AGENTS\.md|\.env[^/]*|build\.gradle(\.kts)?|settings\.gradle(\.kts)?|gradlew)$'; then
             echo 'Unexpected internal file in Pages artifact.' >&2
             exit 1
           fi

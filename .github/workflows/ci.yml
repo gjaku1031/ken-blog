@@ -5,11 +5,11 @@ on:
   push:
     branches: [main]
     paths:
-      - 'src/main/kotlin/**'
+      - 'src/main/java/**'
       - 'src/main/resources/**'
       - '!src/main/resources/web/**'
       - 'src/test/**'
-      - '*.gradle.kts'
+      - '*.gradle'
       - 'gradle.properties'
       - 'gradle/**'
       - 'gradlew'
@@ -19,11 +19,11 @@ on:
       - '.env*'
   pull_request:
     paths:
-      - 'src/main/kotlin/**'
+      - 'src/main/java/**'
       - 'src/main/resources/**'
       - '!src/main/resources/web/**'
       - 'src/test/**'
-      - '*.gradle.kts'
+      - '*.gradle'
       - 'gradle.properties'
       - 'gradle/**'
       - 'gradlew'

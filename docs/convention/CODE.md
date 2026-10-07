@@ -1,83 +1,107 @@
 # 코드 컨벤션
 
-상태: 적용. 작성일: 2026-10-03.
+상태: 적용. 작성일: 2026-10-03. Java 전환: 2026-10-06.
 
-Kotlin 코드의 접근 범위·상속·JPA 엔티티·null 처리·표현식·API 사용에 적용하는 기준. 주석의 형식과 간격은 [KDoc.md](KDoc.md), 영속 모델의 설계 근거는 [ADR_persistence.md](../ADR/ADR_persistence.md) 참조.
+Java 코드의 접근 범위·상속·JPA 엔티티·null 처리·API 사용에 적용하는 기준. 주석의 형식과 간격은 [주석 컨벤션](KDoc.md), 영속 모델의 설계 근거는 [ADR_persistence.md](../ADR/ADR_persistence.md) 참조. Kotlin 전용 규칙은 Java 전환 요청에 따라 아래 기준으로 대체.
+
+## import와 타입 참조
+
+- 외부 타입은 파일 상단의 `import`에 모으고 코드와 Javadoc에서 같은 단순 이름 사용. 필드·메서드 시그니처·어노테이션·메서드 본문에 전체 패키지 경로를 직접 쓰지 않음.
+- Javadoc에서만 참조하는 타입도 같은 기준 적용. 같은 패키지·`java.lang` 타입과 기존 import로 해석되는 타입은 불필요한 import를 추가하지 않음.
+- 서로 다른 타입의 단순 이름이 충돌하여 import로 구분할 수 없는 경우에만 필요한 참조에 전체 경로 사용.
+- JPQL 생성자 표현식·리플렉션·설정 문자열처럼 실행 시 전체 클래스 이름이 필요한 값은 유지. 생성 코드는 직접 수정하지 않음.
 
 ## 접근 범위
 
 - 선언의 접근 범위는 실제 호출자에게 필요한 수준으로 제한.
-- 클래스 내부에서만 사용하는 상태·도우미는 `private`, 모듈 내부 계약은 `internal` 사용.
-- 일반 클래스는 Kotlin의 기본 `final` 유지. 상속 계약이나 프레임워크 프록시가 필요한 경우에만 상속 허용.
+- 클래스 내부 상태·도우미는 `private`, 같은 패키지 안의 계약은 package-private 사용. 다른 패키지에서 사용하는 계약만 `public` 공개.
+- 일반 클래스는 `final` 선언. 상속 계약이나 프레임워크 프록시가 필요한 경우에만 상속 허용. 트랜잭션 서비스와 예외 변환 프록시를 사용하는 구체 저장소는 클래스와 대상 메서드에 `final`을 붙이지 않음.
 - `protected`는 하위 클래스에 공개할 필요가 있는 멤버에만 사용. 상속 불가능한 일반 클래스에서 `protected` 사용 금지.
-- 외부 조회만 허용하는 일반 클래스의 `var`는 `private set` 사용. JPA 엔티티의 프록시 접근자는 아래 별도 기준 적용.
+- 일반 클래스의 상태는 외부 직접 대입을 막고 필요한 조회 메서드만 제공. 불변 DTO는 `record` 사용 가능. 필수 입력·기본값·직렬화 계약은 별도로 명시.
+
+## 생성자 주입
+
+- 의존성을 그대로 대입하는 생성자는 직접 작성하지 않고 Lombok `@RequiredArgsConstructor` 사용. 주입 필드는 초기값 없는 `private final`로 선언.
+- 생성자 인자 순서는 필드 선언 순서를 따르므로 직접 생성하는 호출부의 계약도 함께 확인. 초기값이 있는 필드·정적 필드는 주입 대상으로 바꾸지 않음.
+- 생성자가 하나인 Spring 컴포넌트에 불필요한 `@Autowired`를 추가하지 않음.
+- 입력 검증·정규화·파생 객체 생성 또는 `@Value`·`@Qualifier` 등 인자 어노테이션의 계약이 있는 생성자는 자동 생성으로 같은 동작을 보장할 수 있을 때만 전환. 필드 주입이나 초기화 시점 변경으로 우회하지 않음.
+- Lombok은 `compileOnly`·`annotationProcessor`로 등록하고 버전은 Spring Boot BOM 사용. 테스트 소스에서도 Lombok을 사용할 때는 테스트용 두 의존성도 등록.
+- JPA 기본 생성자·업무용 생성자와 DTO 역직렬화 생성자는 의존성 주입과 구분하여 아래 계약 유지.
 
 ## JPA 엔티티와 프록시
 
 ### 상속 가능 범위
 
-- `@Entity` 클래스는 `open class`로 선언. `@MappedSuperclass`를 추가할 때도 `open` 또는 `abstract`로 상속 허용.
-- 프록시가 호출하는 엔티티의 공개·모듈 내부 프로퍼티와 인스턴스 메서드에도 `open` 명시. `protected set`만으로 프로퍼티의 재정의가 허용되는 것으로 가정하지 않음.
-- JPA 타입을 여는 별도 `allOpen` 설정은 사용하지 않음. 소스 선언만으로 상속 계약을 확인하고, 앱과 DDL 생성용 `jpaModel`에서 같은 원본 사용.
-- `kotlin("plugin.spring")`은 Spring 컴포넌트·AOP 용도로 유지. Spring 기본 대상만으로 `@Entity`까지 열리는 것으로 가정하지 않음.
-- 프록시가 호출하는 프로퍼티·메서드에 명시적인 `final` 사용 금지. 클래스만 열고 접근자는 닫아 두는 구성도 금지.
-- 프록시 대상이 아닌 복합 키 `@Embeddable`과 DTO·enum은 기본 `final` 유지. 엔티티에 `data class` 사용 금지. 값 비교가 필요한 복합 키에는 `data class` 사용 가능.
-
-클래스·접근자의 상속 가능 여부는 [Kotlin 상속 규칙](https://kotlinlang.org/docs/inheritance.html)과 [Hibernate 프록시 요구 조건](https://docs.hibernate.org/orm/7.4/userguide/html_single/#entity-pojo-final)에 근거.
+- `@Entity` 클래스는 `final` 없이 선언. `@MappedSuperclass`도 상속 허용.
+- 프록시가 호출하는 엔티티의 getter·setter·인스턴스 메서드에도 `final` 사용 금지. 클래스만 열고 접근자는 닫아 두는 구성도 금지.
+- 소스 선언만으로 상속 계약을 확인하고 앱과 DDL 생성용 `jpaModel`에서 같은 원본 사용. 컴파일 플러그인에 상속 허용이나 생성자 생성을 의존하지 않음.
+- 프록시 대상이 아닌 복합 키 `@Embeddable`과 일반 DTO는 `final` 유지. 엔티티에 `record` 사용 금지. 복합 키는 값 비교를 위한 `equals`·`hashCode` 구현.
+- 프록시 조건의 근거는 [Hibernate 프록시 요구 조건](https://docs.hibernate.org/orm/7.4/userguide/html_single/#entity-pojo-final) 참조.
 
 ### 생성자와 상태 변경
 
-- JPA 인스턴스 생성용 인자 없는 생성자는 `protected constructor()` 유지. 생성자 가시성을 경고 제거 목적으로 `private`로 변경하지 않음.
+- JPA 인스턴스 생성용 인자 없는 생성자는 `protected` 유지. 생성자 가시성을 경고 제거 목적으로 `private`로 변경하지 않음.
 - 업무용 생성자와 팩터리는 호출 범위에 맞게 별도 제공. 빈 생성자로 만든 불완전한 인스턴스를 일반 호출자에게 노출하지 않음.
-- 외부 조회가 필요한 엔티티 프로퍼티는 getter를 공개하고 setter는 `protected set` 사용. 직접 대입을 허용하는 `public set`으로 완화하지 않음.
-- 상태 변경은 검증·수정 시각 등의 계약을 가진 도메인 메서드로 수행. 쓰기 권한을 숨기기 위해 엔티티 전체 프로퍼티를 `private`로 바꾸지 않음.
-- JPA 매핑만을 위한 내부 연관관계와 호환 필드는 `private` 유지 가능. 기존 필드 접근 방식을 보존하며 매핑 어노테이션을 getter로 임의 이동하지 않음.
-- 이미 인자 없는 생성자를 명시한 클래스에 no-arg 플러그인을 중복 도입하지 않음. 생성자 생성과 클래스 상속 허용은 서로 다른 설정으로 구분.
+- 엔티티 상태는 `private` 필드, 외부 조회용 `public` getter, 프록시 재정의를 허용하는 `protected` setter로 구성. 직접 대입이나 `public` setter로 완화하지 않음.
+- 상태 변경은 검증·수정 시각 등의 계약을 가진 도메인 메서드로 수행. 필요한 조회 계약을 숨기지 않음.
+- JPA 매핑만을 위한 내부 연관관계와 호환 필드는 조회 메서드 없이 `private` 유지 가능. 필드 접근 방식을 보존하며 매핑 어노테이션을 getter로 임의 이동하지 않음.
 
-```kotlin
+```java
 /**
  * 첨부 파일의 식별 정보
  */
 @Entity
 @Table(name = "attachments")
-open class AttachmentEntity protected constructor() {
+public class AttachmentEntity {
     /**
      * ID
      */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    open var id: Long? = null
-        protected set
+    private Long id;
+
+    /**
+     * JPA 인스턴스 초기화
+     */
+    protected AttachmentEntity() {}
+
+    /**
+     * ID 조회
+     */
+    public Long getId() { return id; }
+
+    /**
+     * 프록시의 ID 변경
+     */
+    protected void setId(Long id) { this.id = id; }
 }
 ```
 
-위 예시는 클래스와 접근자의 상속을 소스에서 명시적으로 허용. `protected set`은 외부 직접 대입을 막으면서 프록시의 재정의는 허용하는 엔티티 규칙.
+### 재정의 가능한 값 사용
 
-### 열린 프로퍼티의 값 사용
-
-- 열린 프로퍼티는 재정의될 수 있으므로 읽을 때마다 같은 값이라고 가정하지 않음.
-- null 검사 후 같은 값을 계속 사용해야 하면 지역 `val`에 한 번 저장한 뒤 검사·사용. 스마트 캐스트 오류를 피하기 위한 무조건적인 `!!` 추가 금지.
+- getter는 재정의될 수 있으므로 읽을 때마다 같은 값이라고 가정하지 않음.
+- null 검사 후 같은 값을 계속 사용해야 하면 지역 변수에 한 번 저장한 뒤 검사·사용. 무조건적인 강제 역참조로 검사를 대체하지 않음.
 - 생성자·초기화 블록에서 재정의 가능한 업무 메서드를 호출하지 않음. 엔티티 초기화와 조회·수정 흐름 분리.
 
 ## null 처리와 JDBC 조회
 
-- 타입·앞선 조건으로 non-null이 보장된 값에 불필요한 `?:`, `?.`, `!= null`을 추가하지 않음. `USELESS_ELVIS`, `SENSELESS_COMPARISON`은 실제 타입과 분기 흐름을 확인한 뒤 정리.
-- nullable 값의 정상적인 조기 반환은 유지. 경고 제거를 위해 반환 타입을 임의로 nullable로 바꾸거나 `!!`로 강제하지 않음.
+- 타입·앞선 조건으로 non-null이 보장된 값에 불필요한 null 검사나 기본값을 추가하지 않음.
+- nullable 값의 정상적인 조기 반환은 유지. 필수 입력, 생략 가능한 값, 명시적인 null의 JSON 계약을 구분. 원시 타입 기본값이나 역직렬화 설정으로 계약을 임의 변경하지 않음.
 - `queryForObject`는 정확히 한 행을 요구. 조회 결과가 0행이면 `null` 대신 `EmptyResultDataAccessException` 발생. `RowMapper`의 nullable 반환과 행 누락을 구분.
-- 0행을 정상적인 부재로 처리해야 하면 해당 호출에서 `EmptyResultDataAccessException`만 처리하거나 행 개수를 명시적으로 다루는 조회 사용. `?: return`으로 0행을 처리한다고 가정하지 않음.
+- 0행을 정상적인 부재로 처리해야 하면 해당 호출에서 `EmptyResultDataAccessException`만 처리하거나 행 개수를 명시적으로 다루는 조회 사용.
 - 반드시 존재해야 하는 상태 행의 누락은 시스템 오류로 전파. DB 연결 장애·잘못된 SQL·중복 행까지 `Exception`으로 묶어 `false`나 빈 값으로 숨기지 않음.
 - 인증 상태 누락의 세션 거부·로그인 중단 계약은 [애플리케이션 ADR](../ADR/ADR_application.md#인증-상태-행-누락-처리--2026-10-03) 참조.
 
-## 람다와 지역 변수
+## 지역 변수와 문자열
 
-- 함수 호출의 마지막 인자가 유일한 람다이면 괄호 밖에 작성. 오버로드 선택·문법상 제약이 있는 호출은 의미 보존 우선.
-- 콜백을 여러 개 전달하면 역할을 함께 읽을 수 있도록 괄호 안에 유지 가능. `groupBy({ it.postId }, { it.name })` 같은 호출을 기계적으로 분리하지 않음.
-- 변수의 유일한 용도가 `when`의 대상과 해당 분기이면 `when (val result = expression)`으로 선언 범위 제한. 분기 전후에도 필요한 변수는 바깥에 유지.
+- 지역 변수는 사용하는 가장 좁은 범위에서 선언. 타입이 초기화 식에서 분명하면 `var` 사용 가능.
+- 스트림과 람다는 처리 순서·자원 해제·예외 전파가 명확할 때 사용. 잠금·쓰기 순서를 표현하기 위한 반복문을 기계적으로 스트림으로 바꾸지 않음.
+- Spring 설정 문자열은 `@Value("${app.auth.admin.username:}")`처럼 사용. Java에서 불필요한 달러 이스케이프를 추가하지 않음.
+- 기존 입력의 Unicode 공백 처리 계약은 `Text.trim`·`Text.isBlank`로 유지. `String.trim`·`strip`으로 바꿀 때 NBSP를 포함한 입력 차이를 확인.
+- 로케일에 독립적인 식별자 정규화는 `Locale.ROOT` 사용.
 
-## 문자열과 라이브러리 API
+## 라이브러리 API
 
-- 짧은 Spring 설정 문자열은 `@Value("\${app.auth.admin.username:}")` 형태의 기존 이스케이프 유지 가능. multi-dollar 문자열 전환 제안 자체는 오류나 필수 수정 사유가 아님.
-- `$`가 반복되는 긴 텍스트에서 읽기 쉬워질 때만 multi-dollar 문자열 고려. 지원 Kotlin 버전과 실제 문자열 값이 같은지 확인.
 - 사용 중인 라이브러리의 deprecated API는 공식 대체 API와 동작을 확인한 뒤 교체. 경고를 없애기 위해 의존성을 임의로 올리거나 검증 강도를 낮추지 않음.
 - Jackson 3 문자열 노드는 `isString`, `stringValue()`, 명시적으로 변환이 필요한 곳은 `asString()` 사용. 이전 `isTextual`, `textValue()`, `asText()` 별칭은 새 코드에서 사용하지 않음.
 - JSON 입력 검증은 문자열 타입 확인 후 값을 읽는 계약 유지. `stringValue()`를 강제 문자열 변환인 `asString()`으로 바꾸어 숫자·불리언을 허용하지 않음.
@@ -85,10 +109,9 @@ open class AttachmentEntity protected constructor() {
 ## 경고 처리와 검증
 
 - VS Code의 노란 밑줄을 모두 같은 종류로 취급하지 않음. 컴파일 진단, 동작 결함 가능성, 스타일 제안을 진단 코드와 실제 사용처로 구분.
-- 도달 불가능한 분기·효과 없는 방어 코드·폐기 예정 API는 원인을 확인해 정리. 람다·변수 범위는 위 작성 기준 적용, multi-dollar 문자열은 선택 사항.
-- 경고의 선언과 사용처를 확인하여 접근 범위·상속·프레임워크 설정 중 원인을 먼저 수정. IDE 제안을 그대로 적용하기 전에 프레임워크 계약과 동작 보존 확인.
-- `ProtectedInFinal`을 포함한 경고를 일괄 `@Suppress` 처리하거나 IDE 검사를 끄는 방식으로 해결하지 않음.
+- 도달 불가능한 분기·효과 없는 방어 코드·폐기 예정 API는 원인을 확인해 정리. 경고를 일괄 억제하거나 IDE 검사를 끄는 방식으로 해결하지 않음.
+- 경고의 선언과 사용처를 확인하여 접근 범위·상속·프레임워크 설정 중 원인을 먼저 수정. IDE 제안을 적용하기 전에 프레임워크 계약과 동작 보존 확인.
 - 빌드 설정 변경 후 Gradle 프로젝트를 다시 불러와 IDE 정보 갱신. 컴파일 경고 0건과 에디터 진단 0건은 구분하여 보고. 에디터 검사를 실행하지 않았다면 실행한 것으로 보고하지 않음.
 - 엔티티 변경 시 앱·`jpaModel` 컴파일 결과에서 클래스와 프록시 접근자의 `final` 여부 확인.
-- 접근 제어만 변경한 경우 생성 DDL의 동일성 확인. 테이블·열·FK·인덱스 변경이 섞이지 않도록 검증.
+- 언어·접근 제어만 변경한 경우 생성 DDL의 동일성 확인. 테이블·열·FK·인덱스 변경이 섞이지 않도록 검증.
 - 프록시를 통한 실제 지연 조회·도메인 메서드 호출·변경 감지·재조회는 격리 DB 통합 검사로 확인. 컴파일 성공만으로 영속 동작을 검증했다고 보고하지 않음.

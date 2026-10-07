@@ -7,16 +7,19 @@
 *.log
 .local-security/
 # 생성 자산·빌드 산출물
+/bin/
 # 로컬 의존성 디렉터리
 node_modules/
 build/
 target/
 .gradle/
-.kotlin/
 *.tsbuildinfo
 # 개인 개발 환경 파일
 .idea/
 .vscode/
+.classpath
+.project
+.settings/
 .DS_Store
 /docs/study/
 

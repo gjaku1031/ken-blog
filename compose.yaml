@@ -54,7 +54,7 @@ services:
       APP_ASSETS_DIRECTORY: /var/lib/ken-blog/assets
       # 이미지 처리 등 JVM 외 메모리를 위해 10% 여유 확보 힙은 Paketo가 계산
       BPL_JVM_HEAD_ROOM: ${BPL_JVM_HEAD_ROOM:-10}
-      # Kotlin·jOOQ 동적 클래스 로딩을 위한 메타스페이스 힙은 남은 공간에서 계산
+      # Hibernate·jOOQ 동적 클래스 로딩을 위한 메타스페이스 힙은 남은 공간에서 계산
       JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS:--XX:MaxMetaspaceSize=256m}
     ports:
     - 127.0.0.1:${API_PORT:-18081}:8080
