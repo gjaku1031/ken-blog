@@ -102,7 +102,7 @@ CI의 Actuator health·CSRF·직접 준비한 본문 PNG/JPEG 조회·로컬 64p
 
 글의 `attachmentIds`는 관리자 HTTP로 등록하며 존재·READY 검증과 잠금 유지. 원고의 `attachment:ID`와 연결 관계가 일치해야 Pages 빌드에서 다운로드 가능. 파일 교체는 새 키를 준비한 뒤 DB 키/크기/MIME/updated_at을 함께 변경하고 Pages 재생성 확인. 정리 전에는 `post_attachments`·기술 아이콘·복구 자료의 참조 및 백업 확인. 실제 자료 삭제는 이 코드 변경에 포함하지 않음.
 
-CI의 PNG/JPEG 준비를 격리 DB INSERT·로컬 파일 배치로 변경하고 로그인·출간·연결·공개 원본 바이트·jOOQ·Pages snapshot 검사 유지. 삭제된 관리자 첨부 API의 404 확인. 저장소 밖 실제 JVM/Caddy와 읽기 전용 이미지 마운트에서 해당 시나리오 및 Node의 실제 원고·이미지 Pages 생성 통과. CI YAML/shell/Python 구문 및 Caddy adapt/validate 확인. 런타임 자료 등록용 스크립트/스킬 신설 없음. Buildpacks·원격 CI·운영 반영 미수행.
+CI의 PNG/JPEG 준비를 격리 DB INSERT·로컬 파일 배치로 변경하고 로그인·출간·연결·공개 원본 바이트·jOOQ·Pages snapshot 검사 유지. 삭제된 관리자 첨부 API의 404 확인. 저장소 밖 실제 JVM/Caddy와 읽기 전용 이미지 마운트에서 해당 시나리오 및 Node의 실제 원고·이미지 Pages 생성 통과. CI YAML/shell/Python 구문 및 Caddy adapt/validate 확인. 런타임 자료 등록용 스크립트 신설 없음. Buildpacks·원격 CI·운영 반영 미수행.
 
 ## 기술 이름·아이콘의 직접 관리 — 2026-10-02
 
@@ -133,7 +133,7 @@ CI의 PNG/JPEG 준비를 격리 DB INSERT·로컬 파일 배치로 변경하고 
 6. DB·아이콘 변경은 Git 커밋 트리거가 없으므로 Pages 워크플로 수동 실행 필요. Node가 최신 아이콘을 다시 다운로드하고 내용 해시 파일명으로 HTML 재생성. 공개 프로젝트에 쓰이지 않는 기술은 snapshot에 없어 revision 변화가 없을 수 있음. 성공한 산출물/공개 반영 확인 후에만 참조 없는 이전 파일을 보관 대상으로 이동 또는 명시적 승인 범위에서 정리.
 7. 기술 삭제 전 비공개를 포함한 `series_stack_badges` 참조와 순서 확인. 사용 중이면 명시적으로 선택을 제거/교체하고 필요한 sort_order 정리 후 기술 행 삭제. 기존 FK cascade가 있어도 자동 연결 소실에 의존하지 않는 기준. DB 트랜잭션 커밋·Pages 재생성 확인 전에는 파일을 먼저 삭제하지 않으며, 롤백용 행·연결·파일 백업 보존. 본문 attachments 또는 과거 복구 자료가 같은 키를 참조하는지도 파일 정리 전에 확인.
 
-DB와 파일을 하나의 트랜잭션으로 처리할 수 없으므로 새 파일 준비 → DB 전환 → 공개 검증/Pages 발행 → 이전 파일 보관 순서. 운영 적용 시 API와 관리자 Pages를 함께 갱신하여 옛 화면의 삭제된 쓰기 API 호출 제거 필요. 신규 운영 CLI·자동 동기화·스킬 없음.
+DB와 파일을 하나의 트랜잭션으로 처리할 수 없으므로 새 파일 준비 → DB 전환 → 공개 검증/Pages 발행 → 이전 파일 보관 순서. 운영 적용 시 API와 관리자 Pages를 함께 갱신하여 옛 화면의 삭제된 쓰기 API 호출 제거 필요. 신규 운영 CLI·자동 동기화 없음.
 
 기술 목록 변경 검증: 기존 CI 시나리오의 DB/PNG 직접 준비·조회·프로젝트 연결·본문 첨부·출간·jOOQ 검사 통과. CI YAML/shell/내장 Python 구문 및 Caddy adapt/validate 확인. 격리 Caddy에서 목록 인증·삭제 쓰기 경로 차단·공개 PNG 헤더/바이트 검증. Node가 변경된 imageUrl을 수집해 내용 해시 아이콘과 본문 이미지를 포함한 Pages 생성. 이미지 동기 스트리밍의 반복 전송 검증과 한계는 [애플리케이션 ADR](ADR_application.md) 참조. Buildpacks 재생성·원격 CI·운영 반영은 별도 미수행.
 
@@ -330,10 +330,3 @@ DB 메타데이터(글 정보·분류·순서·기술 뱃지)는 Git 변경이 �
 - 실행: 가장 최근 `pages.yml` 실행이 완료 전이면 새로 만들지 않고 그 실행을 반환. 아니면 `main`에 `return_run_details`로 dispatch해 실행 ID를 받음. 생성 직후 실행 조회가 404면 대기 상태로 응답. [Workflow dispatch API](https://docs.github.com/en/rest/actions/workflows#create-a-workflow-dispatch-event)
 - 진행 표시: 화면이 4초 간격으로 상태를 조회하고 서버는 조회마다 실행·job 단계를 GitHub에서 읽음. 막대는 최근 성공 수동 실행(없으면 전체 성공 실행, 그것도 없으면 90초)의 소요 시간 대비 경과 비율이며 완료 전에는 95%를 넘기지 않음. 예상 시간은 10분간 재사용. 단계 수는 시작 전 job을 포함하지 않아 추정치임. 성공 시 관리자 목록의 배포 대기 비교를 다시 읽고, 화면 진입 시 진행 중 실행이 있으면 이어서 표시.
 - 검증: GitHub API 대역 서버로 서비스의 dispatch 본문·인증 헤더·중복 실행 방지·생성 직후 404·다른 워크플로 거부·토큰 미설정 503·인증 실패 502를 검사. Chromium 회귀 검사에서 관리자 API를 대역으로 두고 CSRF 포함 실행 요청, 대기→진행→완료 표시, 진행 중 실행 이어 보기, 실행 거부 표시를 확인. 실제 GitHub 실행은 이 검사에 포함하지 않음.
-
-## 기술 뱃지·문서 작성 스킬 추가 — 2026-10-07
-
-위 2026-10-02 결정의 '신규 운영 CLI·스킬 없음'을 갱신. 사용자 요청으로 저장소 스킬 두 개를 추가함. 앱 코드·API·DB 스키마의 변경은 없고, 위의 등록 값·파일 규칙과 변경·삭제 순서를 그대로 따름.
-
-- `.claude/skills/ken-blog-stack-badges`: 뱃지 조회·추가·아이콘 교체·이름 변경·삭제 절차, 운영 DB 접속 스크립트(`db.sh`, 접속 정보 비출력), SVG → 64×64 투명 PNG 변환 스크립트(`make-badge.cjs`, 저장소 Playwright 사용).
-- `.claude/skills/ken-blog-docs`: 문서 작성 규칙·문서 유형별 구성·결정 기록·대문 틀과 검사·미리보기 스크립트.
