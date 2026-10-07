@@ -37,7 +37,7 @@ MySQL enum 열은 jOOQ 조회 경계에서 문자열 타입으로 매핑하여 J
 
 ## 원고 접근 제거 후 보존 모델
 
-MCP·RepositoryMarkdown 제거 후에도 옛 Post body/body_sha256 매핑과 PostBodyHash의 빈 값 초기화는 기존 스키마 호환을 위해 유지. 파일 접근·API 본문 조회·원고 해시 충돌 검사와 별개이며 기존 DB 열 삭제·본문 덮어쓰기 없음. 위키 선언 테이블과 관리자 교체 트랜잭션·조회 쿼리도 유지. 아래 MCP 검증은 제거 전 이력이며 현재 API는 관리자 HTTP와 Node Pages 빌드로 검증.
+MCP·RepositoryMarkdown 제거 후에도 옛 Post body/body_sha256 매핑과 PostBodyHash의 빈 값 초기화는 기존 스키마 호환을 위해 유지. 파일 접근·API 본문 조회·원고 해시 충돌 검사와 별개이며 기존 DB 열 삭제·본문 덮어쓰기 없음. 위키 선언 테이블과 관리자 교체 트랜잭션·조회 쿼리도 유지(2026-10-07 결정으로 제거, 문서 끝 참조). 아래 MCP 검증은 제거 전 이력이며 현재 API는 관리자 HTTP와 Node Pages 빌드로 검증.
 
 ## 첨부 쓰기 제거의 영속성 경계 — 2026-10-02
 
@@ -134,3 +134,9 @@ JDT LS 프로젝트 갱신·빌드 후 현재 Neovim에 수집된 오류·경고
 미사용 import를 제거하고 테스트 컨테이너는 지역 변수로 생성·설정한 뒤 반환하여
 분석기가 자원 소유권의 이전을 추적할 수 있도록 정리. 시작·종료는 Spring 테스트
 컨텍스트가 관리. 영속성 통합 테스트와 Javadoc 문서 생성 검사 통과.
+
+## 위키 선언 테이블 제거 — 2026-10-07
+
+관리자 위키 선언 기능 삭제([애플리케이션 ADR](ADR_application.md) 참조)에 따라 `PostWikiLinkEntity`와 `PostWikiLinkRepository`, 선언 교체·제목 검색 쿼리를 제거한다. 다음 빌드부터 생성 DDL과 jOOQ 타입에 `post_wiki_links`가 포함되지 않는다. 위키 링크·역링크는 DB에 저장하지 않고 Node 빌드가 원고에서 계산한다.
+
+운영 테이블은 자동으로 삭제하지 않는다. 새 API 배포 후 백업과 복구 확인을 마치고 유지보수 창에서 [검토한 SQL](../../deploy/sql/drop-post-wiki-links-2026-10-07.sql)로 `DROP TABLE`을 실행한다. 글 삭제 시 연결 행을 지우던 `post_id` CASCADE도 테이블과 함께 사라진다.
