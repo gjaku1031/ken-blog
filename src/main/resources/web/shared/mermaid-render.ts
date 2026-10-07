@@ -113,7 +113,10 @@ function appendLegend(svg: string, items: LegendItem[], theme: "light" | "dark")
   const boxWidth = pad * 2 + 39 + textWidth, boxHeight = pad * 2 + 20 + items.length * row;
   // 본문 폭(약 800px)보다 넓은 도식은 화면에서 줄어들므로 범례를 그만큼 키워 표시 크기를 일정하게 유지함
   const scale = Math.max(1, width / LEGEND_DISPLAY_WIDTH);
-  const originX = left + width - boxWidth * scale, originY = top + height + gap * scale;
+  // 좁은 도식은 오른쪽 옆 아래에 두어 마지막 노드에 붙지 않게 하고, 넓은 도식은 아래 오른쪽에 둠
+  const beside = width + gap * 2 + boxWidth <= LEGEND_DISPLAY_WIDTH;
+  const originX = beside ? left + width + gap * 2 : left + width - boxWidth * scale;
+  const originY = beside ? top + Math.max(0, height - boxHeight) : top + height + gap * scale;
   const x = 0, y = 0;
   const ns = "http://www.w3.org/2000/svg";
   const make = (name: string, attrs: Record<string, string | number>, parent: Element) => {
@@ -148,7 +151,9 @@ function appendLegend(svg: string, items: LegendItem[], theme: "light" | "dark")
     }
     make("text", { x: sx + 39, y: cy + 4, style: `font-size:12px;fill:${text};font-family:Arial,sans-serif` }, group).textContent = item.title;
   });
-  root.setAttribute("viewBox", `${left} ${top} ${width} ${height + (gap + boxHeight) * scale}`);
+  root.setAttribute("viewBox", beside
+    ? `${left} ${top} ${width + gap * 2 + boxWidth} ${Math.max(height, boxHeight)}`
+    : `${left} ${top} ${width} ${height + (gap + boxHeight) * scale}`);
   return new XMLSerializer().serializeToString(doc);
 }
 
