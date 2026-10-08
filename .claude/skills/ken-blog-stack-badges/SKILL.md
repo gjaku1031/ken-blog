@@ -50,7 +50,7 @@ node .claude/skills/ken-blog-stack-badges/scripts/make-badge.cjs <입력.svg> <�
 .claude/skills/ken-blog-stack-badges/scripts/db.sh <SQL 파일>
 ```
 
-- `oci-blog` SSH 터널로 관리형 MySQL에 접속하고, 접속 정보는 출력하지 않는다. 로컬 Docker의 MySQL 클라이언트 이미지(버전은 `db.sh`에 고정)를 쓴다(utf8mb4, TLS 필수).
+- `oci-prod` SSH 터널로 관리형 MySQL에 접속하고, 접속 정보는 출력하지 않는다. 로컬 Docker의 MySQL 클라이언트 이미지(버전은 `db.sh`에 고정)를 쓴다(utf8mb4, TLS 필수).
 - SQL 파일은 scratchpad에 만든다. 조회(SELECT)는 바로 실행해도 되지만, **쓰기는 실행 전 SQL 전문과 변경 전 값을 사용자에게 보여 주고 승인을 받는다.**
 
 ## 조회
