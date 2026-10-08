@@ -43,6 +43,7 @@ ken-blog 문서는 대학원 진학용 포트폴리오이자, 이후 다른 프�
 4. **확인**: 아래 '배포 절차'의 사실 확인과 미리보기.
 5. **배포**: 합의한 수정은 매번 게시 원고·커밋·push·Pages 배포·공개 화면 확인까지 한다.
 6. **기록**: 확정 사항은 `temp/review-notes.md`에, 다른 프로젝트에도 적용할 규칙은 [decisions.md](references/decisions.md)에 새 번호로 추가하고 이 파일·document-types.md에 반영한다.
+7. **README**: 모든 문서의 작성·검토·검증이 끝난 뒤 마지막에 저장소 README를 씀(D-044, 구성은 document-types.md '저장소 README').
 
 ## 문체
 
