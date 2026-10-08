@@ -149,10 +149,6 @@ final class PostPersistenceIntegrationTest {
         assertEquals("기준 글", reloaded.title());
         assertEquals(List.of("새 태그"), reloaded.tags());
         assertEquals(edited.editVersion(), reloaded.editVersion());
-        assertEquals(
-                "",
-                jdbc.queryForObject(
-                        "SELECT body FROM posts WHERE id = ?", String.class, created.id()));
     }
 
     /**
@@ -225,11 +221,10 @@ final class PostPersistenceIntegrationTest {
     void largeSnapshotsAreBoundedAndConsistent() {
         long category = categories.create("snapshot-" + UUID.randomUUID() + "/child").id();
         String sql =
-                "INSERT INTO posts (title, slug, body, body_sha256, summary, created_at,"
-                    + " updated_at, status, visibility, section, view_count, edit_version,"
-                    + " category_id, published_at) VALUES (?, ?, '', REPEAT('0', 64), '',"
-                    + " UTC_TIMESTAMP(6), UTC_TIMESTAMP(6), 'PUBLISHED', 'PUBLIC', 'TECH', 0, 0, ?,"
-                    + " UTC_TIMESTAMP(6))";
+                "INSERT INTO posts (title, slug, summary, created_at, updated_at, status,"
+                    + " visibility, section, edit_version, category_id, published_at) VALUES"
+                    + " (?, ?, '', UTC_TIMESTAMP(6), UTC_TIMESTAMP(6), 'PUBLISHED', 'PUBLIC',"
+                    + " 'TECH', 0, ?, UTC_TIMESTAMP(6))";
         var batch =
                 IntStream.rangeClosed(1, 300)
                         .mapToObj(
@@ -355,10 +350,6 @@ final class PostPersistenceIntegrationTest {
         var byId = service.adminMetadata(created.id());
         assertEquals("첫 글", byId.title());
         assertEquals("first-post", byId.slug());
-        assertEquals(
-                "",
-                jdbc.queryForObject(
-                        "SELECT body FROM posts WHERE slug = ?", String.class, "first-post"));
         assertEquals(PostVisibility.PUBLIC, byId.visibility());
         assertEquals(
                 created.id(),
@@ -408,10 +399,6 @@ final class PostPersistenceIntegrationTest {
         var reloaded = service.adminMetadata(created.id());
         assertEquals(title, reloaded.title());
         assertEquals(summary, reloaded.summary());
-        assertEquals(
-                "",
-                jdbc.queryForObject(
-                        "SELECT body FROM posts WHERE id = ?", String.class, created.id()));
     }
 
     /**

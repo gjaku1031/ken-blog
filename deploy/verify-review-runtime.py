@@ -107,13 +107,13 @@ def verify(browser_container):
             sql(schema.replace("edit_version bigint not null, ", ""))
             sql(Path("deploy/sql/bootstrap-auth.sql").read_text())
             sql("DROP TABLE admin_login_sources; INSERT INTO content_state (id) VALUES (1);"
-                "INSERT INTO posts (title,slug,body,body_sha256,summary,created_at,updated_at,status,visibility,section,view_count,series_order) "
-                "VALUES ('legacy','legacy','preserved body',REPEAT('a',64),'',UTC_TIMESTAMP(6),UTC_TIMESTAMP(6),'DRAFT','PUBLIC','TECH',0,7);"
+                "INSERT INTO posts (title,slug,summary,created_at,updated_at,status,visibility,section,series_order) "
+                "VALUES ('legacy','legacy','',UTC_TIMESTAMP(6),UTC_TIMESTAMP(6),'DRAFT','PUBLIC','TECH',7);"
                 "INSERT INTO users (username,password_hash,role,created_at,enabled) VALUES ('review_admin',"
                 "'{bcrypt}$2b$10$4FBi6otvIFtcNbMAYerE3O1eSZAmB9sw3r4iEgU2ovjbUuSVcfivG','ADMIN',UTC_TIMESTAMP(6),true);")
             start("missing-edit-version", "missing column [edit_version]")
             sql(Path("deploy/sql/review-2026-10-03.sql").read_text())
-            assert sql("SELECT body='preserved body' AND body_sha256=REPEAT('a',64) AND series_order=7 AND edit_version=0 FROM posts WHERE slug='legacy';") == "1"
+            assert sql("SELECT series_order=7 AND edit_version=0 FROM posts WHERE slug='legacy';") == "1"
             start("migrated-schema")
 
             # 서로 다른 loopback IP를 HTTPS 사이트로 사용하며 실제 Spring API에 연결

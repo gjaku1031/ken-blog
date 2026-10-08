@@ -281,8 +281,8 @@ jobs:
               filename = f'00000000-0000-4000-8000-{index:012d}.{extension}'
               temporary.write_bytes(image)
               subprocess.run(['sudo', 'install', '-o', '10001', '-g', '1001', '-m', '0600', str(temporary), str(icon_dir / filename)], check=True)
-              sql = ("INSERT INTO attachments (object_key,original_filename,content_type,byte_size,uploaded_by,status,pending_cleanup,created_at,updated_at) "
-                     f"SELECT 'ken-blog/attachments/{filename}','fixture.{extension}','{mime}',{len(image)},id,'READY',false,UTC_TIMESTAMP(6),UTC_TIMESTAMP(6) "
+              sql = ("INSERT INTO attachments (object_key,original_filename,content_type,byte_size,uploaded_by,status,created_at,updated_at) "
+                     f"SELECT 'ken-blog/attachments/{filename}','fixture.{extension}','{mime}',{len(image)},id,'READY',UTC_TIMESTAMP(6),UTC_TIMESTAMP(6) "
                      "FROM users WHERE username='ci_jvm_admin'; SELECT LAST_INSERT_ID();")
               result = subprocess.run(['docker', 'exec', '-i', '${{ job.services.mysql.id }}', 'sh', '-c',
                           'MYSQL_PWD="$MYSQL_PASSWORD" exec mysql -N -u"$MYSQL_USER" "$MYSQL_DATABASE"'],

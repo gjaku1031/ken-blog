@@ -80,12 +80,6 @@ public class AttachmentEntity {
     private AttachmentStatus status;
 
     /**
-     * 정리 대기 여부
-     */
-    @Column(name = "pending_cleanup", nullable = false)
-    private boolean pendingCleanup = false;
-
-    /**
      * 생성 시각
      */
     @Column(name = "created_at", nullable = false, columnDefinition = "datetime(6)")
@@ -193,20 +187,6 @@ public class AttachmentEntity {
      */
     protected void setStatus(AttachmentStatus status) {
         this.status = status;
-    }
-
-    /**
-     * pendingCleanup 조회
-     */
-    public boolean getPendingCleanup() {
-        return pendingCleanup;
-    }
-
-    /**
-     * JPA 프록시의 pendingCleanup 변경
-     */
-    protected void setPendingCleanup(boolean pendingCleanup) {
-        this.pendingCleanup = pendingCleanup;
     }
 
     /**

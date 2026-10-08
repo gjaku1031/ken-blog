@@ -71,20 +71,6 @@ public class PostEntity {
             columnDefinition = "varchar(160) character set ascii collate ascii_bin")
     private String slug;
 
-    // 옛 DB 원문과 해시는 복구 자료로 유지하며 신규 등록은 빈 값
-
-    /**
-     * 복구·스키마 호환용 이전 본문
-     */
-    @Column(nullable = false, columnDefinition = "longtext")
-    private String body;
-
-    /**
-     * 이전 본문의 SHA-256
-     */
-    @Column(name = "body_sha256", nullable = false, columnDefinition = "char(64)")
-    private String bodySha256;
-
     /**
      * 요약
      */
@@ -128,18 +114,6 @@ public class PostEntity {
      */
     @Column(name = "legacy_path", length = 500)
     private String legacyPath = null;
-
-    /**
-     * 스키마 호환용 이전 고정 순서
-     */
-    @Column(name = "pin_order")
-    private Integer legacyPinOrder = null;
-
-    /**
-     * 스키마 호환용 이전 조회 수
-     */
-    @Column(name = "view_count", nullable = false)
-    private long legacyViewCount = 0L;
 
     /**
      * 생성 시각
@@ -190,11 +164,9 @@ public class PostEntity {
     /**
      * 게시글 초기 메타데이터 설정
      */
-    public PostEntity(String title, String slug, String body, LocalDateTime now) {
+    public PostEntity(String title, String slug, LocalDateTime now) {
         this.title = title;
         this.slug = slug;
-        this.body = body;
-        this.bodySha256 = PostBodyHash.sha256(body);
         this.createdAt = now;
         this.updatedAt = now;
     }
@@ -287,34 +259,6 @@ public class PostEntity {
      */
     protected void setSlug(String slug) {
         this.slug = slug;
-    }
-
-    /**
-     * body 조회
-     */
-    public String getBody() {
-        return body;
-    }
-
-    /**
-     * JPA 프록시의 body 변경
-     */
-    protected void setBody(String body) {
-        this.body = body;
-    }
-
-    /**
-     * bodySha256 조회
-     */
-    public String getBodySha256() {
-        return bodySha256;
-    }
-
-    /**
-     * JPA 프록시의 bodySha256 변경
-     */
-    protected void setBodySha256(String bodySha256) {
-        this.bodySha256 = bodySha256;
     }
 
     /**
