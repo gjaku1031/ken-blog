@@ -92,7 +92,7 @@ ken-blog 문서는 대학원 진학용 포트폴리오이자, 이후 다른 프�
 
 - 링크 아이콘은 렌더러와 CSS가 주소 형태로 붙이므로 원고에 아이콘·이모지를 직접 쓰지 않는다. 블로그 안의 글은 `[[글 제목]]`이나 `/ken-blog/…` 상대 주소로만 쓴다. `https://gjaku1031.github.io/…` 절대 주소로 쓰면 외부 링크로 표시된다. 이미지로 감싼 링크에는 아이콘이 붙지 않는다.
 - 표 셀 안 줄바꿈은 렌더링되지 않는다. 여러 줄이 필요하면 표 아래 목록으로 뺀다. 표 셀의 `|`는 `\|`로 이스케이프한다.
-- 스크린샷은 페이지와 반대 테마의 캡처를 쓴다(기본 이미지는 어두운 캡처, `dark=`에 밝은 캡처). 모의 데이터가 보이면 캡션에 밝힌다.
+- 스크린샷은 페이지와 반대 테마의 캡처를 쓴다(기본 이미지는 어두운 캡처, `dark=`에 밝은 캡처). 모의 데이터가 보이면 캡션에 밝힌다. 저장소 README의 이미지는 GitHub와 같은 테마를 쓴다(document-types.md '저장소 README').
 
 ## 다이어그램
 
@@ -125,13 +125,16 @@ ken-blog 문서는 대학원 진학용 포트폴리오이자, 이후 다른 프�
 
 공개 사이트는 `post_attachments`로 발행된 글에 연결된 첨부만 내보낸다(`PostQueries.readableAttachment`, `attachmentRevisions`). 연결이 없으면 원고에 ID를 적어도 이미지가 보이지 않는다.
 
-1. **캡처**: `node .claude/skills/ken-blog-docs/scripts/capture-screen.cjs <URL> <scratchpad>/<이름> [CSS 선택자] [폭] [높이]` → `<이름>-light.png`, `<이름>-dark.png`(2배 해상도). 관리 화면처럼 로그인이 필요한 화면은 로컬 서버와 모의 데이터로 캡처하고, 모의 데이터가 보이면 캡션에 밝힌다. 비밀번호·토큰·개인 정보가 화면에 없는지 Read로 직접 본다.
+1. **캡처**: 비밀번호·토큰·개인 정보가 화면에 없는지 Read로 직접 본다.
+   - 공개 화면: `node .claude/skills/ken-blog-docs/scripts/capture-screen.cjs <URL> <scratchpad>/<이름> [CSS 선택자] [폭] [높이]` → `<이름>-light.png`, `<이름>-dark.png`(2배 해상도). 선택자를 비우려면 `""`. 도식만 찍을 때는 `"figure.mermaid-figure img"`(원문 보기 버튼·캡션 제외)
+   - 관리 화면: `node .claude/skills/ken-blog-docs/scripts/capture-admin.cjs <scratchpad>/<이름> "<편집할 글 제목>"`. 배포된 관리 화면을 열고 API 응답만 공개 스냅샷으로 채워 글 정보 편집 창을 찍음. 로그인이 필요 없고 실제 글 목록이 보이므로 모의 데이터 표기가 필요 없음
 2. **파일 올리기**: 장마다 새 UUID를 만든다. 같은 파일을 바꿀 때도 새 UUID를 쓴다(브라우저·Pages 캐시 때문에 같은 키를 덮어쓰지 않음).
    ```bash
    uuid=$(cat /proc/sys/kernel/random/uuid)
    scp <이름>-dark.png oci-blog:/tmp/$uuid.png
    ssh oci-blog "sudo install -o 10001 -g 1001 -m 0600 /tmp/$uuid.png /srv/ken-blog-live/assets/ken-blog/live/attachments/$uuid.png && rm /tmp/$uuid.png"
    ```
+   여러 장을 `while read` 반복문으로 올릴 때는 `ssh -n`을 쓴다. 없으면 ssh가 반복문의 입력을 읽어 첫 장만 올라감.
 3. **DB 등록**(SQL을 사용자에게 보여 준 뒤 `.claude/skills/ken-blog-stack-badges/scripts/db.sh`로 실행). `byte_size`는 `stat -c %s`, 상한 10MB.
    ```sql
    INSERT INTO attachments (object_key, content_type, byte_size, created_at, updated_at)
