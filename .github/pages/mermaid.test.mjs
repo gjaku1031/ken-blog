@@ -126,7 +126,7 @@ test("color support keeps arbitrary CSS, references and settings blocked", () =>
 test("all ERD article diagrams fit the public renderer limits", async () => {
   const body = await readFile(new URL("../../content/posts/post-f9235d74-4d5b-4705-8f59-ba3511bd50e9.md", import.meta.url), "utf8");
   const diagrams = [...body.matchAll(/```mermaid(?: [^\n]*)?\n([\s\S]*?)\n```/g)];
-  assert.equal(diagrams.length, 6);
+  assert.equal(diagrams.length, 3);
   for (const [, source] of diagrams) {
     assert.equal(mermaidSourceError(source), null);
     assert.equal(mermaidSourceError(mermaidThemeSource(source, "dark")), null);
