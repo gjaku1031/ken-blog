@@ -11,7 +11,8 @@ ken-blog 문서는 대학원 진학용 포트폴리오이자, 이후 다른 프�
 
 | 상황 | 읽을 파일 |
 | --- | --- |
-| 어떤 문서든 쓰거나 고칠 때 | 이 파일 전체, [decisions.md](references/decisions.md) |
+| 어떤 문서든 쓰거나 고칠 때 | 이 파일 전체 |
+| 결정을 추가하거나 근거·이력을 대조할 때 | [decisions.md](references/decisions.md) |
 | 문서 유형별 구성(넣을 절·넣지 않을 것) | [document-types.md](references/document-types.md) |
 | 새 프로젝트 대문 | [landing-template.md](references/landing-template.md) |
 | 도식 | `ken-blog-diagrams` 스킬 (`.claude/skills/ken-blog-diagrams/SKILL.md`) |
@@ -122,7 +123,7 @@ ken-blog 문서는 대학원 진학용 포트폴리오이자, 이후 다른 프�
 2. **도식 검사**: `node .claude/skills/ken-blog-diagrams/scripts/check-mermaid.mts <원고.md>`.
 3. **테스트**: `npm test` (필요하면 `npm run test:browser`).
 4. **미리보기**: `.claude/skills/ken-blog-docs/scripts/preview.sh <scratchpad>` 후 `node .claude/skills/ken-blog-docs/scripts/preview-shots.cjs <slug> <저장 디렉터리>`. 출력된 도식 크기와 캡처를 직접 본다.
-5. **커밋·push·배포 요청**: 배포 전담 pane `deployment`가 있으면 직접 커밋하지 않고 `herdr agent prompt deployment`로 요청한다. 요청에는 요청자 이름, 커밋할 파일 목록(정확한 경로), 커밋 메시지, 확인할 공개 주소를 적는다. deployment가 없을 때만 직접 한다: 바뀐 게시 원고만 스테이징하고 `git push https://github.com/gjaku1031/ken-blog.git main`(SSH 원격은 호스트 키 문제로 실패, force 금지), 커밋 메시지 끝에 `Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>`.
+5. **커밋·push·배포 요청**: 배포 전담 pane `deployment`가 있으면 직접 커밋하지 않고 `herdr agent prompt deployment`로 요청한다. 요청에는 요청자 이름, 커밋할 파일 목록(정확한 경로), 커밋 메시지, 확인할 공개 주소를 적는다. deployment가 없을 때만 직접 한다: 바뀐 게시 원고만 스테이징하고 `git push https://github.com/gjaku1031/ken-blog.git main`으로 올리며(force 금지), 커밋 메시지 끝에는 세션이 안내하는 Co-Authored-By 줄을 붙인다.[^ssh]
 6. **Pages 확인**: 해당 커밋의 Pages 실행 결과를 확인한다. 배포 직전 `main`이 바뀌면 Pages가 의도적으로 실패하고 다음 실행이 반영하므로 최신 실행을 본다. 공개 주소 `https://gjaku1031.github.io/ken-blog/post/{slug}/`에서 바뀐 문구를 `curl`로 확인하고 주소를 사용자에게 알린다. GitHub Pages는 최대 10분 캐시하므로, 사용자가 예전 화면을 보면 강력 새로고침을 안내한다.
 
 ## 글 메타데이터(DB)
@@ -149,18 +150,18 @@ ken-blog 문서는 대학원 진학용 포트폴리오이자, 이후 다른 프�
    - 관리 화면: `node .claude/skills/ken-blog-docs/scripts/capture-admin.cjs <scratchpad>/<이름> "<편집할 글 제목>"`. 배포된 관리 화면을 열고 API 응답만 공개 스냅샷으로 채워 글 정보 편집 창을 찍음. 로그인이 필요 없고 실제 글 목록이 보이므로 모의 데이터 표기가 필요 없음
 2. **파일 올리기**: 장마다 새 UUID를 만든다. 같은 파일을 바꿀 때도 새 UUID를 쓴다(브라우저·Pages 캐시 때문에 같은 키를 덮어쓰지 않음).
    ```bash
-   uuid=$(cat /proc/sys/kernel/random/uuid)
-   scp <이름>-dark.png oci-blog:/tmp/$uuid.png
-   ssh oci-blog "sudo install -o 10001 -g 1001 -m 0600 /tmp/$uuid.png /srv/ken-blog-live/assets/ken-blog/live/attachments/$uuid.png && rm /tmp/$uuid.png"
+   bash .claude/skills/ken-blog-stack-badges/scripts/upload-asset.sh <이름>-light.png <이름>-dark.png
    ```
-   여러 장을 `while read` 반복문으로 올릴 때는 `ssh -n`을 쓴다. 없으면 ssh가 반복문의 입력을 읽어 첫 장만 올라감.
-3. **DB 등록**(SQL을 사용자에게 보여 준 뒤 `.claude/skills/ken-blog-stack-badges/scripts/db.sh`로 실행). `byte_size`는 `stat -c %s`, 상한 10MB.
+   파일마다 `<로컬 경로> <object_key> <바이트>` 한 줄을 출력한다. 이 값을 그대로 DB 등록에 쓴다.
+3. **DB 등록**(SQL을 사용자에게 보여 준 뒤 `.claude/skills/ken-blog-stack-badges/scripts/db.sh`로 실행). `object_key`·`byte_size`는 업로드 출력값.
    ```sql
    INSERT INTO attachments (object_key, content_type, byte_size, created_at, updated_at)
-   VALUES ('ken-blog/live/attachments/{uuid}.png', 'image/png', {바이트}, UTC_TIMESTAMP(6), UTC_TIMESTAMP(6));
+   VALUES ('{object_key}', 'image/png', {바이트}, UTC_TIMESTAMP(6), UTC_TIMESTAMP(6));
    INSERT INTO post_attachments (post_id, attachment_id) VALUES ({posts.id}, LAST_INSERT_ID());
    ```
    밝은 캡처도 같은 방법으로 등록한다. 두 행 모두 같은 글에 연결한다.
 4. **원고**: 기본 이미지는 어두운 캡처, `dark=`에는 밝은 캡처(반대 테마 규칙). `![캡션|dark={밝은 ID}|w=100|a=center](attachment:{어두운 ID})`. 캡션에 화면 설명을 쓰고 그림 아래 설명 문단은 두지 않는다.
 5. **반영**: 게시 원고 커밋과 Pages 재배포는 deployment에 요청하고, 공개 주소에서 두 테마 모두 이미지가 보이는지 확인한다.
 6. **교체·삭제**: 새 첨부를 등록·연결하고 원고를 바꿔 공개 반영을 확인한 뒤, 이전 행의 `post_attachments` 연결을 지우고 다른 글이 참조하지 않으면 `attachments` 행과 파일을 정리한다(`post_attachments`는 `ON DELETE RESTRICT`라 연결부터 지움).
+
+[^ssh]: 이 VM의 SSH 원격은 호스트 키 문제로 실패하므로 HTTPS 주소로 push한다.
