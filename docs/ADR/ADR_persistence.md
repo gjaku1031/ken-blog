@@ -37,7 +37,7 @@ MySQL enum 열은 jOOQ 조회 경계에서 문자열 타입으로 매핑하여 J
 
 ## 원고 접근 제거 후 보존 모델
 
-MCP·RepositoryMarkdown 제거 후에도 옛 Post body/body_sha256 매핑과 PostBodyHash의 빈 값 초기화는 기존 스키마 호환을 위해 유지. 파일 접근·API 본문 조회·원고 해시 충돌 검사와 별개이며 기존 DB 열 삭제·본문 덮어쓰기 없음. 위키 선언 테이블과 관리자 교체 트랜잭션·조회 쿼리도 유지(2026-10-07 결정으로 제거, 문서 끝 참조). 아래 MCP 검증은 제거 전 이력이며 현재 API는 관리자 HTTP와 Node Pages 빌드로 검증.
+MCP·RepositoryMarkdown 제거 후에도 옛 Post body/body_sha256 매핑과 PostBodyHash의 빈 값 초기화는 기존 스키마 호환을 위해 유지(2026-10-08 제거, 문서 끝 참조). 파일 접근·API 본문 조회·원고 해시 충돌 검사와 별개이며 기존 DB 열 삭제·본문 덮어쓰기 없음. 위키 선언 테이블과 관리자 교체 트랜잭션·조회 쿼리도 유지(2026-10-07 결정으로 제거, 문서 끝 참조). 아래 MCP 검증은 제거 전 이력이며 현재 API는 관리자 HTTP와 Node Pages 빌드로 검증.
 
 ## 첨부 쓰기 제거의 영속성 경계 — 2026-10-02
 
@@ -140,3 +140,9 @@ JDT LS 프로젝트 갱신·빌드 후 현재 Neovim에 수집된 오류·경고
 관리자 위키 선언 기능 삭제([애플리케이션 ADR](ADR_application.md) 참조)에 따라 `PostWikiLinkEntity`와 `PostWikiLinkRepository`, 선언 교체·제목 검색 쿼리를 제거한다. 다음 빌드부터 생성 DDL과 jOOQ 타입에 `post_wiki_links`가 포함되지 않는다. 위키 링크·역링크는 DB에 저장하지 않고 Node 빌드가 원고에서 계산한다.
 
 운영 테이블은 애플리케이션이 자동으로 삭제하지 않는다. 새 API 배포 후 2026-10-07 [정리 SQL](../../deploy/sql/drop-legacy-tables-2026-10-07.sql)로 `post_wiki_links`를 삭제했고, 같은 SQL로 이관 전 모델 테이블 12개와 `posts`의 이관 전 열 6개·관련 FK 3개·인덱스 4개도 정리했다. 사용자 결정으로 백업 없이 실행했으며, 운영 테이블은 27개에서 14개가 됐다. 글 삭제 시 연결 행을 지우던 `post_id` CASCADE도 테이블과 함께 사라진다.
+
+## 옛 열 제거 — 2026-10-08
+
+현재 기능에서 읽지 않는 열을 엔티티와 운영 DB에서 함께 제거한다. 대상은 `posts.body`·`body_sha256`(Git 원고가 정본이 된 뒤 새 글에는 빈 값만 저장하던 열), `posts.pin_order`·`view_count`와 `ix_posts_pin` 인덱스, `attachments.pending_cleanup`, 코드에 없던 `admin_auth_state.last_totp_step`. `PostBodyHash`는 관리자 설정 지문 계산만 남아 `AdminAuthSettings`로 옮겼다.
+
+`ddl-auto=validate`는 DB에 남은 여분 열을 허용하지만 NOT NULL·기본값 없는 `body`·`body_sha256`은 새 엔티티의 INSERT를 막는다. 그래서 확장-축소 순서로 적용한다. ① [NULL 허용 SQL](../../deploy/sql/legacy-columns-nullable-2026-10-08.sql) ② 새 API 배포 ③ [열 삭제 SQL](../../deploy/sql/drop-legacy-columns-2026-10-08.sql). 옛 본문이 남아 있던 글 7개는 모두 Git 원고가 있어 사용자 결정으로 백업 없이 삭제한다. 앞선 ADR의 "옛 body/body_sha256 유지"는 이 결정으로 대체한다.

@@ -1,6 +1,9 @@
 package io.github.gjaku1031.kenblog.auth.service;
 
-import io.github.gjaku1031.kenblog.post.domain.PostBodyHash;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HexFormat;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -35,6 +38,13 @@ public final class AdminAuthSettings {
      * 원문을 저장하지 않는 SHA-256 소문자 16진수
      */
     public static String sha256(String value) {
-        return PostBodyHash.sha256(value);
+        try {
+            return HexFormat.of()
+                    .formatHex(
+                            MessageDigest.getInstance("SHA-256")
+                                    .digest(value.getBytes(StandardCharsets.UTF_8)));
+        } catch (NoSuchAlgorithmException exception) {
+            throw new IllegalStateException("SHA-256을 사용할 수 없습니다.", exception);
+        }
     }
 }

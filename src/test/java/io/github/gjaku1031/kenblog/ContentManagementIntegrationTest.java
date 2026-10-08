@@ -189,9 +189,6 @@ final class ContentManagementIntegrationTest {
         assertEquals("Authentication", categories.rename(child.id(), "Authentication").name());
         assertEquals("spring/security", posts.adminMetadata(post.id()).category().path());
         assertEquals(child.id(), posts.adminMetadata(post.id()).category().id());
-        assertEquals(
-                "",
-                jdbc.queryForObject("SELECT body FROM posts WHERE id=?", String.class, post.id()));
     }
 
     /**

@@ -96,7 +96,7 @@ public class PostService {
             throw new InvalidPostRequestException();
         lockSeries(request.seriesId(), request.relatedSeriesId());
         var now = now();
-        var post = new PostEntity(title, slug, "", now);
+        var post = new PostEntity(title, slug, now);
         post.replaceMetadata(title, summary, now);
         post.changeCategory(request.categoryId(), now);
         post.assignSeries(request.seriesId(), request.order(), request.relatedSeriesId(), now);
