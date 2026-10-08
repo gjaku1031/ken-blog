@@ -1,6 +1,6 @@
 # ERD 작성
 
-[Mermaid 공통 가이드](mermaid-common.md)를 먼저 읽는다. 이 문서는 테이블 관계를 `erDiagram`으로 그릴 때 확인할 사실, 표기와 글의 구성을 설명한다. 기본 문법은 [Mermaid ERD 문서](https://mermaid.js.org/syntax/entityRelationshipDiagram.html)를 참고하되, 블로그의 고정 버전과 렌더러에서 동작하는지 확인한다.
+공통 규칙은 [mermaid-common.md](mermaid-common.md)에 있고 SKILL.md가 두 파일을 함께 읽게 안내한다. 이 문서는 테이블 관계를 `erDiagram`으로 그릴 때 확인할 사실, 표기와 글의 구성을 설명한다. 기본 문법은 [Mermaid ERD 문서](https://mermaid.js.org/syntax/entityRelationshipDiagram.html)를 참고하되, 블로그의 고정 버전과 렌더러에서 동작하는지 확인한다.
 
 ## 스키마를 먼저 확인
 

@@ -1,18 +1,18 @@
 ---
 name: ken-blog-stack-badges
-description: ken-blog 프로젝트 헤더에 쓰는 기술 스택 뱃지(로고 아이콘)를 조회·추가·아이콘 교체·이름 변경·삭제하거나 프로젝트에 연결할 때 사용. 운영 MySQL의 stack_badges 행과 서버 디스크의 64×64 투명 배경 PNG를 직접 관리한다. 운영 DB에 SQL을 실행해야 할 때 쓰는 접속 스크립트(scripts/db.sh)도 여기에 있다.
+description: ken-blog 프로젝트 헤더에 쓰는 기술 스택 배지(로고 아이콘)를 조회·추가·아이콘 교체·이름 변경·삭제하거나 프로젝트에 연결할 때 사용. 운영 MySQL의 stack_badges 행과 서버 디스크의 64×64 투명 배경 PNG를 직접 관리한다. 운영 DB에 SQL을 실행해야 할 때 쓰는 접속 스크립트(scripts/db.sh)도 여기에 있다.
 ---
 
-# 기술 스택 뱃지 관리
+# 기술 스택 배지 관리
 
-뱃지는 웹 쓰기 API 없이 DB 행과 디스크 파일을 직접 관리한다(2026-10-02 결정, 근거와 상세 규칙은 `docs/ADR/ADR_infra.md`의 '기술 이름·아이콘의 직접 관리'). 관리 화면은 등록된 뱃지 중에서 프로젝트에 쓸 것을 고르기만 한다.
+배지는 웹 쓰기 API 없이 DB 행과 디스크 파일을 직접 관리한다(2026-10-02 결정, 근거와 상세 규칙은 `docs/ADR/ADR_infra.md`의 '기술 이름·아이콘의 직접 관리'). 관리 화면은 등록된 배지 중에서 프로젝트에 쓸 것을 고르기만 한다.
 
 ## 구조
 
 | 대상 | 내용 |
 | --- | --- |
 | `stack_badges` | `id`, `name`(표시 이름, 100자 이하), `name_key`(`name`의 소문자, 고유), `object_key`(고유 상대 경로), `created_at`·`updated_at`(UTC `datetime(6)`) |
-| `series_stack_badges` | `(series_id, badge_id)` PK, `sort_order`(프로젝트 안 표시 순서, 0부터). 시리즈·뱃지 삭제 시 CASCADE |
+| `series_stack_badges` | `(series_id, badge_id)` PK, `sort_order`(프로젝트 안 표시 순서, 0부터). 시리즈·배지 삭제 시 CASCADE |
 | 파일 | 서버 `/srv/ken-blog-live/assets/{object_key}`, `object_key`는 `ken-blog/live/attachments/{UUID}.png` |
 | 파일 권한 | 소유자 `10001:1001`(API 컨테이너 사용자), 파일 0600, 디렉터리 0700. API는 읽기 전용 마운트 |
 | 공개 주소 | `GET /api/v1/stack-badges/{id}/image` (PNG). 응답의 `imageUrl`에 `?v={updated_at}`이 붙어 캐시를 갈아 끼움 |
@@ -20,7 +20,7 @@ description: ken-blog 프로젝트 헤더에 쓰는 기술 스택 뱃지(로고 
 
 ## 아이콘 규격
 
-- **64×64 RGBA PNG, 투명 배경, 비율 유지, 사방 여백 약 4px.** 기존 뱃지(예: Spring Boot 초록 육각형)와 같은 형태다.
+- **64×64 RGBA PNG, 투명 배경, 비율 유지, 사방 여백 약 4px.** 기존 배지(예: Spring Boot 초록 육각형)와 같은 형태다.
 - 다크·라이트 테마 모두에서 보여야 하므로 **브랜드 색이 있는 로고**를 쓴다. 검은색 단색 로고는 다크 테마에서 보이지 않는다.
 - 원본 SVG 출처(우선순위):
   1. devicon의 색 있는 로고: `https://cdn.jsdelivr.net/gh/devicons/devicon/icons/{이름}/{이름}-original.svg`
@@ -41,7 +41,7 @@ node .claude/skills/ken-blog-stack-badges/scripts/make-badge.cjs <입력.svg> <�
 .claude/skills/ken-blog-stack-badges/scripts/db.sh <SQL 파일>
 ```
 
-- `oci-blog` SSH 터널로 관리형 MySQL에 접속하고, 접속 정보는 출력하지 않는다. 로컬 Docker의 `mysql:8.4.11` 클라이언트를 쓴다(utf8mb4, TLS 필수).
+- `oci-blog` SSH 터널로 관리형 MySQL에 접속하고, 접속 정보는 출력하지 않는다. 로컬 Docker의 MySQL 클라이언트 이미지(버전은 `db.sh`에 고정)를 쓴다(utf8mb4, TLS 필수).
 - SQL 파일은 scratchpad에 만든다. 조회(SELECT)는 바로 실행해도 되지만, **쓰기는 실행 전 SQL 전문과 변경 전 값을 사용자에게 보여 주고 승인을 받는다.**
 
 ## 조회
@@ -59,7 +59,7 @@ FROM stack_badges b ORDER BY b.id;
 3. 파일 게시: 새 UUID로 서버에 올린다. 기존 파일은 덮어쓰지 않는다.
 
 ```bash
-uuid=$(python3 -c 'import uuid; print(uuid.uuid4())')
+uuid=$(cat /proc/sys/kernel/random/uuid)
 scp badge.png oci-blog:/tmp/$uuid.png
 ssh oci-blog "sudo install -o 10001 -g 1001 -m 0600 /tmp/$uuid.png /srv/ken-blog-live/assets/ken-blog/live/attachments/$uuid.png && rm /tmp/$uuid.png"
 ```
@@ -105,9 +105,9 @@ UPDATE stack_badges SET name = '{새 이름}', name_key = '{새 이름 소문자
 
 ```sql
 DELETE FROM series_stack_badges WHERE series_id = {프로젝트 id};
-INSERT INTO series_stack_badges (series_id, badge_id, sort_order) VALUES ({프로젝트 id}, {뱃지 id}, 0), ({프로젝트 id}, {뱃지 id}, 1);
+INSERT INTO series_stack_badges (series_id, badge_id, sort_order) VALUES ({프로젝트 id}, {배지 id}, 0), ({프로젝트 id}, {배지 id}, 1);
 ```
 
 ## 공개 반영
 
-DB와 파일 변경은 Git 커밋이 없어 Pages가 자동으로 돌지 않는다. 관리 화면의 Pages 배포 버튼이나 `gh workflow run pages.yml --repo gjaku1031/ken-blog`로 재배포하고, 공개 프로젝트 화면에서 아이콘이 바뀌었는지 확인한다. 공개 프로젝트에 쓰이지 않는 뱃지는 공개 데이터에 없어 재배포해도 화면 변화가 없다.
+DB와 파일 변경은 Git 커밋이 없어 Pages가 자동으로 돌지 않는다. 관리 화면의 Pages 배포 버튼이나 `gh workflow run pages.yml --repo gjaku1031/ken-blog`로 재배포하고, 공개 프로젝트 화면에서 아이콘이 바뀌었는지 확인한다. 공개 프로젝트에 쓰이지 않는 배지는 공개 데이터에 없어 재배포해도 화면 변화가 없다.
