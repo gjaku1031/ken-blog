@@ -62,7 +62,7 @@ Post의 메타데이터와 저장소 Markdown을 빌드 시 결합해 완성 HTM
 
 `pages`의 공개 snapshot v2·revision 및 일관 읽기 계약 유지. `content/posts/{slug}.md` 경로 규칙 유지. 공개 목록에 있는 글만 생성하고, 원고 누락·비공개 데이터 혼입·생성 중 revision 변경 시 최종 출력 교체 전 실패. 공개 페이지와 다운로드 이미지는 빈 staging에서 전체 재생성하여 삭제·공개 해제된 자료가 과거 출력에서 남지 않는 구성. 글별 증분 생성·의존성 그래프·본문 캐시 미도입.
 
-홈 소개는 후속 단순화로 `views/about.njk`에 직접 작성. snapshot v2의 `profile` 필드와 프로필 사진 다운로드 제거. 빌더는 구 API가 추가로 반환하는 profile 필드도 사용하지 않으며 사이트·API 사이 프로필 의존성 제거. 소개 수정은 템플릿 변경으로 Pages만 재생성. Caddy에서 프로필 공개·관리자 경로 삭제, ACME 인증서의 `profile shortlived` 설정은 별개 기능으로 유지.
+소개 카드는 후속 단순화로 `views/about.njk`에 직접 작성. snapshot v2의 `profile` 필드와 프로필 사진 다운로드 제거. 빌더는 구 API가 추가로 반환하는 profile 필드도 사용하지 않으며 사이트·API 사이 프로필 의존성 제거. 소개 수정은 템플릿 변경으로 Pages만 재생성. Caddy에서 프로필 공개·관리자 경로 삭제, ACME 인증서의 `profile shortlived` 설정은 별개 기능으로 유지.
 
 ### 빌드·배포 경계
 
@@ -98,9 +98,9 @@ CI의 Actuator health·CSRF·직접 준비한 본문 PNG/JPEG 조회·로컬 64p
 
 본문 첨부와 기술 아이콘의 파일 쓰기를 API에서 제거. `APP_ASSETS_DIRECTORY`와 영속 이미지 마운트·UID/GID 준비는 기존 파일 조회에 필요하므로 유지, `APP_ASSETS_KEY_PREFIX`와 multipart 크기 설정만 제거. API는 디렉터리를 자동 생성하지 않으며 파일을 열 때 경계·심볼릭 링크·디렉터리 쓰기 권한 확인. Caddy의 관리자 attachments 경로 제거, 공개 글별 이미지 경로 유지. 기존 서버 파일/백업 삭제와 운영 마운트 변경 없음.
 
-본문 이미지도 기술 아이콘과 동일하게 직접 파일을 먼저 준비한 다음 DB 행 등록. 기존 `attachments`의 ID·object_key·original_filename·content_type·byte_size·uploaded_by·status·시각 열과 FK 유지(`pending_cleanup`은 2026-10-08 제거, [영속성 ADR](ADR_persistence.md) 끝 참조). 새 행은 실제 PNG/JPEG·10MiB 이하 파일, 일치하는 MIME/크기, 기존 계정 FK, READY, UTC 시각과 고유 UUID 상대 키 사용. 파일/디렉터리 권한과 루트 경계는 기술 아이콘 직접 관리 절차와 동일. 업로드 검증기가 제거되어 앱이 형식을 변환/검증해 주지 않으므로 작성자가 파일을 확인하는 책임. 기존 PENDING/DELETING 행은 자동 복구/삭제 없이 보존.
+본문 이미지도 기술 아이콘과 동일하게 직접 파일을 먼저 준비한 다음 DB 행 등록. `attachments`는 ID·object_key·content_type·byte_size·시각 열만 둠(상태·원본 파일명·등록자 열은 2026-10-08 제거, [영속성 ADR](ADR_persistence.md) 끝 참조). 새 행은 실제 PNG/JPEG·10MiB 이하 파일, 일치하는 MIME/크기, UTC 시각과 고유 UUID 상대 키 사용. 파일/디렉터리 권한과 루트 경계는 기술 아이콘 직접 관리 절차와 동일. 업로드 검증기가 제거되어 앱이 형식을 변환/검증해 주지 않으므로 작성자가 파일을 확인하는 책임.
 
-글의 `attachmentIds`는 관리자 HTTP로 등록하며 존재·READY 검증과 잠금 유지. 원고의 `attachment:ID`와 연결 관계가 일치해야 Pages 빌드에서 다운로드 가능. 파일 교체는 새 키를 준비한 뒤 DB 키/크기/MIME/updated_at을 함께 변경하고 Pages 재생성 확인. 정리 전에는 `post_attachments`·기술 아이콘·복구 자료의 참조 및 백업 확인. 실제 자료 삭제는 이 코드 변경에 포함하지 않음.
+글의 `attachmentIds`는 관리자 HTTP로 등록하며 첨부 행의 존재 확인과 잠금 유지. 원고의 `attachment:ID`와 연결 관계가 일치해야 Pages 빌드에서 다운로드 가능. 파일 교체는 새 키를 준비한 뒤 DB 키/크기/MIME/updated_at을 함께 변경하고 Pages 재생성 확인. 정리 전에는 `post_attachments`·기술 아이콘의 참조 확인. 실제 자료 삭제는 이 코드 변경에 포함하지 않음.
 
 CI의 PNG/JPEG 준비를 격리 DB INSERT·로컬 파일 배치로 변경하고 로그인·출간·연결·공개 원본 바이트·jOOQ·Pages snapshot 검사 유지. 삭제된 관리자 첨부 API의 404 확인. 저장소 밖 실제 JVM/Caddy와 읽기 전용 이미지 마운트에서 해당 시나리오 및 Node의 실제 원고·이미지 Pages 생성 통과. CI YAML/shell/Python 구문 및 Caddy adapt/validate 확인. 런타임 자료 등록용 스크립트 신설 없음. Buildpacks·원격 CI·운영 반영 미수행.
 

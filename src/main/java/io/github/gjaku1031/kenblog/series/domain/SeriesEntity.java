@@ -94,8 +94,6 @@ public class SeriesEntity {
     @Column(name = "updated_at", nullable = false, columnDefinition = "datetime(6)")
     private LocalDateTime updatedAt;
 
-    // 재실행 가능한 기존 자료 이관과 이전 주소 연결에만 사용하는 출처
-
     /**
      * 시리즈 초기 속성 설정
      */
