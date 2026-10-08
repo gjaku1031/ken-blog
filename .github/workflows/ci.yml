@@ -71,6 +71,9 @@ jobs:
     needs: verify
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 45
+    # 운영 배포 작업이 승인 필요 여부를 판단할 값
+    outputs:
+      schema-changed: ${{ steps.migration.outputs.changed }}
     services:
       mysql:
         image: mysql:8.4.11
@@ -347,6 +350,21 @@ jobs:
           request('GET', '/api/v1/auth/me', expected=401)
           print('PASS HTTP login/logout, metadata/publication, PNG/JPEG attachments, local 64px icons, jOOQ reads, Pages v3 and removed endpoint; no API Markdown files')
           PY
+      - name: Verify release script with production Compose files
+        run: bash deploy/tests/release-test.sh "$RUNNER_TEMP/ken-blog-jvm-image/image.tar.gz"
+      - name: Detect migration SQL changes
+        id: migration
+        env:
+          BEFORE: ${{ github.event.before }}
+        run: |
+          # 직전 push 이후 deploy/sql이 바뀌었거나 비교할 커밋이 없으면(수동 실행·첫 push) 승인 필요로 봄
+          changed=true
+          if [ -n "$BEFORE" ] && [ "$BEFORE" != 0000000000000000000000000000000000000000 ] \
+            && git fetch --quiet --depth=1 origin "$BEFORE" \
+            && git diff --quiet "$BEFORE" "$GITHUB_SHA" -- deploy/sql/; then
+            changed=false
+          fi
+          echo "changed=$changed" >> "$GITHUB_OUTPUT"
       - name: Upload reviewed image archive
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -355,3 +373,65 @@ jobs:
           if-no-files-found: error
           compression-level: 0
           retention-days: 90
+
+  # 이관 SQL이 바뀐 배포는 운영 DB에 SQL을 먼저 적용한 뒤 승인함
+  schema-approval:
+    if: github.ref == 'refs/heads/main' && github.event_name != 'pull_request' && needs.jvm-image.outputs.schema-changed == 'true'
+    needs: jvm-image
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment: production-schema
+    steps:
+      - run: echo 'deploy/sql 이관 SQL 적용 확인 후 승인됨'
+
+  # 검증한 이미지 아카이브를 운영 서버에 반영. 서버는 배포 키로 deploy/release.sh만 실행함
+  deploy:
+    if: >-
+      always() && github.ref == 'refs/heads/main' && github.event_name != 'pull_request'
+      && needs.jvm-image.result == 'success'
+      && contains(fromJSON('["success", "skipped"]'), needs.schema-approval.result)
+    needs: [jvm-image, schema-approval]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    # 운영 교체는 한 번에 하나씩, 진행 중인 배포는 취소하지 않음
+    concurrency:
+      group: production-deploy
+      cancel-in-progress: false
+    # id-token: Tailscale이 GitHub OIDC 토큰으로 이 저장소의 production 배포 작업만 tailnet에 들임
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: ken-blog-jvm-arm64-${{ github.sha }}-${{ github.run_attempt }}
+          path: image
+      - name: Join tailnet as ephemeral CI node
+        uses: tailscale/github-action@d1b6cd204f8dceda5b3eaad7f1f767be390056cd # v4.2.0
+        with:
+          oauth-client-id: ${{ vars.TS_OIDC_CLIENT_ID }}
+          audience: ${{ vars.TS_OIDC_AUDIENCE }}
+          tags: tag:ci
+      - name: Replace production API image
+        env:
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          DEPLOY_KNOWN_HOSTS: ${{ vars.DEPLOY_KNOWN_HOSTS }}
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+        run: |
+          # 서버 호스트 키를 고정하고, 명령이 고정된 배포 키로 아카이브를 표준 입력에 흘려보냄
+          install -d -m 700 ~/.ssh
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/known_hosts ~/.ssh/deploy_key
+          sha=$(cut -d' ' -f1 image/image.tar.gz.sha256)
+          # 새 tailnet 노드의 경로가 잡히는 시간을 고려해 접속 대기를 30초로 둠
+          ssh -i ~/.ssh/deploy_key -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes -o ConnectTimeout=30 \
+            "ken-deploy@$DEPLOY_HOST" "jvm-$GITHUB_SHA $sha" < image/image.tar.gz
+      - name: Check public API
+        env:
+          API: ${{ vars.BLOG_API_BASE_URL }}
+        run: |
+          # Caddy를 거친 공개 주소에서 상태와 공개 데이터 확인
+          curl -fsS --retry 5 --retry-delay 3 "$API/actuator/health" | jq -e '.status == "UP"'
+          curl -fsS "$API/api/v1/pages/snapshot" | jq -e '.revision | length == 64'
