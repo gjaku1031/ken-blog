@@ -1,6 +1,6 @@
 ---
 name: ken-blog-docs
-description: ken-blog에 게시하는 프로젝트 문서(대문·아키텍처·기능·ERD·API·의사결정·배포·보안)와 Posts 글을 쓰거나 고치거나 검토할 때 사용. 새 프로젝트의 문서 묶음을 처음 만들 때도 이 스킬의 문서 유형 기준과 결정 기록을 템플릿으로 쓴다. 원고 수정부터 사실 확인, 로컬 미리보기, 커밋, Pages 배포 확인까지의 절차를 포함한다.
+description: ken-blog에 게시하는 프로젝트 문서(대문·아키텍처·기능·ERD·API·의사결정·배포·보안)와 Posts 글을 쓰거나 고치거나 검토할 때 사용. 새 프로젝트의 문서 묶음을 처음 만들 때도 이 스킬의 문서 유형 기준·결정 기록·대문 틀을 템플릿으로 쓴다. 원고 수정, 사실 확인, 로컬 미리보기, 본문 스크린샷 등록, 글 메타데이터(DB) 변경, 커밋·Pages 배포 확인, 저장소 README 작성 절차를 포함한다.
 ---
 
 # ken-blog 문서 작성
@@ -14,7 +14,7 @@ ken-blog 문서는 대학원 진학용 포트폴리오이자, 이후 다른 프�
 | 어떤 문서든 쓰거나 고칠 때 | 이 파일 전체, [decisions.md](references/decisions.md) |
 | 문서 유형별 구성(넣을 절·넣지 않을 것) | [document-types.md](references/document-types.md) |
 | 새 프로젝트 대문 | [landing-template.md](references/landing-template.md) |
-| 다이어그램 | `ken-blog-diagrams` 스킬 (`.claude/skills/ken-blog-diagrams/SKILL.md`) |
+| 도식 | `ken-blog-diagrams` 스킬 (`.claude/skills/ken-blog-diagrams/SKILL.md`) |
 | ken-blog 원고 대응표·인터뷰 기록 | `temp/review-notes.md` (있을 때) |
 
 ## 독자와 목표
@@ -38,7 +38,7 @@ ken-blog 문서는 대학원 진학용 포트폴리오이자, 이후 다른 프�
 ## 진행 절차
 
 1. **검토**: 문서와 관련 코드를 읽고, 위 기준의 진단·코드와 다른 사실·재구성안·사용자에게 물을 질문(3~5개, 추천안 포함)을 제시한다.
-2. **합의**: 개인 경험·담당 범위·측정하지 않은 성과는 사용자 답 전까지 쓰지 않는다. 설계의 이유·대안은 누가 정했든 코드·ADR·기록에서 확인한 사실로 쓴다(지어내지 않음). 인터뷰에서 사용자가 잘 모르는 것으로 보이면 비공개 학습 목록(`docs/study/<프로젝트>-learning.md`)에 올리고, 근거가 부족한 주장은 '보완 필요'로 알린 뒤 같은 목록에 올린다(decisions.md D-028·D-029).
+2. **합의**: 개인 경험·담당 범위·측정하지 않은 성과는 사용자 답 전까지 쓰지 않는다. 설계의 이유·대안은 누가 정했든 코드·ADR·기록에서 확인한 사실로 쓴다(지어내지 않음). 인터뷰에서 사용자가 잘 모르는 것으로 보이면 비공개 학습 목록(`docs/study/<프로젝트>-learning.md`)에 올리고, 근거가 부족한 주장은 '보완 필요'로 알린 뒤 같은 목록에 올린다(D-028·D-029).
 3. **작성**: 편집 원본(`temp/NN-*.md`가 있으면 그것, 없으면 게시 원고)을 고친다.
 4. **확인**: 아래 '배포 절차'의 사실 확인과 미리보기.
 5. **배포**: 합의한 수정은 매번 게시 원고·커밋·push·Pages 배포·공개 화면 확인까지 한다.
@@ -94,7 +94,7 @@ ken-blog 문서는 대학원 진학용 포트폴리오이자, 이후 다른 프�
 - 표 셀 안 줄바꿈은 렌더링되지 않는다. 여러 줄이 필요하면 표 아래 목록으로 뺀다. 표 셀의 `|`는 `\|`로 이스케이프한다.
 - 스크린샷은 페이지와 반대 테마의 캡처를 쓴다(기본 이미지는 어두운 캡처, `dark=`에 밝은 캡처). 모의 데이터가 보이면 캡션에 밝힌다. 저장소 README의 이미지는 GitHub와 같은 테마를 쓴다(document-types.md '저장소 README').
 
-## 다이어그램
+## 도식
 
 도식을 그리거나 고칠 때는 `ken-blog-diagrams` 스킬을 따른다. 렌더러 제약·크기·캡션과 범례 상자·고정 배치·검사 스크립트가 모두 거기에 있다.
 
@@ -106,7 +106,17 @@ ken-blog 문서는 대학원 진학용 포트폴리오이자, 이후 다른 프�
 
 ## 배포 절차
 
-원고 위치는 `content/posts/{slug}.md`, 편집 원본은 `temp/NN-*.md`(대응표: `temp/review-notes.md`). 둘을 같은 내용으로 유지한다.
+게시 원고는 `content/posts/{slug}.md`, 편집 원본은 `temp/NN-*.md`(대응표: `temp/review-notes.md`). 둘을 같은 내용으로 유지한다. 아래 목록을 복사해 진행 상황을 표시하고, 어느 단계든 실패하면 원고를 고친 뒤 1부터 다시 한다.
+
+```
+배포:
+- [ ] 1 사실 확인(코드·운영 DB 대조)
+- [ ] 2 도식 검사 ok
+- [ ] 3 npm test
+- [ ] 4 미리보기 캡처 확인
+- [ ] 5 deployment에 커밋·push·배포 요청
+- [ ] 6 Pages 실행·공개 주소 확인
+```
 
 1. **사실 확인**: 경로·메서드·상태 코드·필드·테스트 이름·수치·설정값을 현재 코드와 대조한다. 운영 DB 관련 서술은 `.claude/skills/ken-blog-stack-badges/scripts/db.sh`로 읽기 전용 조회해 대조한다. 다른 곳이 있으면 배포하지 않는다.
 2. **도식 검사**: `node .claude/skills/ken-blog-diagrams/scripts/check-mermaid.mts <원고.md>`.
@@ -123,7 +133,16 @@ ken-blog 문서는 대학원 진학용 포트폴리오이자, 이후 다른 프�
 
 ## 본문 스크린샷 등록
 
-공개 사이트는 `post_attachments`로 발행된 글에 연결된 첨부만 내보낸다(`PostQueries.readableAttachment`, `attachmentRevisions`). 연결이 없으면 원고에 ID를 적어도 이미지가 보이지 않는다.
+공개 사이트는 `post_attachments`로 발행된 글에 연결된 첨부만 내보낸다(`PostQueries.readableAttachment`, `attachmentRevisions`). 연결이 없으면 원고에 ID를 적어도 이미지가 보이지 않는다. 아래 목록을 복사해 진행 상황을 표시한다.
+
+```
+스크린샷 등록:
+- [ ] 1 캡처(비밀값 없는지 Read로 확인)
+- [ ] 2 새 UUID로 파일 올리기(어두운·밝은 두 장)
+- [ ] 3 attachments·post_attachments 등록(SQL 승인 후)
+- [ ] 4 원고에 attachment:ID 삽입
+- [ ] 5 배포 요청, 두 테마 확인
+```
 
 1. **캡처**: 비밀번호·토큰·개인 정보가 화면에 없는지 Read로 직접 본다.
    - 공개 화면: `node .claude/skills/ken-blog-docs/scripts/capture-screen.cjs <URL> <scratchpad>/<이름> [CSS 선택자] [폭] [높이]` → `<이름>-light.png`, `<이름>-dark.png`(2배 해상도). 선택자를 비우려면 `""`. 도식만 찍을 때는 `"figure.mermaid-figure img"`(원문 보기 버튼·캡션 제외)
