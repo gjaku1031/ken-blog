@@ -50,7 +50,7 @@ Compose 파일·Caddyfile·`release.sh`는 자동 배포 대상이 아니다. �
 | 경계 | 설정 |
 | --- | --- |
 | 네트워크 | 배포 키는 tailnet 주소(`from=`)에서만 유효. CI 노드는 GitHub OIDC로 `tag:ci`를 받으며, ACL은 `tag:ci`에서 서버 22번 포트만 허용 |
-| tailnet 진입 | Tailscale 신뢰 자격 증명의 subject를 `repo:gjaku1031/ken-blog:environment:production`으로 제한. GitHub에 Tailscale 비밀값 없음 |
+| tailnet 진입 | Tailscale 신뢰 자격 증명의 subject를 `repo:gjaku1031@150967087/ken-blog@1387307910:environment:production`으로 제한(저장소가 변하지 않는 ID 형식 subject를 씀). GitHub에 Tailscale 비밀값 없음 |
 | SSH 키 | 사용자 `ken-deploy`의 `authorized_keys`에 `restrict,from="100.64.0.0/10",command="sudo -n /usr/local/sbin/ken-blog-release \"$SSH_ORIGINAL_COMMAND\""` |
 | 권한 | sudoers는 `ken-deploy`에 `/usr/local/sbin/ken-blog-release` 실행만 허용. 스크립트는 root 소유 0755 |
 
