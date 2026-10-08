@@ -1,9 +1,19 @@
 # ken.blog
 
-프로젝트 경험과 학습 문서를 한곳에서 관리하는 개인 블로그. 원고는 이 저장소의 Markdown이고, 공개 화면은 빌드 시 정적 페이지로 만들어 GitHub Pages에 배포함.
+프로젝트별 설계 문서(아키텍처·ERD·API 등)와 기술·학습 글을 한곳에서 읽고 관리하는 개인 개발 블로그. 사람과 에이전트가 이 저장소의 Markdown 원고를 함께 고치고, 공개 화면은 빌드 시 정적 페이지로 만들어 GitHub Pages에 배포함.
 
 - 블로그: https://gjaku1031.github.io/ken-blog/
 - 프로젝트 소개(대문): https://gjaku1031.github.io/ken-blog/post/project-06840552-43a2-4870-83a9-d3e848c71d7e/
+
+## 주요 기능
+
+| 기능 | 할 수 있는 일 |
+| --- | --- |
+| 프로젝트 문서 탐색 | 프로젝트별 대문에서 아키텍처·ERD·API 등 설계 문서를 정해진 순서로 읽고, 이전·다음 문서와 관련 문제 해결·실험 글로 이동 |
+| 기술·학습 기록 탐색 | 두 단계 분류·태그·검색으로 글을 찾고, 위키 링크와 역링크로 관련 글을 오가며 읽기 |
+| 설계 도식 | Mermaid로 쓴 아키텍처·ERD를 기술 아이콘과 고정 배치로 렌더링하고, 확대 보기에서 드래그·휠·핀치로 세부 확인 |
+| 기술 문서 표현 | 코드 하이라이트·표·수식·주석, 라이트·다크 테마별 이미지 |
+| 원고 작성과 발행 | Git의 Markdown 원고로 본문을 쓰고, 관리 화면에서 제목·분류·소속·문서 순서·발행 상태 관리 |
 
 ## 화면
 
@@ -47,18 +57,6 @@
 ## 기술 스택
 
 Java 25 · Spring Boot 4.1 · MySQL · Node 24 · TypeScript · Mermaid 12 · GitHub Actions · Docker Compose · Caddy
-
-## 저장소 구조
-
-| 경로 | 내용 |
-| --- | --- |
-| `src/main/java` | Spring Boot API. 기능별 패키지(`post`, `series`, `category`, `attachment`, `stack`, `auth`)와 빌드용 스냅샷·배포 실행(`pages`) |
-| `src/main/resources/web` | 공개 사이트·관리 화면의 TypeScript·템플릿·CSS와 Markdown·Mermaid 렌더러 |
-| `content/posts` | 게시 원고(Markdown). 파일 이름이 글 주소 |
-| `.github/pages` | 정적 사이트 빌더와 Node·브라우저 테스트 |
-| `.github/workflows` | CI(API 검사·이미지), Frontend 검사, Pages 배포 |
-| `deploy` | 운영 Compose·Caddy 설정, 이관 SQL, 배포 절차와 검증 스크립트 |
-| `docs` | 설계 결정 기록(ADR), 코드·주석 컨벤션, 실험 자료 |
 
 ## 문서
 
