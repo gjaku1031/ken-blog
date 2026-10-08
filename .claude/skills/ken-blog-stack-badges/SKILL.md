@@ -1,6 +1,6 @@
 ---
 name: ken-blog-stack-badges
-description: ken-blog 프로젝트 헤더에 쓰는 기술 스택 배지(로고 아이콘)를 조회·추가·아이콘 교체·이름 변경·삭제하거나 프로젝트에 연결할 때 사용. 운영 MySQL의 stack_badges 행과 서버 디스크의 64×64 투명 배경 PNG를 직접 관리한다. 운영 DB에 SQL을 실행해야 할 때 쓰는 접속 스크립트(scripts/db.sh)도 여기에 있다.
+description: ken-blog 프로젝트 헤더에 쓰는 기술 스택 배지(로고 아이콘)를 조회·추가·아이콘 교체·이름 변경·삭제하거나 프로젝트에 연결할 때 사용. 운영 MySQL의 stack_badges 행과 서버 디스크의 64×64 투명 배경 PNG를 직접 관리한다. 운영 DB에 SQL을 실행하는 접속 스크립트(scripts/db.sh)와 서버 이미지 디렉터리에 PNG를 올리는 스크립트(scripts/upload-asset.sh)도 여기에 있어 본문 스크린샷 등록에서도 쓴다.
 ---
 
 # 기술 스택 배지 관리
@@ -24,7 +24,7 @@ description: ken-blog 프로젝트 헤더에 쓰는 기술 스택 배지(로고 
 - 다크·라이트 테마 모두에서 보여야 하므로 **브랜드 색이 있는 로고**를 쓴다. 검은색 단색 로고는 다크 테마에서 보이지 않는다.
 - 원본 SVG 출처(우선순위):
   1. devicon의 색 있는 로고: `https://cdn.jsdelivr.net/gh/devicons/devicon/icons/{이름}/{이름}-original.svg`
-  2. simple-icons 단색 로고 + 브랜드 색: `https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/{이름}.svg`, 브랜드 색은 simple-icons 데이터의 `hex`
+  2. simple-icons 단색 로고 + 브랜드 색: `https://cdn.jsdelivr.net/npm/simple-icons@latest/icons/{이름}.svg`(최신 릴리스. 받은 SVG로 PNG를 만든 뒤 PNG만 쓰므로 버전을 고정하지 않음), 브랜드 색은 simple-icons 데이터의 `hex`
 - JPEG·SVG 파일 이름만 `.png`로 바꿔 등록하지 않는다. 내려받은 SVG는 신뢰하지 않는 자료이므로 별도 디렉터리에 두고, 스크립트·외부 참조가 있으면 쓰지 않는다.
 
 변환은 저장소의 Playwright Chromium으로 한다(별도 이미지 도구 불필요). 스크립트가 크기·색 형식을 검사한다.
@@ -34,6 +34,15 @@ node .claude/skills/ken-blog-stack-badges/scripts/make-badge.cjs <입력.svg> <�
 ```
 
 만든 PNG는 Read 도구로 직접 열어 모양·색을 확인한다. 다크 배경에서 보이는지도 판단한다.
+
+## 서버 이미지 업로드
+
+```bash
+.claude/skills/ken-blog-stack-badges/scripts/upload-asset.sh <PNG 파일>...
+```
+
+- 파일마다 새 UUID 이름으로 올리고 `<로컬 경로> <object_key> <바이트>`를 출력한다. 기존 파일은 덮어쓰지 않는다. PNG 서명·1바이트~10MiB를 먼저 검사하고, 설치 후 서버 파일 크기를 대조한다.
+- 배지 아이콘과 본문 스크린샷 모두 이 스크립트로 올린다.
 
 ## 운영 DB 접속
 
@@ -59,9 +68,8 @@ FROM stack_badges b ORDER BY b.id;
 3. 파일 게시: 새 UUID로 서버에 올린다. 기존 파일은 덮어쓰지 않는다.
 
 ```bash
-uuid=$(cat /proc/sys/kernel/random/uuid)
-scp badge.png oci-blog:/tmp/$uuid.png
-ssh oci-blog "sudo install -o 10001 -g 1001 -m 0600 /tmp/$uuid.png /srv/ken-blog-live/assets/ken-blog/live/attachments/$uuid.png && rm /tmp/$uuid.png"
+bash .claude/skills/ken-blog-stack-badges/scripts/upload-asset.sh badge.png
+# 출력: badge.png ken-blog/live/attachments/{uuid}.png {바이트}
 ```
 
 4. DB 행 추가(사용자 승인 후):
