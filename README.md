@@ -56,7 +56,12 @@
 
 ## 기술 스택
 
-Java 25 · Spring Boot 4.1 · MySQL · Node 24 · TypeScript · Mermaid 12 · GitHub Actions · Docker Compose · Caddy
+| 영역 | 기술 |
+| --- | --- |
+| API | Java 25, Spring Boot 4.1 |
+| DB | MySQL |
+| 사이트 빌드 | Node 24, TypeScript, Mermaid 12 |
+| 배포 | GitHub Actions, Docker Compose, Caddy |
 
 ## 문서
 
