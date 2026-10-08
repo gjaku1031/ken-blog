@@ -101,8 +101,6 @@ public class PostEntity {
     @Column(name = "series_order")
     private Integer seriesOrder = null;
 
-    // 이전 구획은 이관 때 TECH로 정규화 앱의 종류 판단에는 사용하지 않음
-
     /**
      * 이전 공개 경로
      */
