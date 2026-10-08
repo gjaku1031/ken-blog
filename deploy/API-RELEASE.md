@@ -2,29 +2,57 @@
 
 CI가 만든 ARM64 JVM 이미지를 운영 서버(`oci-prod`, `/srv/ken-blog-live`)에 반영하는 반복 절차. 열을 추가·삭제하는 변경은 확장-축소 순서로 이관 SQL과 이미지 교체를 나눈다.
 
+## 자동 배포
+
+`main`의 CI(`.github/workflows/ci.yml`)가 이미지 검사를 통과하면 `deploy` 작업이 운영 API를 교체한다.
+
+1. `jvm-image`: ARM64 JVM 이미지 생성·실행 검사, `deploy/tests/release-test.sh`로 교체·롤백 검사, 아카이브와 SHA-256 보관.
+2. `schema-approval`: 직전 push 이후 `deploy/sql/`이 바뀌었거나 비교할 커밋이 없으면(수동 실행) Environment `production-schema`의 승인을 기다린다. 승인 전에 아래 '스키마 변경' 순서로 SQL을 적용한다.
+3. `deploy`: GitHub OIDC로 tailnet에 일회용 노드(`tag:ci`)로 들어와, 배포 키로 아카이브를 서버에 표준 입력으로 보낸다. 끝나면 공개 주소의 health와 스냅샷을 확인한다.
+
+서버는 배포 키로 `/usr/local/sbin/ken-blog-release`(저장소의 `deploy/release.sh` 사본)만 실행한다.
+
+1. 인자 형식(`jvm-<커밋> <SHA-256>`)과 아카이브 SHA-256·이미지 이름·ARM64 확인 후 `docker load`.
+2. `production.env`의 `KEN_BLOG_API_IMAGE`를 바꾸고, Compose 파일 두 개로 API만 재생성해 healthcheck가 healthy가 될 때까지 기다린다.
+3. 로컬 API 포트에서 스냅샷·CSRF·기술 아이콘 200과 기동 이후 ERROR 로그 없음을 확인한다.
+4. 실패하면 이전 이미지로 되돌려 다시 healthy를 기다린다. 결과는 `releases/history.log`에 남는다.
+
+종료 코드: 0 성공·이미 배포됨, 64 인자 오류, 65 아카이브 불일치, 70 롤백 성공, 71 롤백 실패, 75 다른 배포 진행 중.
+
 ## Compose 명령의 기준
 
-운영 DB는 사설 CA의 TLS로 연결하므로 API는 truststore 마운트가 필요하다. 모든 Compose 명령에 두 파일을 함께 지정한다.
+운영 DB는 사설 CA의 TLS로 연결하므로 API는 truststore 마운트가 필요하다. 수동으로 Compose를 실행할 때도 두 파일을 함께 지정한다.
 
 ```bash
 cd /srv/ken-blog-live
 docker compose --env-file production.env \
   -f deploy/compose.production.yaml \
   -f deploy/compose.mysql-tls.yaml \
-  up -d --no-deps api
+  up -d --no-deps --wait api
 ```
 
-`compose.production.yaml` 하나로 API를 재생성하면 `/run/ken-blog/mysql-truststore.p12`가 없어 JPA 초기화 단계에서 기동이 실패하고 재시작을 반복한다. 2026-10-07 Java 이미지 배포와 롤백에서 이 누락으로 API가 약 6분간 중단됐다. 실행 중인 컨테이너의 `com.docker.compose.project.config_files` 라벨로 두 파일이 모두 적용됐는지 확인한다.
+`compose.production.yaml` 하나로 API를 재생성하면 `/run/ken-blog/mysql-truststore.p12`가 없어 JPA 초기화 단계에서 기동이 실패하고 재시작을 반복한다. 2026-10-07 수동 배포와 롤백에서 이 누락으로 API가 약 6분간 중단됐고, 이후 배포 스크립트가 두 파일을 고정한다.
 
-## 절차
+## 수동 배포
 
-1. 배포 전 기록: 현재 `KEN_BLOG_API_IMAGE` 태그와 이미지 ID, 공개 스냅샷의 `version`·`revision`.
-2. CI artifact의 아카이브 SHA-256 대조 후 서버로 전송, `docker load`, 이미지 ID 대조.
-3. `production.env`의 `KEN_BLOG_API_IMAGE`만 새 태그로 변경.
-4. 위 기준 명령으로 API만 재생성. Caddy·DB·다른 환경 값은 변경하지 않는다.
-5. 호스트의 API 포트(`API_PORT`, 현재 18084)에서 `/actuator/health`가 UP이 될 때까지 대기.
-6. 확인: 공개 주소의 health UP, 스냅샷 `version`과 `revision`이 배포 전과 같음, `/api/v1/auth/csrf` 200, 기술 아이콘 이미지 200, 기동 이후 로그의 ERROR 없음.
-7. 하나라도 실패하면 1에서 기록한 태그로 `KEN_BLOG_API_IMAGE`를 되돌리고 같은 기준 명령으로 재생성한 뒤 health를 확인한다.
+CI 배포 작업을 쓸 수 없을 때는 CI artifact를 받아 서버에서 같은 스크립트를 실행한다.
+
+```bash
+sudo ken-blog-release "jvm-<커밋> $(cut -d' ' -f1 image.tar.gz.sha256)" < image.tar.gz
+```
+
+## 서버 구성 변경
+
+Compose 파일·Caddyfile·`release.sh`는 자동 배포 대상이 아니다. 바뀌면 검토 후 서버의 `/srv/ken-blog-live/deploy/`와 `/usr/local/sbin/ken-blog-release`에 직접 반영한다. 배포 키가 실행하는 스크립트를 CI가 바꿀 수 없게 하기 위함이다.
+
+## 배포 키와 접근 경계
+
+| 경계 | 설정 |
+| --- | --- |
+| 네트워크 | 배포 키는 tailnet 주소(`from=`)에서만 유효. CI 노드는 GitHub OIDC로 `tag:ci`를 받으며, ACL은 `tag:ci`에서 서버 22번 포트만 허용 |
+| tailnet 진입 | Tailscale 신뢰 자격 증명의 subject를 `repo:gjaku1031/ken-blog:environment:production`으로 제한. GitHub에 Tailscale 비밀값 없음 |
+| SSH 키 | 사용자 `ken-deploy`의 `authorized_keys`에 `restrict,from="100.64.0.0/10",command="sudo -n /usr/local/sbin/ken-blog-release \"$SSH_ORIGINAL_COMMAND\""` |
+| 권한 | sudoers는 `ken-deploy`에 `/usr/local/sbin/ken-blog-release` 실행만 허용. 스크립트는 root 소유 0755 |
 
 ## 스키마 변경
 

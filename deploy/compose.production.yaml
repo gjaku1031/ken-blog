@@ -34,6 +34,15 @@ services:
       BPL_JVM_HEAD_ROOM: ${BPL_JVM_HEAD_ROOM:-10}
       # Hibernate·jOOQ 동적 클래스 로딩을 위한 메타스페이스 힙은 남은 공간에서 계산
       JAVA_TOOL_OPTIONS: ${JAVA_TOOL_OPTIONS:--XX:MaxMetaspaceSize=256m}
+    # release.sh의 compose up --wait가 기다리는 상태 검사. 실행 이미지에 curl이 없어 bash 내장 /dev/tcp로 요청하고 상태 코드 200만 healthy
+    healthcheck:
+      test: ["CMD", "bash", "-c", "exec 3<>/dev/tcp/127.0.0.1/8080 && printf 'GET /actuator/health HTTP/1.0\\r\\nHost: localhost\\r\\n\\r\\n' >&3 && read -r _ code _ <&3 && [ \"$$code\" = 200 ]"]
+      # 기동(1 CPU에서 약 25초) 동안의 실패는 세지 않고 2초 간격으로 확인함
+      start_period: 120s
+      start_interval: 2s
+      interval: 30s
+      timeout: 5s
+      retries: 3
     ports:
       - "127.0.0.1:${API_PORT:-18081}:8080"
     volumes:
