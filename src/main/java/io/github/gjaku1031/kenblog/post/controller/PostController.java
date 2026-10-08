@@ -41,16 +41,6 @@ public final class PostController {
     }
 
     /**
-     * 본문 없는 관리자 목록
-     */
-    @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<PostPageResponse> list(
-            @RequestParam(defaultValue = "0") int page,
-            @RequestParam(defaultValue = "20") int size) {
-        return noStore(service.listDrafts(page, size));
-    }
-
-    /**
      * 같은 DB 시점의 관리자 전체 메타데이터
      */
     @GetMapping(value = "/snapshot", produces = MediaType.APPLICATION_JSON_VALUE)

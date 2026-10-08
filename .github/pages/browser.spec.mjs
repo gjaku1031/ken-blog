@@ -46,7 +46,7 @@ async function confirmModal(page) {
  */
 async function mockApi(page, override = async () => false) {
   const posts = structuredClone(fixture.posts).map(post => ({ ...post, editVersion: 0, updatedAt: post.publishedAt,
-    status: 'DRAFT', visibility: 'PUBLIC', seriesOrder: null, relatedSeriesId: post.relatedSeries?.id ?? null }));
+    status: 'DRAFT', seriesOrder: null, relatedSeriesId: post.relatedSeries?.id ?? null }));
   const series = structuredClone(fixture.series).map(row => ({ ...row, updatedAt: '2026-10-03T00:00:00', sortOrder: row.sortOrder ?? 0 }));
   const categories = structuredClone(fixture.categories).filter(item => item.depth === 1).map(item => ({ ...item, directCount: 1,
     children: fixture.categories.filter(child => child.path.startsWith(item.path + '/')).map(child => ({ ...child, directCount: 1, children: [] })) }));
@@ -74,7 +74,7 @@ async function mockApi(page, override = async () => false) {
     else if (method === 'POST' && path === '/admin/posts') {
       expectPostInput(body);
       const id = Math.max(...posts.map(row => row.id)) + 1;
-      data = { ...body, id, slug: `created-${id}`, editVersion: 0, status: 'DRAFT', visibility: 'PUBLIC', updatedAt: '2026-10-03T00:00:00',
+      data = { ...body, id, slug: `created-${id}`, editVersion: 0, status: 'DRAFT', updatedAt: '2026-10-03T00:00:00',
         section: 'TECH', category: null, series: null, seriesOrder: body.order, relatedSeriesId: body.relatedSeriesId };
       posts.push(data); status = 201;
     } else if (method === 'PUT' && /^\/admin\/posts\/\d+\/metadata$/.test(path)) {
@@ -101,7 +101,7 @@ async function mockApi(page, override = async () => false) {
       expect(['TECH', 'PROJECT']).toContain(body.kind);
       expectSeriesInput(body.metadata, body.kind === 'PROJECT');
       const id = Math.max(0, ...series.map(row => row.id)) + 1;
-      data = { ...body.metadata, id, kind: body.kind, slug: `series-${id}`, visibility: 'PUBLIC', sortOrder: 0,
+      data = { ...body.metadata, id, kind: body.kind, slug: `series-${id}`, sortOrder: 0,
         updatedAt: `2026-10-03T00:00:${String(++revision).padStart(2, '0')}`, stackBadges: [], postCount: 0, cover: null };
       series.push(data); status = 201;
     } else if (method === 'PUT' && /^\/admin\/series\/\d+\/(metadata|order)$/.test(path)) {

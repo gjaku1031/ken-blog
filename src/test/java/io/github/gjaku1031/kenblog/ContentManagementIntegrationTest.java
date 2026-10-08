@@ -157,7 +157,7 @@ final class ContentManagementIntegrationTest {
         assertThrows(SeriesInUseException.class, () -> series.delete(group.id()));
         posts.delete(post.id());
         series.delete(group.id());
-        assertFalse(series.list(true).stream().anyMatch(item -> item.id() == group.id()));
+        assertFalse(series.list().stream().anyMatch(item -> item.id() == group.id()));
     }
 
     /**

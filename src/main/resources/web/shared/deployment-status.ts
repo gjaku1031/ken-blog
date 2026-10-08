@@ -47,11 +47,6 @@ export type Publication = {
    * 발행 여부
    */
   status: 'DRAFT' | 'PUBLISHED';
-
-  /**
-   * 공개 범위
-   */
-  visibility: 'PUBLIC' | 'PRIVATE';
 };
 
 /**
@@ -157,15 +152,12 @@ export function readDeploymentManifest(input: unknown): DeploymentManifest {
  * 배포 기록 조회 실패 시 공개 완료로 추정하지 않음
  */
 export function deploymentState(post: Publication, comparison: DeploymentComparison | null) {
-  if (!comparison) return { kind: 'unknown', label: `${post.status === 'DRAFT' ? '미발행' : post.visibility === 'PRIVATE' ? '비공개 발행' : '공개 발행'} · 배포 상태 미확인` };
+  if (!comparison) return { kind: 'unknown', label: `${post.status === 'DRAFT' ? '미발행' : '공개 발행'} · 배포 상태 미확인` };
   const deployed = comparison.deployed.posts[post.id];
   const current = comparison?.current.posts[post.id];
   if (post.status === 'DRAFT') return deployed
     ? { kind: 'pending', label: '발행 취소 · 배포 대기' }
     : { kind: 'draft', label: '미발행' };
-  if (post.visibility === 'PRIVATE') return deployed
-    ? { kind: 'pending', label: '비공개 전환 · 배포 대기' }
-    : { kind: 'private', label: '비공개 발행' };
   if (!current) return { kind: 'unknown', label: '배포 상태 확인 필요' };
   if (!deployed) return { kind: 'pending', label: '발행 후 배포 대기' };
   return current === deployed

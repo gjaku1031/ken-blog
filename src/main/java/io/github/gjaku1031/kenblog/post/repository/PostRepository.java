@@ -14,11 +14,11 @@ import java.util.Collection;
 
 /**
  * JPA로 글 저장·단건 조회·변경 잠금만 담당
- * 목록·검색은 PostQueries에 위임
+ * 목록·집계는 PostQueries에 위임
  */
 public interface PostRepository extends JpaRepository<PostEntity, Long> {
     /**
-     * 출간 상태·공개 범위와 관계없이 시리즈 소속 또는 관련 글의 존재 확인
+     * 출간 상태와 관계없이 시리즈 소속 또는 관련 글의 존재 확인
      */
     boolean existsBySeriesIdOrRelatedSeriesId(long seriesId, long relatedSeriesId);
 

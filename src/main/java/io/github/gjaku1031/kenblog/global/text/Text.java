@@ -12,7 +12,7 @@ public final class Text {
     /**
      * Unicode 공백과 공백 구분 문자 여부
      */
-    public static boolean isWhitespace(char value) {
+    private static boolean isWhitespace(char value) {
         return Character.isWhitespace(value) || Character.isSpaceChar(value);
     }
 

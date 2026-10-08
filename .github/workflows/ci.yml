@@ -10,7 +10,6 @@ on:
       - '!src/main/resources/web/**'
       - 'src/test/**'
       - '*.gradle'
-      - 'gradle.properties'
       - 'gradle/**'
       - 'gradlew'
       - '.github/workflows/ci.yml'
@@ -24,7 +23,6 @@ on:
       - '!src/main/resources/web/**'
       - 'src/test/**'
       - '*.gradle'
-      - 'gradle.properties'
       - 'gradle/**'
       - 'gradlew'
       - '.github/workflows/ci.yml'
@@ -65,7 +63,7 @@ jobs:
           npm ci
           npx playwright install --with-deps chromium
       - name: Verify schema rollout and cross-site authentication
-        run: python3 deploy/verify-review-runtime.py
+        run: python3 deploy/verify-runtime.py
 
   # 테스트 성공 후 ARM64 JVM 이미지 생성·실행 검증
   jvm-image:
@@ -265,15 +263,11 @@ jobs:
                          input='\n'.join(sql), text=True, check=True)
 
           # 익명 접근 거부 후 세션 로그인·CSRF 교체 검증
-          request('GET', '/api/v1/admin/posts', expected=401, authenticated=False)
+          request('GET', '/api/v1/admin/posts/snapshot', expected=401, authenticated=False)
           csrf = request('GET', '/api/v1/auth/csrf')['token']
           request('POST', '/api/v1/auth/login', {'password': 'jvm-ci-ephemeral-only', 'rememberMe': True})
           assert request('GET', '/api/v1/auth/me')['username'] == 'ci_jvm_admin'
           csrf = request('GET', '/api/v1/auth/csrf')['token']
-          # 인증·유효 CSRF 요청에서 제거된 엔드포인트의 일반 404 확인
-          for path in ['/mcp', '/mcp/anything']:
-              request('GET', path, expected=404)
-              request('POST', path, {}, expected=404)
 
           # 본문 이미지도 격리 DB·디스크에 직접 준비, 앱 업로드·삭제 경로 없음
           attachment_ids = []
@@ -281,17 +275,13 @@ jobs:
               filename = f'00000000-0000-4000-8000-{index:012d}.{extension}'
               temporary.write_bytes(image)
               subprocess.run(['sudo', 'install', '-o', '10001', '-g', '1001', '-m', '0600', str(temporary), str(icon_dir / filename)], check=True)
-              sql = ("INSERT INTO attachments (object_key,original_filename,content_type,byte_size,uploaded_by,status,created_at,updated_at) "
-                     f"SELECT 'ken-blog/attachments/{filename}','fixture.{extension}','{mime}',{len(image)},id,'READY',UTC_TIMESTAMP(6),UTC_TIMESTAMP(6) "
-                     "FROM users WHERE username='ci_jvm_admin'; SELECT LAST_INSERT_ID();")
+              sql = ("INSERT INTO attachments (object_key,content_type,byte_size,created_at,updated_at) "
+                     f"VALUES ('ken-blog/attachments/{filename}','{mime}',{len(image)},UTC_TIMESTAMP(6),UTC_TIMESTAMP(6)); "
+                     "SELECT LAST_INSERT_ID();")
               result = subprocess.run(['docker', 'exec', '-i', '${{ job.services.mysql.id }}', 'sh', '-c',
                           'MYSQL_PWD="$MYSQL_PASSWORD" exec mysql -N -u"$MYSQL_USER" "$MYSQL_DATABASE"'],
                          input=sql, text=True, capture_output=True, check=True)
               attachment_ids.append(int(result.stdout.strip()))
-          for path in ['/api/v1/admin/attachments', '/api/v1/admin/attachments/1', '/api/v1/admin/attachments/1/content']:
-              request('GET', path, expected=404)
-              request('POST', path, {}, expected=404)
-              request('DELETE', path, expected=404)
           # 기술 목록과 공개 이미지 원본·크기 검증
           badges = request('GET', '/api/v1/admin/stack-badges')
           assert [badge['name'] for badge in badges] == ['JVM CI PNG', 'JVM CI Local']
@@ -311,7 +301,7 @@ jobs:
           slug = 'jvm-ci-project'
           post = metadata(request('POST', '/api/v1/admin/posts', {
               'title': 'JVM CI Project', 'slug': slug, 'seriesId': series['id'], 'order': 1,
-              'categoryId': category['id'], 'tags': ['Kotlin'],
+              'categoryId': category['id'], 'tags': ['Java'],
           }, 201))
           assert post['series']['id'] == series['id'] and post['section'] == 'PROJECT' and post['status'] == 'DRAFT', post
           # 글 메타데이터와 첨부 연결 교체 검증
@@ -322,11 +312,11 @@ jobs:
               'baseVersion': post['editVersion'], 'seriesId': series['id'], 'order': 1, 'relatedSeriesId': None,
           }))['tags'] == ['Spring']
           assert metadata(request('PUT', post_path + '/attachments', {'attachmentIds': attachment_ids}))['attachmentIds'] == attachment_ids
-          assert request('GET', '/api/v1/admin/posts')['totalElements'] == 1
+          assert len(request('GET', '/api/v1/admin/posts/snapshot')) == 1
           assert request('GET', '/api/v1/admin/series/' + str(series['id']))['posts'][0]['id'] == post['id']
           snapshot = request('GET', '/api/v1/pages/snapshot', authenticated=False)
           assert snapshot['version'] == 3 and len(snapshot['revision']) == 64
-          assert snapshot['posts'] == [] and snapshot['series'] == [] and 'profile' not in snapshot
+          assert snapshot['posts'] == [] and snapshot['series'] == []
 
           # 발행 후 스냅샷·검색·이미지 공개 확인
           metadata(request('PUT', post_path + '/publication', {'published': True}))

@@ -6,7 +6,7 @@
 
 ## 결정과 배경
 
-JPA는 저장·단일 조회·변경 잠금, jOOQ는 목록·검색·집계·위키·공개 첨부 조회와 연결 검증용 첨부 상태 잠금 담당. 영속 모델의 원본은 JPA 엔티티이며 jOOQ를 위해 별도 SQL 스키마를 수동 관리하지 않는 결정. 기존 `src/jooq/schema.sql`은 엔티티와 변경을 이중 관리해야 하므로 제거.
+JPA는 저장·단일 조회·변경 잠금, jOOQ는 목록·집계·공개 스냅샷·공개 첨부 조회와 연결 검증용 첨부 행 잠금 담당. 영속 모델의 원본은 JPA 엔티티이며 jOOQ를 위해 별도 SQL 스키마를 수동 관리하지 않는 결정. 기존 `src/jooq/schema.sql`은 엔티티와 변경을 이중 관리해야 하므로 제거.
 
 빌드 순서는 다음과 같음.
 
@@ -15,11 +15,11 @@ JPA는 저장·단일 조회·변경 잠금, jOOQ는 목록·검색·집계·위
   → build/generated/jooq/schema.sql → jooqCodegen → compileJava
 ```
 
-빌드 전용 `jpaModel` 소스셋에서 `src/main/java`의 원본 도메인 클래스와 도메인 예외의 공통 부모 `global/error/BusinessException`·문자열 공통 함수 `global/text/Text`만 먼저 컴파일. HTTP 응답 변환기와 서비스는 제외. 생성 로직은 `build.gradle`의 `generateJpaSchema` 태스크에 통합하고 별도 `src/jooq/kotlin` 생성기 파일은 제거. Gradle의 빌드용 Hibernate 의존성도 앱과 같은 Spring Boot BOM으로 관리. 앱과 동일한 Hibernate 버전·MySQL dialect·snake_case 물리 이름 정책으로 JPA 매핑을 읽어 DDL 출력. JDBC 메타데이터 접근과 DB schema action은 비활성화. jOOQ `DDLDatabase`가 생성된 DDL을 읽고 Java 테이블 타입 생성.
+빌드 전용 `jpaModel` 소스셋에서 `src/main/java`의 원본 도메인 클래스와 도메인 예외의 공통 부모 `global/error/BusinessException`·문자열 공통 함수 `global/text/Text`만 먼저 컴파일. HTTP 응답 변환기와 서비스는 제외. 생성 로직은 `build.gradle`의 `generateJpaSchema` 태스크에 두고 별도 생성기 소스는 두지 않음. Gradle의 빌드용 Hibernate 의존성도 앱과 같은 Spring Boot BOM으로 관리. 앱과 동일한 Hibernate 버전·MySQL dialect·snake_case 물리 이름 정책으로 JPA 매핑을 읽어 DDL 출력. JDBC 메타데이터 접근과 DB schema action은 비활성화. jOOQ `DDLDatabase`가 생성된 DDL을 읽고 Java 테이블 타입 생성.
 
 `build/`의 DDL과 테이블 코드는 재생성 가능한 Git 제외 산출물. 엔티티를 수정하면 Gradle 의존 관계에 따라 재생성하며 개발·CI에서 실제 DB 접속 불필요. 도메인을 별도 저장소나 모듈로 옮기지 않고 먼저 컴파일하여 앱 컴파일과 jOOQ 생성 간 순환 의존을 해소. 태스크는 전용 클래스 로더로 엔티티를 읽고 종료 시 레지스트리·로더 정리. Spring 앱을 기동하지 않으며 빌드 전용 클래스 출력은 API JAR에 포함하지 않음.
 
-MySQL enum 열은 jOOQ 조회 경계에서 문자열 타입으로 매핑하여 JPA의 `EnumType.STRING` 저장 계약 유지. JOIN은 쿼리에 명시하며 자동 관계 경로 생성은 비활성화. 전체 엔티티에서 생성된 테이블에는 옛 본문 열도 있으므로, 글 조회는 필요한 메타데이터 열을 명시적으로 선택하고 본문을 읽지 않는 계약 유지.
+MySQL enum 열은 jOOQ 조회 경계에서 문자열 타입으로 매핑하여 JPA의 `EnumType.STRING` 저장 계약 유지. JOIN은 쿼리에 명시하며 자동 관계 경로 생성은 비활성화. 글 조회는 필요한 메타데이터 열을 명시적으로 선택함.
 
 ## 대안과 영향
 
@@ -41,41 +41,18 @@ MCP·RepositoryMarkdown 제거 후에도 옛 Post body/body_sha256 매핑과 Pos
 
 ## 첨부 쓰기 제거의 영속성 경계 — 2026-10-02
 
-첨부 CRUD Repository와 엔티티 생성·상태 전환 메서드 제거. `AttachmentEntity`와 `PostAttachmentEntity`의 기존 열·상태 enum·FK는 읽기와 코드 생성의 원본으로 유지하며 운영 자료/스키마 삭제 없음. 글 연결 교체 시 필요한 ID별 READY 확인은 기존 `PostQueries.lockAttachmentStatus`의 단일 상태 열 `FOR UPDATE` 조회로 이전. 부모 글→정렬된 첨부 ID 순서·Spring 공유 트랜잭션·JPA 연결 쓰기를 유지하여 외부 DB 상태 변경과 검증/연결 사이의 경합을 방지. 생성 DDL은 변경 전과 바이트 동일. 격리 DB의 외부 상태 변경 잠금에 대기한 연결 요청이 변경 상태를 확인해 409를 반환하며 기존 연결 보존 확인. 잘못된 첨부를 포함한 글 생성은 같은 트랜잭션에서 롤백 확인.
+첨부 CRUD Repository와 엔티티 생성·상태 전환 메서드 제거(남은 상태·등록자 열은 2026-10-08 제거, 문서 끝 참조). 글 연결 교체 시 필요한 ID별 READY 확인은 기존 `PostQueries.lockAttachmentStatus`의 단일 상태 열 `FOR UPDATE` 조회로 이전. 부모 글→정렬된 첨부 ID 순서·Spring 공유 트랜잭션·JPA 연결 쓰기를 유지하여 외부 DB 상태 변경과 검증/연결 사이의 경합을 방지. 생성 DDL은 변경 전과 바이트 동일. 격리 DB의 외부 상태 변경 잠금에 대기한 연결 요청이 변경 상태를 확인해 409를 반환하며 기존 연결 보존 확인. 잘못된 첨부를 포함한 글 생성은 같은 트랜잭션에서 롤백 확인.
 
 ## JPA 엔티티의 프록시 상속 허용 — 2026-10-03
 
-프록시 상속 허용 결정은 유지. 아래의 JPA all-open 설정 방식은 같은 날짜의 명시적 `open` 선언 결정으로 대체.
+일반 클래스의 내부 상태는 `private`로 제한하되, JPA 엔티티는 Hibernate 프록시를 위해 클래스와 접근자를 `final`로 선언하지 않는 결정. 각 엔티티는 `protected` 기본 생성자와 `protected` setter, 필드 매핑을 유지하고, 복합 키 `@Embeddable`은 값 비교를 위해 `final`을 유지함. 작성 기준은 [CODE.md](../convention/CODE.md)에 기록.
 
-엔티티의 클래스·접근자가 기본 `final`인 상태에서 `protected` 생성자·setter를 사용하는 불일치 확인. 일반 클래스의 내부 상태는 `private`로 제한하되, JPA 엔티티는 Hibernate 프록시를 위해 클래스와 접근자의 상속 가능 여부를 함께 보장하는 결정.
-
-기존 `kotlin("plugin.spring")`의 all-open 기능에 `jakarta.persistence.Entity`와 `jakarta.persistence.MappedSuperclass` 추가. 앱과 DDL 생성용 `jpaModel` 소스셋에 같은 설정 적용. 각 엔티티의 `protected constructor()`·`protected set`과 필드 매핑 유지. 복합 키 `@Embeddable`의 값 비교와 일반 클래스의 기본 `final`은 유지. 별도 no-arg 플러그인이나 경고 억제 추가 없음.
-
-코드 작성 기준은 [CODE.md](../convention/CODE.md)에 기록. 기존 `PostPersistenceIntegrationTest`에 초기화 전 프록시의 getter·도메인 메서드 호출과 커밋 후 재조회 검증 추가.
-
-- 변경 전 설정에서 프록시가 즉시 초기화되어 새 지연 조회 검사 실패 확인. 변경 후 같은 검사 통과.
-- 앱·`jpaModel` 각각 엔티티 11개와 인스턴스 메서드 153개의 `final` 해제, 보호된 setter 72개와 인자 없는 생성자 11개 유지 확인. 복합 키 두 타입은 `final` 유지.
-- 생성 DDL의 변경 전후 바이트 동일성 확인. 테이블·열·FK·인덱스 변경 없음.
-- 격리 MySQL을 사용하는 기존 HTTP·인증·영속성·분류·slug 검사와 로컬 저장소 검사 포함 총 40건 통과. 실패·오류·건너뜀 0.
-- 기존 컴파일 경고 34건 유지, 새 경고 0. Jackson 비권장 API 31건과 null 검사 3건은 이번 `ProtectedInFinal` 정리와 별도 범위.
-
-검증은 로컬 격리 빌드·DB 범위이며 운영 DB 변경이나 서버 재배포는 포함하지 않음.
-
-### JPA 상속 계약을 소스에 명시 — 2026-10-03
-
-앞선 all-open 설정으로 컴파일 결과는 열렸으나 VS Code에서 `ProtectedInFinal` 진단이 남는 사례 확인. 엔티티 11개에 `open class`, 외부 조회 프로퍼티 72개와 도메인 메서드 9개에 `open` 명시. JPA 어노테이션을 여는 `allOpen` 블록은 제거하고 Spring 컴포넌트용 플러그인은 유지. 에디터가 JPA 컴파일 플러그인을 반영해야만 상속 의도를 파악할 수 있던 구조를 소스 선언과 일치시킴.
-
-`protected constructor()`·`protected set`·private 연관관계·필드 매핑 유지. setter를 `private`로 바꾸거나 검사 억제를 추가하는 방식은 제외. 일반 타입과 복합 키의 상속 범위를 넓히지 않음. 이후 작성 규칙과 경고 처리 기준은 [CODE.md](../convention/CODE.md) 적용.
-
-- 앱·`jpaModel` 각각 엔티티 11개와 접근자·인스턴스 메서드의 `final` 부재 확인. 보호된 setter 72개와 인자 없는 생성자 11개 유지.
-- 설치된 VS Code Kotlin 확장 0.0.12의 언어 서버에서 격리 프로젝트의 Gradle 가져오기·인덱싱 후 엔티티 11개와 인증 서비스 2개의 문서 진단 조회. 13개 파일 모두 진단 0건. 실제 에디터 창의 캐시 갱신 여부와는 별도 검증.
-- 프록시 지연 초기화·도메인 변경·커밋 후 재조회 검사를 포함한 전체 검사 41건 통과. 실패·오류·건너뜀 0.
-- 생성 DDL은 앞선 변경 전후와 바이트 동일. DB 스키마 변경 없음.
-- Jackson 3의 폐기 예정 문자열 API와 효과 없는 null 검사도 정리하여 Kotlin 컴파일 경고 34건에서 0건으로 감소. 인증 상태 누락의 실제 조회 계약은 [애플리케이션 ADR](ADR_application.md#인증-상태-행-누락-처리--2026-10-03)에 별도 기록.
+- `PostPersistenceIntegrationTest`에 초기화 전 프록시의 getter·도메인 메서드 호출과 커밋 후 재조회 검증 추가.
+- 생성 DDL의 변경 전후 바이트 동일. 테이블·열·FK·인덱스 변경 없음.
 
 ## 검증과 적용 범위
 
-- 생성 로직을 `build.gradle.kts`로 옮긴 뒤 생성 DDL의 SHA-256이 이전 독립 생성기 결과와 동일함을 확인. 저장소에 별도 생성기 소스나 수동 DDL 없음.
+- 생성 로직을 `build.gradle`로 옮긴 뒤 생성 DDL의 SHA-256이 이전 독립 생성기 결과와 동일함을 확인. 저장소에 별도 생성기 소스나 수동 DDL 없음.
 - `clean` 이후 엔티티 컴파일·오프라인 DDL·jOOQ 코드 생성·앱 컴파일·Spring AOT·bootJar 생성 성공. 재실행 시 생성 단계의 Gradle up-to-date 동작 확인.
 - 기존 MySQL 통합 검사를 포함한 35개 검사 통과, 실패·오류·건너뜀 0. 로컬 파일 저장소의 권한 계약에 맞게 검증 프로세스에 `umask 0077` 적용.
 - 별도 빈 MySQL의 JVM API에서 CI 기능 시나리오 통과: 비밀번호 로그인·로그아웃, MCP, Series/Post 등록·목록·검색·공개 대문·스냅샷 v2, PNG/JPEG·배지 및 enum 조건을 포함한 공개 첨부 JOIN.
@@ -96,25 +73,12 @@ MCP·RepositoryMarkdown 제거 후에도 옛 Post body/body_sha256 매핑과 Pos
 
 Series 생성자는 재정의 가능한 `replace` 호출 대신 필드를 직접 초기화한다. Post 버전 접근자·변경 메서드를 포함하여 앱·jpaModel 모두 상속 가능한 클래스·접근자와 protected setter 계약을 유지한다. 생성 DDL을 리뷰 기준 `7299253`과 대조하면 JPA 변경은 edit_version 열 하나이며 FK·인덱스는 동일하다. 비 JPA `admin_login_sources`와 인증 상태의 별도 bootstrap·복구는 검토 가능한 SQL로 관리한다.
 
-운영은 `ddl-auto=validate`, `sql.init.mode=never`로 고정한다. 개발의 update/보조 테이블 초기화는 유지하지만 인증 상태 행은 최초 설치 때만 별도로 만든다. 기존 DB에는 [한 번 실행하는 이관 SQL](../../deploy/sql/review-2026-10-03.sql), 새 DB에는 검토한 전체 생성 DDL과 bootstrap을 사용한다. MySQL DDL 전체가 하나의 롤백 가능한 트랜잭션이라고 가정하지 않으며 유지보수 창·백업·열 존재 확인을 먼저 수행한다.
+운영은 `ddl-auto=validate`, `sql.init.mode=never`로 고정한다. 개발의 update/보조 테이블 초기화는 유지하지만 인증 상태 행은 최초 설치 때만 별도로 만든다. 기존 DB에는 한 번 실행하는 이관 SQL(2026-10-03 적용 완료 후 저장소에서 제거), 새 DB에는 검토한 전체 생성 DDL과 bootstrap을 사용한다([API 배포 절차](../../deploy/API-RELEASE.md)). MySQL DDL 전체가 하나의 롤백 가능한 트랜잭션이라고 가정하지 않으며 유지보수 창·백업·열 존재 확인을 먼저 수행한다.
 
 격리 DB에서 실제 잠금 경쟁·태그 롤백·분류 일괄 이동·프록시 변경 감지와 300개 글의 공개·관리자 스냅샷을 검사한다. 공개 snapshot의 ORM+jOOQ SELECT 합계는 10개 이하, 300개 탐색 그룹의 JSON은 500KB 미만을 검사한다. 이 값은 해당 fixture의 회귀 기준이며 모든 운영 자료의 지연·메모리 상한을 실측한 값은 아니다. 전체 응답 상한에 이르면 조용히 자르지 않고 실패한다.
 
 
-## Java 전환 — 2026-10-06
-
-애플리케이션·테스트를 Java 25로 옮기고 Gradle은 Groovy DSL로 전환. Kotlin 컴파일·Spring 플러그인, reflection·Jackson Kotlin 모듈을 제거하고 jOOQ도 Java 타입을 생성. 앞선 Kotlin `open`·플러그인 설정 이력은 현재 구현에 적용하지 않음. 현재 계약은 [Java 코드 컨벤션](../convention/CODE.md) 적용.
-
-JPA의 필드 매핑·보호된 기본 생성자·setter와 프록시 상속 가능성을 보존. DTO는 record 또는 기본값·비밀값 문자열 처리를 명시한 클래스로 구성. 로그인 `rememberMe` 생략 시 false, 비밀번호·CSRF의 로그 문자열 숨김, Unicode 공백 정규화 계약 유지.
-
-- `clean build prepareMysqlTlsVerification` 성공. 기존 68개 테스트를 모두 Java로 옮겨 실패·오류·건너뜀 없이 통과.
-- 전환 전후 생성 DDL 바이트 동일. 앱·`jpaModel` 각각 엔티티 11개의 상속 허용, 보호된 기본 생성자 11개와 setter 73개 확인. 프록시 지연 조회·변경 감지와 실제 MySQL 잠금 경쟁은 영속성 통합 테스트로 검증.
-- 배포 설정 검사, 실제 JAR의 MySQL TLS 연결, Chromium의 교차 사이트 HTTPS 로그인·CSRF·편집·로그아웃 및 DB 장애·인증 상태 복구 검사 통과.
-- 실행 JAR에 Kotlin 런타임·소스 없음. Kotlin 원본 폴더와 프로젝트 컴파일러 캐시 제거.
-
-언어 전환에 따른 운영 DB 이관은 없으며 서버 배포는 별도 작업.
-
-### Java IDE 소스 경로 — 2026-10-06
+## IDE 소스 경로 — 2026-10-06
 
 앱과 DDL 생성용 `jpaModel`이 같은 `src/main/java`를 사용하므로 Buildship의 기본
 Eclipse 모델에서 도메인 전용 포함 필터가 앱 소스 경로에 적용되는 문제 확인.
@@ -124,10 +88,6 @@ Gradle 컴파일은 성공하지만 JDT LS는 앱 서비스·DTO를 찾지 못�
 이전에 가져온 `gradle_scope=jpaModel` 소스 항목을 제거. `synchronizationTasks`에는
 `jooqCodegen`을 연결하여 첫 가져오기에도 생성 타입 준비. 실제 DDL 생성은 기존
 `jpaModel`을 계속 사용. 생성 `.classpath`의 수동 수정이나 진단 억제 없음.
-
-Java 전환에서 누락된 원본 KDoc의 입력·반환·예외 계약도 해당 Java 선언의 Javadoc으로
-복원. 인자 이름은 현재 시그니처에 맞추고, 합쳐진 도우미의 계약은 호출 메서드에 유지.
-예외 객체를 반환하는 팩터리는 `@throws` 대신 실제 동작에 맞는 `@return` 사용.
 
 `eclipseClasspath` 반복 생성 후 앱 경로에 포함 필터와 `jpaModel` 항목이 없는 것 확인.
 JDT LS 프로젝트 갱신·빌드 후 현재 Neovim에 수집된 오류·경고 0건 확인.
@@ -146,3 +106,9 @@ JDT LS 프로젝트 갱신·빌드 후 현재 Neovim에 수집된 오류·경고
 현재 기능에서 읽지 않는 열을 엔티티와 운영 DB에서 함께 제거한다. 대상은 `posts.body`·`body_sha256`(Git 원고가 정본이 된 뒤 새 글에는 빈 값만 저장하던 열), `posts.pin_order`·`view_count`와 `ix_posts_pin` 인덱스, `attachments.pending_cleanup`, 코드에 없던 `admin_auth_state.last_totp_step`. `PostBodyHash`는 관리자 설정 지문 계산만 남아 `AdminAuthSettings`로 옮겼다.
 
 `ddl-auto=validate`는 DB에 남은 여분 열을 허용하지만 NOT NULL·기본값 없는 `body`·`body_sha256`은 새 엔티티의 INSERT를 막는다. 그래서 확장-축소 순서로 적용한다. ① [NULL 허용 SQL](../../deploy/sql/legacy-columns-nullable-2026-10-08.sql) ② 새 API 배포 ③ [열 삭제 SQL](../../deploy/sql/drop-legacy-columns-2026-10-08.sql). 옛 본문이 남아 있던 글 7개는 모두 Git 원고가 있어 사용자 결정으로 백업 없이 삭제한다. 앞선 ADR의 "옛 body/body_sha256 유지"는 이 결정으로 대체한다.
+
+## 값이 고정된 열 제거 — 2026-10-08
+
+쓰기 기능을 없앤 뒤 값이 하나로 고정되거나 아무도 읽지 않는 열을 제거한다. `attachments.status`(모두 READY), `attachments.original_filename`·`uploaded_by`(등록자는 관리자 한 명), `users.display_name`, `posts.section`(모두 TECH), `posts.visibility`·`series.visibility`(CHECK로 PUBLIC만 저장 가능), `series.legacy_source`·`legacy_id`와 `uk_series_legacy`(이관 완료). 공개 조건은 "출간된 글"과 "공개 글에 연결된 첨부"가 되고, 첨부 연결 교체는 상태 대신 첨부 행의 존재를 `FOR UPDATE`로 확인한다. 공개 스냅샷의 revision 입력에서도 첨부 상태 값이 빠진다.
+
+같은 확장-축소 순서로 적용한다. ① [기본값 SQL](../../deploy/sql/fixed-columns-default-2026-10-08.sql)(기본값 없는 NOT NULL `series.visibility`) ② 새 API 배포 ③ [열 삭제 SQL](../../deploy/sql/drop-fixed-columns-2026-10-08.sql).

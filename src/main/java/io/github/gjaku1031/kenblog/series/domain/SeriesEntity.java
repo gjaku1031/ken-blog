@@ -1,6 +1,5 @@
 package io.github.gjaku1031.kenblog.series.domain;
 
-import io.github.gjaku1031.kenblog.post.domain.PostVisibility;
 
 import jakarta.persistence.*;
 
@@ -16,9 +15,6 @@ import java.time.LocalDateTime;
             @UniqueConstraint(
                     name = "uk_series_slug",
                     columnNames = {"slug"}),
-            @UniqueConstraint(
-                    name = "uk_series_legacy",
-                    columnNames = {"legacy_source", "legacy_id"}),
         })
 public class SeriesEntity {
     /**
@@ -62,13 +58,6 @@ public class SeriesEntity {
     private SeriesKind kind;
 
     /**
-     * 공개 범위
-     */
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "varchar(16)")
-    private PostVisibility visibility = PostVisibility.PUBLIC;
-
-    /**
      * 프로젝트 진행 상태
      */
     @Enumerated(EnumType.STRING)
@@ -106,18 +95,6 @@ public class SeriesEntity {
     private LocalDateTime updatedAt;
 
     // 재실행 가능한 기존 자료 이관과 이전 주소 연결에만 사용하는 출처
-
-    /**
-     * 이관 전 자료 종류
-     */
-    @Column(name = "legacy_source", length = 16)
-    private String legacySource = null;
-
-    /**
-     * 이관 전 ID
-     */
-    @Column(name = "legacy_id")
-    private Long legacyId = null;
 
     /**
      * 시리즈 초기 속성 설정
@@ -238,20 +215,6 @@ public class SeriesEntity {
     }
 
     /**
-     * visibility 조회
-     */
-    public PostVisibility getVisibility() {
-        return visibility;
-    }
-
-    /**
-     * JPA 프록시의 visibility 변경
-     */
-    protected void setVisibility(PostVisibility visibility) {
-        this.visibility = visibility;
-    }
-
-    /**
      * projectStatus 조회
      */
     public ProjectStatus getProjectStatus() {
@@ -335,31 +298,4 @@ public class SeriesEntity {
         this.updatedAt = updatedAt;
     }
 
-    /**
-     * legacySource 조회
-     */
-    public String getLegacySource() {
-        return legacySource;
-    }
-
-    /**
-     * JPA 프록시의 legacySource 변경
-     */
-    protected void setLegacySource(String legacySource) {
-        this.legacySource = legacySource;
-    }
-
-    /**
-     * legacyId 조회
-     */
-    public Long getLegacyId() {
-        return legacyId;
-    }
-
-    /**
-     * JPA 프록시의 legacyId 변경
-     */
-    protected void setLegacyId(Long legacyId) {
-        this.legacyId = legacyId;
-    }
 }

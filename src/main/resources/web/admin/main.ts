@@ -118,11 +118,6 @@ type Post = {
   status: 'DRAFT' | 'PUBLISHED';
 
   /**
-   * 공개 범위
-   */
-  visibility: 'PUBLIC' | 'PRIVATE';
-
-  /**
    * 요약
    */
   summary: string;

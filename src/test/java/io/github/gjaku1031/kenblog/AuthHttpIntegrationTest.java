@@ -690,7 +690,7 @@ final class AuthHttpIntegrationTest {
             assertProblem(send(client, "GET", "/api/v1/auth/me"), 401);
             assertEquals(0, sessionCount(id));
             assertThrows(
-                    EmptyResultDataAccessException.class, () -> attempts.attempt(TEST_PASSWORD));
+                    EmptyResultDataAccessException.class, () -> attempts.attempt(TEST_PASSWORD, "missing-state"));
         } finally {
             restoreState(state);
         }

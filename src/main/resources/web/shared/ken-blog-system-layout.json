@@ -4,21 +4,15 @@
   "legend": [
     {
       "kind": "read",
-      "title": "독자 열람",
-      "x": 0,
-      "y": 0
+      "title": "독자 열람"
     },
     {
       "kind": "runtime",
-      "title": "관리 요청 / 데이터 접근",
-      "x": 0,
-      "y": 0
+      "title": "관리 요청 / 데이터 접근"
     },
     {
       "kind": "delivery",
-      "title": "빌드 · 산출물 전달",
-      "x": 0,
-      "y": 0
+      "title": "빌드 · 산출물 전달"
     }
   ],
   "groups": {

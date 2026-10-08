@@ -1,6 +1,5 @@
 package io.github.gjaku1031.kenblog.series.dto;
 
-import io.github.gjaku1031.kenblog.post.domain.PostVisibility;
 import io.github.gjaku1031.kenblog.post.dto.PostSeriesItem;
 import io.github.gjaku1031.kenblog.series.domain.*;
 import io.github.gjaku1031.kenblog.stack.dto.StackBadgeResponse;
@@ -37,11 +36,6 @@ public record SeriesResponse(
          * 설명
          */
         String description,
-
-        /**
-         * 공개 범위
-         */
-        PostVisibility visibility,
 
         /**
          * 프로젝트 진행 상태

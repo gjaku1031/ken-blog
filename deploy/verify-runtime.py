@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""격리 MySQL·실제 JAR에서 리뷰 마이그레이션·기동·HTTPS 인증 경계 검증"""
+"""격리 MySQL·실제 JAR에서 스키마 검증 기동·HTTPS 인증·DB 장애·인증 상태 복구 경계 검증"""
 
 import argparse
 import json
@@ -106,13 +106,13 @@ def verify(browser_container):
             assert schema.count("edit_version bigint not null, ") == 1
             sql(schema.replace("edit_version bigint not null, ", ""))
             sql(Path("deploy/sql/bootstrap-auth.sql").read_text())
-            sql("DROP TABLE admin_login_sources; INSERT INTO content_state (id) VALUES (1);"
-                "INSERT INTO posts (title,slug,summary,created_at,updated_at,status,visibility,section,series_order) "
-                "VALUES ('legacy','legacy','',UTC_TIMESTAMP(6),UTC_TIMESTAMP(6),'DRAFT','PUBLIC','TECH',7);"
+            sql("INSERT INTO content_state (id) VALUES (1);"
+                "INSERT INTO posts (title,slug,summary,created_at,updated_at,status,series_order) "
+                "VALUES ('legacy','legacy','',UTC_TIMESTAMP(6),UTC_TIMESTAMP(6),'DRAFT',7);"
                 "INSERT INTO users (username,password_hash,role,created_at,enabled) VALUES ('review_admin',"
                 "'{bcrypt}$2b$10$4FBi6otvIFtcNbMAYerE3O1eSZAmB9sw3r4iEgU2ovjbUuSVcfivG','ADMIN',UTC_TIMESTAMP(6),true);")
             start("missing-edit-version", "missing column [edit_version]")
-            sql(Path("deploy/sql/review-2026-10-03.sql").read_text())
+            sql("ALTER TABLE posts ADD COLUMN edit_version BIGINT NOT NULL DEFAULT 0;")
             assert sql("SELECT series_order=7 AND edit_version=0 FROM posts WHERE slug='legacy';") == "1"
             start("migrated-schema")
 

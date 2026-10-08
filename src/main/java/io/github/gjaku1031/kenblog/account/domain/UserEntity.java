@@ -71,12 +71,6 @@ public class UserEntity {
     private LocalDateTime createdAt;
 
     /**
-     * 표시 이름
-     */
-    @Column(name = "display_name", length = 100)
-    private String displayName = null;
-
-    /**
      * 계정 활성 여부
      */
     @ColumnDefault("true")
@@ -151,20 +145,6 @@ public class UserEntity {
      */
     protected void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
-    }
-
-    /**
-     * displayName 조회
-     */
-    public String getDisplayName() {
-        return displayName;
-    }
-
-    /**
-     * JPA 프록시의 displayName 변경
-     */
-    protected void setDisplayName(String displayName) {
-        this.displayName = displayName;
     }
 
     /**

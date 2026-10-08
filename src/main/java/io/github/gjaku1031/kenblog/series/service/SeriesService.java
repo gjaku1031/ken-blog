@@ -47,17 +47,15 @@ public class SeriesService {
     private final PostRepository posts;
 
     /**
-     * 공개 여부·저장 순서에 따른 시리즈 목록
+     * 저장 순서에 따른 관리자 시리즈 목록
      */
     @Transactional(readOnly = true)
-    public List<SeriesResponse> list(boolean admin) {
+    public List<SeriesResponse> list() {
         return series.findAll().stream()
-                .filter(entity -> admin || entity.getVisibility() == PostVisibility.PUBLIC)
                 .sorted(
                         Comparator.comparingLong(SeriesEntity::getSortOrder)
                                 .thenComparing(SeriesEntity::getId))
-                .map(entity -> response(entity, admin))
-                .filter(item -> admin || item.cover() != null)
+                .map(this::response)
                 .toList();
     }
 
@@ -79,10 +77,7 @@ public class SeriesService {
                         .collect(Collectors.groupingBy(row -> row.series().id()));
         var stacks = badges.batchForSeries();
         return series.findAll().stream()
-                .filter(
-                        entity ->
-                                entity.getVisibility() == PostVisibility.PUBLIC
-                                        && groups.containsKey(entity.getId()))
+                .filter(entity -> groups.containsKey(entity.getId()))
                 .sorted(
                         Comparator.comparingLong(SeriesEntity::getSortOrder)
                                 .thenComparing(SeriesEntity::getId))
@@ -99,7 +94,6 @@ public class SeriesService {
                                     entity.getName(),
                                     entity.getKind(),
                                     entity.getDescription(),
-                                    entity.getVisibility(),
                                     entity.getProjectStatus(),
                                     entity.getStartPeriod(),
                                     entity.getEndPeriod(),
@@ -121,7 +115,7 @@ public class SeriesService {
     public SeriesDetailResponse detail(long id) {
         var entity = series.findById(id).orElseThrow(SeriesNotFoundException::new);
         return new SeriesDetailResponse(
-                response(entity, true),
+                response(entity),
                 queries.seriesPosts(id, false).stream()
                         .map(
                                 row ->
@@ -130,9 +124,7 @@ public class SeriesService {
                                                 row.title(),
                                                 row.slug(),
                                                 row.seriesOrder(),
-                                                row.status() == PostStatus.PUBLISHED
-                                                        && row.visibility()
-                                                                == PostVisibility.PUBLIC))
+                                                row.status() == PostStatus.PUBLISHED))
                         .toList());
     }
 
@@ -170,7 +162,7 @@ public class SeriesService {
         if (entity.getKind() == SeriesKind.PROJECT)
             badges.replaceSeriesStack(
                     Objects.requireNonNull(entity.getId()), value.stackBadgeNames());
-        return response(entity, true);
+        return response(entity);
     }
 
     /**
@@ -193,7 +185,7 @@ public class SeriesService {
         series.saveAndFlush(entity);
         if (entity.getKind() == SeriesKind.PROJECT)
             badges.replaceSeriesStack(id, value.stackBadgeNames());
-        return response(entity, true);
+        return response(entity);
     }
 
     /**
@@ -207,11 +199,11 @@ public class SeriesService {
         if (entity == null) throw new SeriesNotFoundException();
         entity.reorder(order);
         series.saveAndFlush(entity);
-        return response(entity, true);
+        return response(entity);
     }
 
     /**
-     * 부모 잠금 후 초안·비공개 포함 모든 소속·관련 글이 없는 시리즈만 삭제
+     * 부모 잠금 후 초안 포함 모든 소속·관련 글이 없는 시리즈만 삭제
      */
     @Transactional
     public void delete(long id) {
@@ -226,7 +218,7 @@ public class SeriesService {
     /**
      * 속성·첫 공개 문서·기술 뱃지를 응답에 결합
      */
-    private SeriesResponse response(SeriesEntity entity, boolean admin) {
+    private SeriesResponse response(SeriesEntity entity) {
         long id = Objects.requireNonNull(entity.getId());
         var publicPosts = queries.seriesPosts(id, true);
         var first = publicPosts.isEmpty() ? null : publicPosts.getFirst();
@@ -236,7 +228,6 @@ public class SeriesService {
                 entity.getName(),
                 entity.getKind(),
                 entity.getDescription(),
-                entity.getVisibility(),
                 entity.getProjectStatus(),
                 entity.getStartPeriod(),
                 entity.getEndPeriod(),
@@ -245,7 +236,7 @@ public class SeriesService {
                 first == null
                         ? null
                         : new PostSeriesItem(first.id(), first.slug(), first.title(), 1),
-                admin ? queries.seriesPosts(id, false).size() : publicPosts.size(),
+                queries.seriesPosts(id, false).size(),
                 entity.getKind() == SeriesKind.PROJECT ? badges.listForSeries(id) : List.of());
     }
 

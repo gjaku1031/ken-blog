@@ -1,8 +1,8 @@
 # 코드 컨벤션
 
-상태: 적용. 작성일: 2026-10-03. Java 전환: 2026-10-06.
+상태: 적용. 작성일: 2026-10-03.
 
-Java 코드의 접근 범위·상속·JPA 엔티티·null 처리·API 사용에 적용하는 기준. 주석의 형식과 간격은 [주석 컨벤션](KDoc.md), 영속 모델의 설계 근거는 [ADR_persistence.md](../ADR/ADR_persistence.md) 참조. Kotlin 전용 규칙은 Java 전환 요청에 따라 아래 기준으로 대체.
+Java 코드의 접근 범위·상속·JPA 엔티티·null 처리·API 사용에 적용하는 기준. 주석의 형식과 간격은 [주석 컨벤션](COMMENTS.md), 영속 모델의 설계 근거는 [ADR_persistence.md](../ADR/ADR_persistence.md) 참조.
 
 ## import와 타입 참조
 

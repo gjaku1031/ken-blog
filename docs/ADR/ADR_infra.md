@@ -58,7 +58,7 @@ Caddy는 운영 Compose에서 `caddy run`으로 직접 실행하는 선택. 고�
 
 Post의 메타데이터와 저장소 Markdown을 빌드 시 결합해 완성 HTML을 제공하는 방식 유지. 글 변경 시 Spring·프론트 컴파일을 분리하려는 목적만으로 SPA를 도입하지 않는 결정. 공통 화면 유지나 실시간 메타데이터 반영은 이번 요구에서 제외. 공통 레이아웃 변경 시 전체 페이지 재조립 필요.
 
-기존 Kotlin SiteGenerator와 Thymeleaf 템플릿·의존성 제거. `src/main/resources/web/site/generate.ts`와 같은 폴더의 Nunjucks 템플릿으로 홈·목록·프로젝트·검색·상세·관리자 화면·목차·시리즈·백링크·이전 주소·사이트맵 생성 역할 이전. Nunjucks는 빌드 전용 의존성으로 자동 HTML 이스케이프 사용. 기존 공용 Markdown 렌더러가 처리한 본문만 `safe` 출력. 템플릿은 저장소 코드이며 DB·원고 문자열을 템플릿 소스로 실행하지 않는 경계. [Nunjucks API](https://mozilla.github.io/nunjucks/api.html)
+기존 서버 측 사이트 생성기와 Thymeleaf 템플릿·의존성 제거. `src/main/resources/web/site/generate.ts`와 같은 폴더의 Nunjucks 템플릿으로 홈·목록·프로젝트·검색·상세·관리자 화면·목차·시리즈·백링크·이전 주소·사이트맵 생성 역할 이전. Nunjucks는 빌드 전용 의존성으로 자동 HTML 이스케이프 사용. 기존 공용 Markdown 렌더러가 처리한 본문만 `safe` 출력. 템플릿은 저장소 코드이며 DB·원고 문자열을 템플릿 소스로 실행하지 않는 경계. [Nunjucks API](https://mozilla.github.io/nunjucks/api.html)
 
 `pages`의 공개 snapshot v2·revision 및 일관 읽기 계약 유지. `content/posts/{slug}.md` 경로 규칙 유지. 공개 목록에 있는 글만 생성하고, 원고 누락·비공개 데이터 혼입·생성 중 revision 변경 시 최종 출력 교체 전 실패. 공개 페이지와 다운로드 이미지는 빈 staging에서 전체 재생성하여 삭제·공개 해제된 자료가 과거 출력에서 남지 않는 구성. 글별 증분 생성·의존성 그래프·본문 캐시 미도입.
 
@@ -84,7 +84,7 @@ Chromium에서 홈·상세·위키 링크·목차·시리즈·본문 검색·이
 
 상시 실행하는 1코어·RAM 4GB 개인 블로그의 기본 런타임을 Java 25 일반 JVM으로 변경. Native의 기동 시간·메모리 이득보다 Spring/JPA·jOOQ·ImageIO의 동적 기능 호환과 유지보수 단순성을 우선하는 선택. 이전 같은 조건의 JVM 실측은 유휴 647.4MiB, 조회 120회 후 684.4MiB였으며, 4GB 서버에서 JVM을 배제할 근거가 부족하다는 판단. 이 과거 값은 현재 코드의 최대 부하 상한이 아님.
 
-이미지 생성은 기존 `bootBuildImage`·Cloud Native Buildpacks 유지. GraalVM Gradle 플러그인, `processAot` 환경 설정, Native 컴파일 옵션, `NativeRuntimeHints.kt` 및 ImageIO 전용 reachability metadata 제거. Spring 빈은 일반 JVM 실행 환경에서 구성하며 MCP 서버는 후속 단순화로 제거. JPA 기반 jOOQ 빌드 코드 생성은 런타임 AOT와 별개이므로 유지.
+이미지 생성은 기존 `bootBuildImage`·Cloud Native Buildpacks 유지. GraalVM Gradle 플러그인, `processAot` 환경 설정, Native 컴파일 옵션, Native 런타임 힌트 및 ImageIO 전용 reachability metadata 제거. Spring 빈은 일반 JVM 실행 환경에서 구성하며 MCP 서버는 후속 단순화로 제거. JPA 기반 jOOQ 빌드 코드 생성은 런타임 AOT와 별개이므로 유지.
 
 Spring Boot 4.1.1·Java 25 및 `paketobuildpacks/ubuntu-noble-builder:latest`/`ubuntu-noble-run:latest` 유지. Java desktop 이미지 처리에 필요한 시스템 라이브러리를 포함한 실행 이미지 사용. CI의 ARM64 작업은 Liberica JVM buildpack 포함·Native buildpack 미포함, 실제 Java 실행, 비루트 사용자와 운영 UID 10001/GID 1001의 파일 접근을 검증하는 구성. [Spring Boot 이미지 빌드](https://docs.spring.io/spring-boot/gradle-plugin/packaging-oci-image.html)
 
@@ -168,7 +168,7 @@ Node/Pages의 `content/posts` checkout·원고 변경 트리거·Markdown→HTML
 
 - `Dockerfile`·`.dockerignore`: Dockerfile 빌드 경로 제거와 함께 삭제. Buildpacks는 Gradle이 만든 JAR를 입력으로 사용하므로 저장소 전체의 Docker build context 제외 목록 불필요.
 - `target/`: 예전 Maven 생성물로 현재 Gradle·Actions의 사용처 없음. 최종 점검 시 작업 폴더에서 제거된 상태.
-- `build/`·`node_modules/`·`.gradle/`·`.kotlin/`: 현재 Gradle·Pages 빌드와 의존성 캐시로 사용.
+- `build/`·`node_modules/`·`.gradle/`: 현재 Gradle·Pages 빌드와 의존성 캐시로 사용.
 - `gradlew.bat`: 사용자 확정에 따라 Windows용 wrapper 실행 파일 삭제. `gradlew`와 `gradle/wrapper` 유지.
 - Linux/macOS Gradle wrapper·`package*.json`·`tsconfig.json`·환경 예시·`.editorconfig`·`.gitattributes`·두 Compose 파일: 현재 사용처가 있어 유지.
 
@@ -198,7 +198,7 @@ Node/Pages의 `content/posts` checkout·원고 변경 트리거·Markdown→HTML
 
 ### Post·Series 통합 병합 — 2026-10-02
 
-메인의 Native Image·Buildpacks·ARM64 CI·Caddy 구성을 유지한 채 Post·Series와 jOOQ 변경을 병합한다. JPA는 저장·단일 조회·잠금, jOOQ는 목록·검색·태그·위키·공개 첨부 조회를 담당한다. 병합 당시 jOOQ 3.21.8의 Kotlin 테이블 코드는 저장소 DDL로 생성했다. 이후 수동 DDL을 제거하고 JPA 엔티티에서 빌드 중 자동 생성하도록 변경했다([영속성 ADR](ADR_persistence.md)). 코드 생성과 AOT는 운영 DB에 연결하지 않는다. 본문은 Markdown 정본을 유지하고 기존 DB 원문·ID·slug·비공개 상태를 보존하는 명시적 이관 도구를 당시 제공. 해당 도구는 후속 운영 도구 제거 결정으로 삭제.
+메인의 Native Image·Buildpacks·ARM64 CI·Caddy 구성을 유지한 채 Post·Series와 jOOQ 변경을 병합한다. JPA는 저장·단일 조회·잠금, jOOQ는 목록·태그·공개 첨부 조회를 담당한다. 병합 당시 jOOQ 3.21.8의 테이블 코드는 저장소 DDL로 생성했다. 이후 수동 DDL을 제거하고 JPA 엔티티에서 빌드 중 자동 생성하도록 변경했다([영속성 ADR](ADR_persistence.md)). 코드 생성과 AOT는 운영 DB에 연결하지 않는다. 본문은 Markdown 정본을 유지하고 기존 DB 원문·ID·slug·비공개 상태를 보존하는 명시적 이관 도구를 당시 제공. 해당 도구는 후속 운영 도구 제거 결정으로 삭제.
 
 MFA 제거는 사용자 승인된 인증 요구사항 변경이다. 단일 설정 관리자 비밀번호·JDBC 세션·CSRF·로그인 실패 제한은 유지한다. 기존 MFA 자료는 DB에서 삭제하지 않으며 신규 세션 증명으로 이전 MFA 세션의 자동 재사용을 막는다. 운영 환경 예시에서 TOTP·복구 코드 설정도 제거한다.
 
@@ -317,7 +317,7 @@ Pages 의존성 설치·빌드 job은 contents:read만 가진다. 같은 workflo
 
 운영 배포 후 시작 로그에서 Hibernate가 JDBC URL의 truststore 비밀번호를 출력하는 것을 확인했다. PKCS12 비밀번호는 `MYSQL_TRUSTSTORE_PASSWORD`에서 Hikari의 `trustCertificateKeyStorePassword` 속성으로 전달하고 URL에서 제거한다. Hibernate 연결 풀의 전체 JDBC URL 정보 로그도 WARN 수준으로 제한한다. 실제 JAR의 사설 CA TLS 기동 검사에 별도 비밀번호 바인딩 성공과 로그의 JDBC URL·비밀번호 부재를 함께 추가한다. 운영 DB 비밀번호와 프록시 키는 이 출력에 포함되지 않았다.
 
-운영 DDL 자동 갱신·일반 인증 bootstrap을 제거한 전환 순서는 [REVIEW-ROLLOUT.md](../../deploy/REVIEW-ROLLOUT.md) 참조. 최초 로컬 검증과 후속 운영 적용은 분리하여 진행했으며 실제 DB·API·Pages 전환과 인증서 검증 결과는 [리뷰 운영 배포 기록](../audit/review-deployment-2026-10-03.md)에 남겼다.
+운영 DDL 자동 갱신·일반 인증 bootstrap을 제거한 전환은 2026-10-03에 완료했다. 최초 로컬 검증과 후속 운영 적용은 분리하여 진행했다. 현재 반복 절차는 [API 배포 절차](../../deploy/API-RELEASE.md) 참조.
 
 ## 관리자 화면의 Pages 수동 실행 — 2026-10-07
 
