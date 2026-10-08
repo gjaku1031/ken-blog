@@ -74,6 +74,8 @@ jobs:
     # 운영 배포 작업이 승인 필요 여부를 판단할 값
     outputs:
       schema-changed: ${{ steps.migration.outputs.changed }}
+      # deploy 작업만 다시 실행해도 처음 만든 아카이브를 받도록 이름을 넘김
+      artifact-name: ken-blog-jvm-arm64-${{ github.sha }}-${{ github.run_attempt }}
     services:
       mysql:
         image: mysql:8.4.11
@@ -405,7 +407,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
-          name: ken-blog-jvm-arm64-${{ github.sha }}-${{ github.run_attempt }}
+          name: ${{ needs.jvm-image.outputs.artifact-name }}
           path: image
       - name: Join tailnet as ephemeral CI node
         uses: tailscale/github-action@d1b6cd204f8dceda5b3eaad7f1f767be390056cd # v4.2.0
