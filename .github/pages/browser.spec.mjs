@@ -67,10 +67,7 @@ async function mockApi(page, override = async () => false) {
     else if (method === 'POST' && path === '/auth/login') { authenticated = true; data = { role: 'ADMIN' }; }
     else if (method === 'GET' && path === '/pages/snapshot') data = fixture;
     else if (method === 'GET' && path === '/admin/posts/snapshot') data = posts;
-    else if (method === 'GET' && path === '/admin/posts') {
-      const number = Number(url.searchParams.get('page') || 0), size = Number(url.searchParams.get('size') || 10);
-      data = { items: posts.slice(number * size, (number + 1) * size), page: number, totalPages: Math.ceil(posts.length / size), totalElements: posts.length };
-    } else if (method === 'GET' && /^\/admin\/posts\/\d+$/.test(path)) data = posts.find(post => post.id === Number(path.split('/').at(-1)));
+    else if (method === 'GET' && /^\/admin\/posts\/\d+$/.test(path)) data = posts.find(post => post.id === Number(path.split('/').at(-1)));
     else if (method === 'POST' && path === '/admin/posts') {
       expectPostInput(body);
       const id = Math.max(...posts.map(row => row.id)) + 1;

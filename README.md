@@ -19,7 +19,7 @@
   <img src="docs/images/readme/admin-light.png" alt="관리 화면의 글 정보 편집 창. 제목·요약·분류·소속 프로젝트·문서 순서를 편집함" width="100%">
 </picture>
 
-관리 화면의 글 정보 편집. 본문은 Git 원고에서 고치고, 웹에서는 제목·요약·분류·소속·순서만 다룸. 분류 값과 목록은 화면 예시용 모의 데이터.
+관리 화면의 글 정보 편집. 본문은 Git 원고에서 고치고, 웹에서는 제목·요약·분류·소속·순서만 다룸.
 
 ## 핵심 문제와 결정
 
@@ -46,13 +46,7 @@
 
 ## 기술 스택
 
-| 영역 | 기술 |
-| --- | --- |
-| API | Java 25, Spring Boot 4.1, Spring Security, Spring Session JDBC, JPA(Hibernate 7), jOOQ 3.21 |
-| DB | MySQL 8.4(운영은 OCI 관리형 MySQL) |
-| 사이트 빌드 | Node 24, TypeScript, Nunjucks, unified(remark·rehype), Mermaid 12, KaTeX, Shiki |
-| 배포 | GitHub Actions, GitHub Pages, Cloud Native Buildpacks(ARM64 JVM 이미지), Docker Compose, Caddy |
-| 테스트 | JUnit·Testcontainers(MySQL), Node test runner, Playwright(Chromium) |
+Java 25 · Spring Boot 4.1 · MySQL · Node 24 · TypeScript · Mermaid 12 · GitHub Actions · Docker Compose · Caddy
 
 ## 저장소 구조
 
