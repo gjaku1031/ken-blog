@@ -85,14 +85,6 @@ public class AdminLoginAttemptService implements ApplicationRunner {
     }
 
     /**
-     * 직접 서비스 호출의 기본 출처에 인증 제한 적용
-     */
-    @Transactional
-    public AdminLoginResult attempt(String password) {
-        return attempt(password, "direct-service");
-    }
-
-    /**
      * 실패 상태도 커밋되도록 결과 반환; 공유 잠금·연산 예산·인증·출처별 실패 순서
      */
     @Transactional

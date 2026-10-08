@@ -40,17 +40,15 @@ public class AttachmentLinkService {
      * 잠근 글의 연결을 전부 교체
      * 빈 목록은 해제이며 실패 시 원본 글 변경까지 롤백됨
      *
-     * @throws AttachmentFailure 없는 ID면 404, READY가 아니면 409
+     * @throws AttachmentFailure 없는 ID면 404
      */
     @Transactional
     public void replacePost(long postId, List<Long> ids) {
         // 중복 제거·정렬로 잠금 순서 고정; 검증 완료 전 기존 연결 보존
         var normalized = ids.stream().distinct().sorted().toList();
         for (long id : normalized) {
-            String status = queries.lockAttachmentStatus(id);
-            if (status == null) throw new AttachmentFailure(HttpStatus.NOT_FOUND, "첨부를 찾을 수 없습니다.");
-            if (!status.equals("READY"))
-                throw new AttachmentFailure(HttpStatus.CONFLICT, "첨부가 처리 중입니다.");
+            if (!queries.lockAttachment(id))
+                throw new AttachmentFailure(HttpStatus.NOT_FOUND, "첨부를 찾을 수 없습니다.");
         }
         // 빈 목록은 기존 연결 해제만 수행
         posts.deleteByPostId(postId);

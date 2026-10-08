@@ -123,7 +123,7 @@ public class PostService {
     public PostDetailResponse setPublished(long id, boolean published) {
         var post = lockedPost(id);
         if (published)
-            post.publish(PostVisibility.PUBLIC, now());
+            post.publish(now());
         else
             post.unpublish(now());
         post.advanceEdit(now());
@@ -138,18 +138,6 @@ public class PostService {
     public void delete(long id) {
         repository.delete(lockedPost(id));
         repository.flush();
-    }
-
-    /**
-     * 페이지 범위를 검사하고 본문 없는 행에 분류·태그를 일괄 결합
-     */
-    @Transactional(readOnly = true)
-    public PostPageResponse listDrafts(int page, int size) {
-        if (page < 0 || size < 1 || size > 100 || (long) page * size > Integer.MAX_VALUE)
-            throw new InvalidPostRequestException();
-        var result = queries.adminPage(page, size);
-        return new PostPageResponse(
-                summaries(result.items()), page, size, result.total(), result.pages());
     }
 
     /**
@@ -170,7 +158,6 @@ public class PostService {
                 row.createdAt(),
                 row.updatedAt(),
                 row.status(),
-                row.visibility(),
                 row.publishedAt(),
                 view.category(),
                 view.tags(),
@@ -211,7 +198,6 @@ public class PostService {
                                     row.createdAt(),
                                     row.updatedAt(),
                                     row.status(),
-                                    row.visibility(),
                                     row.publishedAt(),
                                     view.category(),
                                     view.tags(),
@@ -308,7 +294,6 @@ public class PostService {
                 post.getCreatedAt(),
                 post.getUpdatedAt(),
                 post.getStatus(),
-                post.getVisibility(),
                 post.getPublishedAt(),
                 view.category(),
                 view.tags(),

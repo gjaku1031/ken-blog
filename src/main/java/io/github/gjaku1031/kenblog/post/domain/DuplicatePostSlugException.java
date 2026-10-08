@@ -9,13 +9,6 @@ import org.springframework.http.HttpStatus;
  */
 public final class DuplicatePostSlugException extends BusinessException {
     /**
-     * 원인 없는 주소 중복 오류 초기화
-     */
-    public DuplicatePostSlugException() {
-        this(null);
-    }
-
-    /**
      * DB 원인을 보존한 주소 중복 오류 초기화
      */
     public DuplicatePostSlugException(Throwable cause) {

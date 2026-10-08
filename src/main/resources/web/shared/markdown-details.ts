@@ -538,7 +538,7 @@ function groupNodes(root: Root, replacements: Replacement[], prefix: string, sou
  * 3. 경계를 충돌 없는 마커로 치환
  * 4. 한 문서로 재파싱 후 원문 위치·접기 구조 복원
  */
-export function remarkSafeDetails() {
+function remarkSafeDetails() {
   return (root: Root, file: {
   /**
    * 노드 값

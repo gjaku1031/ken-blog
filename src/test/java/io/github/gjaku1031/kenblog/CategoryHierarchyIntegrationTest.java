@@ -6,9 +6,10 @@ import io.github.gjaku1031.kenblog.category.domain.InvalidCategoryRequestExcepti
 import io.github.gjaku1031.kenblog.category.service.CategoryService;
 import io.github.gjaku1031.kenblog.fixture.TestMysqlConfig;
 import io.github.gjaku1031.kenblog.pages.PagesSnapshotService;
+import io.github.gjaku1031.kenblog.category.dto.CategoryRefResponse;
 import io.github.gjaku1031.kenblog.post.dto.PostMetadataCreateRequest;
+import io.github.gjaku1031.kenblog.post.dto.PostSeriesItem;
 import io.github.gjaku1031.kenblog.post.service.PostService;
-import io.github.gjaku1031.kenblog.post.service.PublicPostService;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -20,7 +21,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.*;
 
 /**
- * 대분류·소분류 생성과 소분류 내 공개 문서 탐색의 MySQL 계약
+ * 대분류·소분류 생성과 공개 스냅샷의 소분류 문서 탐색 MySQL 계약
  */
 @SpringBootTest
 @Import(TestMysqlConfig.class)
@@ -35,11 +36,6 @@ final class CategoryHierarchyIntegrationTest {
      * 시리즈 문서 목록
      */
     @Autowired private PostService posts;
-
-    /**
-     * 공개 글 메타데이터 서비스
-     */
-    @Autowired private PublicPostService publicPosts;
 
     /**
      * 공개 스냅샷과 분류 revision 조회
@@ -97,14 +93,16 @@ final class CategoryHierarchyIntegrationTest {
         posts.createMetadata(inCategory("초안", category.id(), 3));
         posts.setPublished(second.id(), true);
         posts.setPublished(first.id(), true);
-        var detail = publicPosts.detailMetadata(second.slug());
-        var navigation = Objects.requireNonNull(detail.series());
-        assertEquals(2, detail.category().depth());
-        assertEquals(category.id(), navigation.id());
+        var snapshot = pages.snapshot();
+        var entry = post(snapshot, second.id());
+        var group = (Map<?, ?>) Objects.requireNonNull(entry.get("series"));
+        var items = (List<?>) ((Map<?, ?>) snapshot.get("navigation")).get(group.get("navigationKey"));
+        assertEquals(2, ((CategoryRefResponse) entry.get("category")).depth());
+        assertEquals(category.id(), group.get("id"));
         assertEquals(
                 List.of(first.id(), second.id()),
-                navigation.items().stream().map(item -> item.id()).toList());
-        assertEquals(2, navigation.position());
+                items.stream().map(item -> ((PostSeriesItem) item).id()).toList());
+        assertEquals(2, group.get("position"));
         var root =
                 categories.tree().stream()
                         .filter(item -> item.path().equals("math"))
@@ -123,7 +121,7 @@ final class CategoryHierarchyIntegrationTest {
         var root = categories.create("Math");
         var post = posts.createMetadata(inCategory("대분류 글", root.id(), null));
         posts.setPublished(post.id(), true);
-        assertNull(publicPosts.detailMetadata(post.slug()).series());
+        assertNull(post(pages.snapshot(), post.id()).get("series"));
     }
 
     /**
@@ -144,6 +142,18 @@ final class CategoryHierarchyIntegrationTest {
         var roots = categories.tree();
         categories.reorder(null, roots.reversed().stream().map(item -> item.id()).toList());
         assertNotEquals(snapshot.get("revision"), pages.snapshot().get("revision"));
+    }
+
+    /**
+     * 공개 스냅샷에서 ID가 같은 글 항목
+     */
+    private Map<?, ?> post(Map<String, Object> snapshot, long id) {
+        return ((List<?>) snapshot.get("posts"))
+                .stream()
+                        .map(item -> (Map<?, ?>) item)
+                        .filter(item -> item.get("id").equals(id))
+                        .findFirst()
+                        .orElseThrow();
     }
 
     /**

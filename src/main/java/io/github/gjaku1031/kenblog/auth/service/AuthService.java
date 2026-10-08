@@ -63,7 +63,7 @@ public final class AuthService {
     /**
      * 일반 로그인 비활동 한도, 초 단위
      */
-    public static final int AUTHENTICATED_SESSION_TIMEOUT_SECONDS = 8 * 60 * 60;
+    private static final int AUTHENTICATED_SESSION_TIMEOUT_SECONDS = 8 * 60 * 60;
 
     /**
      * 유지 로그인 비활동 한도, 초 단위

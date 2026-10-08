@@ -59,13 +59,6 @@ public record PostMetadataCreateRequest(
          */
         List<Long> attachmentIds) {
     /**
-     * 제목만 지정한 기본 메타데이터
-     */
-    public PostMetadataCreateRequest(String title) {
-        this(title, null, "", null, List.of(), null, null, null, List.of());
-    }
-
-    /**
      * 허용 키·배열 타입 검사 후 주소 생략과 선택 연결을 보존
      */
     public static PostMetadataCreateRequest fromJson(JsonNode node) {

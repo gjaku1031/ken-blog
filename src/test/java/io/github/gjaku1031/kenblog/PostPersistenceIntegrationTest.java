@@ -13,7 +13,6 @@ import io.github.gjaku1031.kenblog.pages.PagesSnapshotService;
 import io.github.gjaku1031.kenblog.post.domain.InvalidPostRequestException;
 import io.github.gjaku1031.kenblog.post.domain.PostEditConflictException;
 import io.github.gjaku1031.kenblog.post.domain.PostEntity;
-import io.github.gjaku1031.kenblog.post.domain.PostVisibility;
 import io.github.gjaku1031.kenblog.post.dto.PostDetailResponse;
 import io.github.gjaku1031.kenblog.post.dto.PostMetadataCreateRequest;
 import io.github.gjaku1031.kenblog.post.service.PostService;
@@ -169,7 +168,7 @@ final class PostPersistenceIntegrationTest {
                                     try {
                                         service.updateMetadata(
                                                 created.id(),
-                                                new PostMetadataCreateRequest("제목 " + editor),
+                                                titleOnly("제목 " + editor),
                                                 created.editVersion());
                                         return true;
                                     } catch (PostEditConflictException exception) {
@@ -210,7 +209,7 @@ final class PostPersistenceIntegrationTest {
                 () ->
                         service.updateMetadata(
                                 created.id(),
-                                new PostMetadataCreateRequest("오래된 이동"),
+                                titleOnly("오래된 이동"),
                                 created.editVersion()));
     }
 
@@ -222,9 +221,9 @@ final class PostPersistenceIntegrationTest {
         long category = categories.create("snapshot-" + UUID.randomUUID() + "/child").id();
         String sql =
                 "INSERT INTO posts (title, slug, summary, created_at, updated_at, status,"
-                    + " visibility, section, edit_version, category_id, published_at) VALUES"
-                    + " (?, ?, '', UTC_TIMESTAMP(6), UTC_TIMESTAMP(6), 'PUBLISHED', 'PUBLIC',"
-                    + " 'TECH', 0, ?, UTC_TIMESTAMP(6))";
+                    + " edit_version, category_id, published_at) VALUES"
+                    + " (?, ?, '', UTC_TIMESTAMP(6), UTC_TIMESTAMP(6), 'PUBLISHED',"
+                    + " 0, ?, UTC_TIMESTAMP(6))";
         var batch =
                 IntStream.rangeClosed(1, 300)
                         .mapToObj(
@@ -291,8 +290,8 @@ final class PostPersistenceIntegrationTest {
         var slugs = List.of("lock-a-" + UUID.randomUUID(), "lock-b-" + UUID.randomUUID());
         for (String slug : slugs)
             jdbc.update(
-                    "INSERT INTO series (slug, name, description, kind, visibility, sort_order,"
-                        + " created_at, updated_at) VALUES (?, ?, '', 'PROJECT', 'PUBLIC', 0,"
+                    "INSERT INTO series (slug, name, description, kind, sort_order,"
+                        + " created_at, updated_at) VALUES (?, ?, '', 'PROJECT', 0,"
                         + " UTC_TIMESTAMP(6), UTC_TIMESTAMP(6))",
                     slug,
                     slug);
@@ -350,7 +349,6 @@ final class PostPersistenceIntegrationTest {
         var byId = service.adminMetadata(created.id());
         assertEquals("첫 글", byId.title());
         assertEquals("first-post", byId.slug());
-        assertEquals(PostVisibility.PUBLIC, byId.visibility());
         assertEquals(
                 created.id(),
                 jdbc.queryForObject(
@@ -490,7 +488,7 @@ final class PostPersistenceIntegrationTest {
         long id = service.createMetadata(request("삭제할 글", "delete-post", "")).id();
         jdbc.update(
                 "INSERT INTO post_tags (post_id, position, tag_name, display_name) VALUES (?, 0,"
-                    + " 'kotlin', 'Kotlin')",
+                    + " 'java', 'Java')",
                 id);
         jdbc.update("DELETE FROM posts WHERE id = ?", id);
         assertEquals(
@@ -526,6 +524,13 @@ final class PostPersistenceIntegrationTest {
     private PostMetadataCreateRequest request(String title, String slug, String summary) {
         return new PostMetadataCreateRequest(
                 title, slug, summary, null, List.of(), null, null, null, List.of());
+    }
+
+    /**
+     * 제목만 바꾸는 편집 입력
+     */
+    private PostMetadataCreateRequest titleOnly(String title) {
+        return request(title, null, "");
     }
 
     /**

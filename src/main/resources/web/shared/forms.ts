@@ -177,7 +177,7 @@ export function stackIcon(badge: Badge) {
 /**
  * 기술 목록에서 선택 순서를 보존하며 최대 30개 지정
  */
-export function stackPicker(parent: HTMLElement, badges: Badge[], initial: string[] = []) {
+function stackPicker(parent: HTMLElement, badges: Badge[], initial: string[] = []) {
   selectionPicker(parent, { title: '기술 스택', name: 'stackBadgeNames', className: 'stack-picker',
     placeholder: '기술 스택 검색', searchLabel: '기술 스택 검색', initial, maximum: 30,
     items: badges.map(badge => ({ value: badge.name, icon: () => stackIcon(badge) })), removeLabel: value => `${value} 선택 해제` });

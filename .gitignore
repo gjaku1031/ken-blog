@@ -16,6 +16,7 @@
 node_modules/
 build/
 target/
+test-results/
 .gradle/
 *.tsbuildinfo
 # 개인 개발 환경 파일
@@ -23,6 +24,7 @@ target/
 .vscode/
 .classpath
 .project
+.factorypath
 .settings/
 .DS_Store
 /docs/study/

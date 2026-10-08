@@ -5,7 +5,7 @@ spring:
     exclude: org.springframework.boot.security.autoconfigure.UserDetailsServiceAutoConfiguration
   application:
     name: ken-blog
-  # JDBC 세션 수명·만료 정리, 스키마는 프로젝트 SQL에서 관리
+  # 로그인 전 JDBC 세션 수명(로그인 후는 AuthService가 8시간·30일로 지정), 스키마는 프로젝트 SQL에서 관리
   session:
     timeout: 30m
     jdbc:

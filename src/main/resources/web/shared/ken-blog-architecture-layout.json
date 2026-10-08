@@ -2,9 +2,9 @@
   "width": 1580,
   "height": 1040,
   "legend": [
-    {"kind": "runtime", "title": "화면·API 요청 / 데이터 읽기", "x": 300, "y": 1020},
-    {"kind": "delivery", "title": "빌드·산출물 전달", "x": 660, "y": 1020},
-    {"kind": "control", "title": "검토 후 수동 운영 반영", "x": 955, "y": 1020}
+    {"kind": "runtime", "title": "화면·API 요청 / 데이터 읽기"},
+    {"kind": "delivery", "title": "빌드·산출물 전달"},
+    {"kind": "control", "title": "검토 후 수동 운영 반영"}
   ],
   "groups": {
     "people": [10, 65, 235, 735, "작성 · 열람 · 관리"],

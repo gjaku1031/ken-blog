@@ -132,8 +132,7 @@ export function normalizeSnapshot(raw, fixture = false) {
     name: string(row.name, "series name"), kind: row.kind };
   // 공개 글의 필드·분류·탐색 정보를 검증해 선별
   const posts = array(raw.posts, "posts").map(row => {
-    requireValue(["TECH", "PROJECT"].includes(row.section) && (!row.visibility || row.visibility === "PUBLIC") && !row.locked,
-      "public post");
+    requireValue(["TECH", "PROJECT"].includes(row.section), "public post");
     const category = row.category == null ? null : { id: integer(row.category.id, "category id", 1),
       path: string(row.category.path, "category path"), name: string(row.category.name, "category name"),
       depth: integer(row.category.depth, "category depth", 1), sortOrder: signedInteger(row.category.sortOrder ?? 0, "category order") };
@@ -147,8 +146,8 @@ export function normalizeSnapshot(raw, fixture = false) {
   });
   // 공개 시리즈와 대문·기술 이미지 필드 검증
   const series = array(raw.series, "series").map(row => {
-    requireValue(row.visibility === "PUBLIC" && ["TECH", "PROJECT"].includes(row.kind), "public series");
-    return { ...ref(row), slug: slug(row.slug, "series slug"), visibility: "PUBLIC",
+    requireValue(["TECH", "PROJECT"].includes(row.kind), "public series");
+    return { ...ref(row), slug: slug(row.slug, "series slug"),
       description: string(row.description, "description", true), projectStatus: nullableString(row.projectStatus, "project status"),
       startPeriod: nullableString(row.startPeriod, "start period"), endPeriod: nullableString(row.endPeriod, "end period"),
       sortOrder: signedInteger(row.sortOrder, "series order"), cover: navigation(object(row.cover, "cover")),

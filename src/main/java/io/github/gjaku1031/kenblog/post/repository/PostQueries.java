@@ -62,7 +62,6 @@ public class PostQueries {
                 p.UPDATED_AT,
                 p.PUBLISHED_AT,
                 p.STATUS,
-                p.VISIBILITY,
                 p.CATEGORY_ID,
                 p.SERIES_ORDER,
                 p.RELATED_SERIES_ID,
@@ -90,35 +89,10 @@ public class PostQueries {
     }
 
     /**
-     * 미이관 구획과 고아 시리즈를 공개하지 않는 공통 조건
+     * 공개 사이트에 싣는 출간 글 조건
      */
     public Condition readable() {
-        return p.STATUS
-                .eq("PUBLISHED")
-                .and(p.VISIBILITY.eq("PUBLIC"))
-                .and(p.SECTION.eq("TECH"))
-                .and(p.SERIES_ID.isNull().or(s.VISIBILITY.eq("PUBLIC")));
-    }
-
-    /**
-     * 일반 글 또는 TECH 시리즈의 글 조건
-     */
-    private Condition general() {
-        return p.SERIES_ID.isNull().or(s.KIND.eq("TECH"));
-    }
-
-    /**
-     * 초안 포함 관리자 글 목록
-     */
-    public PostRows adminPage(int page, int size) {
-        return page(trueCondition(), page, size, false);
-    }
-
-    /**
-     * 공개 출간 글 목록
-     */
-    public PostRows publicPage(int page, int size) {
-        return page(readable(), page, size, true);
+        return p.STATUS.eq("PUBLISHED");
     }
 
     /**
@@ -144,51 +118,12 @@ public class PostQueries {
     }
 
     /**
-     * 조건에 맞는 총건수와 정렬된 페이지
-     */
-    private PostRows page(Condition condition, int page, int size, boolean published) {
-        long total =
-                Objects.requireNonNull(
-                        sql.selectCount().from(joined()).where(condition).fetchOne(0, Long.class));
-        var rows =
-                sql.select(fields())
-                        .from(joined())
-                        .where(condition)
-                        .orderBy(published ? newest() : List.of(p.UPDATED_AT.desc(), p.ID.desc()))
-                        .limit(size)
-                        .offset(page * size)
-                        .fetch(this::row);
-        return new PostRows(rows, total, (int) ((total + size - 1) / size));
-    }
-
-    /**
-     * 주소에 해당하는 공개 출간 글
-     */
-    public PostRow publicBySlug(String slug) {
-        return sql.select(fields())
-                .from(joined())
-                .where(readable().and(p.SLUG.eq(slug)))
-                .fetchOne(this::row);
-    }
-
-    /**
      * 시리즈 문서, 공개 여부에 따라 초안 포함
      */
     public List<PostRow> seriesPosts(long id, boolean publicOnly) {
         return sql.select(fields())
                 .from(joined())
                 .where(p.SERIES_ID.eq(id).and(publicOnly ? readable() : trueCondition()))
-                .orderBy(ordered())
-                .fetch(this::row);
-    }
-
-    /**
-     * 해당 분류의 공개 일반·TECH 글
-     */
-    public List<PostRow> categoryPosts(long id) {
-        return sql.select(fields())
-                .from(joined())
-                .where(readable().and(general()).and(p.CATEGORY_ID.eq(id)))
                 .orderBy(ordered())
                 .fetch(this::row);
     }
@@ -221,18 +156,19 @@ public class PostQueries {
     }
 
     /**
-     * 연결 교체 트랜잭션에서 ID 순서로 호출하는 첨부 상태 잠금
+     * 연결 교체 트랜잭션에서 ID 순서로 호출하는 첨부 행 잠금, 없으면 false
      */
-    public String lockAttachmentStatus(long id) {
-        return sql.select(ATTACHMENTS.STATUS)
-                .from(ATTACHMENTS)
-                .where(ATTACHMENTS.ID.eq(id))
-                .forUpdate()
-                .fetchOne(ATTACHMENTS.STATUS);
+    public boolean lockAttachment(long id) {
+        return sql.select(ATTACHMENTS.ID)
+                        .from(ATTACHMENTS)
+                        .where(ATTACHMENTS.ID.eq(id))
+                        .forUpdate()
+                        .fetchOne()
+                != null;
     }
 
     /**
-     * 공개 출간 글의 READY 첨부 연결과 전달 정보
+     * 공개 출간 글에 연결된 첨부의 전달 정보
      */
     public AttachmentDeliveryRow readableAttachment(long postId, long attachmentId) {
         return sql.select(ATTACHMENTS.OBJECT_KEY, ATTACHMENTS.CONTENT_TYPE, ATTACHMENTS.BYTE_SIZE)
@@ -244,8 +180,7 @@ public class PostQueries {
                 .where(
                         readable()
                                 .and(p.ID.eq(postId))
-                                .and(ATTACHMENTS.ID.eq(attachmentId))
-                                .and(ATTACHMENTS.STATUS.eq("READY")))
+                                .and(ATTACHMENTS.ID.eq(attachmentId)))
                 .fetchOne(
                         record ->
                                 new AttachmentDeliveryRow(
@@ -253,7 +188,7 @@ public class PostQueries {
     }
 
     /**
-     * 공개 글의 첨부 연결·상태·수정 정보
+     * 공개 글의 첨부 연결·형식·수정 정보
      */
     public List<String> attachmentRevisions() {
         return sql.select(
@@ -262,7 +197,6 @@ public class PostQueries {
                         ATTACHMENTS.OBJECT_KEY,
                         ATTACHMENTS.CONTENT_TYPE,
                         ATTACHMENTS.BYTE_SIZE,
-                        ATTACHMENTS.STATUS,
                         ATTACHMENTS.UPDATED_AT)
                 .from(
                         joined().join(POST_ATTACHMENTS)
@@ -292,7 +226,6 @@ public class PostQueries {
                 r.get(p.UPDATED_AT),
                 r.get(p.PUBLISHED_AT),
                 PostStatus.valueOf(r.get(p.STATUS)),
-                PostVisibility.valueOf(r.get(p.VISIBILITY)),
                 r.get(p.CATEGORY_ID),
                 seriesId == null
                         ? null

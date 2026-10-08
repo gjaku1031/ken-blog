@@ -41,7 +41,7 @@ fixture.posts[0].legacyPath = 'course/old/chapters/first';
 fixture.posts.push({ ...fixture.posts[1], ...cover, section: 'PROJECT', category: null, tags: [],
   body: '## 프로젝트 소개\n\n프로젝트 본문', legacyPath: 'project/demo/docs/intro',
   series: { ...project, items: [cover], position: 1 } });
-fixture.series.push({ ...project, visibility: 'PUBLIC', description: '검사 프로젝트 개요', sortOrder: 0,
+fixture.series.push({ ...project, description: '검사 프로젝트 개요', sortOrder: 0,
   projectStatus: 'DEV', startPeriod: '2026.01', endPeriod: null, stackBadges: [], cover, postCount: 1 });
 
 // 프로젝트 소속 문서와 구분되는 다섯 공개 관련 글

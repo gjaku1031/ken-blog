@@ -30,7 +30,7 @@ public final class SeriesController {
      */
     @GetMapping
     public ResponseEntity<List<SeriesResponse>> list() {
-        return noStore(service.list(true));
+        return noStore(service.list());
     }
 
     /**

@@ -4,13 +4,10 @@ import io.github.gjaku1031.kenblog.auth.service.AdminLoginAttemptService;
 import io.github.gjaku1031.kenblog.global.security.*;
 import io.github.gjaku1031.kenblog.global.text.Text;
 
-import jakarta.servlet.*;
-import jakarta.servlet.http.*;
 
 import org.springframework.beans.factory.annotation.*;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.*;
-import org.springframework.core.Ordered;
 import org.springframework.http.*;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -23,9 +20,7 @@ import org.springframework.security.web.context.*;
 import org.springframework.security.web.csrf.*;
 import org.springframework.security.web.savedrequest.NullRequestCache;
 import org.springframework.web.cors.*;
-import org.springframework.web.filter.OncePerRequestFilter;
 
-import java.io.IOException;
 import java.time.Clock;
 import java.util.*;
 
@@ -34,44 +29,6 @@ import java.util.*;
  */
 @Configuration(proxyBeanMethods = false)
 public final class SecurityConfig {
-    /**
-     * 제거한 화면·자산 경로를 인증 상태와 관계없이 404로 종료
-     */
-    @Bean
-    public FilterRegistrationBean<OncePerRequestFilter> retiredWebPathRegistration() {
-        var registration =
-                new FilterRegistrationBean<OncePerRequestFilter>(
-                        new OncePerRequestFilter() {
-                            /**
-                             * 제거 경로는 캐시 금지 404, 그 외 요청은 다음 필터로 전달
-                             */
-                            @Override
-                            protected void doFilterInternal(
-                                    HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain chain)
-                                    throws ServletException, IOException {
-                                String path = request.getRequestURI();
-                                boolean retired =
-                                        List.of("/manage", "/assets", "/write", "/admin").stream()
-                                                .anyMatch(
-                                                        prefix ->
-                                                                path.equals(prefix)
-                                                                        || path.startsWith(
-                                                                                prefix + "/"));
-                                if (retired) {
-                                    response.setHeader("Cache-Control", "no-store");
-                                    response.setStatus(HttpStatus.NOT_FOUND.value());
-                                    return;
-                                }
-                                chain.doFilter(request, response);
-                            }
-                        });
-        registration.setOrder(Ordered.HIGHEST_PRECEDENCE);
-        registration.addUrlPatterns("/*");
-        return registration;
-    }
-
     /**
      * 세션 검증 필터를 Security chain에서만 실행
      */
@@ -155,8 +112,8 @@ public final class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource(
             @Value("${app.cors.allowed-origins}") String publicOriginsCsv,
             @Value("${app.auth.cors.allowed-origins}") String authOriginsCsv) {
-        var publicOrigins = parseOrigins(publicOriginsCsv, true);
-        var authOrigins = parseOrigins(authOriginsCsv, true);
+        var publicOrigins = parseOrigins(publicOriginsCsv);
+        var authOrigins = parseOrigins(authOriginsCsv);
         var source = new UrlBasedCorsConfigurationSource();
         var publicPosts = cors(publicOrigins, List.of("GET", "HEAD"), List.of("Accept"), false);
         var authenticatedPosts = cors(authOrigins, List.of("GET", "HEAD"), List.of("Accept"), true);
@@ -288,18 +245,15 @@ public final class SecurityConfig {
      * 쉼표로 구분한 실제 origin 목록만 허용
      *
      * @param csv 설정 문자열
-     * @param allowEmpty 비어 있는 목록 허용 여부
      * @return 원래 순서를 유지한 origin 목록
      * @throws IllegalStateException 허용하지 않는 와일드카드나 URL 형식일 때
      */
-    private List<String> parseOrigins(String csv, boolean allowEmpty) {
+    private List<String> parseOrigins(String csv) {
         var origins =
                 Arrays.stream(csv.split(",", -1))
                         .map(Text::trim)
                         .filter(value -> !value.isEmpty())
                         .toList();
-        if (!allowEmpty && origins.isEmpty())
-            throw new IllegalStateException("CORS origins must be explicit");
         if (origins.stream()
                 .anyMatch(value -> !value.matches("https?://[A-Za-z0-9.-]+(?::[0-9]{1,5})?")))
             throw new IllegalStateException("CORS origins must be exact HTTP origins");

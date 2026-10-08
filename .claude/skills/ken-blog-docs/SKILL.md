@@ -99,7 +99,7 @@ ken-blog 문서는 대학원 진학용 포트폴리오이자, 이후 다른 프�
 
 ## ken-blog에서 쓰지 않는 내용
 
-- 백엔드 언어 전환(Kotlin → Java) 이력과 이유. 현재 언어를 처음부터 쓴 것처럼 쓴다.
+- 기술 스택 교체 이력과 이유. 현재 스택을 처음부터 쓴 것처럼 쓴다.
 - 서버 리전을 고른 사정(무료 티어 등).
 - 폐기·삭제한 기능: MCP, RAG·에이전트용 본문 조회 API, 관리자 위키 선언.
 
@@ -122,7 +122,7 @@ ken-blog 문서는 대학원 진학용 포트폴리오이자, 이후 다른 프�
 
 ## 본문 스크린샷 등록
 
-공개 사이트는 `post_attachments`로 글에 연결되고 `status = 'READY'`인 첨부만 내보낸다(`PostQueries.readableAttachment`, `attachmentRevisions`). 연결이 없으면 원고에 ID를 적어도 이미지가 보이지 않는다.
+공개 사이트는 `post_attachments`로 발행된 글에 연결된 첨부만 내보낸다(`PostQueries.readableAttachment`, `attachmentRevisions`). 연결이 없으면 원고에 ID를 적어도 이미지가 보이지 않는다.
 
 1. **캡처**: `node .claude/skills/ken-blog-docs/scripts/capture-screen.cjs <URL> <scratchpad>/<이름> [CSS 선택자] [폭] [높이]` → `<이름>-light.png`, `<이름>-dark.png`(2배 해상도). 관리 화면처럼 로그인이 필요한 화면은 로컬 서버와 모의 데이터로 캡처하고, 모의 데이터가 보이면 캡션에 밝힌다. 비밀번호·토큰·개인 정보가 화면에 없는지 Read로 직접 본다.
 2. **파일 올리기**: 장마다 새 UUID를 만든다. 같은 파일을 바꿀 때도 새 UUID를 쓴다(브라우저·Pages 캐시 때문에 같은 키를 덮어쓰지 않음).
@@ -131,10 +131,10 @@ ken-blog 문서는 대학원 진학용 포트폴리오이자, 이후 다른 프�
    scp <이름>-dark.png oci-blog:/tmp/$uuid.png
    ssh oci-blog "sudo install -o 10001 -g 1001 -m 0600 /tmp/$uuid.png /srv/ken-blog-live/assets/ken-blog/live/attachments/$uuid.png && rm /tmp/$uuid.png"
    ```
-3. **DB 등록**(SQL을 사용자에게 보여 준 뒤 `.claude/skills/ken-blog-stack-badges/scripts/db.sh`로 실행). `byte_size`는 `stat -c %s`, 상한 10MB. `uploaded_by`는 관리자 `users.id`(ken-blog는 1).
+3. **DB 등록**(SQL을 사용자에게 보여 준 뒤 `.claude/skills/ken-blog-stack-badges/scripts/db.sh`로 실행). `byte_size`는 `stat -c %s`, 상한 10MB.
    ```sql
-   INSERT INTO attachments (object_key, original_filename, content_type, byte_size, uploaded_by, status, created_at, updated_at)
-   VALUES ('ken-blog/live/attachments/{uuid}.png', '{이름}-dark.png', 'image/png', {바이트}, 1, 'READY', UTC_TIMESTAMP(6), UTC_TIMESTAMP(6));
+   INSERT INTO attachments (object_key, content_type, byte_size, created_at, updated_at)
+   VALUES ('ken-blog/live/attachments/{uuid}.png', 'image/png', {바이트}, UTC_TIMESTAMP(6), UTC_TIMESTAMP(6));
    INSERT INTO post_attachments (post_id, attachment_id) VALUES ({posts.id}, LAST_INSERT_ID());
    ```
    밝은 캡처도 같은 방법으로 등록한다. 두 행 모두 같은 글에 연결한다.

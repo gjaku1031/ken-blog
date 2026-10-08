@@ -86,7 +86,7 @@ export type PostOptions = {
 /**
  * 대분류·소분류를 구분하는 분류 선택 입력
  */
-export function categoryPicker(parent: HTMLElement, categories: Category[], selected: number | null = null) {
+function categoryPicker(parent: HTMLElement, categories: Category[], selected: number | null = null) {
   const group = el('fieldset', 'wide category-picker field-grid'); group.append(el('legend', '', '분류'));
   const root = categories.find(item => item.id === selected || item.children.some(child => child.id === selected));
   const major = choice(group, '대분류', 'categoryRoot', [['', '분류 없음'], ...categories.map(item => [String(item.id), item.name] as [string, string])], String(root?.id ?? ''));
@@ -117,7 +117,7 @@ export function categoryPicker(parent: HTMLElement, categories: Category[], sele
 /**
  * 기존·새 태그를 최대 16개 선택, 이름은 40 코드포인트까지 허용
  */
-export function tagPicker(parent: HTMLElement, tags: Tag[], initial: string[] = []) {
+function tagPicker(parent: HTMLElement, tags: Tag[], initial: string[] = []) {
   selectionPicker(parent, { title: '태그', name: 'tags', className: 'tag-picker',
     placeholder: '기존 태그 검색 또는 새 태그 입력', searchLabel: '태그 검색', initial, maximum: 16, createMaxLength: 40,
     items: tags.map(tag => ({ value: tag.name, count: tag.count })), normalize: value => value.replace(/^#/, ''),
@@ -157,7 +157,7 @@ export function postFields(parent: HTMLElement, data: PostOptions, project: bool
 /**
  * 폼에서 순서대로 선택한 태그 이름 수집
  */
-export const postTags = (data: FormData) => data.getAll('tags').map(String);
+const postTags = (data: FormData) => data.getAll('tags').map(String);
 
 /**
  * 글 작성·수정 폼을 메타데이터 값으로 변환

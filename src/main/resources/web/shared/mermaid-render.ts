@@ -8,17 +8,17 @@ export type MermaidTheme = "light" | "dark";
 /**
  * 도식 원문 길이 상한
  */
-export const MAX_MERMAID_LENGTH = 12 * 1024;
+const MAX_MERMAID_LENGTH = 12 * 1024;
 
 /**
  * 도식 원문 줄 수 상한
  */
-export const MAX_MERMAID_LINES = 200;
+const MAX_MERMAID_LINES = 200;
 
 /**
  * 도식 연결 수 상한
  */
-export const MAX_MERMAID_EDGES = 100;
+const MAX_MERMAID_EDGES = 100;
 
 /**
  * Mermaid 도식의 최대 기준 글자 크기, 본문에서 확대 없이 표시될 때의 크기
@@ -301,7 +301,7 @@ function withoutFixedAnimations(value: string): string {
 /**
  * Mermaid 출력의 XML 요소·속성·CSS를 검증하고 외부 참조가 없는 SVG만 돌려줌
  */
-export function sanitizeMermaidSvg(svg: string): string {
+function sanitizeMermaidSvg(svg: string): string {
   if (svg.length > 512 * 1024 || /<!DOCTYPE|<!ENTITY|<\?xml-stylesheet/i.test(svg)) throw new Error("도식 SVG 크기 또는 선언 오류");
   const doc = new DOMParser().parseFromString(svg, "image/svg+xml");
   if (doc.querySelector("parsererror") || doc.documentElement.namespaceURI !== SVG_NS || doc.documentElement.localName !== "svg")

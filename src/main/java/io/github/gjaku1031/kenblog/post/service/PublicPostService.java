@@ -2,16 +2,12 @@ package io.github.gjaku1031.kenblog.post.service;
 
 import lombok.RequiredArgsConstructor;
 
-import io.github.gjaku1031.kenblog.category.repository.CategoryRepository;
-import io.github.gjaku1031.kenblog.global.text.Text;
 import io.github.gjaku1031.kenblog.post.domain.*;
 import io.github.gjaku1031.kenblog.post.dto.*;
 import io.github.gjaku1031.kenblog.post.repository.*;
 import io.github.gjaku1031.kenblog.series.domain.SeriesKind;
-import io.github.gjaku1031.kenblog.series.repository.SeriesRepository;
 
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.*;
 import java.util.*;
@@ -24,77 +20,9 @@ import java.util.stream.IntStream;
 @RequiredArgsConstructor
 public class PublicPostService {
     /**
-     * 게시글 메타데이터 조회기
-     */
-    private final PostQueries queries;
-
-    /**
-     * 분류 저장소
-     */
-    private final CategoryRepository categories;
-
-    /**
      * 분류·태그 조회기
      */
     private final PostTaxonomyMetadata taxonomy;
-
-    /**
-     * 시리즈 저장소
-     */
-    private final SeriesRepository series;
-
-    /**
-     * 공개 글·분류·태그 조회 후 시리즈 우선 탐색과 공개 관련 프로젝트 결합
-     */
-    @Transactional(readOnly = true)
-    public PublicPostDetailResponse detailMetadata(String slug) {
-        var row = queries.publicBySlug(Text.trim(slug).toLowerCase(Locale.ROOT));
-        if (row == null) throw new PostNotFoundException();
-        var view = taxonomy.one(row.id(), row.categoryId());
-        PostSeriesResponse navigation = null;
-        // 시리즈가 없을 때만 소분류 탐색 사용
-        if (row.series() != null) {
-            var ref = row.series();
-            var siblings = queries.seriesPosts(ref.id(), true);
-            navigation =
-                    new PostSeriesResponse(
-                            ref.id(),
-                            ref.slug(),
-                            ref.name(),
-                            ref.kind(),
-                            items(siblings),
-                            position(siblings, row.id()));
-        } else if (row.categoryId() != null) {
-            var category = categories.findById(row.categoryId()).orElse(null);
-            if (category != null && category.getDepth() == 2) {
-                var siblings = queries.categoryPosts(row.categoryId());
-                navigation =
-                        new PostSeriesResponse(
-                                row.categoryId(),
-                                category.getPath(),
-                                category.getName(),
-                                SeriesKind.TECH,
-                                items(siblings),
-                                position(siblings, row.id()));
-            }
-        }
-        // 출간 문서가 있는 공개 프로젝트만 관련 시리즈로 노출
-        SeriesRef related = null;
-        if (row.relatedSeriesId() != null) {
-            var entity = series.findById(row.relatedSeriesId()).orElse(null);
-            if (entity != null
-                    && entity.getKind() == SeriesKind.PROJECT
-                    && entity.getVisibility() == PostVisibility.PUBLIC
-                    && !queries.seriesPosts(row.relatedSeriesId(), true).isEmpty())
-                related =
-                        new SeriesRef(
-                                Objects.requireNonNull(entity.getId()),
-                                entity.getSlug(),
-                                entity.getName(),
-                                entity.getKind());
-        }
-        return response(row, view, navigation, related);
-    }
 
     /**
      * 같은 읽기 트랜잭션의 전체 행에서 분류·태그·문서 탐색 일괄 구성
@@ -191,15 +119,6 @@ public class PublicPostService {
                             return new PostSeriesItem(row.id(), row.slug(), row.title(), index + 1);
                         })
                 .toList();
-    }
-
-    /**
-     * 현재 글의 1 기반 위치, 없으면 0
-     */
-    private int position(List<PostRow> rows, long id) {
-        for (int index = 0; index < rows.size(); index++)
-            if (rows.get(index).id() == id) return index + 1;
-        return 0;
     }
 
     /**

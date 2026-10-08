@@ -50,11 +50,6 @@ public record PostRow(
         PostStatus status,
 
         /**
-         * 공개 범위
-         */
-        PostVisibility visibility,
-
-        /**
          * 분류 ID
          */
         Long categoryId,

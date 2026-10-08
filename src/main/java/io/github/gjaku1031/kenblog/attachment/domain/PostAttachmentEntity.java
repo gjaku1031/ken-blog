@@ -49,7 +49,7 @@ public class PostAttachmentEntity {
      * 연결 키 초기화
      *
      * @param postId 잠근 게시글 ID
-     * @param attachmentId 검증한 READY 첨부 ID
+     * @param attachmentId 존재를 확인한 첨부 ID
      */
     public PostAttachmentEntity(long postId, long attachmentId) {
         key = new PostAttachmentId(postId, attachmentId);

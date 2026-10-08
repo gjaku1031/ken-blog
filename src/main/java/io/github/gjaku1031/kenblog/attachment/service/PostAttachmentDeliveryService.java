@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 /**
- * 공개 권한·READY 연결 확인 뒤 DB 트랜잭션 밖에서 파일 열기
+ * 공개 권한·연결 확인 뒤 DB 트랜잭션 밖에서 파일 열기
  */
 @Service
 @RequiredArgsConstructor

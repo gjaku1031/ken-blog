@@ -20,7 +20,7 @@ const snapshot = {
 /**
  * 관리자 목록의 공개 글
  */
-const published = { id: 1, status: 'PUBLISHED', visibility: 'PUBLIC' };
+const published = { id: 1, status: 'PUBLISHED' };
 
 // 실제 산출물에 비교 기록을 포함하고 비공개 데이터 필드는 쓰지 않음
 test('generated Pages artifact includes a validated deployment manifest', async () => {
@@ -87,7 +87,6 @@ test('new publication, unpublication and private transition have distinct pendin
   const draft = { ...published, status: 'DRAFT' };
   assert.equal(deploymentState(draft, { current: empty, deployed: current }).kind, 'pending');
   assert.equal(deploymentState(draft, { current: empty, deployed: empty }).label, '미발행');
-  assert.equal(deploymentState({ ...published, visibility: 'PRIVATE' }, { current: empty, deployed: current }).kind, 'pending');
   assert.equal(deploymentState(published, null).kind, 'unknown');
   assert.equal(deploymentState(published, { current: empty, deployed: current }).kind, 'unknown');
 });
@@ -110,7 +109,7 @@ test('invalid manifests and incomplete snapshots fail closed', async () => {
 });
 
 // 비교 실패는 모든 발행 설정에서 미확인 상태로 유지
-test('unknown deployment remains unknown for drafts and private posts', () => {
-  for (const status of ['DRAFT', 'PUBLISHED']) for (const visibility of ['PUBLIC', 'PRIVATE'])
-    assert.equal(deploymentState({ id: 1, status, visibility }, null).kind, 'unknown');
+test('unknown deployment remains unknown for drafts and published posts', () => {
+  for (const status of ['DRAFT', 'PUBLISHED'])
+    assert.equal(deploymentState({ id: 1, status }, null).kind, 'unknown');
 });

@@ -79,7 +79,7 @@ architecture-beta
 | `members`, `parents` | 서비스·그룹 소속; 최상위는 빈 문자열 |
 | `sourceGroups`, `sourceEdges` | 원고의 그룹·연결 선언을 공백 정규화한 한 줄 문자열 목록 |
 | `edges` | `source`, `target`, `groupTarget`, 경로 `points`, 선 분류 `kind`, 문구 `label`, 문구 좌표 `at` |
-| `legend` | 범례 항목의 `kind`, `title`. 범례는 그림 오른쪽 아래 상자에 자동 배치되므로 `x`, `y`는 쓰지 않음(0). 상자 높이만큼 오른쪽 아래를 비워 둠 |
+| `legend` | 범례 항목의 `kind`, `title`. 범례는 그림 오른쪽 아래 상자에 자동 배치되므로 좌표를 넣지 않음. 상자 높이만큼 오른쪽 아래를 비워 둠 |
 
 그룹·연결 문구나 방향이 바뀌면 원고, `sourceGroups`·`sourceEdges`, 실제 표시 제목·문구·경로를 함께 갱신한다. 공백과 선언 순서는 정규화하지만 문구·아이콘·방향·중복 개수는 검사한다. 검증 목록만 바꿔 낡은 번역이나 연결 경로를 그대로 두지 않는다.
 

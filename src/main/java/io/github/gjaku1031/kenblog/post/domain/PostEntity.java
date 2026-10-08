@@ -104,12 +104,6 @@ public class PostEntity {
     // 이전 구획은 이관 때 TECH로 정규화 앱의 종류 판단에는 사용하지 않음
 
     /**
-     * 스키마 호환용 이전 구획
-     */
-    @Column(name = "section", nullable = false, length = 16)
-    private String legacySection = "TECH";
-
-    /**
      * 이전 공개 경로
      */
     @Column(name = "legacy_path", length = 500)
@@ -128,7 +122,7 @@ public class PostEntity {
     private LocalDateTime updatedAt;
 
     /**
-     * 관리자 편집 충돌 검사용 버전, 모든 편집 저장과 분류 일괄 이동에서 증가
+     * 관리자 편집 충돌 검사용 버전, 편집 저장·발행 전환·분류 일괄 이동에서 증가
      */
     @Column(name = "edit_version", nullable = false)
     private long editVersion = 0L;
@@ -147,13 +141,6 @@ public class PostEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, columnDefinition = "varchar(16)")
     private PostStatus status = PostStatus.DRAFT;
-
-    /**
-     * 공개 범위
-     */
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, columnDefinition = "varchar(16)")
-    private PostVisibility visibility = PostVisibility.PUBLIC;
 
     /**
      * 최초 출간 시각
@@ -199,14 +186,12 @@ public class PostEntity {
     }
 
     /**
-     * 공개 출간으로 전환하고 최초 출간 시각 기록
+     * 출간으로 전환하고 최초 출간 시각 기록
      */
-    public void publish(PostVisibility visibility, LocalDateTime now) {
-        if (visibility != PostVisibility.PUBLIC) throw new InvalidPostRequestException();
-        if (status == PostStatus.PUBLISHED && this.visibility == visibility) return;
+    public void publish(LocalDateTime now) {
+        if (status == PostStatus.PUBLISHED) return;
         if (publishedAt == null) publishedAt = now;
         status = PostStatus.PUBLISHED;
-        this.visibility = visibility;
         updatedAt = now;
     }
 
@@ -399,20 +384,6 @@ public class PostEntity {
      */
     protected void setStatus(PostStatus status) {
         this.status = status;
-    }
-
-    /**
-     * visibility 조회
-     */
-    public PostVisibility getVisibility() {
-        return visibility;
-    }
-
-    /**
-     * JPA 프록시의 visibility 변경
-     */
-    protected void setVisibility(PostVisibility visibility) {
-        this.visibility = visibility;
     }
 
     /**

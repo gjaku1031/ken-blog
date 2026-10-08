@@ -26,15 +26,7 @@ public final class LoginRequest {
      */
     @JsonCreator
     public LoginRequest(@JsonProperty(value = "password", required = true) String password) {
-        this(password, false);
-    }
-
-    /**
-     * 직접 호출의 비밀번호·로그인 유지 여부 초기화
-     */
-    public LoginRequest(String password, boolean rememberMe) {
         this.password = Objects.requireNonNull(password, "password");
-        this.rememberMe = rememberMe;
     }
 
     /**

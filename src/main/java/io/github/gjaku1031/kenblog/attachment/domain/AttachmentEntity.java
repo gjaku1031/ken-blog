@@ -1,25 +1,18 @@
 package io.github.gjaku1031.kenblog.attachment.domain;
 
-import io.github.gjaku1031.kenblog.account.domain.UserEntity;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
-import jakarta.persistence.EnumType;
-import jakarta.persistence.Enumerated;
-import jakarta.persistence.FetchType;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
 
 import java.time.LocalDateTime;
 
 /**
- * 비공개 이미지 파일의 key와 처리 상태를 추적하는 {@code attachments} 행
+ * 운영자가 서버 디스크에 둔 이미지 파일의 key·형식·크기를 기록하는 {@code attachments} 행
  *
- * DB와 로컬 파일을 직접 관리하며 기존 ID·열·상태 값과 FK 스키마를 보존하는 읽기 모델
+ * 쓰기 API 없이 DB와 로컬 파일을 직접 관리하는 읽기 모델
  */
 @Entity
 @Table(name = "attachments")
@@ -48,12 +41,6 @@ public class AttachmentEntity {
     private String objectKey;
 
     /**
-     * 원본 파일명
-     */
-    @Column(name = "original_filename", nullable = false, length = 255)
-    private String originalFilename;
-
-    /**
      * MIME 타입
      */
     @Column(name = "content_type", nullable = false, length = 32)
@@ -64,20 +51,6 @@ public class AttachmentEntity {
      */
     @Column(name = "byte_size", nullable = false)
     private long byteSize = 0L;
-
-    /**
-     * 등록 계정 FK 매핑
-     */
-    @ManyToOne(fetch = FetchType.LAZY, optional = false)
-    @JoinColumn(name = "uploaded_by", nullable = false)
-    private UserEntity uploadedBy;
-
-    /**
-     * 첨부 처리 상태
-     */
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false, length = 16)
-    private AttachmentStatus status;
 
     /**
      * 생성 시각
@@ -120,20 +93,6 @@ public class AttachmentEntity {
     }
 
     /**
-     * originalFilename 조회
-     */
-    public String getOriginalFilename() {
-        return originalFilename;
-    }
-
-    /**
-     * JPA 프록시의 originalFilename 변경
-     */
-    protected void setOriginalFilename(String originalFilename) {
-        this.originalFilename = originalFilename;
-    }
-
-    /**
      * contentType 조회
      */
     public String getContentType() {
@@ -159,34 +118,6 @@ public class AttachmentEntity {
      */
     protected void setByteSize(long byteSize) {
         this.byteSize = byteSize;
-    }
-
-    /**
-     * uploadedBy 조회
-     */
-    public UserEntity getUploadedBy() {
-        return uploadedBy;
-    }
-
-    /**
-     * JPA 프록시의 uploadedBy 변경
-     */
-    protected void setUploadedBy(UserEntity uploadedBy) {
-        this.uploadedBy = uploadedBy;
-    }
-
-    /**
-     * status 조회
-     */
-    public AttachmentStatus getStatus() {
-        return status;
-    }
-
-    /**
-     * JPA 프록시의 status 변경
-     */
-    protected void setStatus(AttachmentStatus status) {
-        this.status = status;
     }
 
     /**

@@ -4,7 +4,6 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 
 import io.github.gjaku1031.kenblog.category.dto.CategoryRefResponse;
 import io.github.gjaku1031.kenblog.post.domain.PostStatus;
-import io.github.gjaku1031.kenblog.post.domain.PostVisibility;
 import io.github.gjaku1031.kenblog.series.domain.SeriesKind;
 
 import java.time.LocalDateTime;
@@ -43,11 +42,6 @@ public record PostDetailResponse(
          * 출간 상태
          */
         PostStatus status,
-
-        /**
-         * 공개 범위
-         */
-        PostVisibility visibility,
 
         /**
          * 최초 출간 시각
