@@ -111,4 +111,26 @@ ken-blog 문서는 대학원 진학용 포트폴리오이자, 이후 다른 프�
 
 - 제목·요약·분류·소속·문서 순서·발행 상태는 DB에 있다. 단순 열 변경은 SQL, 편집 버전·연결 관계가 걸린 변경은 관리자 API(비밀번호는 사용자에게 받고 파일·커밋에 남기지 않음).
 - 실행 전에 변경 전 값을 조회해 기록하고, SQL·요청을 사용자에게 보여 준 뒤 실행한다. DB 변경은 Pages를 다시 배포해야 공개 화면에 반영된다.
-- 본문 이미지는 첨부로만 넣는다: 디스크 `{KEN_BLOG_ASSETS_DIR}/ken-blog/live/attachments/{UUID}.png`(소유자 10001:1001, 0640)에 두고 `attachments` 행(READY)과 `post_attachments` 연결을 만든다. 형식·권한 규칙은 `docs/ADR/ADR_infra.md`의 '기술 이름·아이콘의 직접 관리'와 같다.
+- 본문 이미지는 첨부로만 넣는다. 절차는 아래 '본문 스크린샷 등록'.
+
+## 본문 스크린샷 등록
+
+공개 사이트는 `post_attachments`로 글에 연결되고 `status = 'READY'`인 첨부만 내보낸다(`PostQueries.readableAttachment`, `attachmentRevisions`). 연결이 없으면 원고에 ID를 적어도 이미지가 보이지 않는다.
+
+1. **캡처**: `node .claude/skills/ken-blog-docs/scripts/capture-screen.cjs <URL> <scratchpad>/<이름> [CSS 선택자] [폭] [높이]` → `<이름>-light.png`, `<이름>-dark.png`(2배 해상도). 관리 화면처럼 로그인이 필요한 화면은 로컬 서버와 모의 데이터로 캡처하고, 모의 데이터가 보이면 캡션에 밝힌다. 비밀번호·토큰·개인 정보가 화면에 없는지 Read로 직접 본다.
+2. **파일 올리기**: 장마다 새 UUID를 만든다. 같은 파일을 바꿀 때도 새 UUID를 쓴다(브라우저·Pages 캐시 때문에 같은 키를 덮어쓰지 않음).
+   ```bash
+   uuid=$(cat /proc/sys/kernel/random/uuid)
+   scp <이름>-dark.png oci-blog:/tmp/$uuid.png
+   ssh oci-blog "sudo install -o 10001 -g 1001 -m 0600 /tmp/$uuid.png /srv/ken-blog-live/assets/ken-blog/live/attachments/$uuid.png && rm /tmp/$uuid.png"
+   ```
+3. **DB 등록**(SQL을 사용자에게 보여 준 뒤 `.claude/skills/ken-blog-stack-badges/scripts/db.sh`로 실행). `byte_size`는 `stat -c %s`, 상한 10MB. `uploaded_by`는 관리자 `users.id`(ken-blog는 1).
+   ```sql
+   INSERT INTO attachments (object_key, original_filename, content_type, byte_size, uploaded_by, status, created_at, updated_at)
+   VALUES ('ken-blog/live/attachments/{uuid}.png', '{이름}-dark.png', 'image/png', {바이트}, 1, 'READY', UTC_TIMESTAMP(6), UTC_TIMESTAMP(6));
+   INSERT INTO post_attachments (post_id, attachment_id) VALUES ({posts.id}, LAST_INSERT_ID());
+   ```
+   밝은 캡처도 같은 방법으로 등록한다. 두 행 모두 같은 글에 연결한다.
+4. **원고**: 기본 이미지는 어두운 캡처, `dark=`에는 밝은 캡처(반대 테마 규칙). `![캡션|dark={밝은 ID}|w=100|a=center](attachment:{어두운 ID})`. 캡션에 화면 설명을 쓰고 그림 아래 설명 문단은 두지 않는다.
+5. **반영**: 게시 원고 커밋과 Pages 재배포는 deployment에 요청하고, 공개 주소에서 두 테마 모두 이미지가 보이는지 확인한다.
+6. **교체·삭제**: 새 첨부를 등록·연결하고 원고를 바꿔 공개 반영을 확인한 뒤, 이전 행의 `post_attachments` 연결을 지우고 다른 글이 참조하지 않으면 `attachments` 행과 파일을 정리한다(`post_attachments`는 `ON DELETE RESTRICT`라 연결부터 지움).
