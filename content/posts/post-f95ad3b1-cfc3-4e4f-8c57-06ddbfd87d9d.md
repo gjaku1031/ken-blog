@@ -1,67 +1,67 @@
-이미지 응답의 간헐적 연결 종료를 줄이기 위해 비동기 스트리밍을 같은 servlet 요청 스레드의 전송으로 변경한 사례.
+2026-10-02 실제 HTTP 검사에서 기술 아이콘과 본문 첨부 응답이 간헐적으로 연결 종료되거나 헤더가 손상되는 현상을 발견함. 원인은 비동기 본문 전송과 Spring Security의 헤더 작성이 같은 응답 객체를 다른 스레드에서 다루는 경합으로 판단했고, 이미지 응답을 요청 스레드 안의 동기 전송으로 바꿈. 원인 조사와 수정은 에이전트가 맡았고, 공통 응답 처리까지 수정 범위를 넓히는 결정과 검증 결과 확인은 직접 함.
 
-## 증상과 재현
+## 증상
 
-2026-10-02 기술 목록 정리 후 실제 HTTP 검사에서 아이콘·본문 첨부의 간헐적 연결 종료와 손상 헤더 관찰. 변경 전 JAR에서도 아이콘 150회 중 1회 연결 종료. 새 기능 변경만으로 원인을 한정할 수 없는 상태.
-
-| 관찰 | 조사 방향 |
+| 관찰 | 의미 |
 | --- | --- |
-| 대부분의 요청은 성공 | 항상 잘못된 경로나 파일과 구분 |
-| 변경 전 JAR에서도 재현 | 최근 기능 삭제 외 기존 응답 처리 조사 |
-| Tomcat MimeHeaders 예외 | 이미지 내용 외 헤더 작성 시점 확인 |
-| 비동기 본문과 Security 헤더 처리 | 같은 응답 객체를 다루는 실행 흐름 확인 |
+| 대부분의 요청은 성공 | 잘못된 경로나 파일처럼 항상 실패하는 문제가 아님 |
+| 변경 전 JAR에서도 아이콘 150회 중 1회 연결 종료 | 직전 기능 변경 전부터 있던 문제 |
+| Tomcat `MimeHeaders` 예외 | 헤더를 쓰는 시점에 생기는 오류 |
+| API 직접 호출과 Caddy 경유 모두 재현 | 프록시와 무관한 API 내부 문제 |
 
-API 직접 호출과 Caddy 경유 요청을 함께 확인. 1/150은 당시 반복 검사의 관측값이며 운영 실패율 추정치로 사용하지 않음.
+1/150은 당시 반복 검사의 관측값이며 운영 실패율의 추정치가 아님.
 
 ## 원인 판단
 
-당시 로그와 `HeaderWriterFilter` 소스 조사에서 `StreamingResponseBody`의 비동기 전송과 Security 헤더 작성의 경합 구조 확인. 수정 대상은 파일 저장 방식보다 헤더 설정과 본문 전송의 실행 순서.
+당시 이미지 응답은 `StreamingResponseBody`로 본문을 비동기 전송했음. 이 방식은 컨트롤러가 반환한 뒤 별도 스레드에서 본문을 씀. 같은 응답에서 Spring Security의 `HeaderWriterFilter`는 응답이 커밋되기 직전에 보안 헤더를 씀. 두 작업이 같은 응답 객체의 헤더를 다른 스레드에서 건드릴 수 있는 구조였고, `MimeHeaders` 예외는 헤더 목록이 동시에 바뀔 때 나는 오류와 맞았음. 비동기 본문 쓰기와 `HeaderWriterFilter`가 경합하는 유사한 구조가 다른 서버·응답 방식(Jetty, SSE)에서 Spring Security 이슈로 보고된 적이 있음.[* [Spring Security 이슈 #9175](https://github.com/spring-projects/spring-security/issues/9175)]
 
-정확한 스레드 순서를 고정한 최소 재현 프로그램은 기록에 없음. 이 서비스에서 관찰한 경합을 모든 비동기 스트리밍의 결함으로 일반화하지 않음.
+스레드 순서를 고정해 경합을 확정적으로 재현한 최소 프로그램은 만들지 않음. 그래서 이 서비스에서 관찰한 경합을 모든 비동기 스트리밍의 결함으로 일반화하지 않음.
 
 ## 조치
 
-아이콘·첨부 응답의 `StreamingResponseBody` 제거. 같은 요청 스레드에서 헤더를 설정하고 `InputStream.copyTo`로 전송. 스트림은 `use`로 닫으며 전체 파일을 메모리에 적재하지 않음.
+이미지 응답에서 `StreamingResponseBody`를 없애고, 같은 요청 스레드에서 헤더를 모두 설정한 뒤 본문을 보냄. 아래는 공개 첨부 컨트롤러의 요약(보안 헤더 두 줄 생략).
 
-1. 글 공개 조건·첨부 연결·READY 상태 검사.
-2. 저장소 경로 검사와 파일 열기.
-3. MIME·길이·캐시·보안 헤더 설정.
-4. 본문 전송.
-5. 성공·실패 모두에서 입력 스트림 종료.
+```java
+var content = service.open(postId, id);      // 발행·연결·경로 검사 후 파일 열기
+try (var stream = content.stream()) {
+    response.setContentType(content.contentType());
+    response.setContentLengthLong(content.byteSize());
+    response.setHeader(HttpHeaders.CACHE_CONTROL, "private, no-store");
+    stream.transferTo(response.getOutputStream());
+}
+```
 
-권한·파일 열기 실패는 헤더 확정 전에 처리해 기존 404·503 계약 유지. 전송을 시작한 뒤의 실패는 새 JSON 응답으로 바꾸지 못할 수 있음.
+- 권한 확인과 파일 열기는 헤더를 확정하기 전에 끝나므로, 실패하면 기존과 같은 404·503 오류 응답을 보냄
+- 파일 전체를 메모리에 올리지 않고 스트림으로 복사하며, 성공·실패 모두에서 try-with-resources로 스트림을 닫음
+- 본문 전송을 시작한 뒤의 실패는 이미 보낸 헤더 때문에 오류 응답으로 바꿀 수 없음
 
-## 선택의 비용
+## 대안과 대가
 
-| 방식 | 고려할 비용 |
+| 대안 | 판단 |
 | --- | --- |
-| 비동기 전송 유지 | 필터·전송의 헤더 변경 순서를 추가 조정해야 함 |
-| 전체 파일 메모리 적재 | 동시 요청에 따른 파일 크기만큼 메모리 필요 |
-| 보안 헤더 제거 | 기존 보안 응답 계약 변경 |
-| 같은 요청 스레드에서 전송 | 헤더·본문 순서를 한 흐름으로 정리, 전송 동안 요청 스레드 점유 |
+| 비동기 전송 유지 | 필터와 전송 스레드의 헤더 작성 순서를 따로 맞춰야 함 |
+| 파일 전체를 메모리에 올려 응답 | 동시 요청 수 × 파일 크기만큼 메모리가 필요해, 1.5GiB로 제한한 API 컨테이너에 부담이 됨 |
+| 보안 헤더 끄기 | 보안 응답 계약이 바뀜 |
+| **같은 요청 스레드에서 전송(채택)** | 헤더와 본문 순서가 한 흐름에 있음. 대가는 전송 동안 요청 스레드를 점유하는 것 |
 
-동기 스트리밍 채택. 최대 10MiB 본문 이미지·64px 기술 아이콘 용도에 한정한 선택이며, 대안 간 독립 성능 비교는 미실시.
+최대 10MiB 본문 이미지와 64px 기술 아이콘이라는 지금 용도에 맞춘 선택이며, 대안 사이의 성능은 따로 비교하지 않음.
 
-## 수정 당시 검증
+## 검증
 
 | 검사 | 결과 |
 | --- | --- |
-| API 직접·Caddy·공개/관리자 첨부 혼합 | 동시 요청 4개, 총 750회에서 오류 0 |
-| HEAD | 30회에서 오류 0 |
-| 응답 계약 | 캐시·MIME·nosniff·X-Frame-Options·본문 길이·해시 유지 |
-| 파일 디스크립터 | 전후 25 → 27 |
-| 잘못된 DB 키·심볼릭 링크 | 경로 비노출 503 유지 |
+| API 직접·Caddy 경유·공개/관리자 첨부를 섞은 동시 요청 4개, 총 750회 | 오류 0 |
+| HEAD 30회 | 오류 0 |
+| 응답 계약 | 캐시·MIME·`nosniff`·`X-Frame-Options`·본문 길이·내용 해시 유지 |
+| 파일 디스크립터 | 검사 전후 25 → 27. 요청 수에 비례해 늘지 않음 |
+| 잘못된 DB 키·심볼릭 링크 | 경로를 드러내지 않는 503 유지 |
 
-당시 관리자 첨부 API는 후속 변경에서 제거. 검증 수치는 제거 전 기능을 포함한 과거 결과. 750회 성공과 파일 디스크립터 두 시점만으로 장기 무오류·누수 부재를 증명하지 않음.
+당시 검사에 포함된 관리자 첨부 API는 이후 제거됨. 750회 성공과 두 시점의 파일 디스크립터 수만으로 장기 무오류나 누수 부재를 증명하지는 않음.
 
-## 현재 구현과 회귀 검사
+## 현재 상태와 재검토 조건
 
-공개 첨부·기술 아이콘 Controller는 같은 요청 스레드에서 전송하는 계약 유지. 첨부는 `private, no-store`, 기술 아이콘은 `public, max-age=300`으로 캐시 정책 구분.
+공개 첨부와 기술 아이콘 컨트롤러는 같은 요청 스레드에서 전송하는 구조를 유지함. 첨부는 `private, no-store`, 기술 아이콘은 `public, max-age=300`으로 캐시 정책이 다름. `AttachmentDeliveryTest`는 잘못된 MIME과 0·음수·상한 초과·실제 크기 불일치를 전송 전에 거부하는지 검사함. 이 검사는 입력 계약의 검사이며, 헤더 경합을 오래 재현하는 시험은 아님.
 
-전송 서비스는 MIME·1바이트~10MiB 범위와 실제 파일 크기 대조. `AttachmentDeliveryTest`는 잘못된 MIME, 0·음수·상한 초과·크기 불일치 거부를 검사. 이 검사는 전송 전 입력 계약이며 과거 헤더 경합의 장시간 재현 시험과 별개.
+큰 파일·느린 연결·동시 다운로드가 늘면 요청 스레드 점유와 대기 시간을 측정하고, 비동기 방식을 다시 쓸지는 헤더 경합 재현과 부하 비교 뒤에 정함.
 
-## 재검토 조건
-
-대용량 파일·느린 연결·동시 다운로드 증가 시 요청 스레드 점유와 대기·오류·응답 시간을 함께 측정. 비동기 방식 재도입 여부는 헤더 경계 재현과 부하 비교 후 판단.
-
-[이미지 응답 결정·검증 기록](https://github.com/gjaku1031/ken-blog/blob/3074d80/docs/ADR/ADR_application.md#이미지-응답의-동기-스트리밍) · [공개 첨부 Controller](https://github.com/gjaku1031/ken-blog/blob/3074d80/src/main/java/io/github/gjaku1031/kenblog/attachment/controller/PostAttachmentController.java) · [기술 아이콘 Controller](https://github.com/gjaku1031/ken-blog/blob/3074d80/src/main/java/io/github/gjaku1031/kenblog/stack/controller/StackBadgeController.java) · [전달 검사](https://github.com/gjaku1031/ken-blog/blob/3074d80/src/test/java/io/github/gjaku1031/kenblog/AttachmentDeliveryTest.java)
+[결정·검증 기록](https://github.com/gjaku1031/ken-blog/blob/b768152/docs/ADR/ADR_application.md#이미지-응답의-동기-스트리밍) · [공개 첨부 컨트롤러](https://github.com/gjaku1031/ken-blog/blob/b768152/src/main/java/io/github/gjaku1031/kenblog/attachment/controller/PostAttachmentController.java) · [기술 아이콘 컨트롤러](https://github.com/gjaku1031/ken-blog/blob/b768152/src/main/java/io/github/gjaku1031/kenblog/stack/controller/StackBadgeController.java) · [전달 검사](https://github.com/gjaku1031/ken-blog/blob/b768152/src/test/java/io/github/gjaku1031/kenblog/AttachmentDeliveryTest.java)
