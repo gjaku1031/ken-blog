@@ -1,6 +1,6 @@
 # 운영 API 이미지 교체
 
-CI가 만든 ARM64 JVM 이미지를 운영 서버(`oci-blog`, `/srv/ken-blog-live`)에 반영하는 반복 절차. 열을 추가·삭제하는 변경은 확장-축소 순서로 이관 SQL과 이미지 교체를 나눈다.
+CI가 만든 ARM64 JVM 이미지를 운영 서버(`oci-prod`, `/srv/ken-blog-live`)에 반영하는 반복 절차. 열을 추가·삭제하는 변경은 확장-축소 순서로 이관 SQL과 이미지 교체를 나눈다.
 
 ## Compose 명령의 기준
 
