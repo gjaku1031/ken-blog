@@ -60,32 +60,6 @@ Java 25 · Spring Boot 4.1 · MySQL · Node 24 · TypeScript · Mermaid 12 · Gi
 | `deploy` | 운영 Compose·Caddy 설정, 이관 SQL, 배포 절차와 검증 스크립트 |
 | `docs` | 설계 결정 기록(ADR), 코드·주석 컨벤션, 실험 자료 |
 
-## 실행과 검증
-
-필요한 도구: JDK 25, Node 24, Docker.
-
-```sh
-# API: 빌드와 격리 MySQL 통합 테스트(Testcontainers가 Docker로 MySQL을 띄움)
-./gradlew build
-
-# 사이트: 타입 검사, 빈 데이터로 사이트 빌드, Node 테스트
-npm ci
-npm test
-
-# 브라우저 테스트(모의 데이터로 공개·관리 화면 검사)
-npx playwright install chromium
-npm run test:browser
-```
-
-로컬에서 API를 띄우려면 `.env.example`을 `.env`로 복사해 DB 계정을 채운 뒤 아래를 실행함. 관리자 계정과 인증 상태 행은 [새 DB 설치](deploy/API-RELEASE.md#새-db-설치) 절차로 만듦.
-
-```sh
-./gradlew bootBuildImage --imageName=ken-blog-api:jvm
-docker compose up -d   # MySQL과 API, API는 127.0.0.1:18081
-```
-
-CI는 push마다 바뀐 경로에 맞춰 API 검사(빌드·통합 테스트·MySQL TLS·사이트 간 인증·이미지 기동 검사), Frontend 검사, Pages 배포를 실행함. 운영 API 교체는 [API 배포 절차](deploy/API-RELEASE.md)를 따름.
-
 ## 문서
 
 블로그의 프로젝트 문서가 설계 설명의 원본임.
