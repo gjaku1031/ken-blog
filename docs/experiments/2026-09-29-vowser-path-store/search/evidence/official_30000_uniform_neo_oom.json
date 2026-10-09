@@ -1,0 +1,13 @@
+{
+  "condition": "30000_uniform",
+  "cpu_nano": 1000000000,
+  "exit_code": 137,
+  "loader_log_sha256": "6d71165d4e2c1773704d0cfd20f59ecdf87aac7a0de9bf88069ca0604dbc6d40",
+  "memory_limit_bytes": 3221225472,
+  "oom_killed": true,
+  "partial_fixture_complete": false,
+  "schedule_sha256": "78663e9c8b21140af18477389d34972567c36907a1615f60796c47ae88cdb021",
+  "search_attempt_count": 0,
+  "stage": "Neo4j loader session.execute_write batch; before vector-index build and before search attempts",
+  "status": "exited"
+}

@@ -1,0 +1,658 @@
+{
+  "backend": "neo4j",
+  "time_utc": "2026-09-29T07:30:45.078902+00:00",
+  "plans": {
+    "popular": {
+      "args": {
+        "Order": "usageCount DESC, path_id ASC",
+        "planner-impl": "IDP",
+        "string-representation": "Cypher 5\n\nPlanner COST\n\nRuntime SLOTTED\n\nRuntime version 5.26\n\n+----------------------+----+--------------------------------------------------------------------------------------------------+----------------+------------------------------+\n| Operator             | Id | Details                                                                                          | Estimated Rows | Ordered by                   |\n+----------------------+----+--------------------------------------------------------------------------------------------------+----------------+------------------------------+\n| +ProduceResults      |  0 | path_id, domain, taskIntent, usageCount, firstStepDescription                                    |             10 |                              |\n| |                    +----+--------------------------------------------------------------------------------------------------+----------------+                              |\n| +Projection          |  1 | cache[r.domain] AS domain, h.taskIntent AS taskIntent, first.description AS firstStepDescription |             10 |                              |\n| |                    +----+--------------------------------------------------------------------------------------------------+----------------+                              |\n| +Top                 |  2 | usageCount DESC, path_id ASC LIMIT 10                                                            |             10 | usageCount DESC, path_id ASC |\n| |                    +----+--------------------------------------------------------------------------------------------------+----------------+------------------------------+\n| +Projection          |  3 | cache[h.weight] AS usageCount, cache[h.pathId] AS path_id                                        |           1000 |                              |\n| |                    +----+--------------------------------------------------------------------------------------------------+----------------+------------------------------+\n| +CacheProperties     |  4 | cache[h.weight], cache[h.pathId]                                                                 |           1000 |                              |\n| |                    +----+--------------------------------------------------------------------------------------------------+----------------+------------------------------+\n| +Filter              |  5 | first:OP2_STEP                                                                                   |           1000 |                              |\n| |                    +----+--------------------------------------------------------------------------------------------------+----------------+------------------------------+\n| +Expand(All)         |  6 | (r)-[h:OP2_HAS_STEP]->(first)                                                                    |           1000 |                              |\n| |                    +----+--------------------------------------------------------------------------------------------------+----------------+------------------------------+\n| +NodeUniqueIndexSeek |  7 | UNIQUE r:OP2_ROOT(domain) WHERE domain = $domain, cache[r.domain]                                |              1 |                              |\n+----------------------+----+--------------------------------------------------------------------------------------------------+----------------+------------------------------+\n\nTotal database accesses: ?\n",
+        "runtime": "SLOTTED",
+        "runtime-impl": "SLOTTED",
+        "version": "5",
+        "Details": "path_id, domain, taskIntent, usageCount, firstStepDescription",
+        "planner-version": "5.26",
+        "runtime-version": "5.26",
+        "Id": 0,
+        "EstimatedRows": 10.0,
+        "planner": "COST"
+      },
+      "children": [
+        {
+          "args": {
+            "Order": "usageCount DESC, path_id ASC",
+            "Details": "cache[r.domain] AS domain, h.taskIntent AS taskIntent, first.description AS firstStepDescription",
+            "Id": 1,
+            "EstimatedRows": 10.0
+          },
+          "children": [
+            {
+              "args": {
+                "Order": "usageCount DESC, path_id ASC",
+                "Details": "usageCount DESC, path_id ASC LIMIT 10",
+                "Id": 2,
+                "EstimatedRows": 10.0
+              },
+              "children": [
+                {
+                  "args": {
+                    "Details": "cache[h.weight] AS usageCount, cache[h.pathId] AS path_id",
+                    "Id": 3,
+                    "EstimatedRows": 999.6666666666666
+                  },
+                  "children": [
+                    {
+                      "args": {
+                        "Details": "cache[h.weight], cache[h.pathId]",
+                        "Id": 4,
+                        "EstimatedRows": 999.6666666666666
+                      },
+                      "children": [
+                        {
+                          "args": {
+                            "Details": "first:OP2_STEP",
+                            "Id": 5,
+                            "EstimatedRows": 999.6666666666666
+                          },
+                          "children": [
+                            {
+                              "args": {
+                                "Details": "(r)-[h:OP2_HAS_STEP]->(first)",
+                                "Id": 6,
+                                "EstimatedRows": 999.6666666666666
+                              },
+                              "children": [
+                                {
+                                  "args": {
+                                    "Details": "UNIQUE r:OP2_ROOT(domain) WHERE domain = $domain, cache[r.domain]",
+                                    "Id": 7,
+                                    "EstimatedRows": 1.0
+                                  },
+                                  "identifiers": [
+                                    "r"
+                                  ],
+                                  "operatorType": "NodeUniqueIndexSeek@neo4j"
+                                }
+                              ],
+                              "identifiers": [
+                                "r",
+                                "h",
+                                "first"
+                              ],
+                              "operatorType": "Expand(All)@neo4j"
+                            }
+                          ],
+                          "identifiers": [
+                            "r",
+                            "h",
+                            "first"
+                          ],
+                          "operatorType": "Filter@neo4j"
+                        }
+                      ],
+                      "identifiers": [
+                        "r",
+                        "h",
+                        "first"
+                      ],
+                      "operatorType": "CacheProperties@neo4j"
+                    }
+                  ],
+                  "identifiers": [
+                    "usageCount",
+                    "first",
+                    "h",
+                    "r",
+                    "path_id"
+                  ],
+                  "operatorType": "Projection@neo4j"
+                }
+              ],
+              "identifiers": [
+                "usageCount",
+                "first",
+                "h",
+                "r",
+                "path_id"
+              ],
+              "operatorType": "Top@neo4j"
+            }
+          ],
+          "identifiers": [
+            "usageCount",
+            "firstStepDescription",
+            "domain",
+            "first",
+            "h",
+            "r",
+            "taskIntent",
+            "path_id"
+          ],
+          "operatorType": "Projection@neo4j"
+        }
+      ],
+      "identifiers": [
+        "usageCount",
+        "firstStepDescription",
+        "domain",
+        "first",
+        "h",
+        "r",
+        "taskIntent",
+        "path_id"
+      ],
+      "operatorType": "ProduceResults@neo4j"
+    },
+    "visualize": {
+      "args": {
+        "Order": "weight DESC, path_id ASC",
+        "planner-impl": "IDP",
+        "string-representation": "Cypher 5\n\nPlanner COST\n\nRuntime SLOTTED\n\nRuntime version 5.26\n\n+-------------------------+----+-------------------------------------------------------------------------------------------+----------------+-----------------------------+\n| Operator                | Id | Details                                                                                   | Estimated Rows | Ordered by                  |\n+-------------------------+----+-------------------------------------------------------------------------------------------+----------------+-----------------------------+\n| +ProduceResults         |  0 | path_id, taskIntent, weight, steps, pathLength                                            |             17 |                             |\n| |                       +----+-------------------------------------------------------------------------------------------+----------------+                             |\n| +Projection             |  1 | CASE                                                                                      |             17 | weight DESC, path_id ASC    |\n| |                       |    |   WHEN (first)-[anon_0*]->(last) IS NULL THEN NULL                                        |                |                             |\n| |                       |    |   ELSE [s IN nodes((first)-[anon_0*]->(last)) | s.description]                            |                |                             |\n| |                       |    | END AS steps,                                                                             |                |                             |\n| |                       |    | cache[h.taskIntent] AS taskIntent, cache[h.pathId] AS path_id, cache[h.weight] AS weight, |                |                             |\n| |                       |    | CASE                                                                                      |                |                             |\n| |                       |    |   WHEN (first)-[anon_0*]->(last) IS NULL THEN NULL                                        |                |                             |\n| |                       |    |   ELSE length((first)-[anon_0*]->(last))                                                  |                |                             |\n| |                       |    | END AS pathLength                                                                         |                |                             |\n| |                       +----+-------------------------------------------------------------------------------------------+----------------+-----------------------------+\n| +Apply                  |  2 |                                                                                           |             17 | h.weight DESC, h.pathId ASC |\n| |\\                      +----+-------------------------------------------------------------------------------------------+----------------+-----------------------------+\n| | +Optional             |  3 | h, first                                                                                  |             17 |                             |\n| | |                     +----+-------------------------------------------------------------------------------------------+----------------+-----------------------------+\n| | +Filter               |  4 | NOT getDegree((last)-[:OP2_NEXT_STEP]->()) > 0 AND last:OP2_STEP                          |             17 |                             |\n| | |                     +----+-------------------------------------------------------------------------------------------+----------------+-----------------------------+\n| | +VarLengthExpand(All) |  5 | (first)-[anon_0:OP2_NEXT_STEP*0..10]->(last)                                              |             68 |                             |\n| | |                     +----+-------------------------------------------------------------------------------------------+----------------+-----------------------------+\n| | +CacheProperties      |  6 | cache[h.taskIntent]                                                                       |             10 |                             |\n| | |                     +----+-------------------------------------------------------------------------------------------+----------------+-----------------------------+\n| | +Argument             |  7 | first, h                                                                                  |             10 |                             |\n| |                       +----+-------------------------------------------------------------------------------------------+----------------+-----------------------------+\n| +Top                    |  8 | `h.weight` DESC, `h.pathId` ASC LIMIT 10                                                  |             10 | h.weight DESC, h.pathId ASC |\n| |                       +----+-------------------------------------------------------------------------------------------+----------------+-----------------------------+\n| +Projection             |  9 | cache[h.weight] AS `h.weight`, cache[h.pathId] AS `h.pathId`                              |           1000 |                             |\n| |                       +----+-------------------------------------------------------------------------------------------+----------------+-----------------------------+\n| +CacheProperties        | 10 | cache[h.weight], cache[h.pathId]                                                          |           1000 |                             |\n| |                       +----+-------------------------------------------------------------------------------------------+----------------+-----------------------------+\n| +Filter                 | 11 | first:OP2_STEP                                                                            |           1000 |                             |\n| |                       +----+-------------------------------------------------------------------------------------------+----------------+-----------------------------+\n| +Expand(All)            | 12 | (r)-[h:OP2_HAS_STEP]->(first)                                                             |           1000 |                             |\n| |                       +----+-------------------------------------------------------------------------------------------+----------------+-----------------------------+\n| +NodeUniqueIndexSeek    | 13 | UNIQUE r:OP2_ROOT(domain) WHERE domain = $domain                                          |              1 |                             |\n+-------------------------+----+-------------------------------------------------------------------------------------------+----------------+-----------------------------+\n\nTotal database accesses: ?\n",
+        "runtime": "SLOTTED",
+        "runtime-impl": "SLOTTED",
+        "version": "5",
+        "Details": "path_id, taskIntent, weight, steps, pathLength",
+        "planner-version": "5.26",
+        "runtime-version": "5.26",
+        "Id": 0,
+        "EstimatedRows": 16.943664842056933,
+        "planner": "COST"
+      },
+      "children": [
+        {
+          "args": {
+            "Order": "weight DESC, path_id ASC",
+            "Details": "CASE\n  WHEN (first)-[anon_0*]->(last) IS NULL THEN NULL\n  ELSE [s IN nodes((first)-[anon_0*]->(last)) | s.description]\nEND AS steps, cache[h.taskIntent] AS taskIntent, cache[h.pathId] AS path_id, cache[h.weight] AS weight, CASE\n  WHEN (first)-[anon_0*]->(last) IS NULL THEN NULL\n  ELSE length((first)-[anon_0*]->(last))\nEND AS pathLength",
+            "Id": 1,
+            "EstimatedRows": 16.943664842056933
+          },
+          "children": [
+            {
+              "args": {
+                "Order": "h.weight DESC, h.pathId ASC",
+                "Id": 2,
+                "EstimatedRows": 16.943664842056933
+              },
+              "children": [
+                {
+                  "args": {
+                    "Order": "h.weight DESC, h.pathId ASC",
+                    "Details": "`h.weight` DESC, `h.pathId` ASC LIMIT 10",
+                    "Id": 8,
+                    "EstimatedRows": 10.0
+                  },
+                  "children": [
+                    {
+                      "args": {
+                        "Details": "cache[h.weight] AS `h.weight`, cache[h.pathId] AS `h.pathId`",
+                        "Id": 9,
+                        "EstimatedRows": 999.6666666666666
+                      },
+                      "children": [
+                        {
+                          "args": {
+                            "Details": "cache[h.weight], cache[h.pathId]",
+                            "Id": 10,
+                            "EstimatedRows": 999.6666666666666
+                          },
+                          "children": [
+                            {
+                              "args": {
+                                "Details": "first:OP2_STEP",
+                                "Id": 11,
+                                "EstimatedRows": 999.6666666666666
+                              },
+                              "children": [
+                                {
+                                  "args": {
+                                    "Details": "(r)-[h:OP2_HAS_STEP]->(first)",
+                                    "Id": 12,
+                                    "EstimatedRows": 999.6666666666666
+                                  },
+                                  "children": [
+                                    {
+                                      "args": {
+                                        "Details": "UNIQUE r:OP2_ROOT(domain) WHERE domain = $domain",
+                                        "Id": 13,
+                                        "EstimatedRows": 1.0
+                                      },
+                                      "identifiers": [
+                                        "r"
+                                      ],
+                                      "operatorType": "NodeUniqueIndexSeek@neo4j"
+                                    }
+                                  ],
+                                  "identifiers": [
+                                    "r",
+                                    "h",
+                                    "first"
+                                  ],
+                                  "operatorType": "Expand(All)@neo4j"
+                                }
+                              ],
+                              "identifiers": [
+                                "r",
+                                "h",
+                                "first"
+                              ],
+                              "operatorType": "Filter@neo4j"
+                            }
+                          ],
+                          "identifiers": [
+                            "r",
+                            "h",
+                            "first"
+                          ],
+                          "operatorType": "CacheProperties@neo4j"
+                        }
+                      ],
+                      "identifiers": [
+                        "`h.pathId`",
+                        "`h.weight`",
+                        "first",
+                        "h",
+                        "r"
+                      ],
+                      "operatorType": "Projection@neo4j"
+                    }
+                  ],
+                  "identifiers": [
+                    "`h.pathId`",
+                    "`h.weight`",
+                    "first",
+                    "h",
+                    "r"
+                  ],
+                  "operatorType": "Top@neo4j"
+                },
+                {
+                  "args": {
+                    "Details": "h, first",
+                    "Id": 3,
+                    "EstimatedRows": 16.943664842056933
+                  },
+                  "children": [
+                    {
+                      "args": {
+                        "Details": "NOT getDegree((last)-[:OP2_NEXT_STEP]->()) > 0 AND last:OP2_STEP",
+                        "Id": 4,
+                        "EstimatedRows": 16.943664842056933
+                      },
+                      "children": [
+                        {
+                          "args": {
+                            "Details": "(first)-[anon_0:OP2_NEXT_STEP*0..10]->(last)",
+                            "Id": 5,
+                            "EstimatedRows": 67.77544906011627
+                          },
+                          "children": [
+                            {
+                              "args": {
+                                "Details": "cache[h.taskIntent]",
+                                "Id": 6,
+                                "EstimatedRows": 10.0
+                              },
+                              "children": [
+                                {
+                                  "args": {
+                                    "Details": "first, h",
+                                    "Id": 7,
+                                    "EstimatedRows": 10.0
+                                  },
+                                  "identifiers": [
+                                    "first",
+                                    "h"
+                                  ],
+                                  "operatorType": "Argument@neo4j"
+                                }
+                              ],
+                              "identifiers": [
+                                "first",
+                                "h"
+                              ],
+                              "operatorType": "CacheProperties@neo4j"
+                            }
+                          ],
+                          "identifiers": [
+                            "first",
+                            "h",
+                            "anon_0",
+                            "last"
+                          ],
+                          "operatorType": "VarLengthExpand(All)@neo4j"
+                        }
+                      ],
+                      "identifiers": [
+                        "first",
+                        "h",
+                        "anon_0",
+                        "last"
+                      ],
+                      "operatorType": "Filter@neo4j"
+                    }
+                  ],
+                  "identifiers": [
+                    "first",
+                    "h",
+                    "anon_0",
+                    "last"
+                  ],
+                  "operatorType": "Optional@neo4j"
+                }
+              ],
+              "identifiers": [
+                "`h.pathId`",
+                "`h.weight`",
+                "last",
+                "anon_0",
+                "first",
+                "h",
+                "r"
+              ],
+              "operatorType": "Apply@neo4j"
+            }
+          ],
+          "identifiers": [
+            "weight",
+            "`h.pathId`",
+            "`h.weight`",
+            "pathLength",
+            "last",
+            "anon_0",
+            "first",
+            "steps",
+            "h",
+            "r",
+            "taskIntent",
+            "path_id"
+          ],
+          "operatorType": "Projection@neo4j"
+        }
+      ],
+      "identifiers": [
+        "weight",
+        "`h.pathId`",
+        "`h.weight`",
+        "pathLength",
+        "last",
+        "anon_0",
+        "first",
+        "steps",
+        "h",
+        "r",
+        "taskIntent",
+        "path_id"
+      ],
+      "operatorType": "ProduceResults@neo4j"
+    },
+    "update": {
+      "args": {
+        "planner-impl": "IDP",
+        "Details": "depth",
+        "planner-version": "5.26",
+        "string-representation": "Cypher 5\n\nPlanner COST\n\nRuntime SLOTTED\n\nRuntime version 5.26\n\n+--------------------------------+----+---------------------------------------------------------------------------------------------+----------------+\n| Operator                       | Id | Details                                                                                     | Estimated Rows |\n+--------------------------------+----+---------------------------------------------------------------------------------------------+----------------+\n| +ProduceResults                |  0 | depth                                                                                       |              2 |\n| |                              +----+---------------------------------------------------------------------------------------------+----------------+\n| +Projection                    |  1 | length((first)-[anon_0*]->(end)) AS depth                                                   |              2 |\n| |                              +----+---------------------------------------------------------------------------------------------+----------------+\n| +Foreach                       |  2 | e IN relationships((first)-[anon_0*]->(end)), SET e.weight = e.weight + 1                   |              2 |\n| |                              +----+---------------------------------------------------------------------------------------------+----------------+\n| +Eager                         |  3 | read/set conflict for property: weight (Operator: 5 vs 2, and 1 more conflicting operators) |              2 |\n| |                              +----+---------------------------------------------------------------------------------------------+----------------+\n| +Foreach                       |  4 | s IN nodes((first)-[anon_0*]->(end)), SET s.usageCount = s.usageCount + 1                   |              2 |\n| |                              +----+---------------------------------------------------------------------------------------------+----------------+\n| +SetProperty                   |  5 | h.weight = h.weight + $autoint_1                                                            |              2 |\n| |                              +----+---------------------------------------------------------------------------------------------+----------------+\n| +SetProperty                   |  6 | r.visitCount = r.visitCount + $autoint_0                                                    |              2 |\n| |                              +----+---------------------------------------------------------------------------------------------+----------------+\n| +Filter                        |  7 | NOT getDegree((end)-[:OP2_NEXT_STEP]->()) > 0 AND end:OP2_STEP                              |              2 |\n| |                              +----+---------------------------------------------------------------------------------------------+----------------+\n| +VarLengthExpand(All)          |  8 | (first)-[anon_0:OP2_NEXT_STEP*0..20]->(end)                                                 |              8 |\n| |                              +----+---------------------------------------------------------------------------------------------+----------------+\n| +CacheProperties               |  9 | r.visitCount, h.weight                                                                      |              1 |\n| |                              +----+---------------------------------------------------------------------------------------------+----------------+\n| +Filter                        | 10 | (r:OP2_ROOT AND first:OP2_STEP)                                                             |              1 |\n| |                              +----+---------------------------------------------------------------------------------------------+----------------+\n| +DirectedRelationshipIndexSeek | 11 | RANGE INDEX (r)-[h:OP2_HAS_STEP(pathId)]->(first) WHERE pathId = $path_id                   |              1 |\n+--------------------------------+----+---------------------------------------------------------------------------------------------+----------------+\n\nTotal database accesses: ?\n",
+        "runtime-version": "5.26",
+        "runtime": "SLOTTED",
+        "Id": 0,
+        "runtime-impl": "SLOTTED",
+        "EstimatedRows": 1.961111785192826,
+        "planner": "COST",
+        "version": "5"
+      },
+      "children": [
+        {
+          "args": {
+            "Details": "length((first)-[anon_0*]->(end)) AS depth",
+            "Id": 1,
+            "EstimatedRows": 1.961111785192826
+          },
+          "children": [
+            {
+              "args": {
+                "Details": "e IN relationships((first)-[anon_0*]->(end)), SET e.weight = e.weight + 1",
+                "Id": 2,
+                "EstimatedRows": 1.961111785192826
+              },
+              "children": [
+                {
+                  "args": {
+                    "Details": "read/set conflict for property: weight (Operator: 5 vs 2, and 1 more conflicting operators)",
+                    "Id": 3,
+                    "EstimatedRows": 1.961111785192826
+                  },
+                  "children": [
+                    {
+                      "args": {
+                        "Details": "s IN nodes((first)-[anon_0*]->(end)), SET s.usageCount = s.usageCount + 1",
+                        "Id": 4,
+                        "EstimatedRows": 1.961111785192826
+                      },
+                      "children": [
+                        {
+                          "args": {
+                            "Details": "h.weight = h.weight + $autoint_1",
+                            "Id": 5,
+                            "EstimatedRows": 1.961111785192826
+                          },
+                          "children": [
+                            {
+                              "args": {
+                                "Details": "r.visitCount = r.visitCount + $autoint_0",
+                                "Id": 6,
+                                "EstimatedRows": 1.961111785192826
+                              },
+                              "children": [
+                                {
+                                  "args": {
+                                    "Details": "NOT getDegree((end)-[:OP2_NEXT_STEP]->()) > 0 AND end:OP2_STEP",
+                                    "Id": 7,
+                                    "EstimatedRows": 1.961111785192826
+                                  },
+                                  "children": [
+                                    {
+                                      "args": {
+                                        "Details": "(first)-[anon_0:OP2_NEXT_STEP*0..20]->(end)",
+                                        "Id": 8,
+                                        "EstimatedRows": 7.8445261099601575
+                                      },
+                                      "children": [
+                                        {
+                                          "args": {
+                                            "Details": "r.visitCount, h.weight",
+                                            "Id": 9,
+                                            "EstimatedRows": 1.0
+                                          },
+                                          "children": [
+                                            {
+                                              "args": {
+                                                "Details": "(r:OP2_ROOT AND first:OP2_STEP)",
+                                                "Id": 10,
+                                                "EstimatedRows": 1.0
+                                              },
+                                              "children": [
+                                                {
+                                                  "args": {
+                                                    "Details": "RANGE INDEX (r)-[h:OP2_HAS_STEP(pathId)]->(first) WHERE pathId = $path_id",
+                                                    "Id": 11,
+                                                    "EstimatedRows": 1.0
+                                                  },
+                                                  "identifiers": [
+                                                    "h",
+                                                    "r",
+                                                    "first"
+                                                  ],
+                                                  "operatorType": "DirectedRelationshipIndexSeek@neo4j"
+                                                }
+                                              ],
+                                              "identifiers": [
+                                                "h",
+                                                "r",
+                                                "first"
+                                              ],
+                                              "operatorType": "Filter@neo4j"
+                                            }
+                                          ],
+                                          "identifiers": [
+                                            "h",
+                                            "r",
+                                            "first"
+                                          ],
+                                          "operatorType": "CacheProperties@neo4j"
+                                        }
+                                      ],
+                                      "identifiers": [
+                                        "anon_0",
+                                        "first",
+                                        "end",
+                                        "h",
+                                        "r"
+                                      ],
+                                      "operatorType": "VarLengthExpand(All)@neo4j"
+                                    }
+                                  ],
+                                  "identifiers": [
+                                    "anon_0",
+                                    "first",
+                                    "end",
+                                    "h",
+                                    "r"
+                                  ],
+                                  "operatorType": "Filter@neo4j"
+                                }
+                              ],
+                              "identifiers": [
+                                "anon_0",
+                                "first",
+                                "end",
+                                "h",
+                                "r"
+                              ],
+                              "operatorType": "SetProperty@neo4j"
+                            }
+                          ],
+                          "identifiers": [
+                            "anon_0",
+                            "first",
+                            "end",
+                            "h",
+                            "r"
+                          ],
+                          "operatorType": "SetProperty@neo4j"
+                        }
+                      ],
+                      "identifiers": [
+                        "anon_0",
+                        "first",
+                        "end",
+                        "h",
+                        "r"
+                      ],
+                      "operatorType": "Foreach@neo4j"
+                    }
+                  ],
+                  "identifiers": [
+                    "anon_0",
+                    "first",
+                    "end",
+                    "h",
+                    "r"
+                  ],
+                  "operatorType": "Eager@neo4j"
+                }
+              ],
+              "identifiers": [
+                "anon_0",
+                "first",
+                "end",
+                "h",
+                "r"
+              ],
+              "operatorType": "Foreach@neo4j"
+            }
+          ],
+          "identifiers": [
+            "anon_0",
+            "first",
+            "h",
+            "r",
+            "end",
+            "depth"
+          ],
+          "operatorType": "Projection@neo4j"
+        }
+      ],
+      "identifiers": [
+        "anon_0",
+        "first",
+        "h",
+        "r",
+        "end",
+        "depth"
+      ],
+      "operatorType": "ProduceResults@neo4j"
+    }
+  },
+  "indexes": [
+    {
+      "name": "op2_has_path",
+      "type": "RANGE",
+      "entityType": "RELATIONSHIP",
+      "labelsOrTypes": [
+        "OP2_HAS_STEP"
+      ],
+      "properties": [
+        "pathId"
+      ],
+      "state": "ONLINE"
+    },
+    {
+      "name": "op2_next_path",
+      "type": "RANGE",
+      "entityType": "RELATIONSHIP",
+      "labelsOrTypes": [
+        "OP2_NEXT_STEP"
+      ],
+      "properties": [
+        "pathId"
+      ],
+      "state": "ONLINE"
+    },
+    {
+      "name": "op2_root_domain",
+      "type": "RANGE",
+      "entityType": "NODE",
+      "labelsOrTypes": [
+        "OP2_ROOT"
+      ],
+      "properties": [
+        "domain"
+      ],
+      "state": "ONLINE"
+    },
+    {
+      "name": "op2_step_id",
+      "type": "RANGE",
+      "entityType": "NODE",
+      "labelsOrTypes": [
+        "OP2_STEP"
+      ],
+      "properties": [
+        "stepId"
+      ],
+      "state": "ONLINE"
+    },
+    {
+      "name": "op2_step_path",
+      "type": "RANGE",
+      "entityType": "NODE",
+      "labelsOrTypes": [
+        "OP2_STEP"
+      ],
+      "properties": [
+        "pathId",
+        "ordinal"
+      ],
+      "state": "ONLINE"
+    }
+  ]
+}

@@ -1,0 +1,32 @@
+{
+  "agent_server_head": "d94eaf5f30f734952838528d7045e0eab8891509",
+  "cohort": "branching-revised-ordered-membership",
+  "environment_revised_sha256": "751891ab6f8c607b7c432e0236e4eedb77bc67e2f9c9dac1189074aa4a03f4bf",
+  "frozen_utc": "2026-09-29T09:00:15.586244+00:00",
+  "input_freeze_sha256": "57edad0d15a584b55ff3255949501d300f1e04c5766e87306d3ce6445b29c1e4",
+  "original_execution_files_sha256": {
+    "PROTOCOL.md": "1158536a648a0acdc3c0f239b0c3a1e6669c6221af6e5f4194eaad3cfeb8be6b",
+    "bench.py": "baa34d4833f53c677c167caffea7a7dab271fbbe8959b72b7bc2d460e6335b04",
+    "host_preflight.py": "d6570a98d7504494e968920a5571cc0d9e290ef8067f6354f167667a8f557071",
+    "managed.sh": "4c01b669e5863c337fa8b526f7043c77d7a93b302b6978548b166feafb2cef3b",
+    "model.py": "a3ad36c740b338e1b55ff00cca29830671d5a605c4f580856ed45988cc1ba338",
+    "orchestrate.py": "56764f3f00a2ef7470bf6f03d32c3e73c84224e5e92a2192fdf58813b04afe32",
+    "run.sh": "27a33ffdd81ec8277cd1f107cd18df76787305bc8b61550c7c9023890a11c3ed",
+    "storage.py": "994811bea9d1253f150b34b810cc011f49c72f46ac28d831ec3ee2c8fbc0e091",
+    "worker.py": "ae9e831b72993f0a457657f69c5862c8d45e221edbb2a833c497337191aa6853"
+  },
+  "original_preflight_sha256": "5d3eb1d839bfda6eb59dc944a8551254bb8413baa05c5689f64a1a70e264f061",
+  "revised_files_sha256": {
+    "PROTOCOL.md": "73fb49238e649a3925e2220d820d39b706c4ec37d861d3fa2fd8d61c73970dd8",
+    "inputs.py": "123777bf81402e76a152e4e429c3dc0a96d4d3e70ff78329ab1b27625c6eca88",
+    "managed.sh": "97cbcbac6ede7284d67477fe947c28d95d4a08db2c8db4005f810cad5d1e5521",
+    "manifest.py": "1ed8f96fb6df5c6b917d0990853d099d54f93a39a9dd3ba8e02ff1aab5e290a2",
+    "orchestrate.py": "cee191b947ffac80e1b7a829fe6cfd80b0050483c9e807cf7ec64bb65e41f6b9",
+    "rawcheck.py": "93c60ea6f35f55ca9b0c9af4040a0930860c2b4df1f25abae61b2b5ebacf030d",
+    "run.sh": "9d2106445afe3be60582846d56d956fdcde0290b9ec201cd9e90cdcbff1d7fc1",
+    "worker.py": "9024b882c729c95171499be79855c316cb5ab70361cfdc991bbc41e10f54cdde"
+  },
+  "shared_data_sha256": "b65551b2a388dfbe80e811dddfd385e6f5245ebc5d2204f7171270c498e4855e",
+  "shared_run_client_sha256": "25753ba85655c9af07206cf75f4c8933048b4a24384b3ebd7bec41cf0ea5ecc8",
+  "source_sha256": "153593f35d9d32aad2416dd8efddc63629a1d2b0047a9bcfb74dd3add3a94e58"
+}

@@ -1,0 +1,27 @@
+{
+  "active_cell": "n10000-s0-b1",
+  "completed_cells": [
+    "n1000-s0-b1",
+    "n1000-s0-b2",
+    "n1000-s0-b4",
+    "n1000-s25-b1",
+    "n1000-s25-b2",
+    "n1000-s25-b4",
+    "n1000-s50-b1",
+    "n1000-s50-b2",
+    "n1000-s50-b4"
+  ],
+  "elapsed_seconds": 3600.9864396679914,
+  "error": "group wall clock reached 3600 s",
+  "error_type": "TimeLimitExceeded",
+  "expected_measured_attempts": 38400,
+  "expected_total_attempts": 76800,
+  "expected_warmup_attempts": 38400,
+  "finished_utc": "2026-09-29T08:39:58.465363+00:00",
+  "group": "main",
+  "limit_seconds": 3600,
+  "one_active_database": true,
+  "partial_cell": "n10000-s0-b1",
+  "started_utc": "2026-09-29T07:39:57.478943+00:00",
+  "state": "time_limit_incomplete"
+}

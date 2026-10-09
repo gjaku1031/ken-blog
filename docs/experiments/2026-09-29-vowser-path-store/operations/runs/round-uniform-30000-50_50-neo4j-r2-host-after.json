@@ -1,0 +1,53 @@
+{
+  "time_utc": "2026-09-29T07:28:31.761135+00:00",
+  "backend": "neo4j",
+  "host_load_1_5_15": [
+    1.70654296875,
+    1.69287109375,
+    1.74658203125
+  ],
+  "host_memory_available_bytes": 11115094016,
+  "host_memory_used_bytes": 14021521408,
+  "running_container_stats": [
+    {
+      "Name": "ken-blog-live-api-1",
+      "CPUPerc": "0.14%",
+      "MemUsage": "778.2MiB / 1GiB"
+    },
+    {
+      "Name": "vowser-eval-v2-neo4j",
+      "CPUPerc": "0.34%",
+      "MemUsage": "1.925GiB / 3GiB"
+    },
+    {
+      "Name": "devspace-root-devspace-1",
+      "CPUPerc": "0.00%",
+      "MemUsage": "168.9MiB / 23.41GiB"
+    },
+    {
+      "Name": "ken-blog-live-web-1",
+      "CPUPerc": "0.00%",
+      "MemUsage": "8.672MiB / 128MiB"
+    }
+  ],
+  "db_cpu_stat": {
+    "exit_code": 0,
+    "stdout": "usage_usec 114983487\nuser_usec 110793252\nsystem_usec 4190235\nnice_usec 0\ncore_sched.force_idle_usec 0\nnr_periods 1573\nnr_throttled 852\nthrottled_usec 95316751\nnr_bursts 0\nburst_usec 0",
+    "stderr": ""
+  },
+  "db_memory_current": {
+    "exit_code": 0,
+    "stdout": "2068385792",
+    "stderr": ""
+  },
+  "db_memory_peak": {
+    "exit_code": 0,
+    "stdout": "2083237888",
+    "stderr": ""
+  },
+  "db_store_du_bytes": {
+    "exit_code": 0,
+    "stdout": "485370810\t/data/databases/neo4j",
+    "stderr": ""
+  }
+}

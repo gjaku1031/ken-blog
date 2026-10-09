@@ -1,0 +1,14 @@
+{
+  "cgroup_memory_current_bytes": 824885248,
+  "cgroup_memory_limit_bytes": 1073741824,
+  "cgroup_memory_peak_bytes": 824885248,
+  "distribution": "skew",
+  "domain_index_vectors": 30000,
+  "global_index_vectors": 30000,
+  "index_build_ms": 20177.798,
+  "n": 30000,
+  "process_peak_rss_bytes": 851496960,
+  "rss_after_index_bytes": 851693568,
+  "rss_before_bytes": 78868480,
+  "wall_seconds": 20.217
+}

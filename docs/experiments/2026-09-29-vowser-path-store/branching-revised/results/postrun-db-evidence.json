@@ -1,0 +1,580 @@
+{
+  "cell": "n1000-d100-s50-b4",
+  "collected_utc": "2026-09-29T11:13:24.853385+00:00",
+  "engines": {
+    "mysql": {
+      "cell": "n1000-d100-s50-b4",
+      "container": {
+        "image_id": "sha256:0744ee5ef89ce6ccfa13de3e579fe6b9e27f93dd70da9c06d2c908b1b193fb8d",
+        "memory_bytes": 3221225472,
+        "memory_swap_bytes": 3221225472,
+        "name": "vowser-eval-v2-mysql",
+        "nano_cpus": 1000000000,
+        "pids_limit": 256,
+        "running": true
+      },
+      "counts": {
+        "br3_member": 101000,
+        "br3_next": 100000,
+        "br3_path": 1000,
+        "br3_step": 64437
+      },
+      "engine": "mysql",
+      "indexes": {
+        "br3_member": [
+          {
+            "Cardinality": 0,
+            "Collation": "A",
+            "Column_name": "condition_id",
+            "Comment": "",
+            "Expression": null,
+            "Index_comment": "",
+            "Index_type": "BTREE",
+            "Key_name": "PRIMARY",
+            "Non_unique": 0,
+            "Null": "",
+            "Packed": null,
+            "Seq_in_index": 1,
+            "Sub_part": null,
+            "Table": "br3_member",
+            "Visible": "YES"
+          },
+          {
+            "Cardinality": 0,
+            "Collation": "A",
+            "Column_name": "path_id",
+            "Comment": "",
+            "Expression": null,
+            "Index_comment": "",
+            "Index_type": "BTREE",
+            "Key_name": "PRIMARY",
+            "Non_unique": 0,
+            "Null": "",
+            "Packed": null,
+            "Seq_in_index": 2,
+            "Sub_part": null,
+            "Table": "br3_member",
+            "Visible": "YES"
+          },
+          {
+            "Cardinality": 0,
+            "Collation": "A",
+            "Column_name": "ordinal",
+            "Comment": "",
+            "Expression": null,
+            "Index_comment": "",
+            "Index_type": "BTREE",
+            "Key_name": "PRIMARY",
+            "Non_unique": 0,
+            "Null": "",
+            "Packed": null,
+            "Seq_in_index": 3,
+            "Sub_part": null,
+            "Table": "br3_member",
+            "Visible": "YES"
+          },
+          {
+            "Cardinality": 0,
+            "Collation": "A",
+            "Column_name": "condition_id",
+            "Comment": "",
+            "Expression": null,
+            "Index_comment": "",
+            "Index_type": "BTREE",
+            "Key_name": "br3_member_path_step",
+            "Non_unique": 1,
+            "Null": "",
+            "Packed": null,
+            "Seq_in_index": 1,
+            "Sub_part": null,
+            "Table": "br3_member",
+            "Visible": "YES"
+          },
+          {
+            "Cardinality": 0,
+            "Collation": "A",
+            "Column_name": "path_id",
+            "Comment": "",
+            "Expression": null,
+            "Index_comment": "",
+            "Index_type": "BTREE",
+            "Key_name": "br3_member_path_step",
+            "Non_unique": 1,
+            "Null": "",
+            "Packed": null,
+            "Seq_in_index": 2,
+            "Sub_part": null,
+            "Table": "br3_member",
+            "Visible": "YES"
+          },
+          {
+            "Cardinality": 0,
+            "Collation": "A",
+            "Column_name": "step_id",
+            "Comment": "",
+            "Expression": null,
+            "Index_comment": "",
+            "Index_type": "BTREE",
+            "Key_name": "br3_member_path_step",
+            "Non_unique": 1,
+            "Null": "",
+            "Packed": null,
+            "Seq_in_index": 3,
+            "Sub_part": null,
+            "Table": "br3_member",
+            "Visible": "YES"
+          },
+          {
+            "Cardinality": 0,
+            "Collation": "A",
+            "Column_name": "condition_id",
+            "Comment": "",
+            "Expression": null,
+            "Index_comment": "",
+            "Index_type": "BTREE",
+            "Key_name": "br3_member_step",
+            "Non_unique": 1,
+            "Null": "",
+            "Packed": null,
+            "Seq_in_index": 1,
+            "Sub_part": null,
+            "Table": "br3_member",
+            "Visible": "YES"
+          },
+          {
+            "Cardinality": 0,
+            "Collation": "A",
+            "Column_name": "step_id",
+            "Comment": "",
+            "Expression": null,
+            "Index_comment": "",
+            "Index_type": "BTREE",
+            "Key_name": "br3_member_step",
+            "Non_unique": 1,
+            "Null": "",
+            "Packed": null,
+            "Seq_in_index": 2,
+            "Sub_part": null,
+            "Table": "br3_member",
+            "Visible": "YES"
+          },
+          {
+            "Cardinality": 0,
+            "Collation": "A",
+            "Column_name": "path_id",
+            "Comment": "",
+            "Expression": null,
+            "Index_comment": "",
+            "Index_type": "BTREE",
+            "Key_name": "br3_member_step",
+            "Non_unique": 1,
+            "Null": "",
+            "Packed": null,
+            "Seq_in_index": 3,
+            "Sub_part": null,
+            "Table": "br3_member",
+            "Visible": "YES"
+          }
+        ],
+        "br3_next": [
+          {
+            "Cardinality": 0,
+            "Collation": "A",
+            "Column_name": "condition_id",
+            "Comment": "",
+            "Expression": null,
+            "Index_comment": "",
+            "Index_type": "BTREE",
+            "Key_name": "PRIMARY",
+            "Non_unique": 0,
+            "Null": "",
+            "Packed": null,
+            "Seq_in_index": 1,
+            "Sub_part": null,
+            "Table": "br3_next",
+            "Visible": "YES"
+          },
+          {
+            "Cardinality": 0,
+            "Collation": "A",
+            "Column_name": "path_id",
+            "Comment": "",
+            "Expression": null,
+            "Index_comment": "",
+            "Index_type": "BTREE",
+            "Key_name": "PRIMARY",
+            "Non_unique": 0,
+            "Null": "",
+            "Packed": null,
+            "Seq_in_index": 2,
+            "Sub_part": null,
+            "Table": "br3_next",
+            "Visible": "YES"
+          },
+          {
+            "Cardinality": 0,
+            "Collation": "A",
+            "Column_name": "ordinal",
+            "Comment": "",
+            "Expression": null,
+            "Index_comment": "",
+            "Index_type": "BTREE",
+            "Key_name": "PRIMARY",
+            "Non_unique": 0,
+            "Null": "",
+            "Packed": null,
+            "Seq_in_index": 3,
+            "Sub_part": null,
+            "Table": "br3_next",
+            "Visible": "YES"
+          },
+          {
+            "Cardinality": 0,
+            "Collation": "A",
+            "Column_name": "condition_id",
+            "Comment": "",
+            "Expression": null,
+            "Index_comment": "",
+            "Index_type": "BTREE",
+            "Key_name": "br3_next_from",
+            "Non_unique": 1,
+            "Null": "",
+            "Packed": null,
+            "Seq_in_index": 1,
+            "Sub_part": null,
+            "Table": "br3_next",
+            "Visible": "YES"
+          },
+          {
+            "Cardinality": 0,
+            "Collation": "A",
+            "Column_name": "from_step_id",
+            "Comment": "",
+            "Expression": null,
+            "Index_comment": "",
+            "Index_type": "BTREE",
+            "Key_name": "br3_next_from",
+            "Non_unique": 1,
+            "Null": "",
+            "Packed": null,
+            "Seq_in_index": 2,
+            "Sub_part": null,
+            "Table": "br3_next",
+            "Visible": "YES"
+          },
+          {
+            "Cardinality": 0,
+            "Collation": "A",
+            "Column_name": "path_id",
+            "Comment": "",
+            "Expression": null,
+            "Index_comment": "",
+            "Index_type": "BTREE",
+            "Key_name": "br3_next_from",
+            "Non_unique": 1,
+            "Null": "",
+            "Packed": null,
+            "Seq_in_index": 3,
+            "Sub_part": null,
+            "Table": "br3_next",
+            "Visible": "YES"
+          },
+          {
+            "Cardinality": 0,
+            "Collation": "A",
+            "Column_name": "ordinal",
+            "Comment": "",
+            "Expression": null,
+            "Index_comment": "",
+            "Index_type": "BTREE",
+            "Key_name": "br3_next_from",
+            "Non_unique": 1,
+            "Null": "",
+            "Packed": null,
+            "Seq_in_index": 4,
+            "Sub_part": null,
+            "Table": "br3_next",
+            "Visible": "YES"
+          }
+        ],
+        "br3_path": [
+          {
+            "Cardinality": 1,
+            "Collation": "A",
+            "Column_name": "condition_id",
+            "Comment": "",
+            "Expression": null,
+            "Index_comment": "",
+            "Index_type": "BTREE",
+            "Key_name": "PRIMARY",
+            "Non_unique": 0,
+            "Null": "",
+            "Packed": null,
+            "Seq_in_index": 1,
+            "Sub_part": null,
+            "Table": "br3_path",
+            "Visible": "YES"
+          },
+          {
+            "Cardinality": 7,
+            "Collation": "A",
+            "Column_name": "path_id",
+            "Comment": "",
+            "Expression": null,
+            "Index_comment": "",
+            "Index_type": "BTREE",
+            "Key_name": "PRIMARY",
+            "Non_unique": 0,
+            "Null": "",
+            "Packed": null,
+            "Seq_in_index": 2,
+            "Sub_part": null,
+            "Table": "br3_path",
+            "Visible": "YES"
+          },
+          {
+            "Cardinality": 1,
+            "Collation": "A",
+            "Column_name": "condition_id",
+            "Comment": "",
+            "Expression": null,
+            "Index_comment": "",
+            "Index_type": "BTREE",
+            "Key_name": "br3_context",
+            "Non_unique": 1,
+            "Null": "",
+            "Packed": null,
+            "Seq_in_index": 1,
+            "Sub_part": null,
+            "Table": "br3_path",
+            "Visible": "YES"
+          },
+          {
+            "Cardinality": 3,
+            "Collation": "A",
+            "Column_name": "domain",
+            "Comment": "",
+            "Expression": null,
+            "Index_comment": "",
+            "Index_type": "BTREE",
+            "Key_name": "br3_context",
+            "Non_unique": 1,
+            "Null": "",
+            "Packed": null,
+            "Seq_in_index": 2,
+            "Sub_part": null,
+            "Table": "br3_path",
+            "Visible": "YES"
+          },
+          {
+            "Cardinality": 3,
+            "Collation": "A",
+            "Column_name": "intent",
+            "Comment": "",
+            "Expression": null,
+            "Index_comment": "",
+            "Index_type": "BTREE",
+            "Key_name": "br3_context",
+            "Non_unique": 1,
+            "Null": "",
+            "Packed": null,
+            "Seq_in_index": 3,
+            "Sub_part": null,
+            "Table": "br3_path",
+            "Visible": "YES"
+          },
+          {
+            "Cardinality": 3,
+            "Collation": "A",
+            "Column_name": "auth",
+            "Comment": "",
+            "Expression": null,
+            "Index_comment": "",
+            "Index_type": "BTREE",
+            "Key_name": "br3_context",
+            "Non_unique": 1,
+            "Null": "",
+            "Packed": null,
+            "Seq_in_index": 4,
+            "Sub_part": null,
+            "Table": "br3_path",
+            "Visible": "YES"
+          },
+          {
+            "Cardinality": 3,
+            "Collation": "A",
+            "Column_name": "depth",
+            "Comment": "",
+            "Expression": null,
+            "Index_comment": "",
+            "Index_type": "BTREE",
+            "Key_name": "br3_context",
+            "Non_unique": 1,
+            "Null": "",
+            "Packed": null,
+            "Seq_in_index": 5,
+            "Sub_part": null,
+            "Table": "br3_path",
+            "Visible": "YES"
+          },
+          {
+            "Cardinality": 7,
+            "Collation": "A",
+            "Column_name": "path_id",
+            "Comment": "",
+            "Expression": null,
+            "Index_comment": "",
+            "Index_type": "BTREE",
+            "Key_name": "br3_context",
+            "Non_unique": 1,
+            "Null": "",
+            "Packed": null,
+            "Seq_in_index": 6,
+            "Sub_part": null,
+            "Table": "br3_path",
+            "Visible": "YES"
+          }
+        ],
+        "br3_step": [
+          {
+            "Cardinality": 1,
+            "Collation": "A",
+            "Column_name": "condition_id",
+            "Comment": "",
+            "Expression": null,
+            "Index_comment": "",
+            "Index_type": "BTREE",
+            "Key_name": "PRIMARY",
+            "Non_unique": 0,
+            "Null": "",
+            "Packed": null,
+            "Seq_in_index": 1,
+            "Sub_part": null,
+            "Table": "br3_step",
+            "Visible": "YES"
+          },
+          {
+            "Cardinality": 61664,
+            "Collation": "A",
+            "Column_name": "step_id",
+            "Comment": "",
+            "Expression": null,
+            "Index_comment": "",
+            "Index_type": "BTREE",
+            "Key_name": "PRIMARY",
+            "Non_unique": 0,
+            "Null": "",
+            "Packed": null,
+            "Seq_in_index": 2,
+            "Sub_part": null,
+            "Table": "br3_step",
+            "Visible": "YES"
+          }
+        ]
+      },
+      "version": "8.4.11"
+    },
+    "neo4j": {
+      "cell": "n1000-d100-s50-b4",
+      "container": {
+        "image_id": "sha256:a75003730d84a6d885ec47fee0cc62d5d59626199d0884286bb535921f68a011",
+        "memory_bytes": 3221225472,
+        "memory_swap_bytes": 3221225472,
+        "name": "vowser-eval-v2-neo4j",
+        "nano_cpus": 1000000000,
+        "pids_limit": 256,
+        "running": true
+      },
+      "counts": {
+        "BR3_MEMBER": 101000,
+        "BR3_NEXT": 100000,
+        "BR3_Path": 1000,
+        "BR3_Step": 64437
+      },
+      "engine": "neo4j",
+      "indexes": [
+        {
+          "labelsOrTypes": [
+            "BR3_Path"
+          ],
+          "name": "br3_path_context",
+          "properties": [
+            "condition",
+            "domain",
+            "intent",
+            "auth"
+          ],
+          "state": "ONLINE"
+        },
+        {
+          "labelsOrTypes": [
+            "BR3_Path"
+          ],
+          "name": "br3_path_unique",
+          "properties": [
+            "condition",
+            "pathId"
+          ],
+          "state": "ONLINE"
+        },
+        {
+          "labelsOrTypes": [
+            "BR3_Step"
+          ],
+          "name": "br3_step_unique",
+          "properties": [
+            "condition",
+            "stepId"
+          ],
+          "state": "ONLINE"
+        }
+      ],
+      "version": [
+        {
+          "name": "Neo4j Kernel",
+          "versions": [
+            "5.26.19"
+          ]
+        }
+      ]
+    }
+  },
+  "environment_revised_sha256": "751891ab6f8c607b7c432e0236e4eedb77bc67e2f9c9dac1189074aa4a03f4bf",
+  "expected_counts": {
+    "mysql": {
+      "br3_member": 101000,
+      "br3_next": 100000,
+      "br3_path": 1000,
+      "br3_step": 64437
+    },
+    "neo4j": {
+      "BR3_MEMBER": 101000,
+      "BR3_NEXT": 100000,
+      "BR3_Path": 1000,
+      "BR3_Step": 64437
+    }
+  },
+  "final_containers": {
+    "mysql": {
+      "image_id": "sha256:0744ee5ef89ce6ccfa13de3e579fe6b9e27f93dd70da9c06d2c908b1b193fb8d",
+      "memory_bytes": 3221225472,
+      "memory_swap_bytes": 3221225472,
+      "name": "vowser-eval-v2-mysql",
+      "nano_cpus": 1000000000,
+      "pids_limit": 256,
+      "running": false
+    },
+    "neo4j": {
+      "image_id": "sha256:a75003730d84a6d885ec47fee0cc62d5d59626199d0884286bb535921f68a011",
+      "memory_bytes": 3221225472,
+      "memory_swap_bytes": 3221225472,
+      "name": "vowser-eval-v2-neo4j",
+      "nano_cpus": 1000000000,
+      "pids_limit": 256,
+      "running": false
+    }
+  },
+  "freeze_sha256": "bf58ee0e7b41359a94224ca55dbe6c3b8dbadeddc6fdcb7e6cb93e9c136a369e",
+  "run_main_r02_sha256": "81f43f4c75d3dc34f7dfeac3912cdb23d058b24615dd9ea829ca26f71d0c2cca",
+  "run_stress_r01_sha256": "bf50cf2b7046f4a02c3d9aeb81724ddb79455c65c610d195f557adf34a5401b0"
+}

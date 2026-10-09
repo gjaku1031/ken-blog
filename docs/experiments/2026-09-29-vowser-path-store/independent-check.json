@@ -1,0 +1,39 @@
+{
+  "utc": "2026-09-29T11:14:04.901509+00:00",
+  "checked_cells": [
+    "n1000-d100-s0-b1",
+    "n1000-d100-s50-b4",
+    "n1000-d50-s0-b1",
+    "n1000-d50-s50-b4",
+    "n1000-s0-b1",
+    "n1000-s0-b2",
+    "n1000-s0-b4",
+    "n1000-s25-b1",
+    "n1000-s25-b2",
+    "n1000-s25-b4",
+    "n1000-s50-b1",
+    "n1000-s50-b2",
+    "n1000-s50-b4",
+    "n10000-s0-b1",
+    "n10000-s25-b1",
+    "n10000-s25-b2",
+    "n10000-s25-b4",
+    "n10000-s50-b1",
+    "n10000-s50-b2",
+    "n10000-s50-b4"
+  ],
+  "raw_counts": {
+    "warmup": 48000,
+    "measure": 48000,
+    "warmup_not_correct": 111,
+    "warmup_ClientError": 111
+  },
+  "verified_groups": 80,
+  "checks": [
+    "120 block CSV SHA match independent audit; 20 combined CSV equal block row multisets",
+    "4800 phase rows per cell",
+    "600 unique round/case pairs per arm",
+    "all measured correct with identical result/expected SHA and path/row counts",
+    "80 groups p50/p95 Type7 recomputed to recorded precision"
+  ]
+}

@@ -1,0 +1,771 @@
+{
+  "backend": "mysql",
+  "scale": 1000,
+  "mix": "90:10",
+  "distribution": "uniform",
+  "round": 2,
+  "trace_sha256": "38d908ee208c7fb8905b0550e264c10345ce7804c2e9a2d6690544cec6e11104",
+  "initial": {
+    "counts": {
+      "roots": 30,
+      "paths": 990,
+      "steps": 12540,
+      "edges": 11550
+    },
+    "weight_sha256": "41e7126b17005715b735bf8c48d3d90a3e572d9e7a8347c354d0f8bfd06575ec",
+    "root_visits": {
+      "d00.example.test": 32,
+      "d01.example.test": 32,
+      "d02.example.test": 32,
+      "d03.example.test": 32,
+      "d04.example.test": 32,
+      "d05.example.test": 32,
+      "d06.example.test": 32,
+      "d07.example.test": 32,
+      "d08.example.test": 32,
+      "d09.example.test": 32,
+      "d10.example.test": 32,
+      "d11.example.test": 32,
+      "d12.example.test": 32,
+      "d13.example.test": 32,
+      "d14.example.test": 32,
+      "d15.example.test": 32,
+      "d16.example.test": 32,
+      "d17.example.test": 32,
+      "d18.example.test": 32,
+      "d19.example.test": 32,
+      "d20.example.test": 32,
+      "d21.example.test": 32,
+      "d22.example.test": 32,
+      "d23.example.test": 32,
+      "d24.example.test": 32,
+      "d25.example.test": 32,
+      "d26.example.test": 32,
+      "d27.example.test": 32,
+      "d28.example.test": 32,
+      "d29.example.test": 32
+    },
+    "touched": {}
+  },
+  "warmup": {
+    "wall_seconds": 0.29926429805345833,
+    "attempted_ops": 200,
+    "raw_rows": 0
+  },
+  "warmup_final": {
+    "counts": {
+      "roots": 30,
+      "paths": 1000,
+      "steps": 12660,
+      "edges": 11660
+    },
+    "weight_sha256": "346460a3f5a30390288cce409fb2a524fdfb8a86b3619ea0157ecad8e03569f5",
+    "root_visits": {
+      "d00.example.test": 35,
+      "d01.example.test": 35,
+      "d02.example.test": 35,
+      "d03.example.test": 33,
+      "d04.example.test": 32,
+      "d05.example.test": 32,
+      "d06.example.test": 32,
+      "d07.example.test": 32,
+      "d08.example.test": 33,
+      "d09.example.test": 32,
+      "d10.example.test": 32,
+      "d11.example.test": 34,
+      "d12.example.test": 32,
+      "d13.example.test": 33,
+      "d14.example.test": 32,
+      "d15.example.test": 33,
+      "d16.example.test": 32,
+      "d17.example.test": 32,
+      "d18.example.test": 32,
+      "d19.example.test": 34,
+      "d20.example.test": 32,
+      "d21.example.test": 32,
+      "d22.example.test": 32,
+      "d23.example.test": 34,
+      "d24.example.test": 32,
+      "d25.example.test": 32,
+      "d26.example.test": 33,
+      "d27.example.test": 32,
+      "d28.example.test": 32,
+      "d29.example.test": 32
+    },
+    "touched": {
+      "25": {
+        "has_weight": 2,
+        "step": [
+          2,
+          2,
+          11
+        ],
+        "edge": [
+          2,
+          2,
+          10
+        ]
+      },
+      "33": {
+        "has_weight": 2,
+        "step": [
+          2,
+          2,
+          6
+        ],
+        "edge": [
+          2,
+          2,
+          5
+        ]
+      },
+      "78": {
+        "has_weight": 2,
+        "step": [
+          2,
+          2,
+          6
+        ],
+        "edge": [
+          2,
+          2,
+          5
+        ]
+      },
+      "148": {
+        "has_weight": 2,
+        "step": [
+          2,
+          2,
+          11
+        ],
+        "edge": [
+          2,
+          2,
+          10
+        ]
+      },
+      "220": {
+        "has_weight": 2,
+        "step": [
+          2,
+          2,
+          11
+        ],
+        "edge": [
+          2,
+          2,
+          10
+        ]
+      },
+      "316": {
+        "has_weight": 2,
+        "step": [
+          2,
+          2,
+          11
+        ],
+        "edge": [
+          2,
+          2,
+          10
+        ]
+      },
+      "418": {
+        "has_weight": 2,
+        "step": [
+          2,
+          2,
+          11
+        ],
+        "edge": [
+          2,
+          2,
+          10
+        ]
+      },
+      "429": {
+        "has_weight": 2,
+        "step": [
+          2,
+          2,
+          6
+        ],
+        "edge": [
+          2,
+          2,
+          5
+        ]
+      },
+      "573": {
+        "has_weight": 2,
+        "step": [
+          2,
+          2,
+          6
+        ],
+        "edge": [
+          2,
+          2,
+          5
+        ]
+      },
+      "610": {
+        "has_weight": 2,
+        "step": [
+          2,
+          2,
+          11
+        ],
+        "edge": [
+          2,
+          2,
+          10
+        ]
+      },
+      "990": {
+        "has_weight": 1,
+        "step": [
+          1,
+          1,
+          6
+        ],
+        "edge": [
+          1,
+          1,
+          5
+        ]
+      },
+      "991": {
+        "has_weight": 1,
+        "step": [
+          1,
+          1,
+          11
+        ],
+        "edge": [
+          1,
+          1,
+          10
+        ]
+      },
+      "992": {
+        "has_weight": 1,
+        "step": [
+          1,
+          1,
+          21
+        ],
+        "edge": [
+          1,
+          1,
+          20
+        ]
+      },
+      "993": {
+        "has_weight": 1,
+        "step": [
+          1,
+          1,
+          6
+        ],
+        "edge": [
+          1,
+          1,
+          5
+        ]
+      },
+      "994": {
+        "has_weight": 1,
+        "step": [
+          1,
+          1,
+          11
+        ],
+        "edge": [
+          1,
+          1,
+          10
+        ]
+      },
+      "995": {
+        "has_weight": 1,
+        "step": [
+          1,
+          1,
+          21
+        ],
+        "edge": [
+          1,
+          1,
+          20
+        ]
+      },
+      "996": {
+        "has_weight": 1,
+        "step": [
+          1,
+          1,
+          6
+        ],
+        "edge": [
+          1,
+          1,
+          5
+        ]
+      },
+      "997": {
+        "has_weight": 1,
+        "step": [
+          1,
+          1,
+          11
+        ],
+        "edge": [
+          1,
+          1,
+          10
+        ]
+      },
+      "998": {
+        "has_weight": 1,
+        "step": [
+          1,
+          1,
+          21
+        ],
+        "edge": [
+          1,
+          1,
+          20
+        ]
+      },
+      "999": {
+        "has_weight": 1,
+        "step": [
+          1,
+          1,
+          6
+        ],
+        "edge": [
+          1,
+          1,
+          5
+        ]
+      }
+    }
+  },
+  "after_warmup_reset": {
+    "counts": {
+      "roots": 30,
+      "paths": 990,
+      "steps": 12540,
+      "edges": 11550
+    },
+    "weight_sha256": "41e7126b17005715b735bf8c48d3d90a3e572d9e7a8347c354d0f8bfd06575ec",
+    "root_visits": {
+      "d00.example.test": 32,
+      "d01.example.test": 32,
+      "d02.example.test": 32,
+      "d03.example.test": 32,
+      "d04.example.test": 32,
+      "d05.example.test": 32,
+      "d06.example.test": 32,
+      "d07.example.test": 32,
+      "d08.example.test": 32,
+      "d09.example.test": 32,
+      "d10.example.test": 32,
+      "d11.example.test": 32,
+      "d12.example.test": 32,
+      "d13.example.test": 32,
+      "d14.example.test": 32,
+      "d15.example.test": 32,
+      "d16.example.test": 32,
+      "d17.example.test": 32,
+      "d18.example.test": 32,
+      "d19.example.test": 32,
+      "d20.example.test": 32,
+      "d21.example.test": 32,
+      "d22.example.test": 32,
+      "d23.example.test": 32,
+      "d24.example.test": 32,
+      "d25.example.test": 32,
+      "d26.example.test": 32,
+      "d27.example.test": 32,
+      "d28.example.test": 32,
+      "d29.example.test": 32
+    },
+    "touched": {}
+  },
+  "measured": {
+    "wall_seconds": 0.2813594479812309,
+    "attempted_ops": 200,
+    "raw_rows": 200
+  },
+  "final": {
+    "counts": {
+      "roots": 30,
+      "paths": 1000,
+      "steps": 12660,
+      "edges": 11660
+    },
+    "weight_sha256": "346460a3f5a30390288cce409fb2a524fdfb8a86b3619ea0157ecad8e03569f5",
+    "root_visits": {
+      "d00.example.test": 35,
+      "d01.example.test": 35,
+      "d02.example.test": 35,
+      "d03.example.test": 33,
+      "d04.example.test": 32,
+      "d05.example.test": 32,
+      "d06.example.test": 32,
+      "d07.example.test": 32,
+      "d08.example.test": 33,
+      "d09.example.test": 32,
+      "d10.example.test": 32,
+      "d11.example.test": 34,
+      "d12.example.test": 32,
+      "d13.example.test": 33,
+      "d14.example.test": 32,
+      "d15.example.test": 33,
+      "d16.example.test": 32,
+      "d17.example.test": 32,
+      "d18.example.test": 32,
+      "d19.example.test": 34,
+      "d20.example.test": 32,
+      "d21.example.test": 32,
+      "d22.example.test": 32,
+      "d23.example.test": 34,
+      "d24.example.test": 32,
+      "d25.example.test": 32,
+      "d26.example.test": 33,
+      "d27.example.test": 32,
+      "d28.example.test": 32,
+      "d29.example.test": 32
+    },
+    "touched": {
+      "25": {
+        "has_weight": 2,
+        "step": [
+          2,
+          2,
+          11
+        ],
+        "edge": [
+          2,
+          2,
+          10
+        ]
+      },
+      "33": {
+        "has_weight": 2,
+        "step": [
+          2,
+          2,
+          6
+        ],
+        "edge": [
+          2,
+          2,
+          5
+        ]
+      },
+      "78": {
+        "has_weight": 2,
+        "step": [
+          2,
+          2,
+          6
+        ],
+        "edge": [
+          2,
+          2,
+          5
+        ]
+      },
+      "148": {
+        "has_weight": 2,
+        "step": [
+          2,
+          2,
+          11
+        ],
+        "edge": [
+          2,
+          2,
+          10
+        ]
+      },
+      "220": {
+        "has_weight": 2,
+        "step": [
+          2,
+          2,
+          11
+        ],
+        "edge": [
+          2,
+          2,
+          10
+        ]
+      },
+      "316": {
+        "has_weight": 2,
+        "step": [
+          2,
+          2,
+          11
+        ],
+        "edge": [
+          2,
+          2,
+          10
+        ]
+      },
+      "418": {
+        "has_weight": 2,
+        "step": [
+          2,
+          2,
+          11
+        ],
+        "edge": [
+          2,
+          2,
+          10
+        ]
+      },
+      "429": {
+        "has_weight": 2,
+        "step": [
+          2,
+          2,
+          6
+        ],
+        "edge": [
+          2,
+          2,
+          5
+        ]
+      },
+      "573": {
+        "has_weight": 2,
+        "step": [
+          2,
+          2,
+          6
+        ],
+        "edge": [
+          2,
+          2,
+          5
+        ]
+      },
+      "610": {
+        "has_weight": 2,
+        "step": [
+          2,
+          2,
+          11
+        ],
+        "edge": [
+          2,
+          2,
+          10
+        ]
+      },
+      "990": {
+        "has_weight": 1,
+        "step": [
+          1,
+          1,
+          6
+        ],
+        "edge": [
+          1,
+          1,
+          5
+        ]
+      },
+      "991": {
+        "has_weight": 1,
+        "step": [
+          1,
+          1,
+          11
+        ],
+        "edge": [
+          1,
+          1,
+          10
+        ]
+      },
+      "992": {
+        "has_weight": 1,
+        "step": [
+          1,
+          1,
+          21
+        ],
+        "edge": [
+          1,
+          1,
+          20
+        ]
+      },
+      "993": {
+        "has_weight": 1,
+        "step": [
+          1,
+          1,
+          6
+        ],
+        "edge": [
+          1,
+          1,
+          5
+        ]
+      },
+      "994": {
+        "has_weight": 1,
+        "step": [
+          1,
+          1,
+          11
+        ],
+        "edge": [
+          1,
+          1,
+          10
+        ]
+      },
+      "995": {
+        "has_weight": 1,
+        "step": [
+          1,
+          1,
+          21
+        ],
+        "edge": [
+          1,
+          1,
+          20
+        ]
+      },
+      "996": {
+        "has_weight": 1,
+        "step": [
+          1,
+          1,
+          6
+        ],
+        "edge": [
+          1,
+          1,
+          5
+        ]
+      },
+      "997": {
+        "has_weight": 1,
+        "step": [
+          1,
+          1,
+          11
+        ],
+        "edge": [
+          1,
+          1,
+          10
+        ]
+      },
+      "998": {
+        "has_weight": 1,
+        "step": [
+          1,
+          1,
+          21
+        ],
+        "edge": [
+          1,
+          1,
+          20
+        ]
+      },
+      "999": {
+        "has_weight": 1,
+        "step": [
+          1,
+          1,
+          6
+        ],
+        "edge": [
+          1,
+          1,
+          5
+        ]
+      }
+    }
+  },
+  "full_final_validation": {
+    "root": {
+      "rows": 30,
+      "sha256": "ef01a175d88e43a7d2cdbd7f862b54f47c300f5509fed373d4e29cc6e788edd7"
+    },
+    "has": {
+      "rows": 1000,
+      "sha256": "ba1067bdfea9acb262d66e39266be03241412034bf413388b470ac3bbaa328db"
+    },
+    "step": {
+      "rows": 12660,
+      "sha256": "8d1885eed77e4353f98ea8bbc2b1840936b02c6b77034943156946bc52eb1a63"
+    },
+    "edge": {
+      "rows": 11660,
+      "sha256": "b8ce9b084774457f26153bf629ec9bec9cc47c43ba39dc94d894151b399b6ebb"
+    }
+  },
+  "worker_cpu_seconds_measured_delta": 0.12,
+  "worker_rss_bytes_before_measured": 79626240,
+  "worker_rss_bytes_after_measured": 79753216,
+  "after_round_reset": {
+    "counts": {
+      "roots": 30,
+      "paths": 990,
+      "steps": 12540,
+      "edges": 11550
+    },
+    "weight_sha256": "41e7126b17005715b735bf8c48d3d90a3e572d9e7a8347c354d0f8bfd06575ec",
+    "root_visits": {
+      "d00.example.test": 32,
+      "d01.example.test": 32,
+      "d02.example.test": 32,
+      "d03.example.test": 32,
+      "d04.example.test": 32,
+      "d05.example.test": 32,
+      "d06.example.test": 32,
+      "d07.example.test": 32,
+      "d08.example.test": 32,
+      "d09.example.test": 32,
+      "d10.example.test": 32,
+      "d11.example.test": 32,
+      "d12.example.test": 32,
+      "d13.example.test": 32,
+      "d14.example.test": 32,
+      "d15.example.test": 32,
+      "d16.example.test": 32,
+      "d17.example.test": 32,
+      "d18.example.test": 32,
+      "d19.example.test": 32,
+      "d20.example.test": 32,
+      "d21.example.test": 32,
+      "d22.example.test": 32,
+      "d23.example.test": 32,
+      "d24.example.test": 32,
+      "d25.example.test": 32,
+      "d26.example.test": 32,
+      "d27.example.test": 32,
+      "d28.example.test": 32,
+      "d29.example.test": 32
+    },
+    "touched": {}
+  }
+}

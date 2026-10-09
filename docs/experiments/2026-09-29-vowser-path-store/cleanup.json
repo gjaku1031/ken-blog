@@ -1,0 +1,47 @@
+{
+  "utc": "2026-09-29T11:16:00.504068+00:00",
+  "removed_containers": [
+    "vowser-eval-v2-mysql",
+    "vowser-eval-v2-neo4j"
+  ],
+  "removed_temporary_path": "/tmp/vowser-eval-v2",
+  "credentials_removed_with_path": true,
+  "preserved_containers": [
+    {
+      "name": "ken-blog-live-web-1",
+      "id": "3e99180a5836d4a1128fab40e48dfc7ae6041b86e1675db35cfce29e2326aebd",
+      "running_before": true,
+      "running_after": true
+    },
+    {
+      "name": "ken-blog-live-api-1",
+      "id": "c9bb265492d45ed8ae57d666d62d74fd9b3f3dabcbb3f874212cc28e6e4ddf1d",
+      "running_before": true,
+      "running_after": true
+    },
+    {
+      "name": "ken-blog-single-verify-mysql",
+      "id": "e5f116264e691c942768835075b7746a229c7facb7556ee2017ff6ade57b62bd",
+      "running_before": true,
+      "running_after": true
+    },
+    {
+      "name": "vowser-eval-db-neo4j",
+      "id": "ad61c2c4fed72ad2a7535b8c71e709259d2e56e19267420a5afebedf8ed9b53e",
+      "running_before": false,
+      "running_after": false
+    },
+    {
+      "name": "devspace-root-devspace-1",
+      "id": "c2fbabecb511c65b390a2286ab91ab5df570eff7a66560dc5c1f1fafdc00c61f",
+      "running_before": true,
+      "running_after": true
+    }
+  ],
+  "ports": {
+    "19506": "available",
+    "19587": "available"
+  },
+  "kept": "All experiment source/input/raw/results/reports, Docker images, previous evaluation DB, existing services",
+  "status": "PASS"
+}

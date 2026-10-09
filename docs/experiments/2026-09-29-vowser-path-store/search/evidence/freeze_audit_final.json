@@ -1,0 +1,16 @@
+{
+  "changed_current_files": [
+    {
+      "current_sha256": "3473288480c9179e0b8a8b2803017b2d4c6d8e2d4df91f2ebd2b0161bf34dbb4",
+      "frozen_sha256": "ce98f0da4a954b4c83a7f27c1710b7a40ae45ca2d3d1289c3b8b6547c79b9d1d",
+      "path": "shared/environment.json"
+    }
+  ],
+  "current_environment_is_post_recreation_snapshot": true,
+  "freeze_manifest_sha256": "6a493825b45aa60af466248c7a9cb51bbc90c05e1c3b63d1bde10d57ae4821cc",
+  "frozen_file_count": 20,
+  "input_and_oracle_assets_verified": true,
+  "measured_environment_alias": "search/evidence/environment-measured.json",
+  "measured_environment_matches_frozen": true,
+  "measured_environment_sha256": "ce98f0da4a954b4c83a7f27c1710b7a40ae45ca2d3d1289c3b8b6547c79b9d1d"
+}

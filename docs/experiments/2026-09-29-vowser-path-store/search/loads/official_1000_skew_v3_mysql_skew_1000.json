@@ -1,0 +1,14 @@
+{
+  "backend": "mysql",
+  "counts": {
+    "edges": 11660,
+    "paths": 1000,
+    "steps": 12660
+  },
+  "distribution": "skew",
+  "index_build_seconds": 0,
+  "index_state": "mysql secondary indexes online",
+  "input_sha256": "0bfd0bf185d841fcd64bd9ad5d9c9923f37d70a6b565759c0a862a99cc7c73f6",
+  "load_seconds": 1.428,
+  "n": 1000
+}

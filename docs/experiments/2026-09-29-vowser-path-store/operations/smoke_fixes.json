@@ -1,0 +1,22 @@
+{
+  "stage": "before operations main measurement",
+  "fixes": [
+    {
+      "symptom": "run_case.sh failed exit 126 before any DB query because shared scripts lack executable bit",
+      "change": "invoke shared shell scripts through bash; no input/query semantics change"
+    },
+    {
+      "symptom": "Neo4j plan capture raised AttributeError because driver returned plan as dict",
+      "change": "plan_tree accepts dict/list; no DB query semantics change"
+    },
+    {
+      "symptom": "smoke JSON executed.raw_rows=0 despite 200 untimed operations, a misleading metadata field",
+      "change": "add attempted_ops=200 independently of timed raw_rows; no query semantics change"
+    },
+    {
+      "symptom": "First round 0 Neo4j block stopped before timing because host_state.py imported psutil absent from host Python; authenticated DB health had passed, no timed requests ran",
+      "change": "Parse host /proc/meminfo instead; only host evidence collection changed; query/input unchanged"
+    }
+  ],
+  "repeated_smoke": "MySQL and Neo4j 1k smoke each ran twice solely to refresh the corrected attempted_ops metadata after the first PASS. Both runs completed identical 200-operation trace, full payload and reset validation. smoke-*.json holds the second successful run and overwrote the first JSON; run_case logs append both PASS lines. No performance samples from smoke are used in main results."
+}

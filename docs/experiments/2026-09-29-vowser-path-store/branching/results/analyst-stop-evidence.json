@@ -1,0 +1,92 @@
+{
+  "analyst_stop_log": {
+    "bytes": 2676,
+    "path": "branching/results/interrupted-attempts/main-cont01-analyst-stop/n10000-s0-b1/continuation-block-mysql-r0-cont01.log",
+    "sha256": "278eaa1a4071769aa8d5b56df3612c80649e006775d914cbcae7770556dfbb26"
+  },
+  "analyst_stop_partial": {
+    "bytes": 119750,
+    "issued_attempts_exact": null,
+    "newline_terminated": true,
+    "parseable_rows_lower_bound": 548,
+    "path": "branching/results/interrupted-attempts/main-cont01-analyst-stop/n10000-s0-b1/raw-mysql-r0.csv",
+    "phase_counts": {
+      "measure": 200,
+      "warmup": 348
+    },
+    "sha256": "31c21266e21ee04bb23c45a07897af92a4e08d967019319cbd5333500d98e23e"
+  },
+  "completed_cells": [
+    "n1000-s0-b1",
+    "n1000-s0-b2",
+    "n1000-s0-b4",
+    "n1000-s25-b1",
+    "n1000-s25-b2",
+    "n1000-s25-b4",
+    "n1000-s50-b1",
+    "n1000-s50-b2",
+    "n1000-s50-b4"
+  ],
+  "continuation_state": "interrupted",
+  "continuation_status": {
+    "bytes": 35486,
+    "path": "branching/results/continuation-main-cont01.json",
+    "sha256": "95ee67d5aaf847274d2e3afca4e7b4d962bc97f4019e2f02121a427b0b3b7dcd"
+  },
+  "db": {
+    "mysql": {
+      "memory_bytes": 3221225472,
+      "nano_cpus": 1000000000,
+      "running": false
+    },
+    "neo4j": {
+      "memory_bytes": 3221225472,
+      "nano_cpus": 1000000000,
+      "running": false
+    }
+  },
+  "decision_utc": "2026-09-29T08:45:57Z",
+  "environment_branching": {
+    "bytes": 2188,
+    "path": "shared/environment-branching.json",
+    "sha256": "2c9a9eb896bf5ade04b96743e2e4beabc0ffe64cfcd651b615d49e5159d13914"
+  },
+  "frozen_preflight": {
+    "bytes": 1189,
+    "path": "branching/results/preflight-main.json",
+    "sha256": "5d3eb1d839bfda6eb59dc944a8551254bb8413baa05c5689f64a1a70e264f061"
+  },
+  "group": "main",
+  "original_partial": {
+    "bytes": 119980,
+    "issued_attempts_exact": null,
+    "newline_terminated": true,
+    "parseable_rows_lower_bound": 549,
+    "path": "branching/results/interrupted-attempts/main-cont01/n10000-s0-b1/raw-mysql-r0.csv",
+    "phase_counts": {
+      "measure": 200,
+      "warmup": 349
+    },
+    "sha256": "b79f832fc837b2fd5cc096d43dea64ed2f8b14d6b2ea0665211b946755e9f3d0"
+  },
+  "original_state": "time_limit_incomplete",
+  "original_status": {
+    "bytes": 728,
+    "path": "branching/results/run-status.json",
+    "sha256": "b370d4ca0b9084c02a644d69bd6b432a3209b32fffca13a144c75538ca2febcf"
+  },
+  "reason": "Analyst-directed stop to correct SQL membership outer join order; separate revised cohort required",
+  "recorded_utc": "2026-09-29T08:47:15.260588+00:00",
+  "shared_run_client": {
+    "bytes": 1015,
+    "path": "shared/run-client.sh",
+    "sha256": "25753ba85655c9af07206cf75f4c8933048b4a24384b3ebd7bec41cf0ea5ecc8"
+  },
+  "source_cohort_note": "Original 9 complete cells and both partial attempts are preserved; no incomplete block is in the official measured denominator.",
+  "storage_medium": {
+    "bytes": 1304,
+    "path": "operations/results/storage-medium.json",
+    "sha256": "5e0a045b7a90a2a7ad282989609427799ef5ce023237a4faf0988b6e83143616"
+  },
+  "worker_containers": []
+}

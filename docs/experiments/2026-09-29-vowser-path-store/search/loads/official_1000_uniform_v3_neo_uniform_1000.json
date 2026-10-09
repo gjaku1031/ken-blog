@@ -1,0 +1,14 @@
+{
+  "backend": "neo",
+  "counts": {
+    "edges": 11660,
+    "paths": 1000,
+    "steps": 12660
+  },
+  "distribution": "uniform",
+  "index_build_seconds": 4.386,
+  "index_state": "ONLINE",
+  "input_sha256": "c0f028812893aa4877d168392b0f60d19af870b8dcc11ef7041ac2e44aa15aaf",
+  "load_seconds": 24.283,
+  "n": 1000
+}

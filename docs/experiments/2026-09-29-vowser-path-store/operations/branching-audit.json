@@ -1,0 +1,2991 @@
+{
+  "utc": "2026-09-29T08:45:31.567275+00:00",
+  "preflight_source_sha256": "5d3eb1d839bfda6eb59dc944a8551254bb8413baa05c5689f64a1a70e264f061",
+  "freeze_matches": {
+    "PROTOCOL.md": true,
+    "bench.py": true,
+    "host_preflight.py": true,
+    "managed.sh": true,
+    "model.py": true,
+    "orchestrate.py": true,
+    "run.sh": true,
+    "storage.py": true,
+    "worker.py": true,
+    "shared/data.py": true
+  },
+  "baseline_review": {
+    "mysql_context_index_defined": true,
+    "mysql_membership_path_ordinal_pk_defined": true,
+    "mysql_membership_step_index_defined": true,
+    "mysql_adj_recursive_and_link_keys": true,
+    "neo_member_context_index": true,
+    "neo_member_negative_blocked_filter": true,
+    "neo_adj_path_and_ordinal_guard": true
+  },
+  "complete_cells": 9,
+  "pending_cell_names": [
+    "n10000-s0-b1"
+  ],
+  "cells": [
+    {
+      "cell": "n1000-s0-b1",
+      "input_sha256": "363e8234b083d55cb94b39d50358f32a8b731bc1f9508eb872187cbcce475ea5",
+      "expected_sha256": "f82ab2a75f9bcbfd2acd712749aa34971af986ffe87b4fd23b44229d5c6cfdc1",
+      "raw_sha256": {
+        "raw-mysql-r0.csv": "0bf77abbd73bfcfb6d2354ddf1fc8d8763bf12b9fdafcc0d3c5f17a6afe116e1",
+        "raw-mysql-r1.csv": "fe46361367bf9ac46c5aa71682b278a9fa36e83994ef8f9431ca7ee4beac5c34",
+        "raw-mysql-r2.csv": "91c38b08a8519831612bbb95bacde2c67982c0bc2b773806d5a50280ead69bc7",
+        "raw-neo4j-r0.csv": "af09843f9e5259f5ee5cf32e3faafe5c0eef6d591af521e731d163ae9843584c",
+        "raw-neo4j-r1.csv": "4b3a6d08f2d8364747730bd8faa3d79031b9ddc54228ebdf18354e23508e5c0e",
+        "raw-neo4j-r2.csv": "2a7f055b5885792052d35609451a3a59500a868d9a52f198cacffcf6f0379e86"
+      },
+      "case_context_signature_sha256": "fad2f74baa63e6ce4d541175223c33ec172a53d3f2f771af2a89221654d53920",
+      "scenarios": {
+        "alternate": 160,
+        "none": 20,
+        "all_auth_steps": 20
+      },
+      "target_depths": {
+        "5": 54,
+        "10": 53,
+        "20": 53
+      },
+      "input_stats": {
+        "actual_shared_percent": 0.0,
+        "cell": "n1000-s0-b1",
+        "compression_percent": 0.0,
+        "contexts": 60,
+        "depth_counts": {
+          "5": 334,
+          "10": 333,
+          "20": 333
+        },
+        "indegree_histogram": {
+          "0": 1000,
+          "1": 11660
+        },
+        "max_indegree": 1,
+        "max_outdegree": 1,
+        "max_physical_indegree": 1,
+        "max_physical_outdegree": 1,
+        "membership_occurrences": 12660,
+        "outdegree_histogram": {
+          "0": 1000,
+          "1": 11660
+        },
+        "physical_indegree_histogram": {
+          "0": 1000,
+          "1": 11660
+        },
+        "physical_next_edges": 11660,
+        "physical_outdegree_histogram": {
+          "0": 1000,
+          "1": 11660
+        },
+        "prefix_reused_occurrences": 0,
+        "registered_paths": 1000,
+        "shared_membership_occurrences": 0,
+        "unique_next_pairs": 11660,
+        "unique_steps": 12660
+      },
+      "wrong": {
+        "('neo_adj', 'ClientError')": 4
+      },
+      "failure_class": {
+        "('warmup', 'neo_adj', 'timeout')": 4
+      },
+      "plan_evidence": {
+        "mysql_member_tables_preorder": [
+          {
+            "table_name": "m",
+            "access_type": "ref",
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "condition_id"
+            ],
+            "rows_examined_per_scan": 6330
+          },
+          {
+            "table_name": "e",
+            "access_type": "ALL",
+            "key": null,
+            "used_key_parts": null,
+            "rows_examined_per_scan": 3
+          },
+          {
+            "table_name": "p",
+            "access_type": "ref",
+            "key": "br3_context",
+            "used_key_parts": [
+              "condition_id",
+              "domain",
+              "intent",
+              "auth"
+            ],
+            "rows_examined_per_scan": 18
+          },
+          {
+            "table_name": "<subquery3>",
+            "access_type": "eq_ref",
+            "key": "<auto_distinct_key>",
+            "used_key_parts": null,
+            "rows_examined_per_scan": 1
+          },
+          {
+            "table_name": "x",
+            "access_type": "ref",
+            "key": "br3_member_step",
+            "used_key_parts": [
+              "condition_id",
+              "step_id"
+            ],
+            "rows_examined_per_scan": 1
+          },
+          {
+            "table_name": "s",
+            "access_type": "eq_ref",
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "condition_id",
+              "step_id"
+            ],
+            "rows_examined_per_scan": 1
+          }
+        ],
+        "mysql_adj_tables_preorder": [
+          {
+            "table_name": "e",
+            "access_type": "ALL",
+            "key": null,
+            "used_key_parts": null,
+            "rows_examined_per_scan": 2
+          },
+          {
+            "table_name": "w",
+            "access_type": "ALL",
+            "key": null,
+            "used_key_parts": null,
+            "rows_examined_per_scan": 18
+          },
+          {
+            "table_name": "p",
+            "access_type": "ref",
+            "key": "br3_context",
+            "used_key_parts": [
+              "condition_id",
+              "domain",
+              "intent",
+              "auth"
+            ],
+            "rows_examined_per_scan": 18
+          },
+          {
+            "table_name": "w",
+            "access_type": "ALL",
+            "key": null,
+            "used_key_parts": null,
+            "rows_examined_per_scan": 16
+          },
+          {
+            "table_name": "n",
+            "access_type": "eq_ref",
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "condition_id",
+              "path_id",
+              "ordinal"
+            ],
+            "rows_examined_per_scan": 1
+          },
+          {
+            "table_name": "p",
+            "access_type": "eq_ref",
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "condition_id",
+              "path_id"
+            ],
+            "rows_examined_per_scan": 1
+          },
+          {
+            "table_name": "w",
+            "access_type": "ref",
+            "key": "<auto_key0>",
+            "used_key_parts": [
+              "path_id"
+            ],
+            "rows_examined_per_scan": 2
+          },
+          {
+            "table_name": "s",
+            "access_type": "eq_ref",
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "condition_id",
+              "step_id"
+            ],
+            "rows_examined_per_scan": 1
+          }
+        ],
+        "mysql_member_selected_paths_first": false,
+        "neo_adj_node_index_seek": true,
+        "neo_member_node_index_seek": true
+      },
+      "warmup_attempts": 2400,
+      "measured_attempts": 2400,
+      "mode": {
+        "mysql_adj": {
+          "attempts": 600,
+          "correct": 600,
+          "timed_timeouts": 0,
+          "warmup_timeouts": 0,
+          "p50_ms_correct": 3.383,
+          "p95_ms_correct": 3.846,
+          "rounds": {
+            "0": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 3.369,
+              "p95_ms_correct": 3.735
+            },
+            "1": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 3.439,
+              "p95_ms_correct": 4.097
+            },
+            "2": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 3.355,
+              "p95_ms_correct": 3.787
+            }
+          }
+        },
+        "neo_adj": {
+          "attempts": 600,
+          "correct": 600,
+          "timed_timeouts": 0,
+          "warmup_timeouts": 4,
+          "p50_ms_correct": 6.321,
+          "p95_ms_correct": 31.828,
+          "rounds": {
+            "0": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 6.381,
+              "p95_ms_correct": 37.688
+            },
+            "1": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 5.608,
+              "p95_ms_correct": 7.827
+            },
+            "2": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 6.885,
+              "p95_ms_correct": 39.509
+            }
+          }
+        },
+        "mysql_member": {
+          "attempts": 600,
+          "correct": 600,
+          "timed_timeouts": 0,
+          "warmup_timeouts": 0,
+          "p50_ms_correct": 58.185,
+          "p95_ms_correct": 61.609,
+          "rounds": {
+            "0": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 58.151,
+              "p95_ms_correct": 61.614
+            },
+            "1": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 58.455,
+              "p95_ms_correct": 61.624
+            },
+            "2": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 58.062,
+              "p95_ms_correct": 60.987
+            }
+          }
+        },
+        "neo_member": {
+          "attempts": 600,
+          "correct": 600,
+          "timed_timeouts": 0,
+          "warmup_timeouts": 0,
+          "p50_ms_correct": 5.363,
+          "p95_ms_correct": 15.43,
+          "rounds": {
+            "0": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 4.694,
+              "p95_ms_correct": 6.451
+            },
+            "1": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 6.694,
+              "p95_ms_correct": 61.83
+            },
+            "2": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 4.992,
+              "p95_ms_correct": 6.911
+            }
+          }
+        }
+      }
+    },
+    {
+      "cell": "n1000-s0-b2",
+      "input_sha256": "c1889df3cc146eb74110d8bd5fd5ade4f77619155c52a7c8708e357a1b592a65",
+      "expected_sha256": "f82ab2a75f9bcbfd2acd712749aa34971af986ffe87b4fd23b44229d5c6cfdc1",
+      "raw_sha256": {
+        "raw-mysql-r0.csv": "183ac5c5b9aa032df887b26bbf228cbe2af15e5963ab317b925096324dc5c431",
+        "raw-mysql-r1.csv": "02730bda758227f2f521eeb3e1e9edfaca64f48bbf15b47fa413ee9381ddeeab",
+        "raw-mysql-r2.csv": "19950d4f53bec942be534f16754b327fc3f818b059f84d3ef2a464db0609724f",
+        "raw-neo4j-r0.csv": "8ec18328450fe9e92655777e41748b11d5522b63bdb051d79fb9a531d8962a44",
+        "raw-neo4j-r1.csv": "bda083066cce384927e8231c7223cc139702d09363a15128412200a4ef006073",
+        "raw-neo4j-r2.csv": "88500a0400f0b29e10a35ebd8a7a53481caa78b2f16dab8971b69f5f11db8bbd"
+      },
+      "case_context_signature_sha256": "fad2f74baa63e6ce4d541175223c33ec172a53d3f2f771af2a89221654d53920",
+      "scenarios": {
+        "alternate": 160,
+        "none": 20,
+        "all_auth_steps": 20
+      },
+      "target_depths": {
+        "5": 54,
+        "10": 53,
+        "20": 53
+      },
+      "input_stats": {
+        "actual_shared_percent": 0.0,
+        "cell": "n1000-s0-b2",
+        "compression_percent": 0.0,
+        "contexts": 60,
+        "depth_counts": {
+          "5": 334,
+          "10": 333,
+          "20": 333
+        },
+        "indegree_histogram": {
+          "0": 1000,
+          "1": 11660
+        },
+        "max_indegree": 1,
+        "max_outdegree": 1,
+        "max_physical_indegree": 1,
+        "max_physical_outdegree": 1,
+        "membership_occurrences": 12660,
+        "outdegree_histogram": {
+          "0": 1000,
+          "1": 11660
+        },
+        "physical_indegree_histogram": {
+          "0": 1000,
+          "1": 11660
+        },
+        "physical_next_edges": 11660,
+        "physical_outdegree_histogram": {
+          "0": 1000,
+          "1": 11660
+        },
+        "prefix_reused_occurrences": 0,
+        "registered_paths": 1000,
+        "shared_membership_occurrences": 0,
+        "unique_next_pairs": 11660,
+        "unique_steps": 12660
+      },
+      "wrong": {
+        "('neo_adj', 'ClientError')": 4
+      },
+      "failure_class": {
+        "('warmup', 'neo_adj', 'timeout')": 4
+      },
+      "plan_evidence": {
+        "mysql_member_tables_preorder": [
+          {
+            "table_name": "m",
+            "access_type": "ref",
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "condition_id"
+            ],
+            "rows_examined_per_scan": 6330
+          },
+          {
+            "table_name": "e",
+            "access_type": "ALL",
+            "key": null,
+            "used_key_parts": null,
+            "rows_examined_per_scan": 3
+          },
+          {
+            "table_name": "p",
+            "access_type": "ref",
+            "key": "br3_context",
+            "used_key_parts": [
+              "condition_id",
+              "domain",
+              "intent",
+              "auth"
+            ],
+            "rows_examined_per_scan": 18
+          },
+          {
+            "table_name": "<subquery3>",
+            "access_type": "eq_ref",
+            "key": "<auto_distinct_key>",
+            "used_key_parts": null,
+            "rows_examined_per_scan": 1
+          },
+          {
+            "table_name": "x",
+            "access_type": "ref",
+            "key": "br3_member_step",
+            "used_key_parts": [
+              "condition_id",
+              "step_id"
+            ],
+            "rows_examined_per_scan": 1
+          },
+          {
+            "table_name": "s",
+            "access_type": "eq_ref",
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "condition_id",
+              "step_id"
+            ],
+            "rows_examined_per_scan": 1
+          }
+        ],
+        "mysql_adj_tables_preorder": [
+          {
+            "table_name": "e",
+            "access_type": "ALL",
+            "key": null,
+            "used_key_parts": null,
+            "rows_examined_per_scan": 2
+          },
+          {
+            "table_name": "w",
+            "access_type": "ALL",
+            "key": null,
+            "used_key_parts": null,
+            "rows_examined_per_scan": 18
+          },
+          {
+            "table_name": "p",
+            "access_type": "ref",
+            "key": "br3_context",
+            "used_key_parts": [
+              "condition_id",
+              "domain",
+              "intent",
+              "auth"
+            ],
+            "rows_examined_per_scan": 18
+          },
+          {
+            "table_name": "w",
+            "access_type": "ALL",
+            "key": null,
+            "used_key_parts": null,
+            "rows_examined_per_scan": 16
+          },
+          {
+            "table_name": "n",
+            "access_type": "eq_ref",
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "condition_id",
+              "path_id",
+              "ordinal"
+            ],
+            "rows_examined_per_scan": 1
+          },
+          {
+            "table_name": "p",
+            "access_type": "eq_ref",
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "condition_id",
+              "path_id"
+            ],
+            "rows_examined_per_scan": 1
+          },
+          {
+            "table_name": "w",
+            "access_type": "ref",
+            "key": "<auto_key0>",
+            "used_key_parts": [
+              "path_id"
+            ],
+            "rows_examined_per_scan": 2
+          },
+          {
+            "table_name": "s",
+            "access_type": "eq_ref",
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "condition_id",
+              "step_id"
+            ],
+            "rows_examined_per_scan": 1
+          }
+        ],
+        "mysql_member_selected_paths_first": false,
+        "neo_adj_node_index_seek": true,
+        "neo_member_node_index_seek": true
+      },
+      "warmup_attempts": 2400,
+      "measured_attempts": 2400,
+      "mode": {
+        "mysql_adj": {
+          "attempts": 600,
+          "correct": 600,
+          "timed_timeouts": 0,
+          "warmup_timeouts": 0,
+          "p50_ms_correct": 3.393,
+          "p95_ms_correct": 3.835,
+          "rounds": {
+            "0": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 3.351,
+              "p95_ms_correct": 3.772
+            },
+            "1": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 3.362,
+              "p95_ms_correct": 3.786
+            },
+            "2": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 3.428,
+              "p95_ms_correct": 3.929
+            }
+          }
+        },
+        "neo_adj": {
+          "attempts": 600,
+          "correct": 600,
+          "timed_timeouts": 0,
+          "warmup_timeouts": 4,
+          "p50_ms_correct": 6.262,
+          "p95_ms_correct": 32.728,
+          "rounds": {
+            "0": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 6.343,
+              "p95_ms_correct": 39.939
+            },
+            "1": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 5.601,
+              "p95_ms_correct": 9.917
+            },
+            "2": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 7.059,
+              "p95_ms_correct": 47.016
+            }
+          }
+        },
+        "mysql_member": {
+          "attempts": 600,
+          "correct": 600,
+          "timed_timeouts": 0,
+          "warmup_timeouts": 0,
+          "p50_ms_correct": 58.62,
+          "p95_ms_correct": 61.284,
+          "rounds": {
+            "0": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 58.097,
+              "p95_ms_correct": 60.328
+            },
+            "1": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 58.62,
+              "p95_ms_correct": 61.086
+            },
+            "2": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 59.329,
+              "p95_ms_correct": 61.944
+            }
+          }
+        },
+        "neo_member": {
+          "attempts": 600,
+          "correct": 600,
+          "timed_timeouts": 0,
+          "warmup_timeouts": 0,
+          "p50_ms_correct": 5.003,
+          "p95_ms_correct": 14.088,
+          "rounds": {
+            "0": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 4.679,
+              "p95_ms_correct": 6.301
+            },
+            "1": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 5.931,
+              "p95_ms_correct": 58.622
+            },
+            "2": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 4.7,
+              "p95_ms_correct": 7.077
+            }
+          }
+        }
+      }
+    },
+    {
+      "cell": "n1000-s0-b4",
+      "input_sha256": "84e3cfe59232a7fd90d2a23cc9ed60f7bde79cec5ff99206c101b3319b627ca9",
+      "expected_sha256": "f82ab2a75f9bcbfd2acd712749aa34971af986ffe87b4fd23b44229d5c6cfdc1",
+      "raw_sha256": {
+        "raw-mysql-r0.csv": "c998f94a3ca611f31bfe3e32484d83c76e95045dbcd89c4038894d104570517b",
+        "raw-mysql-r1.csv": "56bcfb219de25fc51af2f1970d300101841e05cf4e3e207f17638bddcc7719e7",
+        "raw-mysql-r2.csv": "793cc9e80ebc9b30c5b40db385035f89e5080f239e3e8455db79498a2fb45219",
+        "raw-neo4j-r0.csv": "5680c95ebdcdec5e90172f5977ffd88babe57c5bea2fc60559ffbe46741b036a",
+        "raw-neo4j-r1.csv": "58f41129a173d1670fa998d82baf9b310ceed1c064fa09456ad852f2e183cebb",
+        "raw-neo4j-r2.csv": "66e0522ee0415884a6edc35ae17bb8ea1026fbe08b399e07def741618ab82151"
+      },
+      "case_context_signature_sha256": "fad2f74baa63e6ce4d541175223c33ec172a53d3f2f771af2a89221654d53920",
+      "scenarios": {
+        "alternate": 160,
+        "none": 20,
+        "all_auth_steps": 20
+      },
+      "target_depths": {
+        "5": 54,
+        "10": 53,
+        "20": 53
+      },
+      "input_stats": {
+        "actual_shared_percent": 0.0,
+        "cell": "n1000-s0-b4",
+        "compression_percent": 0.0,
+        "contexts": 60,
+        "depth_counts": {
+          "5": 334,
+          "10": 333,
+          "20": 333
+        },
+        "indegree_histogram": {
+          "0": 1000,
+          "1": 11660
+        },
+        "max_indegree": 1,
+        "max_outdegree": 1,
+        "max_physical_indegree": 1,
+        "max_physical_outdegree": 1,
+        "membership_occurrences": 12660,
+        "outdegree_histogram": {
+          "0": 1000,
+          "1": 11660
+        },
+        "physical_indegree_histogram": {
+          "0": 1000,
+          "1": 11660
+        },
+        "physical_next_edges": 11660,
+        "physical_outdegree_histogram": {
+          "0": 1000,
+          "1": 11660
+        },
+        "prefix_reused_occurrences": 0,
+        "registered_paths": 1000,
+        "shared_membership_occurrences": 0,
+        "unique_next_pairs": 11660,
+        "unique_steps": 12660
+      },
+      "wrong": {
+        "('neo_adj', 'ClientError')": 5
+      },
+      "failure_class": {
+        "('warmup', 'neo_adj', 'timeout')": 5
+      },
+      "plan_evidence": {
+        "mysql_member_tables_preorder": [
+          {
+            "table_name": "m",
+            "access_type": "ref",
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "condition_id"
+            ],
+            "rows_examined_per_scan": 6330
+          },
+          {
+            "table_name": "e",
+            "access_type": "ALL",
+            "key": null,
+            "used_key_parts": null,
+            "rows_examined_per_scan": 3
+          },
+          {
+            "table_name": "p",
+            "access_type": "ref",
+            "key": "br3_context",
+            "used_key_parts": [
+              "condition_id",
+              "domain",
+              "intent",
+              "auth"
+            ],
+            "rows_examined_per_scan": 18
+          },
+          {
+            "table_name": "<subquery3>",
+            "access_type": "eq_ref",
+            "key": "<auto_distinct_key>",
+            "used_key_parts": null,
+            "rows_examined_per_scan": 1
+          },
+          {
+            "table_name": "x",
+            "access_type": "ref",
+            "key": "br3_member_step",
+            "used_key_parts": [
+              "condition_id",
+              "step_id"
+            ],
+            "rows_examined_per_scan": 1
+          },
+          {
+            "table_name": "s",
+            "access_type": "eq_ref",
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "condition_id",
+              "step_id"
+            ],
+            "rows_examined_per_scan": 1
+          }
+        ],
+        "mysql_adj_tables_preorder": [
+          {
+            "table_name": "e",
+            "access_type": "ALL",
+            "key": null,
+            "used_key_parts": null,
+            "rows_examined_per_scan": 2
+          },
+          {
+            "table_name": "w",
+            "access_type": "ALL",
+            "key": null,
+            "used_key_parts": null,
+            "rows_examined_per_scan": 18
+          },
+          {
+            "table_name": "p",
+            "access_type": "ref",
+            "key": "br3_context",
+            "used_key_parts": [
+              "condition_id",
+              "domain",
+              "intent",
+              "auth"
+            ],
+            "rows_examined_per_scan": 18
+          },
+          {
+            "table_name": "w",
+            "access_type": "ALL",
+            "key": null,
+            "used_key_parts": null,
+            "rows_examined_per_scan": 16
+          },
+          {
+            "table_name": "n",
+            "access_type": "eq_ref",
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "condition_id",
+              "path_id",
+              "ordinal"
+            ],
+            "rows_examined_per_scan": 1
+          },
+          {
+            "table_name": "p",
+            "access_type": "eq_ref",
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "condition_id",
+              "path_id"
+            ],
+            "rows_examined_per_scan": 1
+          },
+          {
+            "table_name": "w",
+            "access_type": "ref",
+            "key": "<auto_key0>",
+            "used_key_parts": [
+              "path_id"
+            ],
+            "rows_examined_per_scan": 2
+          },
+          {
+            "table_name": "s",
+            "access_type": "eq_ref",
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "condition_id",
+              "step_id"
+            ],
+            "rows_examined_per_scan": 1
+          }
+        ],
+        "mysql_member_selected_paths_first": false,
+        "neo_adj_node_index_seek": true,
+        "neo_member_node_index_seek": true
+      },
+      "warmup_attempts": 2400,
+      "measured_attempts": 2400,
+      "mode": {
+        "mysql_adj": {
+          "attempts": 600,
+          "correct": 600,
+          "timed_timeouts": 0,
+          "warmup_timeouts": 0,
+          "p50_ms_correct": 3.37,
+          "p95_ms_correct": 3.782,
+          "rounds": {
+            "0": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 3.391,
+              "p95_ms_correct": 3.842
+            },
+            "1": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 3.377,
+              "p95_ms_correct": 3.852
+            },
+            "2": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 3.353,
+              "p95_ms_correct": 3.686
+            }
+          }
+        },
+        "neo_adj": {
+          "attempts": 600,
+          "correct": 600,
+          "timed_timeouts": 0,
+          "warmup_timeouts": 5,
+          "p50_ms_correct": 6.32,
+          "p95_ms_correct": 28.096,
+          "rounds": {
+            "0": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 6.424,
+              "p95_ms_correct": 39.743
+            },
+            "1": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 6.288,
+              "p95_ms_correct": 8.288
+            },
+            "2": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 6.287,
+              "p95_ms_correct": 37.672
+            }
+          }
+        },
+        "mysql_member": {
+          "attempts": 600,
+          "correct": 600,
+          "timed_timeouts": 0,
+          "warmup_timeouts": 0,
+          "p50_ms_correct": 57.605,
+          "p95_ms_correct": 59.608,
+          "rounds": {
+            "0": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 57.346,
+              "p95_ms_correct": 58.733
+            },
+            "1": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 57.666,
+              "p95_ms_correct": 60.579
+            },
+            "2": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 57.802,
+              "p95_ms_correct": 59.635
+            }
+          }
+        },
+        "neo_member": {
+          "attempts": 600,
+          "correct": 600,
+          "timed_timeouts": 0,
+          "warmup_timeouts": 0,
+          "p50_ms_correct": 4.85,
+          "p95_ms_correct": 11.479,
+          "rounds": {
+            "0": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 4.563,
+              "p95_ms_correct": 6.162
+            },
+            "1": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 6.064,
+              "p95_ms_correct": 51.094
+            },
+            "2": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 4.684,
+              "p95_ms_correct": 6.647
+            }
+          }
+        }
+      }
+    },
+    {
+      "cell": "n1000-s25-b1",
+      "input_sha256": "212a96b7e705a4f2919cb4755aa56608091f616889c7f096a8b18279822adf88",
+      "expected_sha256": "8e55adb2a3fe78faa6be48d417a74899ce5d7d9ce74573ae67739326544b49fe",
+      "raw_sha256": {
+        "raw-mysql-r0.csv": "54af4801261f5c809078c79236b218d6118f93bb35c2e45e97b4f25f90b0e806",
+        "raw-mysql-r1.csv": "3627f5aca47d05a05f101960f8f63949ef4e5cdf63c762be966109d63368f34f",
+        "raw-mysql-r2.csv": "f133bac3491744d007a9fe93118a7008d0b6a07f64048f501730fa9a5bce17f6",
+        "raw-neo4j-r0.csv": "286da321122658f7f30f1d7e9a4854f75810a4037520c3c51d521a80cec59b16",
+        "raw-neo4j-r1.csv": "7570936a030890ffbbdc9857e69538f7d34fb665ab325768c4851391bb547623",
+        "raw-neo4j-r2.csv": "1364ceeeff58e26986da9d1bc8163ac6a45c48281af1ec24991b8895912f516d"
+      },
+      "case_context_signature_sha256": "fad2f74baa63e6ce4d541175223c33ec172a53d3f2f771af2a89221654d53920",
+      "scenarios": {
+        "alternate": 160,
+        "none": 20,
+        "common_auth": 20
+      },
+      "target_depths": {
+        "5": 54,
+        "10": 53,
+        "20": 53
+      },
+      "input_stats": {
+        "actual_shared_percent": 26.31911532385466,
+        "cell": "n1000-s25-b1",
+        "compression_percent": 22.527646129541868,
+        "contexts": 60,
+        "depth_counts": {
+          "5": 334,
+          "10": 333,
+          "20": 333
+        },
+        "indegree_histogram": {
+          "0": 1000,
+          "1": 8568,
+          "3": 60,
+          "5": 80,
+          "6": 100
+        },
+        "max_indegree": 6,
+        "max_outdegree": 1,
+        "max_physical_indegree": 18,
+        "max_physical_outdegree": 6,
+        "membership_occurrences": 12660,
+        "outdegree_histogram": {
+          "0": 60,
+          "1": 9748
+        },
+        "physical_indegree_histogram": {
+          "0": 1000,
+          "1": 8328,
+          "5": 188,
+          "6": 232,
+          "15": 26,
+          "16": 1,
+          "18": 33
+        },
+        "physical_next_edges": 11660,
+        "physical_outdegree_histogram": {
+          "0": 60,
+          "1": 9328,
+          "5": 188,
+          "6": 232
+        },
+        "prefix_reused_occurrences": 0,
+        "registered_paths": 1000,
+        "shared_membership_occurrences": 3332,
+        "unique_next_pairs": 9748,
+        "unique_steps": 9808
+      },
+      "wrong": {
+        "('neo_adj', 'ClientError')": 5
+      },
+      "failure_class": {
+        "('warmup', 'neo_adj', 'timeout')": 5
+      },
+      "plan_evidence": {
+        "mysql_member_tables_preorder": [
+          {
+            "table_name": "m",
+            "access_type": "ref",
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "condition_id"
+            ],
+            "rows_examined_per_scan": 6330
+          },
+          {
+            "table_name": "e",
+            "access_type": "ALL",
+            "key": null,
+            "used_key_parts": null,
+            "rows_examined_per_scan": 3
+          },
+          {
+            "table_name": "p",
+            "access_type": "ref",
+            "key": "br3_context",
+            "used_key_parts": [
+              "condition_id",
+              "domain",
+              "intent",
+              "auth"
+            ],
+            "rows_examined_per_scan": 18
+          },
+          {
+            "table_name": "<subquery3>",
+            "access_type": "eq_ref",
+            "key": "<auto_distinct_key>",
+            "used_key_parts": null,
+            "rows_examined_per_scan": 1
+          },
+          {
+            "table_name": "x",
+            "access_type": "ref",
+            "key": "br3_member_step",
+            "used_key_parts": [
+              "condition_id",
+              "step_id"
+            ],
+            "rows_examined_per_scan": 1
+          },
+          {
+            "table_name": "s",
+            "access_type": "eq_ref",
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "condition_id",
+              "step_id"
+            ],
+            "rows_examined_per_scan": 1
+          }
+        ],
+        "mysql_adj_tables_preorder": [
+          {
+            "table_name": "e",
+            "access_type": "ALL",
+            "key": null,
+            "used_key_parts": null,
+            "rows_examined_per_scan": 2
+          },
+          {
+            "table_name": "w",
+            "access_type": "ALL",
+            "key": null,
+            "used_key_parts": null,
+            "rows_examined_per_scan": 18
+          },
+          {
+            "table_name": "p",
+            "access_type": "ref",
+            "key": "br3_context",
+            "used_key_parts": [
+              "condition_id",
+              "domain",
+              "intent",
+              "auth"
+            ],
+            "rows_examined_per_scan": 18
+          },
+          {
+            "table_name": "w",
+            "access_type": "ALL",
+            "key": null,
+            "used_key_parts": null,
+            "rows_examined_per_scan": 16
+          },
+          {
+            "table_name": "n",
+            "access_type": "eq_ref",
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "condition_id",
+              "path_id",
+              "ordinal"
+            ],
+            "rows_examined_per_scan": 1
+          },
+          {
+            "table_name": "p",
+            "access_type": "eq_ref",
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "condition_id",
+              "path_id"
+            ],
+            "rows_examined_per_scan": 1
+          },
+          {
+            "table_name": "w",
+            "access_type": "ref",
+            "key": "<auto_key0>",
+            "used_key_parts": [
+              "path_id"
+            ],
+            "rows_examined_per_scan": 2
+          },
+          {
+            "table_name": "s",
+            "access_type": "eq_ref",
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "condition_id",
+              "step_id"
+            ],
+            "rows_examined_per_scan": 1
+          }
+        ],
+        "mysql_member_selected_paths_first": false,
+        "neo_adj_node_index_seek": true,
+        "neo_member_node_index_seek": true
+      },
+      "warmup_attempts": 2400,
+      "measured_attempts": 2400,
+      "mode": {
+        "mysql_adj": {
+          "attempts": 600,
+          "correct": 600,
+          "timed_timeouts": 0,
+          "warmup_timeouts": 0,
+          "p50_ms_correct": 3.404,
+          "p95_ms_correct": 3.796,
+          "rounds": {
+            "0": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 3.393,
+              "p95_ms_correct": 3.788
+            },
+            "1": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 3.432,
+              "p95_ms_correct": 3.82
+            },
+            "2": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 3.399,
+              "p95_ms_correct": 3.783
+            }
+          }
+        },
+        "neo_adj": {
+          "attempts": 600,
+          "correct": 600,
+          "timed_timeouts": 0,
+          "warmup_timeouts": 5,
+          "p50_ms_correct": 6.491,
+          "p95_ms_correct": 28.826,
+          "rounds": {
+            "0": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 7.064,
+              "p95_ms_correct": 39.162
+            },
+            "1": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 5.619,
+              "p95_ms_correct": 6.985
+            },
+            "2": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 6.843,
+              "p95_ms_correct": 46.742
+            }
+          }
+        },
+        "mysql_member": {
+          "attempts": 600,
+          "correct": 600,
+          "timed_timeouts": 0,
+          "warmup_timeouts": 0,
+          "p50_ms_correct": 57.858,
+          "p95_ms_correct": 60.851,
+          "rounds": {
+            "0": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 57.617,
+              "p95_ms_correct": 60.312
+            },
+            "1": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 58.037,
+              "p95_ms_correct": 61.42
+            },
+            "2": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 57.858,
+              "p95_ms_correct": 60.843
+            }
+          }
+        },
+        "neo_member": {
+          "attempts": 600,
+          "correct": 600,
+          "timed_timeouts": 0,
+          "warmup_timeouts": 0,
+          "p50_ms_correct": 5.342,
+          "p95_ms_correct": 17.675,
+          "rounds": {
+            "0": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 5.405,
+              "p95_ms_correct": 11.073
+            },
+            "1": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 5.831,
+              "p95_ms_correct": 40.812
+            },
+            "2": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 4.612,
+              "p95_ms_correct": 6.508
+            }
+          }
+        }
+      }
+    },
+    {
+      "cell": "n1000-s25-b2",
+      "input_sha256": "d6ea57733009f5ec0f2ecf30ddc66197157dc152e19bdfd162cf315aa984d74f",
+      "expected_sha256": "e08b887ff9321d71a20dc47a9f56c1ae78a7cef25338daab587615274167e6b2",
+      "raw_sha256": {
+        "raw-mysql-r0.csv": "24a7e9a9e9ec885b6cde0275e806160c3604dcb4abf7a68aeb16e23f5659db65",
+        "raw-mysql-r1.csv": "7ee6178c87f9917147e6aa5a4d3c75fa39bb5539ebff46cf327973dcbd97f8c7",
+        "raw-mysql-r2.csv": "7c22dd25504fc08567f177d8cdd26a65a305a6fb5f331b19561a2c2e403ed3d5",
+        "raw-neo4j-r0.csv": "bac0ffd23ac2187c689dc962efefa9b73843d16123bc05688467c2e1b473d039",
+        "raw-neo4j-r1.csv": "7e96ccdf4d55f9013389bf203b17875e0476ff20828140a62dade542731090e7",
+        "raw-neo4j-r2.csv": "e76bc0418e90f6aef96fe81a670aedf8cdbdc548faba7fa5bef4b1c2d21131c1"
+      },
+      "case_context_signature_sha256": "fad2f74baa63e6ce4d541175223c33ec172a53d3f2f771af2a89221654d53920",
+      "scenarios": {
+        "alternate": 160,
+        "none": 20,
+        "common_auth": 20
+      },
+      "target_depths": {
+        "5": 54,
+        "10": 53,
+        "20": 53
+      },
+      "input_stats": {
+        "actual_shared_percent": 24.834123222748815,
+        "cell": "n1000-s25-b2",
+        "compression_percent": 15.892575039494472,
+        "contexts": 60,
+        "depth_counts": {
+          "5": 334,
+          "10": 333,
+          "20": 333
+        },
+        "indegree_histogram": {
+          "0": 540,
+          "1": 10048,
+          "15": 26,
+          "16": 1,
+          "18": 33
+        },
+        "max_indegree": 18,
+        "max_outdegree": 2,
+        "max_physical_indegree": 18,
+        "max_physical_outdegree": 2,
+        "membership_occurrences": 12660,
+        "outdegree_histogram": {
+          "0": 60,
+          "1": 10128,
+          "2": 460
+        },
+        "physical_indegree_histogram": {
+          "0": 540,
+          "1": 9436,
+          "2": 612,
+          "15": 26,
+          "16": 1,
+          "18": 33
+        },
+        "physical_next_edges": 11660,
+        "physical_outdegree_histogram": {
+          "0": 60,
+          "1": 9516,
+          "2": 1072
+        },
+        "prefix_reused_occurrences": 2144,
+        "registered_paths": 1000,
+        "shared_membership_occurrences": 3144,
+        "unique_next_pairs": 11048,
+        "unique_steps": 10648
+      },
+      "wrong": {
+        "('neo_adj', 'ClientError')": 5,
+        "('neo_member', 'ClientError')": 1
+      },
+      "failure_class": {
+        "('warmup', 'neo_adj', 'timeout')": 5,
+        "('warmup', 'neo_member', 'timeout')": 1
+      },
+      "plan_evidence": {
+        "mysql_member_tables_preorder": [
+          {
+            "table_name": "m",
+            "access_type": "ref",
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "condition_id"
+            ],
+            "rows_examined_per_scan": 6330
+          },
+          {
+            "table_name": "e",
+            "access_type": "ALL",
+            "key": null,
+            "used_key_parts": null,
+            "rows_examined_per_scan": 3
+          },
+          {
+            "table_name": "p",
+            "access_type": "ref",
+            "key": "br3_context",
+            "used_key_parts": [
+              "condition_id",
+              "domain",
+              "intent",
+              "auth"
+            ],
+            "rows_examined_per_scan": 18
+          },
+          {
+            "table_name": "<subquery3>",
+            "access_type": "eq_ref",
+            "key": "<auto_distinct_key>",
+            "used_key_parts": null,
+            "rows_examined_per_scan": 1
+          },
+          {
+            "table_name": "x",
+            "access_type": "ref",
+            "key": "br3_member_step",
+            "used_key_parts": [
+              "condition_id",
+              "step_id"
+            ],
+            "rows_examined_per_scan": 1
+          },
+          {
+            "table_name": "s",
+            "access_type": "eq_ref",
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "condition_id",
+              "step_id"
+            ],
+            "rows_examined_per_scan": 1
+          }
+        ],
+        "mysql_adj_tables_preorder": [
+          {
+            "table_name": "e",
+            "access_type": "ALL",
+            "key": null,
+            "used_key_parts": null,
+            "rows_examined_per_scan": 2
+          },
+          {
+            "table_name": "w",
+            "access_type": "ALL",
+            "key": null,
+            "used_key_parts": null,
+            "rows_examined_per_scan": 18
+          },
+          {
+            "table_name": "p",
+            "access_type": "ref",
+            "key": "br3_context",
+            "used_key_parts": [
+              "condition_id",
+              "domain",
+              "intent",
+              "auth"
+            ],
+            "rows_examined_per_scan": 18
+          },
+          {
+            "table_name": "w",
+            "access_type": "ALL",
+            "key": null,
+            "used_key_parts": null,
+            "rows_examined_per_scan": 16
+          },
+          {
+            "table_name": "n",
+            "access_type": "eq_ref",
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "condition_id",
+              "path_id",
+              "ordinal"
+            ],
+            "rows_examined_per_scan": 1
+          },
+          {
+            "table_name": "p",
+            "access_type": "eq_ref",
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "condition_id",
+              "path_id"
+            ],
+            "rows_examined_per_scan": 1
+          },
+          {
+            "table_name": "w",
+            "access_type": "ref",
+            "key": "<auto_key0>",
+            "used_key_parts": [
+              "path_id"
+            ],
+            "rows_examined_per_scan": 2
+          },
+          {
+            "table_name": "s",
+            "access_type": "eq_ref",
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "condition_id",
+              "step_id"
+            ],
+            "rows_examined_per_scan": 1
+          }
+        ],
+        "mysql_member_selected_paths_first": false,
+        "neo_adj_node_index_seek": true,
+        "neo_member_node_index_seek": true
+      },
+      "warmup_attempts": 2400,
+      "measured_attempts": 2400,
+      "mode": {
+        "mysql_adj": {
+          "attempts": 600,
+          "correct": 600,
+          "timed_timeouts": 0,
+          "warmup_timeouts": 0,
+          "p50_ms_correct": 3.138,
+          "p95_ms_correct": 3.76,
+          "rounds": {
+            "0": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 3.133,
+              "p95_ms_correct": 3.679
+            },
+            "1": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 3.109,
+              "p95_ms_correct": 3.63
+            },
+            "2": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 3.183,
+              "p95_ms_correct": 4.37
+            }
+          }
+        },
+        "neo_adj": {
+          "attempts": 600,
+          "correct": 600,
+          "timed_timeouts": 0,
+          "warmup_timeouts": 5,
+          "p50_ms_correct": 6.611,
+          "p95_ms_correct": 33.449,
+          "rounds": {
+            "0": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 6.822,
+              "p95_ms_correct": 48.94
+            },
+            "1": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 5.487,
+              "p95_ms_correct": 7.227
+            },
+            "2": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 8.815,
+              "p95_ms_correct": 30.749
+            }
+          }
+        },
+        "mysql_member": {
+          "attempts": 600,
+          "correct": 600,
+          "timed_timeouts": 0,
+          "warmup_timeouts": 0,
+          "p50_ms_correct": 66.471,
+          "p95_ms_correct": 73.84,
+          "rounds": {
+            "0": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 66.841,
+              "p95_ms_correct": 70.567
+            },
+            "1": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 66.59,
+              "p95_ms_correct": 70.997
+            },
+            "2": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 66.125,
+              "p95_ms_correct": 79.91
+            }
+          }
+        },
+        "neo_member": {
+          "attempts": 600,
+          "correct": 600,
+          "timed_timeouts": 0,
+          "warmup_timeouts": 1,
+          "p50_ms_correct": 5.59,
+          "p95_ms_correct": 14.367,
+          "rounds": {
+            "0": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 4.728,
+              "p95_ms_correct": 6.532
+            },
+            "1": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 7.744,
+              "p95_ms_correct": 32.926
+            },
+            "2": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 5.377,
+              "p95_ms_correct": 9.37
+            }
+          }
+        }
+      }
+    },
+    {
+      "cell": "n1000-s25-b4",
+      "input_sha256": "f6085d2246523f6aeece46867de4cc353715ede5f7bd4d18352e7f6b5ab09f43",
+      "expected_sha256": "4b8122ef2a060a972d940f7c01b58278185190dfb4f0f80dd0f58c51ee585222",
+      "raw_sha256": {
+        "raw-mysql-r0.csv": "54a1eb3812260298c9b178e2ed46b2c955a6d85c8c43010d55209f528f8e3f29",
+        "raw-mysql-r1.csv": "f582acae498c7a96a2b2e1ef21b9775a03d8c3b7673a2ab49ed1c3bf7c2cc132",
+        "raw-mysql-r2.csv": "70e186280ab4670da4e3e8d9887b2fd00cefdb7fc8955913c4ab10ac05a26bdf",
+        "raw-neo4j-r0.csv": "48852f54f6bc52ade289103a70b9d794bf990172b8aaa0e9cdc0a5c79554d567",
+        "raw-neo4j-r1.csv": "e1aa167fc4d5a4855795bc95333444502d6eec4d336185ff7bf0cb915b88a095",
+        "raw-neo4j-r2.csv": "92051a163cee2cf1aadd79749844b06acd8b7ca2a4397603779a93c337c7acf6"
+      },
+      "case_context_signature_sha256": "fad2f74baa63e6ce4d541175223c33ec172a53d3f2f771af2a89221654d53920",
+      "scenarios": {
+        "alternate": 160,
+        "none": 20,
+        "common_auth": 20
+      },
+      "target_depths": {
+        "5": 54,
+        "10": 53,
+        "20": 53
+      },
+      "input_stats": {
+        "actual_shared_percent": 24.834123222748815,
+        "cell": "n1000-s25-b4",
+        "compression_percent": 19.21011058451817,
+        "contexts": 60,
+        "depth_counts": {
+          "5": 334,
+          "10": 333,
+          "20": 333
+        },
+        "indegree_histogram": {
+          "0": 360,
+          "1": 9808,
+          "15": 26,
+          "16": 1,
+          "18": 33
+        },
+        "max_indegree": 18,
+        "max_outdegree": 4,
+        "max_physical_indegree": 18,
+        "max_physical_outdegree": 4,
+        "membership_occurrences": 12660,
+        "outdegree_histogram": {
+          "0": 60,
+          "1": 9888,
+          "2": 100,
+          "4": 180
+        },
+        "physical_indegree_histogram": {
+          "0": 360,
+          "1": 9436,
+          "2": 132,
+          "4": 240,
+          "15": 26,
+          "16": 1,
+          "18": 33
+        },
+        "physical_next_edges": 11660,
+        "physical_outdegree_histogram": {
+          "0": 60,
+          "1": 9516,
+          "2": 232,
+          "4": 420
+        },
+        "prefix_reused_occurrences": 2144,
+        "registered_paths": 1000,
+        "shared_membership_occurrences": 3144,
+        "unique_next_pairs": 10808,
+        "unique_steps": 10228
+      },
+      "wrong": {
+        "('neo_adj', 'ClientError')": 4
+      },
+      "failure_class": {
+        "('warmup', 'neo_adj', 'timeout')": 4
+      },
+      "plan_evidence": {
+        "mysql_member_tables_preorder": [
+          {
+            "table_name": "m",
+            "access_type": "ref",
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "condition_id"
+            ],
+            "rows_examined_per_scan": 6330
+          },
+          {
+            "table_name": "e",
+            "access_type": "ALL",
+            "key": null,
+            "used_key_parts": null,
+            "rows_examined_per_scan": 3
+          },
+          {
+            "table_name": "p",
+            "access_type": "ref",
+            "key": "br3_context",
+            "used_key_parts": [
+              "condition_id",
+              "domain",
+              "intent",
+              "auth"
+            ],
+            "rows_examined_per_scan": 18
+          },
+          {
+            "table_name": "<subquery3>",
+            "access_type": "eq_ref",
+            "key": "<auto_distinct_key>",
+            "used_key_parts": null,
+            "rows_examined_per_scan": 1
+          },
+          {
+            "table_name": "x",
+            "access_type": "ref",
+            "key": "br3_member_step",
+            "used_key_parts": [
+              "condition_id",
+              "step_id"
+            ],
+            "rows_examined_per_scan": 1
+          },
+          {
+            "table_name": "s",
+            "access_type": "eq_ref",
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "condition_id",
+              "step_id"
+            ],
+            "rows_examined_per_scan": 1
+          }
+        ],
+        "mysql_adj_tables_preorder": [
+          {
+            "table_name": "e",
+            "access_type": "ALL",
+            "key": null,
+            "used_key_parts": null,
+            "rows_examined_per_scan": 2
+          },
+          {
+            "table_name": "w",
+            "access_type": "ALL",
+            "key": null,
+            "used_key_parts": null,
+            "rows_examined_per_scan": 18
+          },
+          {
+            "table_name": "p",
+            "access_type": "ref",
+            "key": "br3_context",
+            "used_key_parts": [
+              "condition_id",
+              "domain",
+              "intent",
+              "auth"
+            ],
+            "rows_examined_per_scan": 18
+          },
+          {
+            "table_name": "w",
+            "access_type": "ALL",
+            "key": null,
+            "used_key_parts": null,
+            "rows_examined_per_scan": 16
+          },
+          {
+            "table_name": "n",
+            "access_type": "eq_ref",
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "condition_id",
+              "path_id",
+              "ordinal"
+            ],
+            "rows_examined_per_scan": 1
+          },
+          {
+            "table_name": "p",
+            "access_type": "eq_ref",
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "condition_id",
+              "path_id"
+            ],
+            "rows_examined_per_scan": 1
+          },
+          {
+            "table_name": "w",
+            "access_type": "ref",
+            "key": "<auto_key0>",
+            "used_key_parts": [
+              "path_id"
+            ],
+            "rows_examined_per_scan": 2
+          },
+          {
+            "table_name": "s",
+            "access_type": "eq_ref",
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "condition_id",
+              "step_id"
+            ],
+            "rows_examined_per_scan": 1
+          }
+        ],
+        "mysql_member_selected_paths_first": false,
+        "neo_adj_node_index_seek": true,
+        "neo_member_node_index_seek": true
+      },
+      "warmup_attempts": 2400,
+      "measured_attempts": 2400,
+      "mode": {
+        "mysql_adj": {
+          "attempts": 600,
+          "correct": 600,
+          "timed_timeouts": 0,
+          "warmup_timeouts": 0,
+          "p50_ms_correct": 3.417,
+          "p95_ms_correct": 4.961,
+          "rounds": {
+            "0": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 3.346,
+              "p95_ms_correct": 4.182
+            },
+            "1": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 3.429,
+              "p95_ms_correct": 5.019
+            },
+            "2": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 3.486,
+              "p95_ms_correct": 5.183
+            }
+          }
+        },
+        "neo_adj": {
+          "attempts": 600,
+          "correct": 600,
+          "timed_timeouts": 0,
+          "warmup_timeouts": 4,
+          "p50_ms_correct": 7.218,
+          "p95_ms_correct": 24.037,
+          "rounds": {
+            "0": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 7.159,
+              "p95_ms_correct": 34.715
+            },
+            "1": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 6.297,
+              "p95_ms_correct": 10.945
+            },
+            "2": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 7.726,
+              "p95_ms_correct": 29.447
+            }
+          }
+        },
+        "mysql_member": {
+          "attempts": 600,
+          "correct": 600,
+          "timed_timeouts": 0,
+          "warmup_timeouts": 0,
+          "p50_ms_correct": 62.303,
+          "p95_ms_correct": 67.824,
+          "rounds": {
+            "0": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 63.348,
+              "p95_ms_correct": 69.642
+            },
+            "1": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 60.493,
+              "p95_ms_correct": 65.842
+            },
+            "2": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 61.849,
+              "p95_ms_correct": 66.781
+            }
+          }
+        },
+        "neo_member": {
+          "attempts": 600,
+          "correct": 600,
+          "timed_timeouts": 0,
+          "warmup_timeouts": 0,
+          "p50_ms_correct": 5.825,
+          "p95_ms_correct": 13.253,
+          "rounds": {
+            "0": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 4.801,
+              "p95_ms_correct": 6.51
+            },
+            "1": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 7.996,
+              "p95_ms_correct": 41.308
+            },
+            "2": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 5.253,
+              "p95_ms_correct": 10.208
+            }
+          }
+        }
+      }
+    },
+    {
+      "cell": "n1000-s50-b1",
+      "input_sha256": "7c4743267057a0c9ea192d7354bcf356756b9884df824abd8b3b26ee4139ac7e",
+      "expected_sha256": "1d66364d9f9d610267db080626b9bd2aa3fa9cef18913c6048220f7c9b07882a",
+      "raw_sha256": {
+        "raw-mysql-r0.csv": "df408919e23e18cbdce8c251406584993d22f4116af75b09d1bed12035fb06c3",
+        "raw-mysql-r1.csv": "c2f91e6adc3e754e303a9c99e59d4618d22083ed2c2a2e78282f848df3ab90f6",
+        "raw-mysql-r2.csv": "8b57ae7a306328e5e7690aa21ad740a8a07f9f12758eb9aa251013060287c5cd",
+        "raw-neo4j-r0.csv": "1605cb17c1534725dcccf66346c78430f498a146a910f001bc88b68dd1183821",
+        "raw-neo4j-r1.csv": "019086448b055d4eb286161fb3294cc02f1063ce8bffef94eadde5cf400bb3a6",
+        "raw-neo4j-r2.csv": "02e6f6d867caf7b52f3fbe71816461732e0120e91373e9cadec7751b18c478f7"
+      },
+      "case_context_signature_sha256": "fad2f74baa63e6ce4d541175223c33ec172a53d3f2f771af2a89221654d53920",
+      "scenarios": {
+        "alternate": 160,
+        "none": 20,
+        "common_auth": 20
+      },
+      "target_depths": {
+        "5": 54,
+        "10": 53,
+        "20": 53
+      },
+      "input_stats": {
+        "actual_shared_percent": 50.0,
+        "cell": "n1000-s50-b1",
+        "compression_percent": 41.9431279620853,
+        "contexts": 60,
+        "depth_counts": {
+          "5": 334,
+          "10": 333,
+          "20": 333
+        },
+        "indegree_histogram": {
+          "0": 1000,
+          "1": 6110,
+          "3": 60,
+          "5": 80,
+          "6": 100
+        },
+        "max_indegree": 6,
+        "max_outdegree": 1,
+        "max_physical_indegree": 18,
+        "max_physical_outdegree": 6,
+        "membership_occurrences": 12660,
+        "outdegree_histogram": {
+          "0": 60,
+          "1": 7290
+        },
+        "physical_indegree_histogram": {
+          "0": 1000,
+          "1": 5330,
+          "5": 430,
+          "6": 530,
+          "15": 26,
+          "16": 1,
+          "18": 33
+        },
+        "physical_next_edges": 11660,
+        "physical_outdegree_histogram": {
+          "0": 60,
+          "1": 6330,
+          "5": 430,
+          "6": 530
+        },
+        "prefix_reused_occurrences": 0,
+        "registered_paths": 1000,
+        "shared_membership_occurrences": 6330,
+        "unique_next_pairs": 7290,
+        "unique_steps": 7350
+      },
+      "wrong": {
+        "('neo_adj', 'ClientError')": 5
+      },
+      "failure_class": {
+        "('warmup', 'neo_adj', 'timeout')": 5
+      },
+      "plan_evidence": {
+        "mysql_member_tables_preorder": [
+          {
+            "table_name": "m",
+            "access_type": "ref",
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "condition_id"
+            ],
+            "rows_examined_per_scan": 6330
+          },
+          {
+            "table_name": "e",
+            "access_type": "ALL",
+            "key": null,
+            "used_key_parts": null,
+            "rows_examined_per_scan": 3
+          },
+          {
+            "table_name": "p",
+            "access_type": "ref",
+            "key": "br3_context",
+            "used_key_parts": [
+              "condition_id",
+              "domain",
+              "intent",
+              "auth"
+            ],
+            "rows_examined_per_scan": 18
+          },
+          {
+            "table_name": "<subquery3>",
+            "access_type": "eq_ref",
+            "key": "<auto_distinct_key>",
+            "used_key_parts": null,
+            "rows_examined_per_scan": 1
+          },
+          {
+            "table_name": "x",
+            "access_type": "ref",
+            "key": "br3_member_step",
+            "used_key_parts": [
+              "condition_id",
+              "step_id"
+            ],
+            "rows_examined_per_scan": 1
+          },
+          {
+            "table_name": "s",
+            "access_type": "eq_ref",
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "condition_id",
+              "step_id"
+            ],
+            "rows_examined_per_scan": 1
+          }
+        ],
+        "mysql_adj_tables_preorder": [
+          {
+            "table_name": "e",
+            "access_type": "ALL",
+            "key": null,
+            "used_key_parts": null,
+            "rows_examined_per_scan": 2
+          },
+          {
+            "table_name": "w",
+            "access_type": "ALL",
+            "key": null,
+            "used_key_parts": null,
+            "rows_examined_per_scan": 18
+          },
+          {
+            "table_name": "p",
+            "access_type": "ref",
+            "key": "br3_context",
+            "used_key_parts": [
+              "condition_id",
+              "domain",
+              "intent",
+              "auth"
+            ],
+            "rows_examined_per_scan": 18
+          },
+          {
+            "table_name": "w",
+            "access_type": "ALL",
+            "key": null,
+            "used_key_parts": null,
+            "rows_examined_per_scan": 16
+          },
+          {
+            "table_name": "n",
+            "access_type": "eq_ref",
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "condition_id",
+              "path_id",
+              "ordinal"
+            ],
+            "rows_examined_per_scan": 1
+          },
+          {
+            "table_name": "p",
+            "access_type": "eq_ref",
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "condition_id",
+              "path_id"
+            ],
+            "rows_examined_per_scan": 1
+          },
+          {
+            "table_name": "w",
+            "access_type": "ref",
+            "key": "<auto_key0>",
+            "used_key_parts": [
+              "path_id"
+            ],
+            "rows_examined_per_scan": 2
+          },
+          {
+            "table_name": "s",
+            "access_type": "eq_ref",
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "condition_id",
+              "step_id"
+            ],
+            "rows_examined_per_scan": 1
+          }
+        ],
+        "mysql_member_selected_paths_first": false,
+        "neo_adj_node_index_seek": true,
+        "neo_member_node_index_seek": true
+      },
+      "warmup_attempts": 2400,
+      "measured_attempts": 2400,
+      "mode": {
+        "mysql_adj": {
+          "attempts": 600,
+          "correct": 600,
+          "timed_timeouts": 0,
+          "warmup_timeouts": 0,
+          "p50_ms_correct": 3.433,
+          "p95_ms_correct": 3.913,
+          "rounds": {
+            "0": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 3.429,
+              "p95_ms_correct": 3.848
+            },
+            "1": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 3.432,
+              "p95_ms_correct": 3.958
+            },
+            "2": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 3.433,
+              "p95_ms_correct": 3.847
+            }
+          }
+        },
+        "neo_adj": {
+          "attempts": 600,
+          "correct": 600,
+          "timed_timeouts": 0,
+          "warmup_timeouts": 5,
+          "p50_ms_correct": 6.699,
+          "p95_ms_correct": 30.397,
+          "rounds": {
+            "0": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 6.918,
+              "p95_ms_correct": 40.606
+            },
+            "1": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 6.147,
+              "p95_ms_correct": 10.293
+            },
+            "2": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 6.858,
+              "p95_ms_correct": 53.767
+            }
+          }
+        },
+        "mysql_member": {
+          "attempts": 600,
+          "correct": 600,
+          "timed_timeouts": 0,
+          "warmup_timeouts": 0,
+          "p50_ms_correct": 56.841,
+          "p95_ms_correct": 61.088,
+          "rounds": {
+            "0": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 57.471,
+              "p95_ms_correct": 62.233
+            },
+            "1": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 56.542,
+              "p95_ms_correct": 58.413
+            },
+            "2": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 56.627,
+              "p95_ms_correct": 60.465
+            }
+          }
+        },
+        "neo_member": {
+          "attempts": 600,
+          "correct": 600,
+          "timed_timeouts": 0,
+          "warmup_timeouts": 0,
+          "p50_ms_correct": 5.144,
+          "p95_ms_correct": 14.214,
+          "rounds": {
+            "0": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 4.606,
+              "p95_ms_correct": 6.24
+            },
+            "1": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 8.194,
+              "p95_ms_correct": 36.354
+            },
+            "2": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 4.649,
+              "p95_ms_correct": 6.427
+            }
+          }
+        }
+      }
+    },
+    {
+      "cell": "n1000-s50-b2",
+      "input_sha256": "58f4e50218ae865699a68935a74db039b7316b50e94919e07f27e424e6e002cc",
+      "expected_sha256": "368bcb4ed034893ef3fc1494dbbb77b711605bd679eed2e51fad1d84e5fc406e",
+      "raw_sha256": {
+        "raw-mysql-r0.csv": "057403ab0622090798eed3a40ac68a8443e5ba1d20488d021351495e7c66ac00",
+        "raw-mysql-r1.csv": "e98effe0a14e2e7b2dabf8c828c724399d8a76e76769010491229c69938afc01",
+        "raw-mysql-r2.csv": "733bca11a7c7f5c53fe05569ac7a501930c8d7d8a78ead5dd0c129473a926660",
+        "raw-neo4j-r0.csv": "13f160410f43ff48aba5d13d0d166166fccd3487e80b6ec13406730a6571a733",
+        "raw-neo4j-r1.csv": "be33fa872370d9fbae55ec6c3d4913501caa4d9322fb8eafcdff9514a7decff1",
+        "raw-neo4j-r2.csv": "5ca9e05ce025d13373e253205ad710c56a2871c42a10eafdaffeb152c6f39279"
+      },
+      "case_context_signature_sha256": "fad2f74baa63e6ce4d541175223c33ec172a53d3f2f771af2a89221654d53920",
+      "scenarios": {
+        "alternate": 160,
+        "none": 20,
+        "common_auth": 20
+      },
+      "target_depths": {
+        "5": 54,
+        "10": 53,
+        "20": 53
+      },
+      "input_stats": {
+        "actual_shared_percent": 46.60347551342812,
+        "cell": "n1000-s50-b2",
+        "compression_percent": 26.777251184834128,
+        "contexts": 60,
+        "depth_counts": {
+          "5": 334,
+          "10": 333,
+          "20": 333
+        },
+        "indegree_histogram": {
+          "0": 540,
+          "1": 8670,
+          "15": 26,
+          "16": 1,
+          "18": 33
+        },
+        "max_indegree": 18,
+        "max_outdegree": 2,
+        "max_physical_indegree": 18,
+        "max_physical_outdegree": 2,
+        "membership_occurrences": 12660,
+        "outdegree_histogram": {
+          "0": 60,
+          "1": 8750,
+          "2": 460
+        },
+        "physical_indegree_histogram": {
+          "0": 540,
+          "1": 6680,
+          "2": 1990,
+          "15": 26,
+          "16": 1,
+          "18": 33
+        },
+        "physical_next_edges": 11660,
+        "physical_outdegree_histogram": {
+          "0": 60,
+          "1": 6760,
+          "2": 2450
+        },
+        "prefix_reused_occurrences": 4900,
+        "registered_paths": 1000,
+        "shared_membership_occurrences": 5900,
+        "unique_next_pairs": 9670,
+        "unique_steps": 9270
+      },
+      "wrong": {
+        "('neo_adj', 'ClientError')": 5,
+        "('neo_member', 'ClientError')": 1
+      },
+      "failure_class": {
+        "('warmup', 'neo_adj', 'timeout')": 5,
+        "('warmup', 'neo_member', 'timeout')": 1
+      },
+      "plan_evidence": {
+        "mysql_member_tables_preorder": [
+          {
+            "table_name": "m",
+            "access_type": "ref",
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "condition_id"
+            ],
+            "rows_examined_per_scan": 6330
+          },
+          {
+            "table_name": "e",
+            "access_type": "ALL",
+            "key": null,
+            "used_key_parts": null,
+            "rows_examined_per_scan": 3
+          },
+          {
+            "table_name": "p",
+            "access_type": "ref",
+            "key": "br3_context",
+            "used_key_parts": [
+              "condition_id",
+              "domain",
+              "intent",
+              "auth"
+            ],
+            "rows_examined_per_scan": 18
+          },
+          {
+            "table_name": "<subquery3>",
+            "access_type": "eq_ref",
+            "key": "<auto_distinct_key>",
+            "used_key_parts": null,
+            "rows_examined_per_scan": 1
+          },
+          {
+            "table_name": "x",
+            "access_type": "ref",
+            "key": "br3_member_step",
+            "used_key_parts": [
+              "condition_id",
+              "step_id"
+            ],
+            "rows_examined_per_scan": 1
+          },
+          {
+            "table_name": "s",
+            "access_type": "eq_ref",
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "condition_id",
+              "step_id"
+            ],
+            "rows_examined_per_scan": 1
+          }
+        ],
+        "mysql_adj_tables_preorder": [
+          {
+            "table_name": "e",
+            "access_type": "ALL",
+            "key": null,
+            "used_key_parts": null,
+            "rows_examined_per_scan": 2
+          },
+          {
+            "table_name": "w",
+            "access_type": "ALL",
+            "key": null,
+            "used_key_parts": null,
+            "rows_examined_per_scan": 18
+          },
+          {
+            "table_name": "p",
+            "access_type": "ref",
+            "key": "br3_context",
+            "used_key_parts": [
+              "condition_id",
+              "domain",
+              "intent",
+              "auth"
+            ],
+            "rows_examined_per_scan": 18
+          },
+          {
+            "table_name": "w",
+            "access_type": "ALL",
+            "key": null,
+            "used_key_parts": null,
+            "rows_examined_per_scan": 16
+          },
+          {
+            "table_name": "n",
+            "access_type": "eq_ref",
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "condition_id",
+              "path_id",
+              "ordinal"
+            ],
+            "rows_examined_per_scan": 1
+          },
+          {
+            "table_name": "p",
+            "access_type": "eq_ref",
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "condition_id",
+              "path_id"
+            ],
+            "rows_examined_per_scan": 1
+          },
+          {
+            "table_name": "w",
+            "access_type": "ref",
+            "key": "<auto_key0>",
+            "used_key_parts": [
+              "path_id"
+            ],
+            "rows_examined_per_scan": 2
+          },
+          {
+            "table_name": "s",
+            "access_type": "eq_ref",
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "condition_id",
+              "step_id"
+            ],
+            "rows_examined_per_scan": 1
+          }
+        ],
+        "mysql_member_selected_paths_first": false,
+        "neo_adj_node_index_seek": true,
+        "neo_member_node_index_seek": true
+      },
+      "warmup_attempts": 2400,
+      "measured_attempts": 2400,
+      "mode": {
+        "mysql_adj": {
+          "attempts": 600,
+          "correct": 600,
+          "timed_timeouts": 0,
+          "warmup_timeouts": 0,
+          "p50_ms_correct": 3.178,
+          "p95_ms_correct": 5.077,
+          "rounds": {
+            "0": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 3.101,
+              "p95_ms_correct": 3.752
+            },
+            "1": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 3.349,
+              "p95_ms_correct": 5.773
+            },
+            "2": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 3.189,
+              "p95_ms_correct": 4.345
+            }
+          }
+        },
+        "neo_adj": {
+          "attempts": 600,
+          "correct": 600,
+          "timed_timeouts": 0,
+          "warmup_timeouts": 5,
+          "p50_ms_correct": 6.711,
+          "p95_ms_correct": 33.234,
+          "rounds": {
+            "0": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 8.041,
+              "p95_ms_correct": 27.383
+            },
+            "1": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 5.503,
+              "p95_ms_correct": 7.989
+            },
+            "2": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 7.065,
+              "p95_ms_correct": 58.018
+            }
+          }
+        },
+        "mysql_member": {
+          "attempts": 600,
+          "correct": 600,
+          "timed_timeouts": 0,
+          "warmup_timeouts": 0,
+          "p50_ms_correct": 64.581,
+          "p95_ms_correct": 75.772,
+          "rounds": {
+            "0": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 62.987,
+              "p95_ms_correct": 64.904
+            },
+            "1": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 65.822,
+              "p95_ms_correct": 72.453
+            },
+            "2": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 66.029,
+              "p95_ms_correct": 90.029
+            }
+          }
+        },
+        "neo_member": {
+          "attempts": 600,
+          "correct": 600,
+          "timed_timeouts": 0,
+          "warmup_timeouts": 1,
+          "p50_ms_correct": 5.555,
+          "p95_ms_correct": 22.407,
+          "rounds": {
+            "0": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 5.417,
+              "p95_ms_correct": 9.476
+            },
+            "1": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 7.503,
+              "p95_ms_correct": 45.803
+            },
+            "2": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 4.559,
+              "p95_ms_correct": 6.58
+            }
+          }
+        }
+      }
+    },
+    {
+      "cell": "n1000-s50-b4",
+      "input_sha256": "e4bc550e4624a7f5c4e3826a5a1a1f04f8d7e7881472f4709011d02f02d7cbf5",
+      "expected_sha256": "930251986284f7026281d8aaf6c053f5bb32fb7cdfe2fc42dcd9152b0230b72f",
+      "raw_sha256": {
+        "raw-mysql-r0.csv": "9dff16d32239f39893ad007553d7584401ab668f32f573522bb5fcf113bf81f5",
+        "raw-mysql-r1.csv": "3510be56108a33f5ffe0b047f1fbeb3f18e6f5f31c1c2f4cf3ebf1f59732cf5a",
+        "raw-mysql-r2.csv": "ebe253c54eae2b647aee896fdf575c0dd0d6043e9f2912cffb8db9829f4e2580",
+        "raw-neo4j-r0.csv": "7101dffcf6370b74899bae5b1a157a39662e5af2e1592fde9e1a88926e9791ed",
+        "raw-neo4j-r1.csv": "6f62a05b90f35169686742b7ecc25344a5f517601552ebaed26732983100c045",
+        "raw-neo4j-r2.csv": "56e061065c342bcea9b4b32e995fc3d20b50003949feb1c9a29c9841e6116512"
+      },
+      "case_context_signature_sha256": "fad2f74baa63e6ce4d541175223c33ec172a53d3f2f771af2a89221654d53920",
+      "scenarios": {
+        "alternate": 160,
+        "none": 20,
+        "common_auth": 20
+      },
+      "target_depths": {
+        "5": 54,
+        "10": 53,
+        "20": 53
+      },
+      "input_stats": {
+        "actual_shared_percent": 46.60347551342812,
+        "cell": "n1000-s50-b4",
+        "compression_percent": 34.36018957345972,
+        "contexts": 60,
+        "depth_counts": {
+          "5": 334,
+          "10": 333,
+          "20": 333
+        },
+        "indegree_histogram": {
+          "0": 360,
+          "1": 7890,
+          "15": 26,
+          "16": 1,
+          "18": 33
+        },
+        "max_indegree": 18,
+        "max_outdegree": 4,
+        "max_physical_indegree": 18,
+        "max_physical_outdegree": 4,
+        "membership_occurrences": 12660,
+        "outdegree_histogram": {
+          "0": 60,
+          "1": 7970,
+          "2": 100,
+          "4": 180
+        },
+        "physical_indegree_histogram": {
+          "0": 360,
+          "1": 6680,
+          "2": 430,
+          "4": 780,
+          "15": 26,
+          "16": 1,
+          "18": 33
+        },
+        "physical_next_edges": 11660,
+        "physical_outdegree_histogram": {
+          "0": 60,
+          "1": 6760,
+          "2": 530,
+          "4": 960
+        },
+        "prefix_reused_occurrences": 4900,
+        "registered_paths": 1000,
+        "shared_membership_occurrences": 5900,
+        "unique_next_pairs": 8890,
+        "unique_steps": 8310
+      },
+      "wrong": {
+        "('neo_adj', 'ClientError')": 5,
+        "('neo_member', 'ClientError')": 1
+      },
+      "failure_class": {
+        "('warmup', 'neo_adj', 'timeout')": 5,
+        "('warmup', 'neo_member', 'timeout')": 1
+      },
+      "plan_evidence": {
+        "mysql_member_tables_preorder": [
+          {
+            "table_name": "m",
+            "access_type": "ref",
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "condition_id"
+            ],
+            "rows_examined_per_scan": 6330
+          },
+          {
+            "table_name": "e",
+            "access_type": "ALL",
+            "key": null,
+            "used_key_parts": null,
+            "rows_examined_per_scan": 3
+          },
+          {
+            "table_name": "p",
+            "access_type": "ref",
+            "key": "br3_context",
+            "used_key_parts": [
+              "condition_id",
+              "domain",
+              "intent",
+              "auth"
+            ],
+            "rows_examined_per_scan": 18
+          },
+          {
+            "table_name": "<subquery3>",
+            "access_type": "eq_ref",
+            "key": "<auto_distinct_key>",
+            "used_key_parts": null,
+            "rows_examined_per_scan": 1
+          },
+          {
+            "table_name": "x",
+            "access_type": "ref",
+            "key": "br3_member_step",
+            "used_key_parts": [
+              "condition_id",
+              "step_id"
+            ],
+            "rows_examined_per_scan": 1
+          },
+          {
+            "table_name": "s",
+            "access_type": "eq_ref",
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "condition_id",
+              "step_id"
+            ],
+            "rows_examined_per_scan": 1
+          }
+        ],
+        "mysql_adj_tables_preorder": [
+          {
+            "table_name": "e",
+            "access_type": "ALL",
+            "key": null,
+            "used_key_parts": null,
+            "rows_examined_per_scan": 2
+          },
+          {
+            "table_name": "w",
+            "access_type": "ALL",
+            "key": null,
+            "used_key_parts": null,
+            "rows_examined_per_scan": 18
+          },
+          {
+            "table_name": "p",
+            "access_type": "ref",
+            "key": "br3_context",
+            "used_key_parts": [
+              "condition_id",
+              "domain",
+              "intent",
+              "auth"
+            ],
+            "rows_examined_per_scan": 18
+          },
+          {
+            "table_name": "w",
+            "access_type": "ALL",
+            "key": null,
+            "used_key_parts": null,
+            "rows_examined_per_scan": 16
+          },
+          {
+            "table_name": "n",
+            "access_type": "eq_ref",
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "condition_id",
+              "path_id",
+              "ordinal"
+            ],
+            "rows_examined_per_scan": 1
+          },
+          {
+            "table_name": "p",
+            "access_type": "eq_ref",
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "condition_id",
+              "path_id"
+            ],
+            "rows_examined_per_scan": 1
+          },
+          {
+            "table_name": "w",
+            "access_type": "ref",
+            "key": "<auto_key0>",
+            "used_key_parts": [
+              "path_id"
+            ],
+            "rows_examined_per_scan": 2
+          },
+          {
+            "table_name": "s",
+            "access_type": "eq_ref",
+            "key": "PRIMARY",
+            "used_key_parts": [
+              "condition_id",
+              "step_id"
+            ],
+            "rows_examined_per_scan": 1
+          }
+        ],
+        "mysql_member_selected_paths_first": false,
+        "neo_adj_node_index_seek": true,
+        "neo_member_node_index_seek": true
+      },
+      "warmup_attempts": 2400,
+      "measured_attempts": 2400,
+      "mode": {
+        "mysql_adj": {
+          "attempts": 600,
+          "correct": 600,
+          "timed_timeouts": 0,
+          "warmup_timeouts": 0,
+          "p50_ms_correct": 3.457,
+          "p95_ms_correct": 4.094,
+          "rounds": {
+            "0": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 3.525,
+              "p95_ms_correct": 4.14
+            },
+            "1": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 3.428,
+              "p95_ms_correct": 4.137
+            },
+            "2": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 3.446,
+              "p95_ms_correct": 4.05
+            }
+          }
+        },
+        "neo_adj": {
+          "attempts": 600,
+          "correct": 600,
+          "timed_timeouts": 0,
+          "warmup_timeouts": 5,
+          "p50_ms_correct": 6.799,
+          "p95_ms_correct": 26.98,
+          "rounds": {
+            "0": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 8.611,
+              "p95_ms_correct": 31.497
+            },
+            "1": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 5.551,
+              "p95_ms_correct": 7.776
+            },
+            "2": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 7.169,
+              "p95_ms_correct": 27.707
+            }
+          }
+        },
+        "mysql_member": {
+          "attempts": 600,
+          "correct": 600,
+          "timed_timeouts": 0,
+          "warmup_timeouts": 0,
+          "p50_ms_correct": 57.514,
+          "p95_ms_correct": 61.515,
+          "rounds": {
+            "0": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 58.741,
+              "p95_ms_correct": 62.261
+            },
+            "1": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 56.778,
+              "p95_ms_correct": 59.378
+            },
+            "2": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 57.092,
+              "p95_ms_correct": 59.957
+            }
+          }
+        },
+        "neo_member": {
+          "attempts": 600,
+          "correct": 600,
+          "timed_timeouts": 0,
+          "warmup_timeouts": 1,
+          "p50_ms_correct": 5.863,
+          "p95_ms_correct": 15.119,
+          "rounds": {
+            "0": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 6.731,
+              "p95_ms_correct": 11.935
+            },
+            "1": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 6.36,
+              "p95_ms_correct": 38.788
+            },
+            "2": {
+              "attempts": 200,
+              "correct": 200,
+              "p50_ms_correct": 5.063,
+              "p95_ms_correct": 7.192
+            }
+          }
+        }
+      }
+    }
+  ],
+  "paired_context_order_equal": {
+    "1000-main": true
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "date_utc": "2026-09-29",
+  "pdfs": {
+    "summary": {
+      "path": "summary/report.pdf",
+      "sha256": "01be187b1df69fa7d5aecbf650039e2e353e7e3bfe4597542ddb9daf7d333179",
+      "bytes": 99589,
+      "pages": 1,
+      "paper": "594.96 x 841.92 pts (A4)",
+      "extracted_characters": 2361,
+      "korean": true,
+      "tmpfs_scope_present": true
+    },
+    "search": {
+      "path": "search/reports/official_all_final_v4/ONE_PAGE_LATEST.pdf",
+      "sha256": "422d4ee48f9557e7aeae8db66d504dbd0f8dafc83276c7844f0cafd29a5f6574",
+      "bytes": 240771,
+      "pages": 1,
+      "paper": "594.96 x 841.92 pts (A4)",
+      "extracted_characters": 1269,
+      "korean": true,
+      "tmpfs_scope_present": true
+    },
+    "operations": {
+      "path": "operations/report.pdf",
+      "sha256": "791205dfd285701f37c55e5bfea4245db562ebf34952b22953119d8e99ccd287",
+      "bytes": 279700,
+      "pages": 1,
+      "paper": "594.96 x 841.92 pts (A4)",
+      "extracted_characters": 2215,
+      "korean": true,
+      "tmpfs_scope_present": true
+    },
+    "branching_revised": {
+      "path": "branching-revised/report.pdf",
+      "sha256": "181cf8f4bdb61afebc4920d2948fd40b74e6af8dad0e04735c9f10736174e201",
+      "bytes": 265768,
+      "pages": 1,
+      "paper": "841.92 x 594.96 pts (A4)",
+      "extracted_characters": 2731,
+      "korean": true,
+      "tmpfs_scope_present": true,
+      "distinct_cell_ids": 20
+    }
+  },
+  "relative_links_checked": 48,
+  "relative_links_missing": 0,
+  "branching_detailed_sources_sha_verified": true,
+  "branching_official_timed_correct": 48000,
+  "branching_official_timed_timeout": 0,
+  "branching_warmup_neo_timeout": 111,
+  "independent_check_present": true,
+  "cleanup_evidence_present": true,
+  "historic_search_pdf_preserved": true,
+  "full_branch_pdf_preserved": true,
+  "summary_md_sha256": "db8b238e8bd8a19e45bbb647347471d127fe14a20325a13804c0f30123523142",
+  "summary_html_sha256": "495fd9491b2e55205404780f8a40185d7837da87ec07307aa9170c6159a844de",
+  "search_results_md_sha256": "09cbc59123591664ce9eec46f7bac964d082d0f43156ade6d58386628a5f5ab1",
+  "operations_md_sha256": "af1d3e083098e871f41201ea56382f45943bffe7f2b9ee88c91c9140ca3125e7",
+  "branching_one_page_html_sha256": "38490528c1048d3836998390706d8ee56a655917774287fdee1eea4cd2757cbd"
+}

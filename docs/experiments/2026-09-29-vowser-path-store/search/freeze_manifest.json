@@ -1,0 +1,28 @@
+{
+  "files_sha256": {
+    "search/PROTOCOL.md": "986cb32d8e696fcc4c21dce47f0c5f8cba130a4a27c26193efd0bd2ed1edd424",
+    "search/assets/manifest.json": "63585dffc957995541d11838e91fdfb2c0b5791ceebc7fae87cc0ba5f23f3955",
+    "search/assets/oracle_manifest.json": "2bd8e4bbc84f3e858e2099392ae53f2356376b66d2e223fcbb6e8157509c24c4",
+    "search/build_inputs.py": "b62a536c716e94b0005a8d115c5f83f808f9d0e86eac62898fcfb25f171aef89",
+    "search/build_oracle.py": "900ecce3d18ffa0fef821f44d25684f93fc745667dc5bf1bb613af14e36fddf7",
+    "search/freeze.py": "769a5758cb7f1e5da8f95c34bcfc819191bf34aca1eb36a119216d0570a125ee",
+    "search/load_data.py": "80ebc66c21705f86a58c08c1c82166979389d4c6719eaf8fe611f82b84e55c8b",
+    "search/preflight_memory.py": "343f3f399b0397f8e5339c4ed6da560b81db07a06b4ff5b7589894e8d49b099e",
+    "search/report.py": "01fec7f7160bbdc591f424d3c6cc44f9d91d4747e8cd0a0f92812569b2fec100",
+    "search/run_config.py": "aca413873fb518fca2b38519693cd621d9cd080af2fb79f4469ea068f25de49b",
+    "search/run_measure.py": "560ed1264724bd7305000a22a8641b08391c44d59f44bcc19e5f82dfba290181",
+    "search/search_adapters.py": "477c6de7bc863a3e1dd3c4a472de7e5af3944ba4c0c331fc0f2305cee5bc0b3e",
+    "search/smoke.py": "58b3785e12f81fcd8c52f3c8112732bdd178151c0a4c903918e1248c6a3ec604",
+    "shared/CONTRACT.md": "eade8f5e08eaac3dd1a86519ed6c718eb5b0741e19adf6ea83eb3e3383d2953f",
+    "shared/Dockerfile.client": "1d5f19ec89f1a780ea33efff84a892d27f2f49792ddbadd450e12b5b8c3b9280",
+    "shared/connect.py": "b1b7793b911cc356d078b2e89487faec87f4a44dee77269864ea5e63f0a0c135",
+    "shared/data.py": "b65551b2a388dfbe80e811dddfd385e6f5245ebc5d2204f7171270c498e4855e",
+    "shared/db-control.sh": "0b296879c25949eafb7e418731c8a2547eb3bb0652f6f82ff0e351130cde17e6",
+    "shared/environment.json": "ce98f0da4a954b4c83a7f27c1710b7a40ae45ca2d3d1289c3b8b6547c79b9d1d",
+    "shared/run-client.sh": "25753ba85655c9af07206cf75f4c8933048b4a24384b3ebd7bec41cf0ea5ecc8"
+  },
+  "frozen_input_files": 6,
+  "frozen_oracle_files": 6,
+  "official_measurement_started": false,
+  "scope": "2026-09-29 experiment 1 search-only synthetic-vector measurement"
+}

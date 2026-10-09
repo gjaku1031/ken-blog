@@ -1,0 +1,19 @@
+# Vowser 저장·탐색 경로 재평가
+
+**2026-09-29 사후 재현 실험 · 세 실험 완료**
+
+[통합 한 장 PDF](report.pdf) · [검색 한 장 PDF](../search/reports/official_all_final_v4/ONE_PAGE_LATEST.pdf) · [운영 한 장 PDF](../operations/report.pdf) · [분기 한 장 PDF](../branching-revised/report.pdf)
+
+현재 제품의 의도 검색·전체 경로 반환과 등록·가중치 운영을 각각 평가하고, 공유 STEP·분기 탐색은 **미구현 확장 프로토타입**으로 별도 평가한다. 같은 생성 경로·정답을 사용하지만 각 실험의 저장 투영과 요청 종류가 달라 지연값을 서로 합치지 않는다.
+
+| 실험 | 제품 범위와 비교 조건 | 관측 결과 |
+|---|---|---|
+| **1. 의도 검색 → 전체 경로** | 현행 그래프 조회의 어댑터 재현. 고정 합성 1536차원 벡터, 1천·1만·3만 경로, 균등·편중 도메인. Neo4j 원본형/개선형과 MySQL+FAISS 비교. | 공식 **33,600요청, 오류 0**. 완료된 1천·1만 4개 셀의 무힌트 Top3 p50: MySQL+FAISS **2.04–2.15ms**, Neo4j 개선형 **10.52–12.01ms**, 원본형 **28.58–29.91ms**. 3만 경로 Neo4j는 두 분포 모두 **적재 중 OOM·검색 0건**. [상세 결과](../search/reports/official_all_final_v4/RESULTS.md). |
+| **2. 등록·가중치·운영 조회** | 현행 연산의 DB 직접 투영. 1천·1만·3만 경로, 깊이 5/10/20, 읽기:쓰기 90:10·50:50. 인덱싱한 MySQL과 Neo4j의 동일 trace·최종 weight oracle 비교. | 공식 **9,600요청 정합 통과·오류/timeout 0**. 현재 투영의 **32/32** 짝지은 연산군에서 MySQL p50·p95가 낮음. 균등 3만·90:10의 p50(ms) 예: 인기 조회 **0.731 / 5.029**, 신규 등록 **7.144 / 26.497**(MySQL / Neo4j). [상세 결과](../operations/report.md). |
+| **3. 공유 STEP·분기/대체 경로** | **현행 제품에 없는 프로토타입.** 1천·1만 경로, 공유 목표 0/25/50%·분기 상한 1/2/4. MySQL 인접/조인순서 보정 membership·Neo4j 인접/membership 네 군의 완전 경로 Top3 비교. | **기본 16셀 38,400/38,400 본측정 정답·timeout 0**. 같은 패턴 p50/p95 우세 셀은 MySQL 인접 **15/16·16/16**, membership **14/16·15/16**이고 나머지는 Neo4j 우세. 각 DB의 최속 유효군을 *사후 선택*한 p50·p95는 MySQL **16/16** 우세. 별도 50/100연결 한계 4셀도 **9,600/9,600 정답·timeout 0**; 합계 48,000건이다. 한계군 p50·p95에서 MySQL은 같은 패턴과 각 DB 최속 유효군 비교 모두 **4/4셀** 우세했다. 비측정 warmup의 Neo timeout **111건**은 본측정과 분리한다. [교정 코호트 결과](../branching-revised/report.md) · [독립 감사](../operations/branching-revised-audit.json) · [설계변경 기록](branch-method-change.md). |
+
+**현재 해석:** 실험 1의 완료된 동일 조건에서는 Neo4j 검색 지연 우위를 확인하지 못했다. 일부 셀의 최종 경로 순서 정합이 달라 지연만으로 동등 품질의 일반적 우위를 주장하지 않는다. 실험 2의 현행 운영 투영에서도 MySQL p50·p95가 32개 짝지은 연산군 모두 낮았다. 분기 프로토타입에서는 같은 패턴의 일부 셀에 Neo4j 우세가 있으나, 기본 16셀의 사후 최속군 비교와 구분해야 한다. 별도 한계 4셀에서도 MySQL이 두 패턴의 p50·p95에서 모두 우세했다. 최초 분기 코호트는 MySQL membership의 불리한 실제 조인 순서와 중단 시도를 그대로 보존했다. 수정 코호트는 결과를 본 뒤 SQL 조인 순서만 보정한 별도 사후 실험이며 최초 동결 결과에 합치지 않는다.
+
+**측정 경계:** 각 비교군에서 DB 컨테이너 **1 CPU/3 GiB**, Python worker 컨테이너 **1 CPU/1 GiB**, 한 DB씩 단독 기동. 이는 컨테이너별 설정 상한이며 공유 호스트·tmpfs까지 포함한 전체 물리 RAM 상한이 아니다. 기존 ken-blog API/web·devspace 등 다른 컨테이너가 유지되는 공유 VM이며 별도 서비스 재기동도 관찰되어 호스트 유휴를 보장하지 않는다. 전용 DB의 `/tmp/vowser-eval-v2` 저장 경로는 이 VM의 **tmpfs**이며 SSD 운영 저장소를 대표하지 않는다([저장매체 증거](../operations/results/storage-medium.json)). 합성 데이터·단일 클라이언트·드라이버와 localhost 통신 및 결과 구성 포함 지연이며 순수 DB 엔진 시간 또는 한국어/LLM/STT/전체 요청 성능이 아니다. 적재·인덱스 구축·warmup·reset은 요청 지연 밖에 기록. 검색은 조회하지 않는 ROOT/STEP 임베딩을 양 DB에서 생략한 투영이고, 3만 경로 Neo4j OOM은 이 고정 환경의 적재 실패이지 일반 용량 한계가 아니다. tmpfs가 OOM에 미친 정도는 당시 cgroup 세부 계측이 없어 알 수 없다.
+
+**원자료:** [공통 자원·데이터 계약](../shared/CONTRACT.md) · [검색 원시 집계](../search/reports/official_all_final_v4/summary.json) · [검색 JSONL](../search/runs/) · [운영 독립 감사](operations-audit-final.md) · [운영 시각화 구성별 지연](../operations/results/visualize-composition.json) · [분기 설계변경·원본 보존](branch-method-change.md). [분기 교정 코호트 원시 집계](../branching-revised/results/analysis.json) · [최종 독립 검산](../independent-check.json) · [전용 환경 정리 기록](../cleanup.json).

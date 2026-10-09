@@ -1,0 +1,142 @@
+{
+  "shared_data_sha256": "b65551b2a388dfbe80e811dddfd385e6f5245ebc5d2204f7171270c498e4855e",
+  "trace_generator_sha256": "9fc7b67bdbb444c60753216c0120a59c172cdab9065e549b1c00ee9852a1f8c8",
+  "traces": [
+    {
+      "condition": "skew-10000-50_50",
+      "trace": "traces/skew-10000-50_50.jsonl",
+      "trace_sha256": "9575de31bf42db476f200504179a399c9642fa6a2f4ef18ce5be746996539b84",
+      "oracle": "traces/skew-10000-50_50-oracle.json",
+      "oracle_sha256": "4362c7ff288cc8222f2c934f134ef6d0a5be35d0e745ca82c6b7c0065f09ee64",
+      "ops": 200,
+      "counts": {
+        "popular": 50,
+        "visualize": 50,
+        "register": 10,
+        "update": 90
+      },
+      "visualize_valid_rows": 345,
+      "visualize_null_rows": 155,
+      "read_hot_domain_count": 50
+    },
+    {
+      "condition": "skew-10000-90_10",
+      "trace": "traces/skew-10000-90_10.jsonl",
+      "trace_sha256": "482f3402e99de7cc9283e0950a6c4e0396646ad15056ce450941b8680b42e1f7",
+      "oracle": "traces/skew-10000-90_10-oracle.json",
+      "oracle_sha256": "35c0cc456709692c1ea022fb2a5f944aafc6ba7bc2a0713f6482463caf75ce0c",
+      "ops": 200,
+      "counts": {
+        "popular": 90,
+        "visualize": 90,
+        "register": 10,
+        "update": 10
+      },
+      "visualize_valid_rows": 590,
+      "visualize_null_rows": 310,
+      "read_hot_domain_count": 90
+    },
+    {
+      "condition": "uniform-1000-50_50",
+      "trace": "traces/uniform-1000-50_50.jsonl",
+      "trace_sha256": "9275a0343bfc3ea86346e00bbe7cc1e7c836f3f17553d3c25913a19069332327",
+      "oracle": "traces/uniform-1000-50_50-oracle.json",
+      "oracle_sha256": "524d57e6613df9b5ac24c2bfbd94590d42bd5a75ed40fdf8a85adb16f2ec7dd5",
+      "ops": 200,
+      "counts": {
+        "popular": 50,
+        "visualize": 50,
+        "register": 10,
+        "update": 90
+      },
+      "visualize_valid_rows": 348,
+      "visualize_null_rows": 152,
+      "read_hot_domain_count": 4
+    },
+    {
+      "condition": "uniform-1000-90_10",
+      "trace": "traces/uniform-1000-90_10.jsonl",
+      "trace_sha256": "38d908ee208c7fb8905b0550e264c10345ce7804c2e9a2d6690544cec6e11104",
+      "oracle": "traces/uniform-1000-90_10-oracle.json",
+      "oracle_sha256": "3ff97efe4300768ced3a6809c7054d58811d3046f175b79aee0401486b75032d",
+      "ops": 200,
+      "counts": {
+        "popular": 90,
+        "visualize": 90,
+        "register": 10,
+        "update": 10
+      },
+      "visualize_valid_rows": 632,
+      "visualize_null_rows": 268,
+      "read_hot_domain_count": 6
+    },
+    {
+      "condition": "uniform-10000-50_50",
+      "trace": "traces/uniform-10000-50_50.jsonl",
+      "trace_sha256": "2e437d923cbf3684b9127a048b51a0e965c452a5026e4d5285313de4d5bc855f",
+      "oracle": "traces/uniform-10000-50_50-oracle.json",
+      "oracle_sha256": "cfaed4e5a6906228db0d330f4f27c25e993bd2870e9a42c7eb28207f630854a6",
+      "ops": 200,
+      "counts": {
+        "popular": 50,
+        "visualize": 50,
+        "register": 10,
+        "update": 90
+      },
+      "visualize_valid_rows": 346,
+      "visualize_null_rows": 154,
+      "read_hot_domain_count": 4
+    },
+    {
+      "condition": "uniform-10000-90_10",
+      "trace": "traces/uniform-10000-90_10.jsonl",
+      "trace_sha256": "7af3da3237ab674ccd11c0a21822bcbec6d44371aa7cbe9628229364e6ceab96",
+      "oracle": "traces/uniform-10000-90_10-oracle.json",
+      "oracle_sha256": "2af18eb5e916defa86e9699f483bdf12da7d5cb241770314a2dd260db693c97e",
+      "ops": 200,
+      "counts": {
+        "popular": 90,
+        "visualize": 90,
+        "register": 10,
+        "update": 10
+      },
+      "visualize_valid_rows": 629,
+      "visualize_null_rows": 271,
+      "read_hot_domain_count": 6
+    },
+    {
+      "condition": "uniform-30000-50_50",
+      "trace": "traces/uniform-30000-50_50.jsonl",
+      "trace_sha256": "8514089e1f0516f88ec641bccd0e64be63670cecdcf8c7a302d94207d7f66e1e",
+      "oracle": "traces/uniform-30000-50_50-oracle.json",
+      "oracle_sha256": "c7c71ddce7fabb9621524c7e147f28c0a0943db27cb5d990f01a2104fc82d030",
+      "ops": 200,
+      "counts": {
+        "popular": 50,
+        "visualize": 50,
+        "register": 10,
+        "update": 90
+      },
+      "visualize_valid_rows": 348,
+      "visualize_null_rows": 152,
+      "read_hot_domain_count": 4
+    },
+    {
+      "condition": "uniform-30000-90_10",
+      "trace": "traces/uniform-30000-90_10.jsonl",
+      "trace_sha256": "e2eb49e4f0091aa084388c3a76b0622ac29d8dcd66fd83c7a956b36d5daa0518",
+      "oracle": "traces/uniform-30000-90_10-oracle.json",
+      "oracle_sha256": "b203f4ce88c2bc216a1892898865a1bca9e2234a56c32f43b32a8ae6369cd587",
+      "ops": 200,
+      "counts": {
+        "popular": 90,
+        "visualize": 90,
+        "register": 10,
+        "update": 10
+      },
+      "visualize_valid_rows": 626,
+      "visualize_null_rows": 274,
+      "read_hot_domain_count": 6
+    }
+  ]
+}

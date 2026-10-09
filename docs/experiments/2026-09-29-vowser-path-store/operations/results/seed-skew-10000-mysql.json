@@ -1,0 +1,67 @@
+{
+  "backend": "mysql",
+  "scale_final": 10000,
+  "scale_initial": 9990,
+  "distribution": "skew",
+  "setup_seconds": 19.64108065108303,
+  "full_validation": {
+    "root": {
+      "rows": 30,
+      "sha256": "1a5b18ebd316d64ce4838bb6a69b22b91f82c45da54322d3d1fc02791461c994"
+    },
+    "has": {
+      "rows": 9990,
+      "sha256": "008a77ce66f5c65f4ac6c4f6fa2bf6e2b25543f0fe998427d5bf5bc6f44d1bac"
+    },
+    "step": {
+      "rows": 126540,
+      "sha256": "459614858e634e88a62492ff00e43ba3da81aada23a986d6fab8e696449ae110"
+    },
+    "edge": {
+      "rows": 116550,
+      "sha256": "2fe7b899577c12be53af28c1135b502275008df2fb125fd2b016a8fa1f1308e9"
+    }
+  },
+  "light_validation": {
+    "counts": {
+      "roots": 30,
+      "paths": 9990,
+      "steps": 126540,
+      "edges": 116550
+    },
+    "weight_sha256": "a1d77be0e29c7384205e5a96b8e6608209a923d4b998bf9ee1b7f3cc5125f830",
+    "root_visits": {
+      "d00.example.test": 4994,
+      "d01.example.test": 173,
+      "d02.example.test": 173,
+      "d03.example.test": 173,
+      "d04.example.test": 173,
+      "d05.example.test": 173,
+      "d06.example.test": 173,
+      "d07.example.test": 173,
+      "d08.example.test": 173,
+      "d09.example.test": 173,
+      "d10.example.test": 173,
+      "d11.example.test": 173,
+      "d12.example.test": 173,
+      "d13.example.test": 170,
+      "d14.example.test": 170,
+      "d15.example.test": 170,
+      "d16.example.test": 170,
+      "d17.example.test": 170,
+      "d18.example.test": 170,
+      "d19.example.test": 170,
+      "d20.example.test": 170,
+      "d21.example.test": 170,
+      "d22.example.test": 170,
+      "d23.example.test": 170,
+      "d24.example.test": 170,
+      "d25.example.test": 170,
+      "d26.example.test": 170,
+      "d27.example.test": 170,
+      "d28.example.test": 170,
+      "d29.example.test": 170
+    },
+    "touched": {}
+  }
+}

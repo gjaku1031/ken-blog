@@ -1,0 +1,13 @@
+{
+  "condition": "30000_skew",
+  "cpu_nano": 1000000000,
+  "exit_code": 137,
+  "loader_log_sha256": "de5c9a4a8f5c69dce8cdf55b1322dc16ed05837af3e9dbe44b6deeadc630091c",
+  "memory_limit_bytes": 3221225472,
+  "oom_killed": true,
+  "partial_fixture_complete": false,
+  "schedule_sha256": "577fac0398941e156497113e2d340256cc2bb4ce73c03a2a8dd08d3c052885b4",
+  "search_attempt_count": 0,
+  "stage": "Neo4j loader NEO_CREATE_HEADS during session.execute_write batch; before vector-index build and before search attempts",
+  "status": "exited"
+}

@@ -1,0 +1,10 @@
+{
+  "interpretation": "Not per-condition logical storage efficiency; Neo is incomplete 30k fixture and transaction logs include prior resets.",
+  "measurement": "physical du -sb after all six cells; reused bind volumes including former 1k/10k loads and 30k Neo OOM partials",
+  "mysql_entire_datadir_bytes": 1553600778,
+  "mysql_eval_schema_dir_bytes": 398590052,
+  "neo_database_store_bytes": 660054016,
+  "neo_entire_datadir_bytes": 3092149207,
+  "neo_transaction_logs_bytes": 2161431344,
+  "utc": "2026-09-29T06:14:27.916477+00:00"
+}
