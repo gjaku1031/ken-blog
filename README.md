@@ -19,7 +19,7 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/readme/reader-dark.png">
-  <img src="docs/images/readme/reader-light.png" alt="설계 문서 화면을 데스크톱 브라우저와 휴대폰에서 연 모습. 데스크톱은 본문 옆에 목차와 프로젝트 문서 목록을 두고 전체 ERD 도식을 표시하고, 휴대폰은 같은 문서를 한 열로 보여 줌" width="100%">
+  <img src="docs/images/readme/reader-light.png" alt="설계 문서 화면. 본문 옆에 목차와 프로젝트 문서 목록이 있고, 전체 ERD 도식을 본문에 표시함" width="100%">
 </picture>
 
 설계 문서 화면. 프로젝트 문서를 정한 순서로 읽고, 도식은 확대 보기로 세부를 확인함.

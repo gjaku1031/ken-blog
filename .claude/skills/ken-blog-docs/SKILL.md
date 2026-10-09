@@ -94,7 +94,7 @@ ken-blog 문서는 대학원 진학용 포트폴리오이자, 이후 다른 프�
 
 - 링크 아이콘은 렌더러와 CSS가 주소 형태로 붙이므로 원고에 아이콘·이모지를 직접 쓰지 않는다. 블로그 안의 글은 `[[글 제목]]`이나 `/ken-blog/…` 상대 주소로만 쓴다. `https://gjaku1031.github.io/…` 절대 주소로 쓰면 외부 링크로 표시된다. 이미지로 감싼 링크에는 아이콘이 붙지 않는다.
 - 표 셀 안 줄바꿈은 렌더링되지 않는다. 여러 줄이 필요하면 표 아래 목록으로 뺀다. 표 셀의 `|`는 `\|`로 이스케이프한다.
-- 본문 스크린샷은 캡처를 그대로 넣지 않고 기기 목업(브라우저·앱 창, 반응형 화면이면 휴대폰을 겹침)으로 만들어 넣는다(D-065). 페이지와 반대 테마를 쓴다(기본 이미지는 어두운 캡처·어두운 배경, `dark=`에 밝은 캡처·밝은 배경). 모의 데이터가 보이면 캡션에 밝힌다. 저장소 README의 이미지는 GitHub와 같은 테마를 쓴다(document-types.md '저장소 README').
+- 본문 스크린샷은 캡처를 그대로 넣지 않고 기기 목업(브라우저·앱 창. 휴대폰은 모바일이 주 사용 환경인 화면에만 겹침, 블로그 화면에는 넣지 않음)으로 만들어 넣는다(D-065). 페이지와 반대 테마를 쓴다(기본 이미지는 어두운 캡처·어두운 배경, `dark=`에 밝은 캡처·밝은 배경). 모의 데이터가 보이면 캡션에 밝힌다. 저장소 README의 이미지는 GitHub와 같은 테마를 쓴다(document-types.md '저장소 README').
 
 ## 도식
 
@@ -149,7 +149,7 @@ ken-blog 문서는 대학원 진학용 포트폴리오이자, 이후 다른 프�
 1. **캡처**: 비밀번호·토큰·개인 정보가 화면에 없는지 Read로 직접 본다.
    - 공개 화면: `node .claude/skills/ken-blog-docs/scripts/capture-screen.cjs <URL> <scratchpad>/<이름> [CSS 선택자] [폭] [높이]` → `<이름>-light.png`, `<이름>-dark.png`(2배 해상도). 선택자를 비우려면 `""`. 도식만 찍을 때는 `"figure.mermaid-figure img"`(원문 보기 버튼·캡션 제외)
    - 관리 화면: `node .claude/skills/ken-blog-docs/scripts/capture-admin.cjs <scratchpad>/<이름> "<편집할 글 제목>"`. 배포된 관리 화면을 열고 API 응답만 공개 스냅샷으로 채워 글 정보 편집 창을 찍음. 로그인이 필요 없고 실제 글 목록이 보이므로 모의 데이터 표기가 필요 없음
-   - 목업: `node .claude/skills/ken-blog-docs/scripts/device-mockup.cjs <출력.png> --desktop <캡처> [--title <주소나 창 제목>] [--window browser|app] [--phone <세로 캡처> --phone-offset <0~1>] [--backdrop dark|light]`. 휴대폰 화면은 `capture-screen.cjs <URL> <이름> "" 390 1800`처럼 세로로 길게 찍고 `--phone-offset`으로 보여 줄 부분을 고른다. 데스크톱 앱은 `--window app`, 브라우저 캡처에 이미 주소창이 있으면 잘라 내고 넣는다. 결과를 Read로 열어 잘린 곳이 없는지 본다
+   - 목업: `node .claude/skills/ken-blog-docs/scripts/device-mockup.cjs <출력.png> --desktop <캡처> [--title <주소나 창 제목>] [--window browser|app] [--phone <세로 캡처> --phone-offset <0~1>] [--backdrop dark|light]`. 세로로 긴 캡처는 창 높이를 비율에 맞춰 늘린다(최대 1,300). 휴대폰 화면(모바일 주 사용 화면만)은 `capture-screen.cjs <URL> <이름> "" 390 1800`처럼 세로로 길게 찍고 `--phone-offset`으로 보여 줄 부분을 고른다. 데스크톱 앱은 `--window app`, 브라우저 캡처에 이미 주소창이 있으면 잘라 내고 넣는다. 결과를 Read로 열어 잘린 곳이 없는지 본다
 2. **파일 올리기**: 장마다 새 UUID를 만든다. 같은 파일을 바꿀 때도 새 UUID를 쓴다(브라우저·Pages 캐시 때문에 같은 키를 덮어쓰지 않음).
    ```bash
    bash .claude/skills/ken-blog-stack-badges/scripts/upload-asset.sh <이름>-light.png <이름>-dark.png

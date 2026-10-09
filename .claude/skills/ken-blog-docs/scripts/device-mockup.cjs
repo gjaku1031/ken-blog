@@ -2,13 +2,15 @@
 // 실행용: node device-mockup.cjs <출력.png> --desktop <이미지> [--title <창 제목>] [--window browser|app]
 //         [--phone <이미지> [--phone-offset <0~1>]] [--backdrop dark|light]
 // --phone-offset: 휴대폰 화면에 보일 세로 시작 위치(이미지 높이 대비 비율). 긴 세로 캡처에서 원하는 부분을 보여 줄 때 씀
-// 결과: 1600×1000 PNG(데스크톱만이면 같은 크기). 종료 코드: 64 인자 오류, 1 렌더링 실패
+// 결과: 폭 1600 PNG. 휴대폰을 겹치면 높이 1000, 데스크톱만이면 캡처 비율에 맞춰 창 높이를 늘림(최대 1,300). 종료 코드: 64 인자 오류, 1 렌더링 실패
 const fs = require("node:fs");
 const path = require("node:path");
 const { chromium } = require(require.resolve("playwright", { paths: [process.cwd(), path.join(__dirname, "../../../..")] }));
 
 // 블로그 본문 폭(약 800px)의 2배라 글자가 흐려지지 않는 크기
-const WIDTH = 1600, HEIGHT = 1000;
+const WIDTH = 1600;
+// 세로로 긴 캡처도 잘리지 않게 데스크톱 창 높이를 캡처 비율에 맞추되, 본문에서 너무 길어지지 않는 상한
+const MAX_WINDOW_HEIGHT = 1300;
 
 const args = process.argv.slice(2);
 const out = args.shift();
@@ -25,7 +27,11 @@ const light = opt.backdrop === "light";
 const title = (opt.title || "").replace(/[<>&]/g, "");
 
 // 휴대폰이 있으면 창을 왼쪽으로 줄이고 휴대폰을 오른쪽 아래에 겹침(npr 대문 목업과 같은 배치)
-const win = hasPhone ? { x: 60, y: 70, w: 1250, h: 840 } : { x: 80, y: 60, w: 1440, h: 880 };
+const png = fs.readFileSync(opt.desktop);
+const ratio = png.readUInt32BE(20) / png.readUInt32BE(16); // PNG IHDR의 높이/폭
+const win = hasPhone ? { x: 60, y: 70, w: 1250, h: 840 }
+  : { x: 80, y: 60, w: 1440, h: Math.min(MAX_WINDOW_HEIGHT, Math.max(840, Math.round(1440 * ratio) + 48)) };
+const HEIGHT = hasPhone ? 1000 : win.h + 120;
 const phone = { x: 1150, y: 190, w: 370, h: 770 };
 
 const html = `<!doctype html><html><head><meta charset="utf-8"><style>
