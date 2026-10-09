@@ -77,6 +77,7 @@ architecture-beta
 | `%% layout: vowser-infrastructure` | [Vowser JSON](../../../../src/main/resources/web/shared/vowser-architecture-layout.json) | [Vowser](../../../../content/posts/project-8d420603-48bb-4e29-8983-e08a6e649f80.md) |
 | `%% layout: ken-blog-infrastructure` | [ken-blog 인프라 JSON](../../../../src/main/resources/web/shared/ken-blog-architecture-layout.json) | [ken-blog 대문·아키텍처](../../../../content/posts/doc-340352c9-5fde-4bae-bc0b-4ecd744719a8.md) |
 | `%% layout: ken-blog-system` | [ken-blog 시스템 구조 JSON](../../../../src/main/resources/web/shared/ken-blog-system-layout.json) | [ken-blog 아키텍처](../../../../content/posts/doc-340352c9-5fde-4bae-bc0b-4ecd744719a8.md) |
+| `%% layout: vowser-system` | [Vowser 시스템 구조 JSON](../../../../src/main/resources/web/shared/vowser-system-layout.json) | [Vowser 아키텍처](../../../../content/posts/doc-fd568125-2806-4210-a0b2-e4bf2d1b509e.md) |
 
 주석은 `architecture-beta` 다음 줄에 둔다. Mermaid 초기화 전에 원고와 배치의 일치를 검증하고, 렌더링 후 검증된 SVG에 좌표·선 경로·설명을 적용한다. 다른 Mermaid 뷰어는 구성과 연결을 읽을 수 있지만 이 사이트의 배치 주석과 `ken:` 팩을 자동 제공하지 않는다.
 

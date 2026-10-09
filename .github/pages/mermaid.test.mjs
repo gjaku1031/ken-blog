@@ -40,6 +40,7 @@ test("project architecture articles use supported diagrams", async () => {
   for (const [slug, architectureCount] of [
     ["doc-340352c9-5fde-4bae-bc0b-4ecd744719a8", 2],
     ["project-8d420603-48bb-4e29-8983-e08a6e649f80", 1],
+    ["doc-fd568125-2806-4210-a0b2-e4bf2d1b509e", 2],
   ]) {
     const body = await readFile(new URL(`../../content/posts/${slug}.md`, import.meta.url), "utf8");
     const sources = [...body.matchAll(/```mermaid(?: [^\n]*)?\n([\s\S]*?)\n```/g)].map(match => match[1]);
@@ -59,6 +60,20 @@ test("ken-blog system structure keeps its reference layout", async () => {
   ].sort());
   assert.throws(() => validateReferenceLayout(source.replace("  reader:R -[Read]-> L:html", "")));
   assert.throws(() => validateReferenceLayout(source.replace("[Git manuscripts] in data", "[Git manuscripts] in build")));
+});
+
+/**
+ * Vowser 시스템 구조 도식이 고정 배치의 구성·연결과 일치하고 변경을 숨기지 않음
+ */
+test("Vowser system structure keeps its reference layout", async () => {
+  const body = await readFile(new URL("../../content/posts/doc-fd568125-2806-4210-a0b2-e4bf2d1b509e.md", import.meta.url), "utf8");
+  const source = body.match(/```mermaid(?: [^\n]*)?\n(architecture-beta\n  %% layout: vowser-system[\s\S]*?)\n```/)[1];
+  assert.deepEqual([...validateReferenceLayout(source).keys()].sort(), [
+    "user", "app", "executor", "target", "spring", "agent", "mysql", "redis", "neo", "stt", "openai",
+  ].sort());
+  assert.throws(() => validateReferenceLayout(source.replace("  executor:B -[Browser control]-> T:target", "")));
+  assert.throws(() => validateReferenceLayout(source.replace("[Playwright] in pc", "[Playwright] in server")));
+  assert.throws(() => validateReferenceLayout(source.replace("vowser-system", "vowser-infrastructure")));
 });
 
 /**
