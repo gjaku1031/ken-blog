@@ -1,0 +1,236 @@
+{
+  "failures": [],
+  "llm_fallback": 0,
+  "H1": {
+    "rank_top1": 52,
+    "rediscover_top1": 45,
+    "n": 80,
+    "rank_only": 18,
+    "rediscover_only": 11,
+    "p_mcnemar": 0.264931,
+    "verdict": "지지하지 못함"
+  },
+  "H2": {
+    "top1_t0": 52,
+    "top1_t043": 52,
+    "top1_t060": 47,
+    "t0_only": 7,
+    "t043_only": 7,
+    "p_mcnemar_t0_vs_t043": 1.0,
+    "verdict": "지지"
+  },
+  "H3": {
+    "auc": 0.7734,
+    "auc_bootstrap_95": [
+      0.6586,
+      0.8676
+    ],
+    "n_answerable": 80,
+    "n_unanswerable": 16,
+    "unanswerable_max_similarity": [
+      0.0,
+      0.0,
+      0.304,
+      0.318,
+      0.344,
+      0.359,
+      0.361,
+      0.368,
+      0.374,
+      0.416,
+      0.438,
+      0.444,
+      0.467,
+      0.477,
+      0.504,
+      0.505
+    ],
+    "verdict": "지지"
+  },
+  "sweep": [
+    {
+      "t": 0.0,
+      "top1": 52,
+      "top1_ci": [
+        0.5408,
+        0.7455
+      ],
+      "top3": 70,
+      "top3_ci": [
+        0.785,
+        0.9307
+      ],
+      "rediscover_rate": 0.0,
+      "empty": 4,
+      "ambiguous_acceptable_top1": 8
+    },
+    {
+      "t": 0.3,
+      "top1": 54,
+      "top1_ci": [
+        0.5664,
+        0.7676
+      ],
+      "top3": 73,
+      "top3_ci": [
+        0.8302,
+        0.957
+      ],
+      "rediscover_rate": 0.05,
+      "empty": 1,
+      "ambiguous_acceptable_top1": 8
+    },
+    {
+      "t": 0.35,
+      "top1": 56,
+      "top1_ci": [
+        0.5923,
+        0.7894
+      ],
+      "top3": 74,
+      "top3_ci": [
+        0.8459,
+        0.9652
+      ],
+      "rediscover_rate": 0.0875,
+      "empty": 2,
+      "ambiguous_acceptable_top1": 8
+    },
+    {
+      "t": 0.4,
+      "top1": 55,
+      "top1_ci": [
+        0.5793,
+        0.7785
+      ],
+      "top3": 71,
+      "top3_ci": [
+        0.7998,
+        0.9397
+      ],
+      "rediscover_rate": 0.2,
+      "empty": 4,
+      "ambiguous_acceptable_top1": 8
+    },
+    {
+      "t": 0.43,
+      "top1": 52,
+      "top1_ci": [
+        0.5408,
+        0.7455
+      ],
+      "top3": 64,
+      "top3_ci": [
+        0.6995,
+        0.873
+      ],
+      "rediscover_rate": 0.3625,
+      "empty": 6,
+      "ambiguous_acceptable_top1": 8
+    },
+    {
+      "t": 0.45,
+      "top1": 50,
+      "top1_ci": [
+        0.5155,
+        0.7231
+      ],
+      "top3": 62,
+      "top3_ci": [
+        0.6721,
+        0.8527
+      ],
+      "rediscover_rate": 0.45,
+      "empty": 6,
+      "ambiguous_acceptable_top1": 8
+    },
+    {
+      "t": 0.5,
+      "top1": 51,
+      "top1_ci": [
+        0.5281,
+        0.7343
+      ],
+      "top3": 62,
+      "top3_ci": [
+        0.6721,
+        0.8527
+      ],
+      "rediscover_rate": 0.4625,
+      "empty": 6,
+      "ambiguous_acceptable_top1": 8
+    },
+    {
+      "t": 0.55,
+      "top1": 47,
+      "top1_ci": [
+        0.478,
+        0.6889
+      ],
+      "top3": 58,
+      "top3_ci": [
+        0.6186,
+        0.8108
+      ],
+      "rediscover_rate": 0.5875,
+      "empty": 6,
+      "ambiguous_acceptable_top1": 8
+    },
+    {
+      "t": 0.6,
+      "top1": 47,
+      "top1_ci": [
+        0.478,
+        0.6889
+      ],
+      "top3": 55,
+      "top3_ci": [
+        0.5793,
+        0.7785
+      ],
+      "rediscover_rate": 0.6625,
+      "empty": 6,
+      "ambiguous_acceptable_top1": 8
+    },
+    {
+      "t": 1.01,
+      "top1": 45,
+      "top1_ci": [
+        0.4534,
+        0.6659
+      ],
+      "top3": 52,
+      "top3_ci": [
+        0.5408,
+        0.7455
+      ],
+      "rediscover_rate": 1.0,
+      "empty": 6,
+      "ambiguous_acceptable_top1": 8
+    }
+  ],
+  "latency_ms": {
+    "0.0": {
+      "median": 1324.1,
+      "p95": 1823.5,
+      "n": 104
+    },
+    "0.43": {
+      "median": 1429.1,
+      "p95": 1901.9,
+      "n": 104
+    },
+    "1.01": {
+      "median": 1531.9,
+      "p95": 2015.9,
+      "n": 104
+    }
+  },
+  "consistency_check": {
+    "agree": 95,
+    "n": 96,
+    "rate": 0.9896,
+    "criterion": 0.9,
+    "passed": true
+  }
+}
