@@ -41,6 +41,8 @@ test("project architecture articles use supported diagrams", async () => {
     ["doc-340352c9-5fde-4bae-bc0b-4ecd744719a8", 2],
     ["project-8d420603-48bb-4e29-8983-e08a6e649f80", 1],
     ["doc-fd568125-2806-4210-a0b2-e4bf2d1b509e", 2],
+    ["project-d2ef2e0b-2e15-4aee-9454-88b4d5a00172", 1],
+    ["doc-71ac4b10-9f99-4251-893d-a57dd46ad334", 2],
   ]) {
     const body = await readFile(new URL(`../../content/posts/${slug}.md`, import.meta.url), "utf8");
     const sources = [...body.matchAll(/```mermaid(?: [^\n]*)?\n([\s\S]*?)\n```/g)].map(match => match[1]);
@@ -74,6 +76,25 @@ test("Vowser system structure keeps its reference layout", async () => {
   assert.throws(() => validateReferenceLayout(source.replace("  executor:B -[Browser control]-> T:target", "")));
   assert.throws(() => validateReferenceLayout(source.replace("[Playwright] in pc", "[Playwright] in server")));
   assert.throws(() => validateReferenceLayout(source.replace("vowser-system", "vowser-infrastructure")));
+});
+
+/**
+ * npr 인프라·시스템 구조 도식이 고정 배치의 구성·연결과 일치하고 변경을 숨기지 않음
+ */
+test("npr infrastructure and system structure keep their reference layouts", async () => {
+  const body = await readFile(new URL("../../content/posts/doc-71ac4b10-9f99-4251-893d-a57dd46ad334.md", import.meta.url), "utf8");
+  const infra = body.match(/```mermaid(?: [^\n]*)?\n(architecture-beta\n  %% layout: npr-infrastructure[\s\S]*?)\n```/)[1];
+  assert.deepEqual([...validateReferenceLayout(infra).keys()].sort(), [
+    "parent", "admin", "scanner", "caddy", "proxy", "web", "redis", "api", "worker", "pg", "nas", "tong", "sms", "sheets",
+  ].sort());
+  assert.throws(() => validateReferenceLayout(infra.replace("  caddy:R -[WireGuard]-> T:proxy", "")));
+  assert.throws(() => validateReferenceLayout(infra.replace("[PostgreSQL] in vm", "[PostgreSQL] in external")));
+  const system = body.match(/```mermaid(?: [^\n]*)?\n(architecture-beta\n  %% layout: npr-system[\s\S]*?)\n```/)[1];
+  assert.deepEqual([...validateReferenceLayout(system).keys()].sort(), [
+    "parent", "admin", "scanner", "web", "api", "worker", "redis", "pg", "tong", "sms", "sheets",
+  ].sort());
+  assert.throws(() => validateReferenceLayout(system.replace("  worker:B -[Lease]-> R:pg", "")));
+  assert.throws(() => validateReferenceLayout(system.replace("npr-system", "npr-infrastructure")));
 });
 
 /**

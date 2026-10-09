@@ -48,9 +48,9 @@ architecture-beta
 | 용도 | 사용할 수 있는 `ken:` 이름 |
 | --- | --- |
 | 소스·빌드 | `git`, `github`, `github-actions` |
-| 애플리케이션 | `spring`, `kotlin`, `fastapi`, `playwright`, `nodejs` |
-| 데이터 | `mysql`, `redis`, `neo4j`, `rds` |
-| 실행 환경·진입점 | `docker`, `caddy`, `proxmox`, `fargate`, `alb`, `vpn` |
+| 애플리케이션 | `spring`, `kotlin`, `fastapi`, `playwright`, `nodejs`, `nextjs`, `nestjs` |
+| 데이터 | `mysql`, `redis`, `neo4j`, `rds`, `postgresql`, `google-sheets` |
+| 실행 환경·진입점 | `docker`, `caddy`, `proxmox`, `fargate`, `alb`, `vpn`, `google-cloud`, `wireguard` |
 | 배포·제어 | `ecr`, `cloudwatch`, `eventbridge`, `lambda`, `route53` |
 | 사용자·디스크 | `user`, `disk` |
 
@@ -78,6 +78,8 @@ architecture-beta
 | `%% layout: ken-blog-infrastructure` | [ken-blog 인프라 JSON](../../../../src/main/resources/web/shared/ken-blog-architecture-layout.json) | [ken-blog 대문·아키텍처](../../../../content/posts/doc-340352c9-5fde-4bae-bc0b-4ecd744719a8.md) |
 | `%% layout: ken-blog-system` | [ken-blog 시스템 구조 JSON](../../../../src/main/resources/web/shared/ken-blog-system-layout.json) | [ken-blog 아키텍처](../../../../content/posts/doc-340352c9-5fde-4bae-bc0b-4ecd744719a8.md) |
 | `%% layout: vowser-system` | [Vowser 시스템 구조 JSON](../../../../src/main/resources/web/shared/vowser-system-layout.json) | [Vowser 아키텍처](../../../../content/posts/doc-fd568125-2806-4210-a0b2-e4bf2d1b509e.md) |
+| `%% layout: npr-infrastructure` | [npr 인프라 JSON](../../../../src/main/resources/web/shared/npr-infrastructure-layout.json) | [npr 대문·아키텍처](../../../../content/posts/doc-71ac4b10-9f99-4251-893d-a57dd46ad334.md) |
+| `%% layout: npr-system` | [npr 시스템 구조 JSON](../../../../src/main/resources/web/shared/npr-system-layout.json) | [npr 아키텍처](../../../../content/posts/doc-71ac4b10-9f99-4251-893d-a57dd46ad334.md) |
 
 주석은 `architecture-beta` 다음 줄에 둔다. Mermaid 초기화 전에 원고와 배치의 일치를 검증하고, 렌더링 후 검증된 SVG에 좌표·선 경로·설명을 적용한다. 다른 Mermaid 뷰어는 구성과 연결을 읽을 수 있지만 이 사이트의 배치 주석과 `ken:` 팩을 자동 제공하지 않는다.
 
@@ -111,3 +113,5 @@ architecture-beta
 ECR·ALB·VPN은 [AWS Architecture Icons](https://aws.amazon.com/architecture/icons/)의 2026-07-31 패키지에서 가져왔다. 원본 도형·색상을 유지하고 사용하지 않는 ID·제목·XML 접두사만 정리했다. 로고는 기술·서비스를 식별하는 용도로 사용한다.
 
 Node.js(`nodejs`)는 `@iconify-json/logos`의 `nodejs-icon`(CC0)을 2026-10-07 Iconify API에서 가져왔다.
+
+NestJS·PostgreSQL·Google Cloud는 `@iconify-json/logos`(CC0), Next.js(`nextdotjs`)·WireGuard·Google Sheets(`googlesheets`)는 `@iconify-json/simple-icons`(CC0)에서 2026-10-09 Iconify API로 가져왔다. 단색 아이콘의 `currentColor`는 각 브랜드 색(Next.js `#000000`, WireGuard `#88171A`, Google Sheets `#34A853`)으로 치환했다.
