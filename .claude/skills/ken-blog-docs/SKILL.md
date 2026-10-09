@@ -16,6 +16,7 @@ ken-blog 문서는 대학원 진학용 포트폴리오이자, 이후 다른 프�
 | 문서 유형별 구성(넣을 절·넣지 않을 것) | [document-types.md](references/document-types.md) |
 | 새 프로젝트 대문 | [landing-template.md](references/landing-template.md) |
 | 도식 | `ken-blog-diagrams` 스킬 (`.claude/skills/ken-blog-diagrams/SKILL.md`) |
+| 실험·측정의 설계와 Posts 실험 글 | `ken-blog-experiments` 스킬 (`.claude/skills/ken-blog-experiments/SKILL.md`) |
 | ken-blog 원고 대응표·인터뷰 기록 | `temp/review-notes.md` (있을 때) |
 
 ## 독자와 목표
