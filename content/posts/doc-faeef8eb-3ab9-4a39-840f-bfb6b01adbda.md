@@ -2,7 +2,7 @@
 
 ## 결정 요약
 
-| 결정[* [NestJS 구현 결정 기록](https://github.com/gjaku1031/npr-seminar/blob/e74a2a2/docs/specs/nestjs-implementation-decisions-20260717.md) · [문자 연동 결정](https://github.com/gjaku1031/npr-seminar/blob/e74a2a2/docs/specs/aligo-sms-implementation-decisions-20260717.md) · [시트 단방향 동기화 결정](https://github.com/gjaku1031/npr-seminar/blob/e74a2a2/docs/specs/google-sheets-one-way-sync-20260717.md)] | 해결한 문제 | 대가 |
+| 결정[* [NestJS 구현 결정 기록](https://github.com/gjaku1031/npr-seminar/blob/2876cd9/docs/specs/nestjs-implementation-decisions-20260717.md) · [문자 연동 결정](https://github.com/gjaku1031/npr-seminar/blob/2876cd9/docs/specs/aligo-sms-implementation-decisions-20260717.md) · [시트 단방향 동기화 결정](https://github.com/gjaku1031/npr-seminar/blob/2876cd9/docs/specs/google-sheets-one-way-sync-20260717.md)] | 해결한 문제 | 대가 |
 | --- | --- | --- |
 | 회차 행 잠금 순서, 부분 유니크 인덱스, 멱등 키 기록 | P1 예약·입장 정합성 | 같은 회차의 변경이 한 줄로 처리되고, 요청마다 멱등 기록을 씀 |
 | 연락처 암호문·다이제스트 저장, 일회용 예약 증명, QR 다이제스트 대조 | P2 개인정보 최소 노출 | 연락처 부분 검색 불가, 키 관리, 재생 응답에서 QR 재조회 필요 |
@@ -24,7 +24,7 @@
 
 | 대안 | 판단 |
 | --- | --- |
-| 애플리케이션 선조회만으로 중복 차단 | 동시 요청이 함께 선조회를 통과함. 구현 지침에서 DB 제약 없이 선조회만 쓰는 방식을 명시적으로 배제함[* [NestJS 인수인계서 5.2절](https://github.com/gjaku1031/npr-seminar/blob/e74a2a2/docs/specs/nestjs-backend-handoff.md)] |
+| 애플리케이션 선조회만으로 중복 차단 | 동시 요청이 함께 선조회를 통과함. 구현 지침에서 DB 제약 없이 선조회만 쓰는 방식을 명시적으로 배제함[* [NestJS 인수인계서 5.2절](https://github.com/gjaku1031/npr-seminar/blob/2876cd9/docs/specs/nestjs-backend-handoff.md)] |
 | 회차별 정원 카운터 행을 두고 갱신 | 정원이 있던 설계에서 썼던 방식. 행사장 수용 인원이 충분해 정원을 없애면서 카운터 행이 직렬화 용도로만 남아, 회차 행 잠금으로 대신하고 테이블을 제거함 |
 | **회차 행 잠금 순서 + 부분 유니크 인덱스 + 멱등 키 기록 (채택)** | 잠금으로 대부분의 경합을 줄 세우고, 놓친 경합은 DB 제약이 막음. 재전송은 저장한 결과를 그대로 돌려줌 |
 
@@ -42,11 +42,11 @@
 
 | 검사 | 확인하는 것 |
 | --- | --- |
-| [예약 통합 테스트](https://github.com/gjaku1031/npr-seminar/blob/e74a2a2/apps/api/test/integration/family-bookings.spec.ts) | 같은 연락처의 동시 예약이 한 건만 생김, 회차 이동·취소와 입장·취소 경합에서 최종 결과가 하나 |
-| [스캐너 동시성 테스트](https://github.com/gjaku1031/npr-seminar/blob/e74a2a2/apps/api/test/integration/scanner-device-concurrency.spec.ts) | 페어링 코드 사용과 취소가 경합해도 하나만 성공, 재생 시 기기가 두 대 생기지 않음 |
-| [입장 사건 단위 테스트](https://github.com/gjaku1031/npr-seminar/blob/e74a2a2/apps/api/test/unit/check-in-event-snapshots.spec.ts) | 기기 행이 지워져도 입장 사건의 기기 정보가 남음 |
+| [예약 통합 테스트](https://github.com/gjaku1031/npr-seminar/blob/2876cd9/apps/api/test/integration/family-bookings.spec.ts) | 같은 연락처의 동시 예약이 한 건만 생김, 회차 이동·취소와 입장·취소 경합에서 최종 결과가 하나 |
+| [스캐너 동시성 테스트](https://github.com/gjaku1031/npr-seminar/blob/2876cd9/apps/api/test/integration/scanner-device-concurrency.spec.ts) | 페어링 코드 사용과 취소가 경합해도 하나만 성공, 재생 시 기기가 두 대 생기지 않음 |
+| [입장 사건 단위 테스트](https://github.com/gjaku1031/npr-seminar/blob/2876cd9/apps/api/test/unit/check-in-event-snapshots.spec.ts) | 기기 행이 지워져도 입장 사건의 기기 정보가 남음 |
 
-통합 테스트는 Testcontainers의 PostgreSQL·Redis에서 실행함. 2026-10-09 공개 저장소 최신 커밋(`e74a2a2`)에서 다시 실행한 결과는 다음과 같음.[* 이 머신의 Docker에서 Testcontainers로 실행. 같은 테스트를 이력 치환 전 커밋(`59dfb3e`)에서도 실행해 결과가 같음을 확인함]
+통합 테스트는 Testcontainers의 PostgreSQL·Redis에서 실행함. 2026-10-09 공개 저장소 최신 커밋(`2876cd9`)에서 다시 실행한 결과는 다음과 같음.[* 이 머신의 Docker에서 Testcontainers로 실행. 같은 테스트를 이력 치환 전 커밋(`59dfb3e`)에서도 실행해 결과가 같음을 확인함]
 
 | 테스트 | 결과 | 실패 원인 |
 | --- | --- | --- |
@@ -70,7 +70,7 @@
 | 링크 열람에도 매번 문자 인증 | 같은 성격의 두 링크(확정 문자의 예약 링크, 개인 접근 링크) 중 하나만 인증번호를 요구했음. 열람은 링크와 연락처 확인으로 맞추고, 변경은 문자 인증으로 남김 |
 | **암호문·다이제스트 저장 + 일회용 예약 증명 + QR 다이제스트 대조 (채택)** | DB에는 원문이 없고, 인증 통과 사실만 일회용 증명으로 전달함 |
 
-연락처는 AES-256-GCM 암호문, 서버 키로 계산한 HMAC-SHA256 다이제스트, 끝 네 자리로 나눠 저장함. 학생 찾기와 예약 중복 확인은 다이제스트 일치로 하고, 원문은 관리자 명단 표시와 문자 발송 직전에만 복호화함. 문자·시트 outbox의 수신자·본문·스냅샷도 각각 다른 파생 키로 암호화함.[* [연락처 보호](https://github.com/gjaku1031/npr-seminar/blob/e74a2a2/apps/api/src/common/crypto/phone-protector.service.ts)]
+연락처는 AES-256-GCM 암호문, 서버 키로 계산한 HMAC-SHA256 다이제스트, 끝 네 자리로 나눠 저장함. 학생 찾기와 예약 중복 확인은 다이제스트 일치로 하고, 원문은 관리자 명단 표시와 문자 발송 직전에만 복호화함. 문자·시트 outbox의 수신자·본문·스냅샷도 각각 다른 파생 키로 암호화함.[* [연락처 보호](https://github.com/gjaku1031/npr-seminar/blob/2876cd9/apps/api/src/common/crypto/phone-protector.service.ts)]
 
 문자 인증을 통과하면 256비트 무작위 예약 증명을 한 번만 돌려주고, DB에는 다이제스트·연락처·용도·만료만 둠. 예약 생성과 변경·취소는 같은 트랜잭션에서 이 증명을 소비하므로 하나의 증명으로 두 번 변경할 수 없음. QR도 다이제스트로 대조하고, 원문은 발급 응답과 본인 확인 후의 복구 조회에서만 내려감. 문자에는 QR 대신 예약 링크만 넣음.
 
@@ -84,9 +84,9 @@
 
 | 검사 | 확인하는 것 |
 | --- | --- |
-| [비재원생 공개 예약 HTTP 테스트](https://github.com/gjaku1031/npr-seminar/blob/e74a2a2/apps/api/test/integration/guest-public-http.spec.ts) | 문자 인증부터 예약·QR·변경·입장·취소까지 공개 경로 전체 |
-| [예약 통합 테스트](https://github.com/gjaku1031/npr-seminar/blob/e74a2a2/apps/api/test/integration/family-bookings.spec.ts) | 재생·목록 응답에 비밀값이 없음, 모 또는 부 연락처만 소유로 인정 |
-| [QR 보호 단위 테스트](https://github.com/gjaku1031/npr-seminar/blob/e74a2a2/apps/api/test/unit/qr-token-protector.spec.ts) | QR 사본 암호화·복호화 |
+| [비재원생 공개 예약 HTTP 테스트](https://github.com/gjaku1031/npr-seminar/blob/2876cd9/apps/api/test/integration/guest-public-http.spec.ts) | 문자 인증부터 예약·QR·변경·입장·취소까지 공개 경로 전체 |
+| [예약 통합 테스트](https://github.com/gjaku1031/npr-seminar/blob/2876cd9/apps/api/test/integration/family-bookings.spec.ts) | 재생·목록 응답에 비밀값이 없음, 모 또는 부 연락처만 소유로 인정 |
+| [QR 보호 단위 테스트](https://github.com/gjaku1031/npr-seminar/blob/2876cd9/apps/api/test/unit/qr-token-protector.spec.ts) | QR 사본 암호화·복호화 |
 
 ## P3. outbox와 회로로 외부 실패를 예약에서 분리
 
@@ -109,11 +109,11 @@
 | 결과 불명 문자를 자동 재시도 | 이미 발송된 문자가 한 번 더 나갈 수 있음 |
 | **트랜잭션 outbox + lease worker + 결과 불명 시 중단 (채택)** | 예약이 커밋되면 발송 작업도 반드시 남고, 외부 호출은 커밋 뒤에만 일어남 |
 
-worker는 `FOR UPDATE SKIP LOCKED`로 행을 집어 30초 lease를 걸고, 외부 호출 직전에 상태를 `SENDING`으로 바꿈. 호출 전에 lease가 만료되면 다시 대기열로 돌리지만, `SENDING` 상태에서 만료되면 `DELIVERY_UNKNOWN`으로 확정하고 다시 보내지 않음. 재시도 가능한 실패는 지수 지연으로 최대 5회까지 시도함.[* [문자 worker](https://github.com/gjaku1031/npr-seminar/blob/e74a2a2/apps/api/src/modules/sms/sms-worker.service.ts)]
+worker는 `FOR UPDATE SKIP LOCKED`로 행을 집어 30초 lease를 걸고, 외부 호출 직전에 상태를 `SENDING`으로 바꿈. 호출 전에 lease가 만료되면 다시 대기열로 돌리지만, `SENDING` 상태에서 만료되면 `DELIVERY_UNKNOWN`으로 확정하고 다시 보내지 않음. 재시도 가능한 실패는 지수 지연으로 최대 5회까지 시도함.[* [문자 worker](https://github.com/gjaku1031/npr-seminar/blob/2876cd9/apps/api/src/modules/sms/sms-worker.service.ts)]
 
-시트는 애플리케이션이 멈췄을 때 현장에서 쓸 대체 명단임. 그래서 PostgreSQL에서 시트로만 씀. 시트에서 고친 값은 DB로 가져오지 않고, 행은 숨긴 표식 열로 찾음. 쓰기 전마다 시트의 공유 설정·로케일·탭 ID·머리글을 다시 확인하고, 링크·도메인·그룹 공유가 하나라도 있으면 쓰지 않고 매핑을 `BLOCKED`로 둠.[* [시트 단방향 동기화 결정](https://github.com/gjaku1031/npr-seminar/blob/e74a2a2/docs/specs/google-sheets-one-way-sync-20260717.md)]
+시트는 애플리케이션이 멈췄을 때 현장에서 쓸 대체 명단임. 그래서 PostgreSQL에서 시트로만 씀. 시트에서 고친 값은 DB로 가져오지 않고, 행은 숨긴 표식 열로 찾음. 쓰기 전마다 시트의 공유 설정·로케일·탭 ID·머리글을 다시 확인하고, 링크·도메인·그룹 공유가 하나라도 있으면 쓰지 않고 매핑을 `BLOCKED`로 둠.[* [시트 단방향 동기화 결정](https://github.com/gjaku1031/npr-seminar/blob/2876cd9/docs/specs/google-sheets-one-way-sync-20260717.md)]
 
-학생 원천은 실행마다 로그인을 한 번만 시도하고, 시도 표식을 외부 로그인 전에 DB에 커밋함. 로그인이 거부되거나 결과가 불명확하면 회로를 열고, 사람이 원천 쪽 실패 횟수를 확인해 초기화하기 전까지 자동·수동 실행을 모두 거절함. 조회 결과는 staging에 적재·검증한 뒤 해시를 다시 대조해 세 캠퍼스 전체를 한 트랜잭션으로 승격함. 직전 성공 대비 캠퍼스별 행 수가 절반 미만이거나 1.5배를 넘으면 승격하지 않음.[* 직전 성공 조회가 20행 이상인 캠퍼스에만 적용. [동기화 실행](https://github.com/gjaku1031/npr-seminar/blob/e74a2a2/apps/api/src/modules/student-sync/student-sync-orchestrator.service.ts)]
+학생 원천은 실행마다 로그인을 한 번만 시도하고, 시도 표식을 외부 로그인 전에 DB에 커밋함. 로그인이 거부되거나 결과가 불명확하면 회로를 열고, 사람이 원천 쪽 실패 횟수를 확인해 초기화하기 전까지 자동·수동 실행을 모두 거절함. 조회 결과는 staging에 적재·검증한 뒤 해시를 다시 대조해 세 캠퍼스 전체를 한 트랜잭션으로 승격함. 직전 성공 대비 캠퍼스별 행 수가 절반 미만이거나 1.5배를 넘으면 승격하지 않음.[* 직전 성공 조회가 20행 이상인 캠퍼스에만 적용. [동기화 실행](https://github.com/gjaku1031/npr-seminar/blob/2876cd9/apps/api/src/modules/student-sync/student-sync-orchestrator.service.ts)]
 
 ### 대가
 
@@ -125,10 +125,10 @@ worker는 `FOR UPDATE SKIP LOCKED`로 행을 집어 30초 lease를 걸고, 외�
 
 | 검사 | 확인하는 것 |
 | --- | --- |
-| [문자 관리 테스트](https://github.com/gjaku1031/npr-seminar/blob/e74a2a2/apps/api/test/integration/sms-admin.spec.ts) | 동시 트랜잭션에서 같은 문자 사건이 한 번만 기록됨, 여러 worker가 각 행을 한 번만 집고 결과 불명 행을 재시도하지 않음 |
-| [학생 동기화 회로 테스트](https://github.com/gjaku1031/npr-seminar/blob/e74a2a2/apps/api/test/integration/student-sync-circuit.spec.ts) | 로그인 1회 뒤 회로가 열리고 이후 외부 호출 없이 거절, 만료 lease를 결과 불명으로 처리해 다시 로그인하지 않음, 승격은 전체 아니면 전무 |
+| [문자 관리 테스트](https://github.com/gjaku1031/npr-seminar/blob/2876cd9/apps/api/test/integration/sms-admin.spec.ts) | 동시 트랜잭션에서 같은 문자 사건이 한 번만 기록됨, 여러 worker가 각 행을 한 번만 집고 결과 불명 행을 재시도하지 않음 |
+| [학생 동기화 회로 테스트](https://github.com/gjaku1031/npr-seminar/blob/2876cd9/apps/api/test/integration/student-sync-circuit.spec.ts) | 로그인 1회 뒤 회로가 열리고 이후 외부 호출 없이 거절, 만료 lease를 결과 불명으로 처리해 다시 로그인하지 않음, 승격은 전체 아니면 전무 |
 | 운영 사례: 대량 발송 중 worker 반복 재시작(2026-08-20) | 발송 직전(`CLAIMED`) 139건은 대기열로 돌아가고, 전송 중(`SENDING`) 77건은 `DELIVERY_UNKNOWN`으로 멈춰 자동으로 다시 보내지 않았고, 재발송은 사람이 결정함. 설계한 실패 동작이 운영에서 그대로 나타남. 경위는 [배포와 운영](/ken-blog/post/doc-5fe55659-a943-4c64-aed1-481462f32c56/)의 운영 사례 |
-| [원천·DB 학생 수 대조 보고서](https://github.com/gjaku1031/npr-seminar/blob/e74a2a2/docs/reports/tongtong-student-count-reconciliation-20260718.md) | 2026-07-18 운영 동기화 결과, 원천 규칙 적용 후 2,999명과 DB 활성 학생 2,999명이 캠퍼스·학번 단위로 일치(누락 0, 초과 0) |
+| [원천·DB 학생 수 대조 보고서](https://github.com/gjaku1031/npr-seminar/blob/2876cd9/docs/reports/tongtong-student-count-reconciliation-20260718.md) | 2026-07-18 운영 동기화 결과, 원천 규칙 적용 후 2,999명과 DB 활성 학생 2,999명이 캠퍼스·학번 단위로 일치(누락 0, 초과 0) |
 
 > 외부 서비스의 결과를 알 수 없을 때는 다시 시도하지 않고 멈추며, 그 대가로 사람이 확인할 일이 남음.
 
