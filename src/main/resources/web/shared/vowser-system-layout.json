@@ -1,0 +1,399 @@
+{
+  "width": 1120,
+  "height": 640,
+  "legend": [
+    {
+      "kind": "runtime",
+      "title": "요청 · 데이터 접근"
+    }
+  ],
+  "groups": {
+    "pc": [
+      10,
+      30,
+      300,
+      300,
+      "사용자 PC"
+    ],
+    "site": [
+      10,
+      400,
+      300,
+      110,
+      "외부 웹사이트"
+    ],
+    "server": [
+      380,
+      30,
+      330,
+      300,
+      "서버 · Proxmox 또는 AWS Fargate"
+    ],
+    "data": [
+      780,
+      30,
+      330,
+      300,
+      "데이터"
+    ],
+    "external": [
+      380,
+      400,
+      330,
+      110,
+      "외부 API"
+    ]
+  },
+  "services": {
+    "user": [
+      30,
+      70,
+      "음성 요청 · 결과 확인"
+    ],
+    "app": [
+      30,
+      150,
+      "Compose 화면 · 작업 기록"
+    ],
+    "executor": [
+      30,
+      230,
+      "실행기 · 사용자 PC 브라우저"
+    ],
+    "target": [
+      30,
+      440,
+      "예매 · 민원 사이트"
+    ],
+    "spring": [
+      400,
+      90,
+      "인증 · 음성 · 경로 API"
+    ],
+    "agent": [
+      400,
+      230,
+      "LangGraph 검색 · 경로 저장"
+    ],
+    "mysql": [
+      800,
+      70,
+      "회원 · 접근성 프로필"
+    ],
+    "redis": [
+      800,
+      150,
+      "리프레시 토큰 · 로그인 코드"
+    ],
+    "neo": [
+      800,
+      230,
+      "작업 경로 · 임베딩"
+    ],
+    "stt": [
+      400,
+      440,
+      "음성 인식"
+    ],
+    "openai": [
+      560,
+      440,
+      "임베딩 · 의도 분석"
+    ]
+  },
+  "members": {
+    "user": "pc",
+    "app": "pc",
+    "executor": "pc",
+    "target": "site",
+    "spring": "server",
+    "agent": "server",
+    "mysql": "data",
+    "redis": "data",
+    "neo": "data",
+    "stt": "external",
+    "openai": "external"
+  },
+  "parents": {
+    "pc": "",
+    "site": "",
+    "server": "",
+    "data": "",
+    "external": ""
+  },
+  "sourceGroups": [
+    "group pc[User PC]",
+    "group site[Target site]",
+    "group server[Server]",
+    "group data[Data]",
+    "group external[External APIs]"
+  ],
+  "sourceEdges": [
+    "user:B -[Voice]-> T:app",
+    "app:B -[Steps]-> T:executor",
+    "executor:B -[Browser control]-> T:target",
+    "app:R -[REST]-> L:spring",
+    "spring:B -[WebSocket]-> T:agent",
+    "spring:R -[JPA]-> L:mysql",
+    "spring:R -[Tokens]-> L:redis",
+    "agent:R -[Cypher]-> L:neo",
+    "spring:L -[Speech]-> T:stt",
+    "agent:B -[Embeddings]-> T:openai"
+  ],
+  "edges": [
+    {
+      "source": "user",
+      "target": "app",
+      "groupTarget": false,
+      "points": [
+        [
+          52,
+          116
+        ],
+        [
+          52,
+          146
+        ]
+      ],
+      "kind": "runtime",
+      "label": "음성",
+      "at": [
+        92,
+        131
+      ]
+    },
+    {
+      "source": "app",
+      "target": "executor",
+      "groupTarget": false,
+      "points": [
+        [
+          52,
+          196
+        ],
+        [
+          52,
+          226
+        ]
+      ],
+      "kind": "runtime",
+      "label": "단계 목록",
+      "at": [
+        100,
+        211
+      ]
+    },
+    {
+      "source": "executor",
+      "target": "target",
+      "groupTarget": false,
+      "points": [
+        [
+          52,
+          276
+        ],
+        [
+          52,
+          436
+        ]
+      ],
+      "kind": "runtime",
+      "label": "브라우저 조작",
+      "at": [
+        52,
+        370
+      ]
+    },
+    {
+      "source": "app",
+      "target": "spring",
+      "groupTarget": false,
+      "points": [
+        [
+          230,
+          172
+        ],
+        [
+          345,
+          172
+        ],
+        [
+          345,
+          112
+        ],
+        [
+          396,
+          112
+        ]
+      ],
+      "kind": "runtime",
+      "label": "REST · JWT",
+      "at": [
+        345,
+        145
+      ]
+    },
+    {
+      "source": "spring",
+      "target": "agent",
+      "groupTarget": false,
+      "points": [
+        [
+          422,
+          136
+        ],
+        [
+          422,
+          226
+        ]
+      ],
+      "kind": "runtime",
+      "label": "WebSocket",
+      "at": [
+        422,
+        181
+      ]
+    },
+    {
+      "source": "spring",
+      "target": "mysql",
+      "groupTarget": false,
+      "points": [
+        [
+          640,
+          104
+        ],
+        [
+          740,
+          104
+        ],
+        [
+          740,
+          92
+        ],
+        [
+          796,
+          92
+        ]
+      ],
+      "kind": "runtime",
+      "label": "JPA",
+      "at": [
+        690,
+        104
+      ]
+    },
+    {
+      "source": "spring",
+      "target": "redis",
+      "groupTarget": false,
+      "points": [
+        [
+          640,
+          120
+        ],
+        [
+          760,
+          120
+        ],
+        [
+          760,
+          172
+        ],
+        [
+          796,
+          172
+        ]
+      ],
+      "kind": "runtime",
+      "label": "토큰",
+      "at": [
+        760,
+        146
+      ]
+    },
+    {
+      "source": "agent",
+      "target": "neo",
+      "groupTarget": false,
+      "points": [
+        [
+          660,
+          252
+        ],
+        [
+          796,
+          252
+        ]
+      ],
+      "kind": "runtime",
+      "label": "Cypher · 벡터 검색",
+      "at": [
+        728,
+        240
+      ]
+    },
+    {
+      "source": "spring",
+      "target": "stt",
+      "groupTarget": false,
+      "points": [
+        [
+          396,
+          125
+        ],
+        [
+          366,
+          125
+        ],
+        [
+          366,
+          410
+        ],
+        [
+          422,
+          410
+        ],
+        [
+          422,
+          436
+        ]
+      ],
+      "kind": "runtime",
+      "label": "음성 인식",
+      "at": [
+        366,
+        300
+      ]
+    },
+    {
+      "source": "agent",
+      "target": "openai",
+      "groupTarget": false,
+      "points": [
+        [
+          440,
+          276
+        ],
+        [
+          440,
+          380
+        ],
+        [
+          582,
+          380
+        ],
+        [
+          582,
+          436
+        ]
+      ],
+      "kind": "runtime",
+      "label": "임베딩 · 의도 분석",
+      "at": [
+        511,
+        380
+      ]
+    }
+  ]
+}
