@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><title>연산별 지연: MySQL과 Neo4j</title>
+<style>
+/* 수치 출처
+   위: operations/results/summary.json, scale=30000·distribution=uniform·mix=90:10의 p50_ms·p95_ms (n: 인기·시각화 270, 등록·갱신 30, failures 0)
+   아래: operations/results/source-diagnostic-source_shape.csv·source-diagnostic-optimized.csv의 latency_ns 중앙값(각 9건, Neo4j만, 경로 1천 개) */
+:root { --bg:#ffffff; --panel:#f6f7f9; --ink:#1a2030; --soft:#4a5368; --muted:#6b7386; --line:#d3d8e1; --grid:#e3e7ee;
+  --my:#2b59c3; --neo:#1d6a55; }
+@media (prefers-color-scheme: dark) { :root { --bg:#171b24; --panel:#1d2230; --ink:#e4e8f0; --soft:#a9b2c3; --muted:#8a93a6; --line:#2c3442; --grid:#2a3140;
+  --my:#7aa2ff; --neo:#5fc6a5; } }
+body { margin:0; background:var(--bg); font-family:"Noto Sans CJK KR","Apple SD Gothic Neo",sans-serif; }
+#figure { width:1200px; padding:28px; box-sizing:border-box; background:var(--bg); }
+svg text { fill:var(--ink); font-size:15px; }
+.panel { fill:var(--panel); stroke:var(--line); }
+.h { font-size:18px; font-weight:700; }
+.sub { fill:var(--muted); font-size:13.5px; }
+.axis { fill:var(--muted); font-size:13px; }
+.grid { stroke:var(--grid); stroke-width:1; }
+.b { font-weight:600; }
+.v { font-size:13.5px; }
+.big { font-size:20px; font-weight:700; fill:var(--neo); }
+</style></head><body>
+<div id="figure"><svg id="chart" viewBox="0 0 1144 642" width="1144" height="642" role="img"
+aria-label="경로 3만 개, 균등, 읽기:쓰기 90:10에서 네 연산 모두 MySQL의 p50과 p95가 Neo4j보다 낮았음. Neo4j만 저장을 한 번의 배치 쿼리로 묶으면 등록 p50이 164.34ms에서 10.35ms로, 갱신이 96.71ms에서 7.55ms로 줄었음"></svg></div>
+<script>
+(() => {
+  const OPS = [
+    ["인기 경로 조회", [0.730665, 0.8606579999999999], [5.029154500000001, 50.449132549999995]],
+    ["시각화", [1.6513309999999999, 1.81934845], [5.471137499999999, 47.81663594999998]],
+    ["신규 경로 등록", [7.1439685, 13.033456849999997], [26.4971405, 83.82612375]],
+    ["가중치 갱신", [1.2338685, 1.5945105499999996], [6.2315825, 52.36595914999998]],
+  ];
+  const DIAG = [["등록", 164.34, 10.35], ["가중치 갱신", 96.71, 7.55]];
+  const NS = "http://www.w3.org/2000/svg", svg = document.getElementById("chart");
+  const el = (t, a, txt) => { const n = document.createElementNS(NS, t); for (const k in a) n.setAttribute(k, a[k]); if (txt != null) n.textContent = txt; svg.appendChild(n); return n; };
+  const f2 = v => v.toFixed(2);
+  const L = 300, R = 1000, LO = 0.4, HI = 250;
+  const X = v => L + Math.log(v / LO) / Math.log(HI / LO) * (R - L);
+  const TICKS = [0.5, 1, 2, 5, 10, 20, 50, 100, 200];
+  const axis = (yTop, yBot) => TICKS.forEach(t => {
+    el("line", { x1: X(t), x2: X(t), y1: yTop, y2: yBot, class: "grid" });
+    el("text", { x: X(t), y: yBot + 18, "text-anchor": "middle", class: "axis" }, t + "ms");
+  });
+  const panelHead = (y, h, title, sub) => {
+    el("rect", { x: 0, y, width: 1144, height: h, rx: 14, class: "panel" });
+    const t = el("text", { x: 20, y: y + 32, class: "h" }, title);
+    el("text", { x: 20 + t.getComputedTextLength() + 12, y: y + 32, class: "sub" }, sub);
+  };
+
+  // 위: 네 연산의 p50(채운 점)~p95(빈 점)
+  const PH = 404;
+  panelHead(0, PH, "경로 3만 개 · 균등 분포 · 읽기:쓰기 90:10", "요청별 지연, 로그 눈금");
+  el("circle", { cx: 836, cy: 27, r: 6, style: "fill:var(--soft)" }); el("text", { x: 848, y: 32, class: "axis" }, "p50");
+  el("circle", { cx: 900, cy: 27, r: 6, style: "fill:var(--panel);stroke:var(--soft);stroke-width:2" }); el("text", { x: 912, y: 32, class: "axis" }, "p95");
+  const RH = 30, GG = 18, r0 = 64, axisBot = r0 + 4 * (2 * RH + GG) - GG + 6;
+  axis(r0 - 8, axisBot);
+  OPS.forEach(([name, my, neo], g) => {
+    const gy = r0 + g * (2 * RH + GG);
+    el("text", { x: 20, y: gy + RH + 5, class: "b" }, name);
+    [["MySQL", my, "--my"], ["Neo4j", neo, "--neo"]].forEach(([db, [p50, p95], c], i) => {
+      const y = gy + i * RH + RH / 2, col = `var(${c})`;
+      el("text", { x: L - 26, y: y + 5, "text-anchor": "end", class: "axis", style: `fill:${col};font-weight:600` }, db);
+      el("line", { x1: X(p50), x2: X(p95), y1: y, y2: y, style: `stroke:${col};stroke-width:2.5` });
+      el("circle", { cx: X(p50), cy: y, r: 6, style: `fill:${col}` });
+      el("circle", { cx: X(p95), cy: y, r: 6, style: `fill:var(--panel);stroke:${col};stroke-width:2` });
+      el("text", { x: X(p50) - 11, y: y + 5, "text-anchor": "end", class: "v" }, f2(p50));
+      el("text", { x: X(p95) + 11, y: y + 5, class: "v", style: "fill:var(--muted)" }, f2(p95));
+    });
+  });
+
+  // 아래: Neo4j만, 저장을 배치로 묶은 효과
+  const Y2 = PH + 24, PH2 = 642 - Y2;
+  panelHead(Y2, PH2, "Neo4j만: 저장을 한 번의 배치 쿼리로 묶으면", "경로 1천 개 보조 진단 · p50");
+  const d0 = Y2 + 72, axisBot2 = d0 + 2 * 50;
+  axis(d0 - 8, axisBot2);
+  DIAG.forEach(([name, before, after], i) => {
+    const y = d0 + i * 50 + 22, col = "var(--neo)";
+    el("text", { x: 20, y: y + 5, class: "b" }, name);
+    el("line", { x1: X(before) - 8, x2: X(after) + 10, y1: y, y2: y, style: `stroke:${col};stroke-width:2.5` });
+    el("polygon", { points: `${X(after) + 8},${y} ${X(after) + 18},${y - 6} ${X(after) + 18},${y + 6}`, style: `fill:${col}` });
+    el("circle", { cx: X(before), cy: y, r: 6, style: "fill:var(--muted)" });
+    el("circle", { cx: X(after), cy: y, r: 6, style: `fill:${col}` });
+    el("text", { x: X(before), y: y - 12, "text-anchor": "middle", class: "v" }, `단계별 커밋 ${f2(before)}`);
+    el("text", { x: X(after), y: y - 12, "text-anchor": "middle", class: "v b" }, `배치 ${f2(after)}`);
+    el("text", { x: 1124, y: y + 7, "text-anchor": "end", class: "big" }, `약 ${Math.round(before / after)}배`);
+  });
+  document.body.dataset.ready = "1";
+})();
+</script></body></html>
