@@ -1,0 +1,46 @@
+{
+  "utc": "2026-09-29T07:32:19.784604+00:00",
+  "checks": {
+    "operations/runner.py": {
+      "expected": "5b78391c40e26431871dbd8e54a2e6600ade1402a579452a8b8c9e45d894e710",
+      "actual": "5b78391c40e26431871dbd8e54a2e6600ade1402a579452a8b8c9e45d894e710",
+      "match": true
+    },
+    "operations/stores.py": {
+      "expected": "7430532d9e7a7975498af7af4de714ac0aa87670d35e103e9f5fd4e84bba6fe9",
+      "actual": "7430532d9e7a7975498af7af4de714ac0aa87670d35e103e9f5fd4e84bba6fe9",
+      "match": true
+    },
+    "operations/plans.py": {
+      "expected": "cd60709f15959d7f389d185d21ec7dc4f4493f127e442879d75c3d8f15d6bbfe",
+      "actual": "cd60709f15959d7f389d185d21ec7dc4f4493f127e442879d75c3d8f15d6bbfe",
+      "match": true
+    },
+    "operations/run_case.sh": {
+      "expected": "5b4c3b222b827c6fa669f68db50b0667b013d3903229495441baf273f61d7b0a",
+      "actual": "5b4c3b222b827c6fa669f68db50b0667b013d3903229495441baf273f61d7b0a",
+      "match": true
+    },
+    "operations/wait_db.py": {
+      "expected": "c279eb27994659edbfc6972929a048d49696eaf8f4a69e817506d0d591038982",
+      "actual": "c279eb27994659edbfc6972929a048d49696eaf8f4a69e817506d0d591038982",
+      "match": true
+    },
+    "operations/host_state.py": {
+      "expected": "181fd163cb93de629fcbba5e4abb18df1ace503b66ddba3026f9ee4a1ed7ce0a",
+      "actual": "6a1d931bdad4781ecc9ba90e3cb5b63e8a71d1ceacc9d0ba791e40cf48b92995",
+      "match": false,
+      "expected_main": "6a1d931bdad4781ecc9ba90e3cb5b63e8a71d1ceacc9d0ba791e40cf48b92995",
+      "match_main": true
+    },
+    "operations/source_diagnostic.py": {
+      "expected": "5031d8887a0edf0fec5b625e1e72eb3c8d20732e6c95c75c79035f07dec9a928",
+      "actual": "5031d8887a0edf0fec5b625e1e72eb3c8d20732e6c95c75c79035f07dec9a928",
+      "match": true
+    }
+  },
+  "non_host_implementation_match": true,
+  "host_state_main_match": true,
+  "trace_manifest_sha256": "b29446999c64bca6c4f809d8df447133e7a3d6b66f7d36a67891222420bb7928",
+  "shared_data_sha256": "b65551b2a388dfbe80e811dddfd385e6f5245ebc5d2204f7171270c498e4855e"
+}

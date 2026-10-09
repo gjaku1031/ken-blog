@@ -1,0 +1,23 @@
+{
+  "utc": "2026-09-29T08:20:40.439719+00:00",
+  "paths": {
+    "/tmp/vowser-eval-v2/mysql": {
+      "findmnt": "/tmp tmpfs tmpfs rw,nosuid,nodev,size=12273740k,nr_inodes=1048576,inode64,usrquota",
+      "df_T": "Filesystem     Type  1K-blocks    Used Available Use% Mounted on\ntmpfs          tmpfs  12273740 4820748   7452992  40% /tmp"
+    },
+    "/tmp/vowser-eval-v2/neo4j/data": {
+      "findmnt": "/tmp tmpfs tmpfs rw,nosuid,nodev,size=12273740k,nr_inodes=1048576,inode64,usrquota",
+      "df_T": "Filesystem     Type  1K-blocks    Used Available Use% Mounted on\ntmpfs          tmpfs  12273740 4820748   7452992  40% /tmp"
+    },
+    "/tmp/vowser-eval-v2/neo4j/logs": {
+      "findmnt": "/tmp tmpfs tmpfs rw,nosuid,nodev,size=12273740k,nr_inodes=1048576,inode64,usrquota",
+      "df_T": "Filesystem     Type  1K-blocks    Used Available Use% Mounted on\ntmpfs          tmpfs  12273740 4820748   7452992  40% /tmp"
+    }
+  },
+  "setup_bind_mount_evidence": {
+    "mysql": "shared/setup.sh --mount src=/tmp/vowser-eval-v2/mysql,dst=/var/lib/mysql",
+    "neo4j_data": "shared/setup.sh --mount src=/tmp/vowser-eval-v2/neo4j/data,dst=/data",
+    "neo4j_logs": "shared/setup.sh --mount src=/tmp/vowser-eval-v2/neo4j/logs,dst=/logs"
+  },
+  "shared_environment_snapshots_include_filesystem_type": false
+}

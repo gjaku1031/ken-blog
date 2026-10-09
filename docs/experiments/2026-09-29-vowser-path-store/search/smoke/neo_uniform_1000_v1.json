@@ -1,0 +1,1801 @@
+{
+  "backend": "neo",
+  "distribution": "uniform",
+  "failure_count": 0,
+  "faiss_index_build_ms": null,
+  "n": 1000,
+  "query_ids": [
+    0,
+    1,
+    10,
+    17,
+    39,
+    70,
+    100,
+    155,
+    180,
+    199
+  ],
+  "records": [
+    {
+      "arm": "neo_original",
+      "db_roundtrips": 1,
+      "elapsed_ms": 401.729,
+      "harness_wall_ms": 405.436,
+      "hint": false,
+      "json_bytes": 38,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [],
+      "path_ids": [],
+      "query_id": 0
+    },
+    {
+      "arm": "neo_optimized",
+      "db_roundtrips": 1,
+      "elapsed_ms": 879.152,
+      "harness_wall_ms": 879.174,
+      "hint": false,
+      "json_bytes": 38,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [],
+      "path_ids": [],
+      "query_id": 0
+    },
+    {
+      "arm": "neo_original",
+      "db_roundtrips": 1,
+      "elapsed_ms": 134.725,
+      "harness_wall_ms": 146.901,
+      "hint": false,
+      "json_bytes": 38,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [],
+      "path_ids": [],
+      "query_id": 0
+    },
+    {
+      "arm": "neo_optimized",
+      "db_roundtrips": 1,
+      "elapsed_ms": 154.849,
+      "harness_wall_ms": 154.87,
+      "hint": false,
+      "json_bytes": 38,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [],
+      "path_ids": [],
+      "query_id": 0
+    },
+    {
+      "arm": "neo_original",
+      "db_roundtrips": 1,
+      "elapsed_ms": 298.207,
+      "harness_wall_ms": 299.493,
+      "hint": true,
+      "json_bytes": 38,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [],
+      "path_ids": [],
+      "query_id": 0
+    },
+    {
+      "arm": "neo_optimized",
+      "db_roundtrips": 1,
+      "elapsed_ms": 682.648,
+      "harness_wall_ms": 682.668,
+      "hint": true,
+      "json_bytes": 38,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [],
+      "path_ids": [],
+      "query_id": 0
+    },
+    {
+      "arm": "neo_original",
+      "db_roundtrips": 1,
+      "elapsed_ms": 120.281,
+      "harness_wall_ms": 122.793,
+      "hint": true,
+      "json_bytes": 38,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [],
+      "path_ids": [],
+      "query_id": 0
+    },
+    {
+      "arm": "neo_optimized",
+      "db_roundtrips": 1,
+      "elapsed_ms": 74.834,
+      "harness_wall_ms": 74.854,
+      "hint": true,
+      "json_bytes": 38,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [],
+      "path_ids": [],
+      "query_id": 0
+    },
+    {
+      "arm": "neo_original",
+      "db_roundtrips": 1,
+      "elapsed_ms": 21.989,
+      "harness_wall_ms": 25.744,
+      "hint": false,
+      "json_bytes": 38,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [],
+      "path_ids": [],
+      "query_id": 1
+    },
+    {
+      "arm": "neo_optimized",
+      "db_roundtrips": 1,
+      "elapsed_ms": 72.158,
+      "harness_wall_ms": 72.176,
+      "hint": false,
+      "json_bytes": 38,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [],
+      "path_ids": [],
+      "query_id": 1
+    },
+    {
+      "arm": "neo_original",
+      "db_roundtrips": 1,
+      "elapsed_ms": 56.942,
+      "harness_wall_ms": 69.103,
+      "hint": false,
+      "json_bytes": 38,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [],
+      "path_ids": [],
+      "query_id": 1
+    },
+    {
+      "arm": "neo_optimized",
+      "db_roundtrips": 1,
+      "elapsed_ms": 26.449,
+      "harness_wall_ms": 26.468,
+      "hint": false,
+      "json_bytes": 38,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [],
+      "path_ids": [],
+      "query_id": 1
+    },
+    {
+      "arm": "neo_original",
+      "db_roundtrips": 1,
+      "elapsed_ms": 22.492,
+      "harness_wall_ms": 24.976,
+      "hint": true,
+      "json_bytes": 38,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [],
+      "path_ids": [],
+      "query_id": 1
+    },
+    {
+      "arm": "neo_optimized",
+      "db_roundtrips": 1,
+      "elapsed_ms": 10.442,
+      "harness_wall_ms": 10.458,
+      "hint": true,
+      "json_bytes": 38,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [],
+      "path_ids": [],
+      "query_id": 1
+    },
+    {
+      "arm": "neo_original",
+      "db_roundtrips": 1,
+      "elapsed_ms": 26.185,
+      "harness_wall_ms": 29.889,
+      "hint": true,
+      "json_bytes": 38,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [],
+      "path_ids": [],
+      "query_id": 1
+    },
+    {
+      "arm": "neo_optimized",
+      "db_roundtrips": 1,
+      "elapsed_ms": 43.786,
+      "harness_wall_ms": 43.805,
+      "hint": true,
+      "json_bytes": 38,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [],
+      "path_ids": [],
+      "query_id": 1
+    },
+    {
+      "arm": "neo_original",
+      "db_roundtrips": 4,
+      "elapsed_ms": 396.913,
+      "harness_wall_ms": 401.213,
+      "hint": false,
+      "json_bytes": 7669,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [
+        270,
+        271,
+        847
+      ],
+      "path_ids": [
+        270,
+        271,
+        847
+      ],
+      "query_id": 10
+    },
+    {
+      "arm": "neo_optimized",
+      "db_roundtrips": 1,
+      "elapsed_ms": 21.24,
+      "harness_wall_ms": 21.631,
+      "hint": false,
+      "json_bytes": 7669,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [
+        270,
+        271,
+        847
+      ],
+      "path_ids": [
+        270,
+        271,
+        847
+      ],
+      "query_id": 10
+    },
+    {
+      "arm": "neo_original",
+      "db_roundtrips": 11,
+      "elapsed_ms": 273.723,
+      "harness_wall_ms": 287.719,
+      "hint": false,
+      "json_bytes": 29924,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [
+        270,
+        271,
+        847,
+        272,
+        558,
+        560,
+        846,
+        559,
+        274,
+        561
+      ],
+      "path_ids": [
+        270,
+        271,
+        847,
+        272,
+        558,
+        560,
+        846,
+        559,
+        274,
+        561
+      ],
+      "query_id": 10
+    },
+    {
+      "arm": "neo_optimized",
+      "db_roundtrips": 1,
+      "elapsed_ms": 96.55,
+      "harness_wall_ms": 97.709,
+      "hint": false,
+      "json_bytes": 29924,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [
+        270,
+        271,
+        847,
+        272,
+        558,
+        560,
+        846,
+        559,
+        274,
+        561
+      ],
+      "path_ids": [
+        270,
+        271,
+        847,
+        272,
+        558,
+        560,
+        846,
+        559,
+        274,
+        561
+      ],
+      "query_id": 10
+    },
+    {
+      "arm": "neo_original",
+      "db_roundtrips": 4,
+      "elapsed_ms": 33.247,
+      "harness_wall_ms": 37.845,
+      "hint": true,
+      "json_bytes": 10329,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [
+        270,
+        271,
+        272
+      ],
+      "path_ids": [
+        270,
+        271,
+        272
+      ],
+      "query_id": 10
+    },
+    {
+      "arm": "neo_optimized",
+      "db_roundtrips": 1,
+      "elapsed_ms": 54.898,
+      "harness_wall_ms": 55.446,
+      "hint": true,
+      "json_bytes": 10329,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [
+        270,
+        271,
+        272
+      ],
+      "path_ids": [
+        270,
+        271,
+        272
+      ],
+      "query_id": 10
+    },
+    {
+      "arm": "neo_original",
+      "db_roundtrips": 4,
+      "elapsed_ms": 45.091,
+      "harness_wall_ms": 51.817,
+      "hint": true,
+      "json_bytes": 10329,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [
+        270,
+        271,
+        272
+      ],
+      "path_ids": [
+        270,
+        271,
+        272
+      ],
+      "query_id": 10
+    },
+    {
+      "arm": "neo_optimized",
+      "db_roundtrips": 1,
+      "elapsed_ms": 13.408,
+      "harness_wall_ms": 13.94,
+      "hint": true,
+      "json_bytes": 10329,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [
+        270,
+        271,
+        272
+      ],
+      "path_ids": [
+        270,
+        271,
+        272
+      ],
+      "query_id": 10
+    },
+    {
+      "arm": "neo_original",
+      "db_roundtrips": 4,
+      "elapsed_ms": 32.059,
+      "harness_wall_ms": 36.263,
+      "hint": false,
+      "json_bytes": 8990,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [
+        50,
+        336,
+        48
+      ],
+      "path_ids": [
+        50,
+        336,
+        48
+      ],
+      "query_id": 17
+    },
+    {
+      "arm": "neo_optimized",
+      "db_roundtrips": 1,
+      "elapsed_ms": 15.368,
+      "harness_wall_ms": 15.747,
+      "hint": false,
+      "json_bytes": 8990,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [
+        50,
+        336,
+        48
+      ],
+      "path_ids": [
+        50,
+        336,
+        48
+      ],
+      "query_id": 17
+    },
+    {
+      "arm": "neo_original",
+      "db_roundtrips": 11,
+      "elapsed_ms": 94.167,
+      "harness_wall_ms": 108.012,
+      "hint": false,
+      "json_bytes": 32544,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [
+        50,
+        336,
+        48,
+        49,
+        626,
+        912,
+        624,
+        337,
+        338,
+        625
+      ],
+      "path_ids": [
+        50,
+        336,
+        48,
+        49,
+        626,
+        912,
+        624,
+        337,
+        338,
+        625
+      ],
+      "query_id": 17
+    },
+    {
+      "arm": "neo_optimized",
+      "db_roundtrips": 1,
+      "elapsed_ms": 75.538,
+      "harness_wall_ms": 76.796,
+      "hint": false,
+      "json_bytes": 32544,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [
+        50,
+        336,
+        48,
+        49,
+        626,
+        912,
+        624,
+        337,
+        338,
+        625
+      ],
+      "path_ids": [
+        50,
+        336,
+        48,
+        49,
+        626,
+        912,
+        624,
+        337,
+        338,
+        625
+      ],
+      "query_id": 17
+    },
+    {
+      "arm": "neo_original",
+      "db_roundtrips": 4,
+      "elapsed_ms": 32.151,
+      "harness_wall_ms": 36.598,
+      "hint": true,
+      "json_bytes": 10290,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [
+        50,
+        48,
+        49
+      ],
+      "path_ids": [
+        50,
+        48,
+        49
+      ],
+      "query_id": 17
+    },
+    {
+      "arm": "neo_optimized",
+      "db_roundtrips": 1,
+      "elapsed_ms": 12.717,
+      "harness_wall_ms": 13.298,
+      "hint": true,
+      "json_bytes": 10290,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [
+        50,
+        48,
+        49
+      ],
+      "path_ids": [
+        50,
+        48,
+        49
+      ],
+      "query_id": 17
+    },
+    {
+      "arm": "neo_original",
+      "db_roundtrips": 4,
+      "elapsed_ms": 33.241,
+      "harness_wall_ms": 37.529,
+      "hint": true,
+      "json_bytes": 10290,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [
+        50,
+        48,
+        49
+      ],
+      "path_ids": [
+        50,
+        48,
+        49
+      ],
+      "query_id": 17
+    },
+    {
+      "arm": "neo_optimized",
+      "db_roundtrips": 1,
+      "elapsed_ms": 12.064,
+      "harness_wall_ms": 12.661,
+      "hint": true,
+      "json_bytes": 10290,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [
+        50,
+        48,
+        49
+      ],
+      "path_ids": [
+        50,
+        48,
+        49
+      ],
+      "query_id": 17
+    },
+    {
+      "arm": "neo_original",
+      "db_roundtrips": 4,
+      "elapsed_ms": 30.661,
+      "harness_wall_ms": 34.861,
+      "hint": false,
+      "json_bytes": 10329,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [
+        781,
+        494,
+        492
+      ],
+      "path_ids": [
+        781,
+        494,
+        492
+      ],
+      "query_id": 39
+    },
+    {
+      "arm": "neo_optimized",
+      "db_roundtrips": 1,
+      "elapsed_ms": 15.336,
+      "harness_wall_ms": 15.775,
+      "hint": false,
+      "json_bytes": 10329,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [
+        781,
+        494,
+        492
+      ],
+      "path_ids": [
+        781,
+        494,
+        492
+      ],
+      "query_id": 39
+    },
+    {
+      "arm": "neo_original",
+      "db_roundtrips": 11,
+      "elapsed_ms": 87.377,
+      "harness_wall_ms": 101.207,
+      "hint": false,
+      "json_bytes": 36554,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [
+        781,
+        494,
+        492,
+        493,
+        204,
+        497,
+        782,
+        206,
+        205,
+        780
+      ],
+      "path_ids": [
+        781,
+        494,
+        492,
+        493,
+        204,
+        497,
+        782,
+        206,
+        205,
+        780
+      ],
+      "query_id": 39
+    },
+    {
+      "arm": "neo_optimized",
+      "db_roundtrips": 1,
+      "elapsed_ms": 30.368,
+      "harness_wall_ms": 31.78,
+      "hint": false,
+      "json_bytes": 36554,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [
+        781,
+        494,
+        492,
+        493,
+        204,
+        497,
+        782,
+        206,
+        205,
+        780
+      ],
+      "path_ids": [
+        781,
+        494,
+        492,
+        493,
+        204,
+        497,
+        782,
+        206,
+        205,
+        780
+      ],
+      "query_id": 39
+    },
+    {
+      "arm": "neo_original",
+      "db_roundtrips": 4,
+      "elapsed_ms": 32.542,
+      "harness_wall_ms": 36.971,
+      "hint": true,
+      "json_bytes": 10328,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [
+        494,
+        492,
+        493
+      ],
+      "path_ids": [
+        494,
+        492,
+        493
+      ],
+      "query_id": 39
+    },
+    {
+      "arm": "neo_optimized",
+      "db_roundtrips": 1,
+      "elapsed_ms": 11.881,
+      "harness_wall_ms": 12.399,
+      "hint": true,
+      "json_bytes": 10328,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [
+        494,
+        492,
+        493
+      ],
+      "path_ids": [
+        494,
+        492,
+        493
+      ],
+      "query_id": 39
+    },
+    {
+      "arm": "neo_original",
+      "db_roundtrips": 4,
+      "elapsed_ms": 51.642,
+      "harness_wall_ms": 60.796,
+      "hint": true,
+      "json_bytes": 10328,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [
+        494,
+        492,
+        493
+      ],
+      "path_ids": [
+        494,
+        492,
+        493
+      ],
+      "query_id": 39
+    },
+    {
+      "arm": "neo_optimized",
+      "db_roundtrips": 1,
+      "elapsed_ms": 12.114,
+      "harness_wall_ms": 12.669,
+      "hint": true,
+      "json_bytes": 10328,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [
+        494,
+        492,
+        493
+      ],
+      "path_ids": [
+        494,
+        492,
+        493
+      ],
+      "query_id": 39
+    },
+    {
+      "arm": "neo_original",
+      "db_roundtrips": 4,
+      "elapsed_ms": 39.405,
+      "harness_wall_ms": 43.583,
+      "hint": false,
+      "json_bytes": 10321,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [
+        72,
+        937,
+        938
+      ],
+      "path_ids": [
+        72,
+        937,
+        938
+      ],
+      "query_id": 70
+    },
+    {
+      "arm": "neo_optimized",
+      "db_roundtrips": 1,
+      "elapsed_ms": 44.335,
+      "harness_wall_ms": 44.76,
+      "hint": false,
+      "json_bytes": 10321,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [
+        72,
+        937,
+        938
+      ],
+      "path_ids": [
+        72,
+        937,
+        938
+      ],
+      "query_id": 70
+    },
+    {
+      "arm": "neo_original",
+      "db_roundtrips": 11,
+      "elapsed_ms": 117.134,
+      "harness_wall_ms": 130.902,
+      "hint": false,
+      "json_bytes": 36515,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [
+        72,
+        937,
+        938,
+        361,
+        936,
+        73,
+        360,
+        365,
+        362,
+        74
+      ],
+      "path_ids": [
+        72,
+        937,
+        938,
+        361,
+        936,
+        73,
+        360,
+        365,
+        362,
+        74
+      ],
+      "query_id": 70
+    },
+    {
+      "arm": "neo_optimized",
+      "db_roundtrips": 1,
+      "elapsed_ms": 72.738,
+      "harness_wall_ms": 74.143,
+      "hint": false,
+      "json_bytes": 36515,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [
+        72,
+        937,
+        938,
+        361,
+        936,
+        73,
+        360,
+        365,
+        362,
+        74
+      ],
+      "path_ids": [
+        72,
+        937,
+        938,
+        361,
+        936,
+        73,
+        360,
+        365,
+        362,
+        74
+      ],
+      "query_id": 70
+    },
+    {
+      "arm": "neo_original",
+      "db_roundtrips": 4,
+      "elapsed_ms": 38.944,
+      "harness_wall_ms": 43.498,
+      "hint": true,
+      "json_bytes": 10328,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [
+        937,
+        938,
+        936
+      ],
+      "path_ids": [
+        937,
+        938,
+        936
+      ],
+      "query_id": 70
+    },
+    {
+      "arm": "neo_optimized",
+      "db_roundtrips": 1,
+      "elapsed_ms": 21.835,
+      "harness_wall_ms": 22.391,
+      "hint": true,
+      "json_bytes": 10328,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [
+        937,
+        938,
+        936
+      ],
+      "path_ids": [
+        937,
+        938,
+        936
+      ],
+      "query_id": 70
+    },
+    {
+      "arm": "neo_original",
+      "db_roundtrips": 4,
+      "elapsed_ms": 36.037,
+      "harness_wall_ms": 40.417,
+      "hint": true,
+      "json_bytes": 10328,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [
+        937,
+        938,
+        936
+      ],
+      "path_ids": [
+        937,
+        938,
+        936
+      ],
+      "query_id": 70
+    },
+    {
+      "arm": "neo_optimized",
+      "db_roundtrips": 1,
+      "elapsed_ms": 12.494,
+      "harness_wall_ms": 13.02,
+      "hint": true,
+      "json_bytes": 10328,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [
+        937,
+        938,
+        936
+      ],
+      "path_ids": [
+        937,
+        938,
+        936
+      ],
+      "query_id": 70
+    },
+    {
+      "arm": "neo_original",
+      "db_roundtrips": 4,
+      "elapsed_ms": 31.443,
+      "harness_wall_ms": 35.603,
+      "hint": false,
+      "json_bytes": 10329,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [
+        270,
+        847,
+        272
+      ],
+      "path_ids": [
+        270,
+        847,
+        272
+      ],
+      "query_id": 100
+    },
+    {
+      "arm": "neo_optimized",
+      "db_roundtrips": 1,
+      "elapsed_ms": 15.033,
+      "harness_wall_ms": 15.472,
+      "hint": false,
+      "json_bytes": 10329,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [
+        270,
+        847,
+        272
+      ],
+      "path_ids": [
+        270,
+        847,
+        272
+      ],
+      "query_id": 100
+    },
+    {
+      "arm": "neo_original",
+      "db_roundtrips": 11,
+      "elapsed_ms": 87.982,
+      "harness_wall_ms": 102.029,
+      "hint": false,
+      "json_bytes": 33893,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [
+        270,
+        847,
+        272,
+        271,
+        846,
+        559,
+        560,
+        848,
+        562,
+        558
+      ],
+      "path_ids": [
+        270,
+        847,
+        272,
+        271,
+        846,
+        559,
+        560,
+        848,
+        562,
+        558
+      ],
+      "query_id": 100
+    },
+    {
+      "arm": "neo_optimized",
+      "db_roundtrips": 1,
+      "elapsed_ms": 40.018,
+      "harness_wall_ms": 41.32,
+      "hint": false,
+      "json_bytes": 33893,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [
+        270,
+        847,
+        272,
+        271,
+        846,
+        559,
+        560,
+        848,
+        562,
+        558
+      ],
+      "path_ids": [
+        270,
+        847,
+        272,
+        271,
+        846,
+        559,
+        560,
+        848,
+        562,
+        558
+      ],
+      "query_id": 100
+    },
+    {
+      "arm": "neo_original",
+      "db_roundtrips": 4,
+      "elapsed_ms": 31.579,
+      "harness_wall_ms": 35.977,
+      "hint": true,
+      "json_bytes": 10329,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [
+        270,
+        272,
+        271
+      ],
+      "path_ids": [
+        270,
+        272,
+        271
+      ],
+      "query_id": 100
+    },
+    {
+      "arm": "neo_optimized",
+      "db_roundtrips": 1,
+      "elapsed_ms": 12.422,
+      "harness_wall_ms": 12.973,
+      "hint": true,
+      "json_bytes": 10329,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [
+        270,
+        272,
+        271
+      ],
+      "path_ids": [
+        270,
+        272,
+        271
+      ],
+      "query_id": 100
+    },
+    {
+      "arm": "neo_original",
+      "db_roundtrips": 4,
+      "elapsed_ms": 45.693,
+      "harness_wall_ms": 53.604,
+      "hint": true,
+      "json_bytes": 10329,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [
+        270,
+        272,
+        271
+      ],
+      "path_ids": [
+        270,
+        272,
+        271
+      ],
+      "query_id": 100
+    },
+    {
+      "arm": "neo_optimized",
+      "db_roundtrips": 1,
+      "elapsed_ms": 12.394,
+      "harness_wall_ms": 12.91,
+      "hint": true,
+      "json_bytes": 10329,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [
+        270,
+        272,
+        271
+      ],
+      "path_ids": [
+        270,
+        272,
+        271
+      ],
+      "query_id": 100
+    },
+    {
+      "arm": "neo_original",
+      "db_roundtrips": 4,
+      "elapsed_ms": 32.379,
+      "harness_wall_ms": 36.579,
+      "hint": false,
+      "json_bytes": 10329,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [
+        382,
+        381,
+        383
+      ],
+      "path_ids": [
+        382,
+        381,
+        383
+      ],
+      "query_id": 155
+    },
+    {
+      "arm": "neo_optimized",
+      "db_roundtrips": 1,
+      "elapsed_ms": 15.955,
+      "harness_wall_ms": 16.438,
+      "hint": false,
+      "json_bytes": 10329,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [
+        382,
+        381,
+        383
+      ],
+      "path_ids": [
+        382,
+        381,
+        383
+      ],
+      "query_id": 155
+    },
+    {
+      "arm": "neo_original",
+      "db_roundtrips": 11,
+      "elapsed_ms": 88.431,
+      "harness_wall_ms": 102.278,
+      "hint": false,
+      "json_bytes": 36517,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [
+        382,
+        381,
+        383,
+        670,
+        94,
+        959,
+        95,
+        671,
+        93,
+        669
+      ],
+      "path_ids": [
+        382,
+        381,
+        383,
+        670,
+        94,
+        959,
+        95,
+        671,
+        93,
+        669
+      ],
+      "query_id": 155
+    },
+    {
+      "arm": "neo_optimized",
+      "db_roundtrips": 1,
+      "elapsed_ms": 31.575,
+      "harness_wall_ms": 32.966,
+      "hint": false,
+      "json_bytes": 36517,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [
+        382,
+        381,
+        383,
+        670,
+        94,
+        959,
+        95,
+        671,
+        93,
+        669
+      ],
+      "path_ids": [
+        382,
+        381,
+        383,
+        670,
+        94,
+        959,
+        95,
+        671,
+        93,
+        669
+      ],
+      "query_id": 155
+    },
+    {
+      "arm": "neo_original",
+      "db_roundtrips": 4,
+      "elapsed_ms": 31.56,
+      "harness_wall_ms": 36.112,
+      "hint": true,
+      "json_bytes": 10329,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [
+        382,
+        381,
+        383
+      ],
+      "path_ids": [
+        382,
+        381,
+        383
+      ],
+      "query_id": 155
+    },
+    {
+      "arm": "neo_optimized",
+      "db_roundtrips": 1,
+      "elapsed_ms": 12.578,
+      "harness_wall_ms": 13.141,
+      "hint": true,
+      "json_bytes": 10329,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [
+        382,
+        381,
+        383
+      ],
+      "path_ids": [
+        382,
+        381,
+        383
+      ],
+      "query_id": 155
+    },
+    {
+      "arm": "neo_original",
+      "db_roundtrips": 4,
+      "elapsed_ms": 37.123,
+      "harness_wall_ms": 42.696,
+      "hint": true,
+      "json_bytes": 10329,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [
+        382,
+        381,
+        383
+      ],
+      "path_ids": [
+        382,
+        381,
+        383
+      ],
+      "query_id": 155
+    },
+    {
+      "arm": "neo_optimized",
+      "db_roundtrips": 1,
+      "elapsed_ms": 12.165,
+      "harness_wall_ms": 12.678,
+      "hint": true,
+      "json_bytes": 10329,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [
+        382,
+        381,
+        383
+      ],
+      "path_ids": [
+        382,
+        381,
+        383
+      ],
+      "query_id": 155
+    },
+    {
+      "arm": "neo_original",
+      "db_roundtrips": 4,
+      "elapsed_ms": 31.243,
+      "harness_wall_ms": 35.467,
+      "hint": false,
+      "json_bytes": 10329,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [
+        159,
+        449,
+        160
+      ],
+      "path_ids": [
+        159,
+        449,
+        160
+      ],
+      "query_id": 180
+    },
+    {
+      "arm": "neo_optimized",
+      "db_roundtrips": 1,
+      "elapsed_ms": 16.077,
+      "harness_wall_ms": 16.569,
+      "hint": false,
+      "json_bytes": 10329,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [
+        159,
+        449,
+        160
+      ],
+      "path_ids": [
+        159,
+        449,
+        160
+      ],
+      "query_id": 180
+    },
+    {
+      "arm": "neo_original",
+      "db_roundtrips": 11,
+      "elapsed_ms": 85.911,
+      "harness_wall_ms": 99.623,
+      "hint": false,
+      "json_bytes": 29924,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [
+        159,
+        449,
+        160,
+        161,
+        735,
+        448,
+        444,
+        447,
+        157,
+        734
+      ],
+      "path_ids": [
+        159,
+        449,
+        160,
+        161,
+        735,
+        448,
+        444,
+        447,
+        157,
+        736
+      ],
+      "query_id": 180
+    },
+    {
+      "arm": "neo_optimized",
+      "db_roundtrips": 1,
+      "elapsed_ms": 29.571,
+      "harness_wall_ms": 30.835,
+      "hint": false,
+      "json_bytes": 32584,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [
+        159,
+        449,
+        160,
+        161,
+        735,
+        448,
+        444,
+        447,
+        157,
+        734
+      ],
+      "path_ids": [
+        159,
+        449,
+        160,
+        161,
+        735,
+        448,
+        444,
+        447,
+        157,
+        734
+      ],
+      "query_id": 180
+    },
+    {
+      "arm": "neo_original",
+      "db_roundtrips": 4,
+      "elapsed_ms": 32.091,
+      "harness_wall_ms": 36.46,
+      "hint": true,
+      "json_bytes": 10329,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [
+        159,
+        160,
+        161
+      ],
+      "path_ids": [
+        159,
+        160,
+        161
+      ],
+      "query_id": 180
+    },
+    {
+      "arm": "neo_optimized",
+      "db_roundtrips": 1,
+      "elapsed_ms": 12.514,
+      "harness_wall_ms": 13.038,
+      "hint": true,
+      "json_bytes": 10329,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [
+        159,
+        160,
+        161
+      ],
+      "path_ids": [
+        159,
+        160,
+        161
+      ],
+      "query_id": 180
+    },
+    {
+      "arm": "neo_original",
+      "db_roundtrips": 4,
+      "elapsed_ms": 60.1,
+      "harness_wall_ms": 72.0,
+      "hint": true,
+      "json_bytes": 10329,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [
+        159,
+        160,
+        161
+      ],
+      "path_ids": [
+        159,
+        160,
+        161
+      ],
+      "query_id": 180
+    },
+    {
+      "arm": "neo_optimized",
+      "db_roundtrips": 1,
+      "elapsed_ms": 12.381,
+      "harness_wall_ms": 12.903,
+      "hint": true,
+      "json_bytes": 10329,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [
+        159,
+        160,
+        161
+      ],
+      "path_ids": [
+        159,
+        160,
+        161
+      ],
+      "query_id": 180
+    },
+    {
+      "arm": "neo_original",
+      "db_roundtrips": 4,
+      "elapsed_ms": 32.878,
+      "harness_wall_ms": 37.226,
+      "hint": false,
+      "json_bytes": 11639,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [
+        848,
+        271,
+        272
+      ],
+      "path_ids": [
+        848,
+        271,
+        559
+      ],
+      "query_id": 199
+    },
+    {
+      "arm": "neo_optimized",
+      "db_roundtrips": 1,
+      "elapsed_ms": 15.182,
+      "harness_wall_ms": 15.796,
+      "hint": false,
+      "json_bytes": 14299,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [
+        848,
+        271,
+        272
+      ],
+      "path_ids": [
+        848,
+        271,
+        272
+      ],
+      "query_id": 199
+    },
+    {
+      "arm": "neo_original",
+      "db_roundtrips": 11,
+      "elapsed_ms": 83.884,
+      "harness_wall_ms": 97.365,
+      "hint": false,
+      "json_bytes": 32583,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [
+        848,
+        271,
+        272,
+        270,
+        559,
+        560,
+        558,
+        847,
+        273,
+        846
+      ],
+      "path_ids": [
+        848,
+        271,
+        272,
+        270,
+        559,
+        560,
+        558,
+        847,
+        273,
+        846
+      ],
+      "query_id": 199
+    },
+    {
+      "arm": "neo_optimized",
+      "db_roundtrips": 1,
+      "elapsed_ms": 29.277,
+      "harness_wall_ms": 30.513,
+      "hint": false,
+      "json_bytes": 32583,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [
+        848,
+        271,
+        272,
+        270,
+        559,
+        560,
+        558,
+        847,
+        273,
+        846
+      ],
+      "path_ids": [
+        848,
+        271,
+        272,
+        270,
+        559,
+        560,
+        558,
+        847,
+        273,
+        846
+      ],
+      "query_id": 199
+    },
+    {
+      "arm": "neo_original",
+      "db_roundtrips": 4,
+      "elapsed_ms": 30.494,
+      "harness_wall_ms": 34.886,
+      "hint": true,
+      "json_bytes": 10328,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [
+        271,
+        272,
+        270
+      ],
+      "path_ids": [
+        271,
+        272,
+        270
+      ],
+      "query_id": 199
+    },
+    {
+      "arm": "neo_optimized",
+      "db_roundtrips": 1,
+      "elapsed_ms": 12.111,
+      "harness_wall_ms": 12.7,
+      "hint": true,
+      "json_bytes": 10328,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [
+        271,
+        272,
+        270
+      ],
+      "path_ids": [
+        271,
+        272,
+        270
+      ],
+      "query_id": 199
+    },
+    {
+      "arm": "neo_original",
+      "db_roundtrips": 4,
+      "elapsed_ms": 56.209,
+      "harness_wall_ms": 66.734,
+      "hint": true,
+      "json_bytes": 10328,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [
+        271,
+        272,
+        270
+      ],
+      "path_ids": [
+        271,
+        272,
+        270
+      ],
+      "query_id": 199
+    },
+    {
+      "arm": "neo_optimized",
+      "db_roundtrips": 1,
+      "elapsed_ms": 12.732,
+      "harness_wall_ms": 13.349,
+      "hint": true,
+      "json_bytes": 10328,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [
+        271,
+        272,
+        270
+      ],
+      "path_ids": [
+        271,
+        272,
+        270
+      ],
+      "query_id": 199
+    }
+  ],
+  "requests": 80,
+  "rss_after_init_bytes": 81051648,
+  "rss_before_bytes": 80560128,
+  "rss_end_bytes": 84656128
+}

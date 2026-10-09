@@ -1,0 +1,35 @@
+{
+  "utc": "2026-09-29T11:24:49.790356+00:00",
+  "reports": [
+    {
+      "path": "summary/report.pdf",
+      "pages": 1,
+      "sha256": "01be187b1df69fa7d5aecbf650039e2e353e7e3bfe4597542ddb9daf7d333179",
+      "visual_review": "PASS: Korean/table/footer legible"
+    },
+    {
+      "path": "search/reports/official_all_final_v4/ONE_PAGE_LATEST.pdf",
+      "pages": 1,
+      "sha256": "422d4ee48f9557e7aeae8db66d504dbd0f8dafc83276c7844f0cafd29a5f6574",
+      "visual_review": "PASS: Korean/table/footer legible"
+    },
+    {
+      "path": "operations/report.pdf",
+      "pages": 1,
+      "sha256": "791205dfd285701f37c55e5bfea4245db562ebf34952b22953119d8e99ccd287",
+      "visual_review": "PASS: Korean/table/footer legible"
+    },
+    {
+      "path": "branching-revised/report.pdf",
+      "pages": 1,
+      "sha256": "181cf8f4bdb61afebc4920d2948fd40b74e6af8dad0e04735c9f10736174e201",
+      "visual_review": "PASS: Korean/table/footer legible"
+    }
+  ],
+  "source_repositories": "clean and original HEADs unchanged; verified after measurements",
+  "cleanup_record": "cleanup.json",
+  "measurement_check": "independent-check.json",
+  "relative_links_checked": 48,
+  "relative_links_missing": 0,
+  "render_process_cleanup": "Five dedicated Chromium profiles absent; no Chromium process using those profiles"
+}

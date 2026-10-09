@@ -1,0 +1,1306 @@
+{
+  "all_reset_and_full_oracles_pass": true,
+  "blocks": [
+    {
+      "attempts": 200,
+      "backend": "mysql",
+      "condition": "uniform-1000-90_10",
+      "final_matches_warmup_final": true,
+      "full_validation": false,
+      "reset_matches_initial": true,
+      "round": 0,
+      "warmup_attempts": 200
+    },
+    {
+      "attempts": 200,
+      "backend": "mysql",
+      "condition": "uniform-1000-90_10",
+      "final_matches_warmup_final": true,
+      "full_validation": false,
+      "reset_matches_initial": true,
+      "round": 1,
+      "warmup_attempts": 200
+    },
+    {
+      "attempts": 200,
+      "backend": "mysql",
+      "condition": "uniform-1000-90_10",
+      "final_matches_warmup_final": true,
+      "full_validation": true,
+      "reset_matches_initial": true,
+      "round": 2,
+      "warmup_attempts": 200
+    },
+    {
+      "attempts": 200,
+      "backend": "neo4j",
+      "condition": "uniform-1000-90_10",
+      "final_matches_warmup_final": true,
+      "full_validation": false,
+      "reset_matches_initial": true,
+      "round": 0,
+      "warmup_attempts": 200
+    },
+    {
+      "attempts": 200,
+      "backend": "neo4j",
+      "condition": "uniform-1000-90_10",
+      "final_matches_warmup_final": true,
+      "full_validation": false,
+      "reset_matches_initial": true,
+      "round": 1,
+      "warmup_attempts": 200
+    },
+    {
+      "attempts": 200,
+      "backend": "neo4j",
+      "condition": "uniform-1000-90_10",
+      "final_matches_warmup_final": true,
+      "full_validation": true,
+      "reset_matches_initial": true,
+      "round": 2,
+      "warmup_attempts": 200
+    },
+    {
+      "attempts": 200,
+      "backend": "mysql",
+      "condition": "uniform-1000-50_50",
+      "final_matches_warmup_final": true,
+      "full_validation": false,
+      "reset_matches_initial": true,
+      "round": 0,
+      "warmup_attempts": 200
+    },
+    {
+      "attempts": 200,
+      "backend": "mysql",
+      "condition": "uniform-1000-50_50",
+      "final_matches_warmup_final": true,
+      "full_validation": false,
+      "reset_matches_initial": true,
+      "round": 1,
+      "warmup_attempts": 200
+    },
+    {
+      "attempts": 200,
+      "backend": "mysql",
+      "condition": "uniform-1000-50_50",
+      "final_matches_warmup_final": true,
+      "full_validation": true,
+      "reset_matches_initial": true,
+      "round": 2,
+      "warmup_attempts": 200
+    },
+    {
+      "attempts": 200,
+      "backend": "neo4j",
+      "condition": "uniform-1000-50_50",
+      "final_matches_warmup_final": true,
+      "full_validation": false,
+      "reset_matches_initial": true,
+      "round": 0,
+      "warmup_attempts": 200
+    },
+    {
+      "attempts": 200,
+      "backend": "neo4j",
+      "condition": "uniform-1000-50_50",
+      "final_matches_warmup_final": true,
+      "full_validation": false,
+      "reset_matches_initial": true,
+      "round": 1,
+      "warmup_attempts": 200
+    },
+    {
+      "attempts": 200,
+      "backend": "neo4j",
+      "condition": "uniform-1000-50_50",
+      "final_matches_warmup_final": true,
+      "full_validation": true,
+      "reset_matches_initial": true,
+      "round": 2,
+      "warmup_attempts": 200
+    },
+    {
+      "attempts": 200,
+      "backend": "mysql",
+      "condition": "uniform-10000-90_10",
+      "final_matches_warmup_final": true,
+      "full_validation": false,
+      "reset_matches_initial": true,
+      "round": 0,
+      "warmup_attempts": 200
+    },
+    {
+      "attempts": 200,
+      "backend": "mysql",
+      "condition": "uniform-10000-90_10",
+      "final_matches_warmup_final": true,
+      "full_validation": false,
+      "reset_matches_initial": true,
+      "round": 1,
+      "warmup_attempts": 200
+    },
+    {
+      "attempts": 200,
+      "backend": "mysql",
+      "condition": "uniform-10000-90_10",
+      "final_matches_warmup_final": true,
+      "full_validation": true,
+      "reset_matches_initial": true,
+      "round": 2,
+      "warmup_attempts": 200
+    },
+    {
+      "attempts": 200,
+      "backend": "neo4j",
+      "condition": "uniform-10000-90_10",
+      "final_matches_warmup_final": true,
+      "full_validation": false,
+      "reset_matches_initial": true,
+      "round": 0,
+      "warmup_attempts": 200
+    },
+    {
+      "attempts": 200,
+      "backend": "neo4j",
+      "condition": "uniform-10000-90_10",
+      "final_matches_warmup_final": true,
+      "full_validation": false,
+      "reset_matches_initial": true,
+      "round": 1,
+      "warmup_attempts": 200
+    },
+    {
+      "attempts": 200,
+      "backend": "neo4j",
+      "condition": "uniform-10000-90_10",
+      "final_matches_warmup_final": true,
+      "full_validation": true,
+      "reset_matches_initial": true,
+      "round": 2,
+      "warmup_attempts": 200
+    },
+    {
+      "attempts": 200,
+      "backend": "mysql",
+      "condition": "uniform-10000-50_50",
+      "final_matches_warmup_final": true,
+      "full_validation": false,
+      "reset_matches_initial": true,
+      "round": 0,
+      "warmup_attempts": 200
+    },
+    {
+      "attempts": 200,
+      "backend": "mysql",
+      "condition": "uniform-10000-50_50",
+      "final_matches_warmup_final": true,
+      "full_validation": false,
+      "reset_matches_initial": true,
+      "round": 1,
+      "warmup_attempts": 200
+    },
+    {
+      "attempts": 200,
+      "backend": "mysql",
+      "condition": "uniform-10000-50_50",
+      "final_matches_warmup_final": true,
+      "full_validation": true,
+      "reset_matches_initial": true,
+      "round": 2,
+      "warmup_attempts": 200
+    },
+    {
+      "attempts": 200,
+      "backend": "neo4j",
+      "condition": "uniform-10000-50_50",
+      "final_matches_warmup_final": true,
+      "full_validation": false,
+      "reset_matches_initial": true,
+      "round": 0,
+      "warmup_attempts": 200
+    },
+    {
+      "attempts": 200,
+      "backend": "neo4j",
+      "condition": "uniform-10000-50_50",
+      "final_matches_warmup_final": true,
+      "full_validation": false,
+      "reset_matches_initial": true,
+      "round": 1,
+      "warmup_attempts": 200
+    },
+    {
+      "attempts": 200,
+      "backend": "neo4j",
+      "condition": "uniform-10000-50_50",
+      "final_matches_warmup_final": true,
+      "full_validation": true,
+      "reset_matches_initial": true,
+      "round": 2,
+      "warmup_attempts": 200
+    },
+    {
+      "attempts": 200,
+      "backend": "mysql",
+      "condition": "skew-10000-90_10",
+      "final_matches_warmup_final": true,
+      "full_validation": false,
+      "reset_matches_initial": true,
+      "round": 0,
+      "warmup_attempts": 200
+    },
+    {
+      "attempts": 200,
+      "backend": "mysql",
+      "condition": "skew-10000-90_10",
+      "final_matches_warmup_final": true,
+      "full_validation": false,
+      "reset_matches_initial": true,
+      "round": 1,
+      "warmup_attempts": 200
+    },
+    {
+      "attempts": 200,
+      "backend": "mysql",
+      "condition": "skew-10000-90_10",
+      "final_matches_warmup_final": true,
+      "full_validation": true,
+      "reset_matches_initial": true,
+      "round": 2,
+      "warmup_attempts": 200
+    },
+    {
+      "attempts": 200,
+      "backend": "neo4j",
+      "condition": "skew-10000-90_10",
+      "final_matches_warmup_final": true,
+      "full_validation": false,
+      "reset_matches_initial": true,
+      "round": 0,
+      "warmup_attempts": 200
+    },
+    {
+      "attempts": 200,
+      "backend": "neo4j",
+      "condition": "skew-10000-90_10",
+      "final_matches_warmup_final": true,
+      "full_validation": false,
+      "reset_matches_initial": true,
+      "round": 1,
+      "warmup_attempts": 200
+    },
+    {
+      "attempts": 200,
+      "backend": "neo4j",
+      "condition": "skew-10000-90_10",
+      "final_matches_warmup_final": true,
+      "full_validation": true,
+      "reset_matches_initial": true,
+      "round": 2,
+      "warmup_attempts": 200
+    },
+    {
+      "attempts": 200,
+      "backend": "mysql",
+      "condition": "skew-10000-50_50",
+      "final_matches_warmup_final": true,
+      "full_validation": false,
+      "reset_matches_initial": true,
+      "round": 0,
+      "warmup_attempts": 200
+    },
+    {
+      "attempts": 200,
+      "backend": "mysql",
+      "condition": "skew-10000-50_50",
+      "final_matches_warmup_final": true,
+      "full_validation": false,
+      "reset_matches_initial": true,
+      "round": 1,
+      "warmup_attempts": 200
+    },
+    {
+      "attempts": 200,
+      "backend": "mysql",
+      "condition": "skew-10000-50_50",
+      "final_matches_warmup_final": true,
+      "full_validation": true,
+      "reset_matches_initial": true,
+      "round": 2,
+      "warmup_attempts": 200
+    },
+    {
+      "attempts": 200,
+      "backend": "neo4j",
+      "condition": "skew-10000-50_50",
+      "final_matches_warmup_final": true,
+      "full_validation": false,
+      "reset_matches_initial": true,
+      "round": 0,
+      "warmup_attempts": 200
+    },
+    {
+      "attempts": 200,
+      "backend": "neo4j",
+      "condition": "skew-10000-50_50",
+      "final_matches_warmup_final": true,
+      "full_validation": false,
+      "reset_matches_initial": true,
+      "round": 1,
+      "warmup_attempts": 200
+    },
+    {
+      "attempts": 200,
+      "backend": "neo4j",
+      "condition": "skew-10000-50_50",
+      "final_matches_warmup_final": true,
+      "full_validation": true,
+      "reset_matches_initial": true,
+      "round": 2,
+      "warmup_attempts": 200
+    },
+    {
+      "attempts": 200,
+      "backend": "mysql",
+      "condition": "uniform-30000-90_10",
+      "final_matches_warmup_final": true,
+      "full_validation": false,
+      "reset_matches_initial": true,
+      "round": 0,
+      "warmup_attempts": 200
+    },
+    {
+      "attempts": 200,
+      "backend": "mysql",
+      "condition": "uniform-30000-90_10",
+      "final_matches_warmup_final": true,
+      "full_validation": false,
+      "reset_matches_initial": true,
+      "round": 1,
+      "warmup_attempts": 200
+    },
+    {
+      "attempts": 200,
+      "backend": "mysql",
+      "condition": "uniform-30000-90_10",
+      "final_matches_warmup_final": true,
+      "full_validation": true,
+      "reset_matches_initial": true,
+      "round": 2,
+      "warmup_attempts": 200
+    },
+    {
+      "attempts": 200,
+      "backend": "neo4j",
+      "condition": "uniform-30000-90_10",
+      "final_matches_warmup_final": true,
+      "full_validation": false,
+      "reset_matches_initial": true,
+      "round": 0,
+      "warmup_attempts": 200
+    },
+    {
+      "attempts": 200,
+      "backend": "neo4j",
+      "condition": "uniform-30000-90_10",
+      "final_matches_warmup_final": true,
+      "full_validation": false,
+      "reset_matches_initial": true,
+      "round": 1,
+      "warmup_attempts": 200
+    },
+    {
+      "attempts": 200,
+      "backend": "neo4j",
+      "condition": "uniform-30000-90_10",
+      "final_matches_warmup_final": true,
+      "full_validation": true,
+      "reset_matches_initial": true,
+      "round": 2,
+      "warmup_attempts": 200
+    },
+    {
+      "attempts": 200,
+      "backend": "mysql",
+      "condition": "uniform-30000-50_50",
+      "final_matches_warmup_final": true,
+      "full_validation": false,
+      "reset_matches_initial": true,
+      "round": 0,
+      "warmup_attempts": 200
+    },
+    {
+      "attempts": 200,
+      "backend": "mysql",
+      "condition": "uniform-30000-50_50",
+      "final_matches_warmup_final": true,
+      "full_validation": false,
+      "reset_matches_initial": true,
+      "round": 1,
+      "warmup_attempts": 200
+    },
+    {
+      "attempts": 200,
+      "backend": "mysql",
+      "condition": "uniform-30000-50_50",
+      "final_matches_warmup_final": true,
+      "full_validation": true,
+      "reset_matches_initial": true,
+      "round": 2,
+      "warmup_attempts": 200
+    },
+    {
+      "attempts": 200,
+      "backend": "neo4j",
+      "condition": "uniform-30000-50_50",
+      "final_matches_warmup_final": true,
+      "full_validation": false,
+      "reset_matches_initial": true,
+      "round": 0,
+      "warmup_attempts": 200
+    },
+    {
+      "attempts": 200,
+      "backend": "neo4j",
+      "condition": "uniform-30000-50_50",
+      "final_matches_warmup_final": true,
+      "full_validation": false,
+      "reset_matches_initial": true,
+      "round": 1,
+      "warmup_attempts": 200
+    },
+    {
+      "attempts": 200,
+      "backend": "neo4j",
+      "condition": "uniform-30000-50_50",
+      "final_matches_warmup_final": true,
+      "full_validation": true,
+      "reset_matches_initial": true,
+      "round": 2,
+      "warmup_attempts": 200
+    }
+  ],
+  "diagnostic_extra_attempts_not_official": 36,
+  "interrupted_extra_attempts_not_official": 200,
+  "interrupted_termination": "host shell SIGTERM exit 143 after raw CSV, before final full validation and reset",
+  "latency_method": "CSV latency_ns / 1e6; Python statistics.median and sorted linear type-7 p95; successful official requests only",
+  "metrics": [
+    {
+      "attempts": 150,
+      "backend": "mysql",
+      "distribution": "skew",
+      "median_ms": 0.8169455000000001,
+      "mix": "50:50",
+      "operation": "popular",
+      "p95_ms_type7": 1.0593015499999998,
+      "scale": 10000
+    },
+    {
+      "attempts": 30,
+      "backend": "mysql",
+      "distribution": "skew",
+      "median_ms": 7.3781495,
+      "mix": "50:50",
+      "operation": "register",
+      "p95_ms_type7": 17.02391755,
+      "scale": 10000
+    },
+    {
+      "attempts": 270,
+      "backend": "mysql",
+      "distribution": "skew",
+      "median_ms": 1.228528,
+      "mix": "50:50",
+      "operation": "update",
+      "p95_ms_type7": 1.7074269999999994,
+      "scale": 10000
+    },
+    {
+      "attempts": 150,
+      "backend": "mysql",
+      "distribution": "skew",
+      "median_ms": 1.722051,
+      "mix": "50:50",
+      "operation": "visualize",
+      "p95_ms_type7": 2.1813325499999983,
+      "scale": 10000
+    },
+    {
+      "attempts": 150,
+      "backend": "neo4j",
+      "distribution": "skew",
+      "median_ms": 9.3253825,
+      "mix": "50:50",
+      "operation": "popular",
+      "p95_ms_type7": 76.74193299999999,
+      "scale": 10000
+    },
+    {
+      "attempts": 30,
+      "backend": "neo4j",
+      "distribution": "skew",
+      "median_ms": 58.4280705,
+      "mix": "50:50",
+      "operation": "register",
+      "p95_ms_type7": 97.00346035000001,
+      "scale": 10000
+    },
+    {
+      "attempts": 270,
+      "backend": "neo4j",
+      "distribution": "skew",
+      "median_ms": 5.6241775,
+      "mix": "50:50",
+      "operation": "update",
+      "p95_ms_type7": 74.10389455,
+      "scale": 10000
+    },
+    {
+      "attempts": 150,
+      "backend": "neo4j",
+      "distribution": "skew",
+      "median_ms": 9.882506,
+      "mix": "50:50",
+      "operation": "visualize",
+      "p95_ms_type7": 76.69116455,
+      "scale": 10000
+    },
+    {
+      "attempts": 270,
+      "backend": "mysql",
+      "distribution": "skew",
+      "median_ms": 0.8114055,
+      "mix": "90:10",
+      "operation": "popular",
+      "p95_ms_type7": 1.2375139999999991,
+      "scale": 10000
+    },
+    {
+      "attempts": 30,
+      "backend": "mysql",
+      "distribution": "skew",
+      "median_ms": 8.256596,
+      "mix": "90:10",
+      "operation": "register",
+      "p95_ms_type7": 21.729255799999997,
+      "scale": 10000
+    },
+    {
+      "attempts": 30,
+      "backend": "mysql",
+      "distribution": "skew",
+      "median_ms": 1.48361,
+      "mix": "90:10",
+      "operation": "update",
+      "p95_ms_type7": 2.261295,
+      "scale": 10000
+    },
+    {
+      "attempts": 270,
+      "backend": "mysql",
+      "distribution": "skew",
+      "median_ms": 1.6976909999999998,
+      "mix": "90:10",
+      "operation": "visualize",
+      "p95_ms_type7": 2.495299,
+      "scale": 10000
+    },
+    {
+      "attempts": 270,
+      "backend": "neo4j",
+      "distribution": "skew",
+      "median_ms": 8.783519,
+      "mix": "90:10",
+      "operation": "popular",
+      "p95_ms_type7": 46.277750149999974,
+      "scale": 10000
+    },
+    {
+      "attempts": 30,
+      "backend": "neo4j",
+      "distribution": "skew",
+      "median_ms": 24.088639999999998,
+      "mix": "90:10",
+      "operation": "register",
+      "p95_ms_type7": 70.54959709999999,
+      "scale": 10000
+    },
+    {
+      "attempts": 30,
+      "backend": "neo4j",
+      "distribution": "skew",
+      "median_ms": 7.365791,
+      "mix": "90:10",
+      "operation": "update",
+      "p95_ms_type7": 50.426039099999954,
+      "scale": 10000
+    },
+    {
+      "attempts": 270,
+      "backend": "neo4j",
+      "distribution": "skew",
+      "median_ms": 9.2080435,
+      "mix": "90:10",
+      "operation": "visualize",
+      "p95_ms_type7": 43.59460914999997,
+      "scale": 10000
+    },
+    {
+      "attempts": 150,
+      "backend": "mysql",
+      "distribution": "uniform",
+      "median_ms": 0.6224845,
+      "mix": "50:50",
+      "operation": "popular",
+      "p95_ms_type7": 0.736394,
+      "scale": 1000
+    },
+    {
+      "attempts": 30,
+      "backend": "mysql",
+      "distribution": "uniform",
+      "median_ms": 7.1055715,
+      "mix": "50:50",
+      "operation": "register",
+      "p95_ms_type7": 13.1602201,
+      "scale": 1000
+    },
+    {
+      "attempts": 270,
+      "backend": "mysql",
+      "distribution": "uniform",
+      "median_ms": 1.2133284999999998,
+      "mix": "50:50",
+      "operation": "update",
+      "p95_ms_type7": 1.62160545,
+      "scale": 1000
+    },
+    {
+      "attempts": 150,
+      "backend": "mysql",
+      "distribution": "uniform",
+      "median_ms": 1.517931,
+      "mix": "50:50",
+      "operation": "visualize",
+      "p95_ms_type7": 1.7894005499999999,
+      "scale": 1000
+    },
+    {
+      "attempts": 150,
+      "backend": "neo4j",
+      "distribution": "uniform",
+      "median_ms": 4.4791125,
+      "mix": "50:50",
+      "operation": "popular",
+      "p95_ms_type7": 70.28026634999999,
+      "scale": 1000
+    },
+    {
+      "attempts": 30,
+      "backend": "neo4j",
+      "distribution": "uniform",
+      "median_ms": 75.5126625,
+      "mix": "50:50",
+      "operation": "register",
+      "p95_ms_type7": 152.68410909999974,
+      "scale": 1000
+    },
+    {
+      "attempts": 270,
+      "backend": "neo4j",
+      "distribution": "uniform",
+      "median_ms": 5.9384225,
+      "mix": "50:50",
+      "operation": "update",
+      "p95_ms_type7": 71.98493679999999,
+      "scale": 1000
+    },
+    {
+      "attempts": 150,
+      "backend": "neo4j",
+      "distribution": "uniform",
+      "median_ms": 5.339218000000001,
+      "mix": "50:50",
+      "operation": "visualize",
+      "p95_ms_type7": 73.835151,
+      "scale": 1000
+    },
+    {
+      "attempts": 270,
+      "backend": "mysql",
+      "distribution": "uniform",
+      "median_ms": 0.6017440000000001,
+      "mix": "90:10",
+      "operation": "popular",
+      "p95_ms_type7": 0.8279039999999998,
+      "scale": 1000
+    },
+    {
+      "attempts": 30,
+      "backend": "mysql",
+      "distribution": "uniform",
+      "median_ms": 7.7963555,
+      "mix": "90:10",
+      "operation": "register",
+      "p95_ms_type7": 14.878658399999996,
+      "scale": 1000
+    },
+    {
+      "attempts": 30,
+      "backend": "mysql",
+      "distribution": "uniform",
+      "median_ms": 1.2169885,
+      "mix": "90:10",
+      "operation": "update",
+      "p95_ms_type7": 1.4853760999999996,
+      "scale": 1000
+    },
+    {
+      "attempts": 270,
+      "backend": "mysql",
+      "distribution": "uniform",
+      "median_ms": 1.4718305,
+      "mix": "90:10",
+      "operation": "visualize",
+      "p95_ms_type7": 1.86468655,
+      "scale": 1000
+    },
+    {
+      "attempts": 270,
+      "backend": "neo4j",
+      "distribution": "uniform",
+      "median_ms": 3.763607,
+      "mix": "90:10",
+      "operation": "popular",
+      "p95_ms_type7": 48.915869499999914,
+      "scale": 1000
+    },
+    {
+      "attempts": 30,
+      "backend": "neo4j",
+      "distribution": "uniform",
+      "median_ms": 62.8234675,
+      "mix": "90:10",
+      "operation": "register",
+      "p95_ms_type7": 97.38437609999997,
+      "scale": 1000
+    },
+    {
+      "attempts": 30,
+      "backend": "neo4j",
+      "distribution": "uniform",
+      "median_ms": 6.5559665,
+      "mix": "90:10",
+      "operation": "update",
+      "p95_ms_type7": 76.21863389999999,
+      "scale": 1000
+    },
+    {
+      "attempts": 270,
+      "backend": "neo4j",
+      "distribution": "uniform",
+      "median_ms": 4.4435325,
+      "mix": "90:10",
+      "operation": "visualize",
+      "p95_ms_type7": 67.36832164999998,
+      "scale": 1000
+    },
+    {
+      "attempts": 150,
+      "backend": "mysql",
+      "distribution": "uniform",
+      "median_ms": 0.627984,
+      "mix": "50:50",
+      "operation": "popular",
+      "p95_ms_type7": 0.7249509999999999,
+      "scale": 10000
+    },
+    {
+      "attempts": 30,
+      "backend": "mysql",
+      "distribution": "uniform",
+      "median_ms": 6.8562875,
+      "mix": "50:50",
+      "operation": "register",
+      "p95_ms_type7": 13.035438099999999,
+      "scale": 10000
+    },
+    {
+      "attempts": 270,
+      "backend": "mysql",
+      "distribution": "uniform",
+      "median_ms": 1.1719884999999999,
+      "mix": "50:50",
+      "operation": "update",
+      "p95_ms_type7": 1.4814439999999998,
+      "scale": 10000
+    },
+    {
+      "attempts": 150,
+      "backend": "mysql",
+      "distribution": "uniform",
+      "median_ms": 1.5465305,
+      "mix": "50:50",
+      "operation": "visualize",
+      "p95_ms_type7": 1.73616855,
+      "scale": 10000
+    },
+    {
+      "attempts": 150,
+      "backend": "neo4j",
+      "distribution": "uniform",
+      "median_ms": 4.9385745,
+      "mix": "50:50",
+      "operation": "popular",
+      "p95_ms_type7": 71.40816075,
+      "scale": 10000
+    },
+    {
+      "attempts": 30,
+      "backend": "neo4j",
+      "distribution": "uniform",
+      "median_ms": 75.91854699999999,
+      "mix": "50:50",
+      "operation": "register",
+      "p95_ms_type7": 100.77676559999999,
+      "scale": 10000
+    },
+    {
+      "attempts": 270,
+      "backend": "neo4j",
+      "distribution": "uniform",
+      "median_ms": 5.5778385,
+      "mix": "50:50",
+      "operation": "update",
+      "p95_ms_type7": 75.11145655,
+      "scale": 10000
+    },
+    {
+      "attempts": 150,
+      "backend": "neo4j",
+      "distribution": "uniform",
+      "median_ms": 5.478898,
+      "mix": "50:50",
+      "operation": "visualize",
+      "p95_ms_type7": 73.23766764999999,
+      "scale": 10000
+    },
+    {
+      "attempts": 270,
+      "backend": "mysql",
+      "distribution": "uniform",
+      "median_ms": 0.5903445,
+      "mix": "90:10",
+      "operation": "popular",
+      "p95_ms_type7": 0.68628055,
+      "scale": 10000
+    },
+    {
+      "attempts": 30,
+      "backend": "mysql",
+      "distribution": "uniform",
+      "median_ms": 6.5559460000000005,
+      "mix": "90:10",
+      "operation": "register",
+      "p95_ms_type7": 12.3729201,
+      "scale": 10000
+    },
+    {
+      "attempts": 30,
+      "backend": "mysql",
+      "distribution": "uniform",
+      "median_ms": 1.1701679999999999,
+      "mix": "90:10",
+      "operation": "update",
+      "p95_ms_type7": 1.4762719999999998,
+      "scale": 10000
+    },
+    {
+      "attempts": 270,
+      "backend": "mysql",
+      "distribution": "uniform",
+      "median_ms": 1.44459,
+      "mix": "90:10",
+      "operation": "visualize",
+      "p95_ms_type7": 1.64437355,
+      "scale": 10000
+    },
+    {
+      "attempts": 270,
+      "backend": "neo4j",
+      "distribution": "uniform",
+      "median_ms": 4.054008,
+      "mix": "90:10",
+      "operation": "popular",
+      "p95_ms_type7": 61.53273994999997,
+      "scale": 10000
+    },
+    {
+      "attempts": 30,
+      "backend": "neo4j",
+      "distribution": "uniform",
+      "median_ms": 27.6747735,
+      "mix": "90:10",
+      "operation": "register",
+      "p95_ms_type7": 94.71496474999996,
+      "scale": 10000
+    },
+    {
+      "attempts": 30,
+      "backend": "neo4j",
+      "distribution": "uniform",
+      "median_ms": 6.6281465,
+      "mix": "90:10",
+      "operation": "update",
+      "p95_ms_type7": 71.38010745,
+      "scale": 10000
+    },
+    {
+      "attempts": 270,
+      "backend": "neo4j",
+      "distribution": "uniform",
+      "median_ms": 4.5653115,
+      "mix": "90:10",
+      "operation": "visualize",
+      "p95_ms_type7": 64.30077109999999,
+      "scale": 10000
+    },
+    {
+      "attempts": 150,
+      "backend": "mysql",
+      "distribution": "uniform",
+      "median_ms": 0.7811250000000001,
+      "mix": "50:50",
+      "operation": "popular",
+      "p95_ms_type7": 0.9118609999999999,
+      "scale": 30000
+    },
+    {
+      "attempts": 30,
+      "backend": "mysql",
+      "distribution": "uniform",
+      "median_ms": 7.501811,
+      "mix": "50:50",
+      "operation": "register",
+      "p95_ms_type7": 13.607555199999998,
+      "scale": 30000
+    },
+    {
+      "attempts": 270,
+      "backend": "mysql",
+      "distribution": "uniform",
+      "median_ms": 1.1854879999999999,
+      "mix": "50:50",
+      "operation": "update",
+      "p95_ms_type7": 1.5394345500000002,
+      "scale": 30000
+    },
+    {
+      "attempts": 150,
+      "backend": "mysql",
+      "distribution": "uniform",
+      "median_ms": 1.7416719999999999,
+      "mix": "50:50",
+      "operation": "visualize",
+      "p95_ms_type7": 2.008396,
+      "scale": 30000
+    },
+    {
+      "attempts": 150,
+      "backend": "neo4j",
+      "distribution": "uniform",
+      "median_ms": 5.699719,
+      "mix": "50:50",
+      "operation": "popular",
+      "p95_ms_type7": 73.97952855,
+      "scale": 30000
+    },
+    {
+      "attempts": 30,
+      "backend": "neo4j",
+      "distribution": "uniform",
+      "median_ms": 78.96267950000001,
+      "mix": "50:50",
+      "operation": "register",
+      "p95_ms_type7": 145.54235679999977,
+      "scale": 30000
+    },
+    {
+      "attempts": 270,
+      "backend": "neo4j",
+      "distribution": "uniform",
+      "median_ms": 5.278276,
+      "mix": "50:50",
+      "operation": "update",
+      "p95_ms_type7": 70.86998855,
+      "scale": 30000
+    },
+    {
+      "attempts": 150,
+      "backend": "neo4j",
+      "distribution": "uniform",
+      "median_ms": 6.445704,
+      "mix": "50:50",
+      "operation": "visualize",
+      "p95_ms_type7": 75.32927329999998,
+      "scale": 30000
+    },
+    {
+      "attempts": 270,
+      "backend": "mysql",
+      "distribution": "uniform",
+      "median_ms": 0.730665,
+      "mix": "90:10",
+      "operation": "popular",
+      "p95_ms_type7": 0.8606579999999999,
+      "scale": 30000
+    },
+    {
+      "attempts": 30,
+      "backend": "mysql",
+      "distribution": "uniform",
+      "median_ms": 7.1439685,
+      "mix": "90:10",
+      "operation": "register",
+      "p95_ms_type7": 13.033456849999997,
+      "scale": 30000
+    },
+    {
+      "attempts": 30,
+      "backend": "mysql",
+      "distribution": "uniform",
+      "median_ms": 1.2338685,
+      "mix": "90:10",
+      "operation": "update",
+      "p95_ms_type7": 1.5945105499999996,
+      "scale": 30000
+    },
+    {
+      "attempts": 270,
+      "backend": "mysql",
+      "distribution": "uniform",
+      "median_ms": 1.6513309999999999,
+      "mix": "90:10",
+      "operation": "visualize",
+      "p95_ms_type7": 1.8193484499999997,
+      "scale": 30000
+    },
+    {
+      "attempts": 270,
+      "backend": "neo4j",
+      "distribution": "uniform",
+      "median_ms": 5.029154500000001,
+      "mix": "90:10",
+      "operation": "popular",
+      "p95_ms_type7": 50.449132549999995,
+      "scale": 30000
+    },
+    {
+      "attempts": 30,
+      "backend": "neo4j",
+      "distribution": "uniform",
+      "median_ms": 26.4971405,
+      "mix": "90:10",
+      "operation": "register",
+      "p95_ms_type7": 83.82612375,
+      "scale": 30000
+    },
+    {
+      "attempts": 30,
+      "backend": "neo4j",
+      "distribution": "uniform",
+      "median_ms": 6.2315825,
+      "mix": "90:10",
+      "operation": "update",
+      "p95_ms_type7": 52.36595914999998,
+      "scale": 30000
+    },
+    {
+      "attempts": 270,
+      "backend": "neo4j",
+      "distribution": "uniform",
+      "median_ms": 5.471137499999999,
+      "mix": "90:10",
+      "operation": "visualize",
+      "p95_ms_type7": 47.81663594999998,
+      "scale": 30000
+    }
+  ],
+  "official_attempts": 9600,
+  "official_blocks": 48,
+  "official_request_errors_or_timeouts": 0,
+  "oracle_checks": [
+    {
+      "condition": "uniform-1000-90_10",
+      "final_snapshot_match_6_blocks": true,
+      "full_validation_match_2_backends": true,
+      "trace_sha256": "38d908ee208c7fb8905b0550e264c10345ce7804c2e9a2d6690544cec6e11104"
+    },
+    {
+      "condition": "uniform-1000-50_50",
+      "final_snapshot_match_6_blocks": true,
+      "full_validation_match_2_backends": true,
+      "trace_sha256": "9275a0343bfc3ea86346e00bbe7cc1e7c836f3f17553d3c25913a19069332327"
+    },
+    {
+      "condition": "uniform-10000-90_10",
+      "final_snapshot_match_6_blocks": true,
+      "full_validation_match_2_backends": true,
+      "trace_sha256": "7af3da3237ab674ccd11c0a21822bcbec6d44371aa7cbe9628229364e6ceab96"
+    },
+    {
+      "condition": "uniform-10000-50_50",
+      "final_snapshot_match_6_blocks": true,
+      "full_validation_match_2_backends": true,
+      "trace_sha256": "2e437d923cbf3684b9127a048b51a0e965c452a5026e4d5285313de4d5bc855f"
+    },
+    {
+      "condition": "skew-10000-90_10",
+      "final_snapshot_match_6_blocks": true,
+      "full_validation_match_2_backends": true,
+      "trace_sha256": "482f3402e99de7cc9283e0950a6c4e0396646ad15056ce450941b8680b42e1f7"
+    },
+    {
+      "condition": "skew-10000-50_50",
+      "final_snapshot_match_6_blocks": true,
+      "full_validation_match_2_backends": true,
+      "trace_sha256": "9575de31bf42db476f200504179a399c9642fa6a2f4ef18ce5be746996539b84"
+    },
+    {
+      "condition": "uniform-30000-90_10",
+      "final_snapshot_match_6_blocks": true,
+      "full_validation_match_2_backends": true,
+      "trace_sha256": "e2eb49e4f0091aa084388c3a76b0622ac29d8dcd66fd83c7a956b36d5daa0518"
+    },
+    {
+      "condition": "uniform-30000-50_50",
+      "final_snapshot_match_6_blocks": true,
+      "full_validation_match_2_backends": true,
+      "trace_sha256": "8514089e1f0516f88ec641bccd0e64be63670cecdcf8c7a302d94207d7f66e1e"
+    }
+  ],
+  "raw_and_round_sha256": {
+    "operations/results/raw-skew-10000-50_50-mysql-r0.csv": "6b8d39f80298944b769e0b8ba2c1831f61816ca23cfaa1afe80d9209aeac3ae0",
+    "operations/results/raw-skew-10000-50_50-mysql-r1.csv": "9b55ef431a627e9c52d4dc17c7b129e8fee37435f6b878fb507821db7c8ef28e",
+    "operations/results/raw-skew-10000-50_50-mysql-r2.csv": "39172acd728fc09270f536afef8af7d4935ddf86b3a9189a03774ae70635a0d5",
+    "operations/results/raw-skew-10000-50_50-neo4j-r0.csv": "02dd4aeedc348282ce179493adc025147b70afbdede5c3a308a449f15cbe85b8",
+    "operations/results/raw-skew-10000-50_50-neo4j-r1.csv": "15cd3f12d8d80c25e407a1314875f681f531ff0bd6e036a4ed34e46ad4058406",
+    "operations/results/raw-skew-10000-50_50-neo4j-r2.csv": "833ad31ae94e498a3c3827ffe75ffabd7798ef870e0deb36d5b43d5ee1283fd3",
+    "operations/results/raw-skew-10000-90_10-mysql-r0.csv": "832ddf2885592b39a52dc3d0543f37781fe229144cb7a669dda245b2a9fa0602",
+    "operations/results/raw-skew-10000-90_10-mysql-r1.csv": "9500c29ee4f0438494a3e8ba7bed4f9a93f1e061acc73cda30c450b281bd2eb8",
+    "operations/results/raw-skew-10000-90_10-mysql-r2.csv": "43c6e9d73a10e5b885178df7a2967877e58584afa70522c3e2891c72b8b1ae2d",
+    "operations/results/raw-skew-10000-90_10-neo4j-r0.csv": "c4fc096a600b52d57770fa27b6908f749c29e1ba4528b9a35c8e953500220682",
+    "operations/results/raw-skew-10000-90_10-neo4j-r1.csv": "90e03dbc65d12b5db9ebd5ca40898f516b1c2092e663cf421b8dc4bcd9372be1",
+    "operations/results/raw-skew-10000-90_10-neo4j-r2.csv": "16602ba175160e5b513e910aea10af35e6618e72078ce7d7fec6d5a0ffc6f787",
+    "operations/results/raw-uniform-1000-50_50-mysql-r0.csv": "496c2fc88da148dc5e2204527e4087920b67dcb38e3cc4d3f78624970e44d1b7",
+    "operations/results/raw-uniform-1000-50_50-mysql-r1.csv": "dd5a6a3ea865986fc17afbeff9fcddd0691abd0b5acc1dabb106d6a76b143eac",
+    "operations/results/raw-uniform-1000-50_50-mysql-r2.csv": "6df15db711f1b8ad71b83a8ffbfc0bf61dc03ec5ee974a7e6edb696bc13fe7a6",
+    "operations/results/raw-uniform-1000-50_50-neo4j-r0.csv": "46d178bdc15d5cf63a4eef202d264191a7186d78b0055e824768495a02025c08",
+    "operations/results/raw-uniform-1000-50_50-neo4j-r1.csv": "525bdd31c33e82c8b6bbcf1142920f7a12cb9ce9d7b9e88bd5929ebc394992bc",
+    "operations/results/raw-uniform-1000-50_50-neo4j-r2.csv": "86ce8aefa3f5a8ab750ae9f1766896cd7bc6fc81b7baf111a9556b0b60a3f87d",
+    "operations/results/raw-uniform-1000-90_10-mysql-r0.csv": "6ec01560d55b52ef0f6db615c777b4cf5dc5e94c801d7ddce909fb9057af4e00",
+    "operations/results/raw-uniform-1000-90_10-mysql-r1.csv": "fddfc603daa631ae01666fbd44c6a6ca1c2f25067b4c177dbbb8dff1941d2f9b",
+    "operations/results/raw-uniform-1000-90_10-mysql-r2.csv": "f4d514ad05e75ea10c77b1d62cef76b2f62b8f31c54b01e435d08d4e8c908592",
+    "operations/results/raw-uniform-1000-90_10-neo4j-r0.csv": "8bb96aa0d1d9f37f22d2ef2a8c43228589a476616eb24cdbaa54147f18eeb96e",
+    "operations/results/raw-uniform-1000-90_10-neo4j-r1.csv": "c365f76811bbe72db39263b97b337a0e43e2fb2203b5878a0d2ff32dcec678d1",
+    "operations/results/raw-uniform-1000-90_10-neo4j-r2.csv": "c0f095571267bf523904db0edb86a3d905b61d1ed6e8a19b03561ee523da6da8",
+    "operations/results/raw-uniform-10000-50_50-mysql-r0.csv": "eed0566ef83742c36540a72b566a5fc2acc5696a5ae328ff461e8cbea33269c4",
+    "operations/results/raw-uniform-10000-50_50-mysql-r1.csv": "a3b55be2a56f0fb37517640e6c98fbd3f428e4e1013d949276ce3c6aae8251f8",
+    "operations/results/raw-uniform-10000-50_50-mysql-r2.csv": "79600f9f83771a653636ee264419937d39c0f2b07793bf684ead4b3a1bfd1cef",
+    "operations/results/raw-uniform-10000-50_50-neo4j-r0.csv": "59cf2bf1e2ab0ad8581204c71d9839c66d0be755b6a44964bd535de1515ffcdc",
+    "operations/results/raw-uniform-10000-50_50-neo4j-r1.csv": "f38f981892be119fc54edcbc809d66dde1ba7725651c099394ccc1ed7cbd712c",
+    "operations/results/raw-uniform-10000-50_50-neo4j-r2.csv": "b203a4203abdb56ed4a93c54b6fbc7132bc3b9faa8d47a0ff8f10b2a89041e61",
+    "operations/results/raw-uniform-10000-90_10-mysql-r0.csv": "4e058723201036bdb24a2e94508c42fefb770606645bdd0def11bce07a9292c9",
+    "operations/results/raw-uniform-10000-90_10-mysql-r1.csv": "1dac848e6763c120c953e425771ea783710a5205207f3e521a421538aa6b28ed",
+    "operations/results/raw-uniform-10000-90_10-mysql-r2.csv": "b80664e1898a45216a71f8bb16699fb183c8d88c4ecb196c147b391bf9115264",
+    "operations/results/raw-uniform-10000-90_10-neo4j-r0.csv": "11904da0379df801bb845672ddf1131fe72d1fc601336ac8e7110c6628f7124b",
+    "operations/results/raw-uniform-10000-90_10-neo4j-r1.csv": "6803edb1b5e768040931b4e863ba6875bc45d56738b452eed8e6225658893f06",
+    "operations/results/raw-uniform-10000-90_10-neo4j-r2.csv": "40f242257e36f2a71202baf305cc40c378dd36c1ff3f6baf4c0a116dac091c9a",
+    "operations/results/raw-uniform-30000-50_50-mysql-r0.csv": "3a25a144fba1a41baaacb8b4d66ce7c1251576c51da3555abda4a2507205a7e3",
+    "operations/results/raw-uniform-30000-50_50-mysql-r1.csv": "b3fb06b809c909bbba788332191ea38964cc310c7009e1f31296495d1f18bbae",
+    "operations/results/raw-uniform-30000-50_50-mysql-r2.csv": "89f8dcfe04f4a1af013274b8cd18cc0a20ff07cff9d6ed52315ddf6004c44397",
+    "operations/results/raw-uniform-30000-50_50-neo4j-r0.csv": "fefca8af4085a1944931e615add1be8d5fcb19e0432e0c6f30aff970d45210dd",
+    "operations/results/raw-uniform-30000-50_50-neo4j-r1.csv": "d027de5a03f798b886b0797885368664d0264a4a9136377011d91a9c255d0a14",
+    "operations/results/raw-uniform-30000-50_50-neo4j-r2.csv": "2d989e5b80d637f5980c9f8abc3706440551380454b4586a012cab00839fe9c7",
+    "operations/results/raw-uniform-30000-90_10-mysql-r0.csv": "dfcd9dfb0dd836a5647601a54006515f54bf4ccc5632b053e1409f5cdf2f0d1b",
+    "operations/results/raw-uniform-30000-90_10-mysql-r1.csv": "5996ea873ad1785ed91697017deeafd389f4a1ba4e864ecc17b0938476567dee",
+    "operations/results/raw-uniform-30000-90_10-mysql-r2.csv": "0242a492ec790b637dc2acc92c89abb89131ee0f7262ef180fcb5df83f7b82c4",
+    "operations/results/raw-uniform-30000-90_10-neo4j-r0.csv": "6c860cf2fe864b4246855877cbaf7307909fd762948309534e1ddf084cdee7ff",
+    "operations/results/raw-uniform-30000-90_10-neo4j-r1.csv": "e0a162400fefcaf454c18fb9d47e32ddaf633939a29fab9d551348cc02190154",
+    "operations/results/raw-uniform-30000-90_10-neo4j-r2.csv": "c06f57c90172c19c19cae2c3fb2f2e112c43cb103a3acf2176a431880fb006b9",
+    "operations/results/round-skew-10000-50_50-mysql-r0.json": "d60ecdc7b93acfafccf7982edca7f7f28dd292d8a3121d22bc7c6b57bf743226",
+    "operations/results/round-skew-10000-50_50-mysql-r1.json": "c140e57b685b1056cde6ad77480d39ca866e56066bd120812cb734beb890a69d",
+    "operations/results/round-skew-10000-50_50-mysql-r2.json": "d26c5434a9886f9215f908b1372813e72635fcf2ead2357fdaeb8ac5b9bc94f9",
+    "operations/results/round-skew-10000-50_50-neo4j-r0.json": "13c22bc03b22159ccbbc41fe04e0772a49b14f8b1068118c0c9ff0f6e14c45e9",
+    "operations/results/round-skew-10000-50_50-neo4j-r1.json": "2754906424d9f44abd0fb60636b72787104d746f39ce79de32efae0a0be76b01",
+    "operations/results/round-skew-10000-50_50-neo4j-r2.json": "d2a2d6be4e21dcd0d74126ca4cfb152fb01c4480abc2f57b2ef0d9cc4f19342b",
+    "operations/results/round-skew-10000-90_10-mysql-r0.json": "465bff7b21ca17cf8ad4c7959026ac243503f15210550d9fe69026e8693e7ee1",
+    "operations/results/round-skew-10000-90_10-mysql-r1.json": "d4f28c082f24621aee7aa8c4c73f55f20ab740cc91764724683df811d8156df2",
+    "operations/results/round-skew-10000-90_10-mysql-r2.json": "7f534ff6836508e122d450b0234e47070970f909ef450664709f7c3709488b6c",
+    "operations/results/round-skew-10000-90_10-neo4j-r0.json": "82f5e27f96e526ba4551037f03f48e77fd57b27f8a81361129bcabc238e0d911",
+    "operations/results/round-skew-10000-90_10-neo4j-r1.json": "e172a4d89a1e3fd9f9c83f2deb2ce18a7bc8d03481014c042692ad3b3af517be",
+    "operations/results/round-skew-10000-90_10-neo4j-r2.json": "dd0036c8e8bc3ff98bb9aebce431eeb9110ed3e36dea74d6b95ce86f330b41a6",
+    "operations/results/round-uniform-1000-50_50-mysql-r0.json": "54ec01dcfef91370473f7988423d918b651741054fe88ac08f609636a905a618",
+    "operations/results/round-uniform-1000-50_50-mysql-r1.json": "fd8f55364a2c73820bbffab2c92c40919a4b6af1ad979c713aa748106dd303c9",
+    "operations/results/round-uniform-1000-50_50-mysql-r2.json": "6df47c34025d4bd52b3565eacb57b6cd3fe3ca067fa89d1171d2cce85d015bbf",
+    "operations/results/round-uniform-1000-50_50-neo4j-r0.json": "14cf22a56775455b277113d55e82ca2cc61e3ca7ae3b3ef7a3e8403210c8b194",
+    "operations/results/round-uniform-1000-50_50-neo4j-r1.json": "60295b8fa60096a68a200f04c2a4304c66db4ba5e5154c9c7638347cd4dd970a",
+    "operations/results/round-uniform-1000-50_50-neo4j-r2.json": "1c3bb06dcc5631305ca4bad372617b6506dc875e85844ff459da85fd922dc2ce",
+    "operations/results/round-uniform-1000-90_10-mysql-r0.json": "aadb7edd612547882763315de10f2dad55164ef115b078cf9c54249834a67630",
+    "operations/results/round-uniform-1000-90_10-mysql-r1.json": "08883e9fcbfad2e2eb5c9933d27520a25d01defc1abc5ea266d0ec619fd1e101",
+    "operations/results/round-uniform-1000-90_10-mysql-r2.json": "df0a8596105e7ffe6618b09ae0494323e429f27c9ff92c588d904d8653d43555",
+    "operations/results/round-uniform-1000-90_10-neo4j-r0.json": "e66fce2960f49e3b44d90254b4cda69043c3402f9db16e0314fbd72f20b2041c",
+    "operations/results/round-uniform-1000-90_10-neo4j-r1.json": "aa94abcdbd7dd3f82b54c3f1b9e44ab0a348f63ab252abd7280fe538d6f0a490",
+    "operations/results/round-uniform-1000-90_10-neo4j-r2.json": "6843b898397620a12f67552782d97900fd3b40603aa43751ce4c68518ea3bca5",
+    "operations/results/round-uniform-10000-50_50-mysql-r0.json": "ceada547b5c08d7931d59417ced8350a9029823daa2bd41f4334e2e79d0da2a6",
+    "operations/results/round-uniform-10000-50_50-mysql-r1.json": "d8e93fed817c5a41709b16090660c9fd8c2fab31c8aa4c81b3434702af2724f7",
+    "operations/results/round-uniform-10000-50_50-mysql-r2.json": "57d3d5e64ce77078983c011894de45cd9086f1e5d8ddd0998758bf45638b19c8",
+    "operations/results/round-uniform-10000-50_50-neo4j-r0.json": "1701f005d983dd66261f76e11fedc0ebdda78c3486a643742754879d494934bc",
+    "operations/results/round-uniform-10000-50_50-neo4j-r1.json": "d7e03765037a477212471d227d610d5f725ffae54e230528cd9f6aecc49b2b01",
+    "operations/results/round-uniform-10000-50_50-neo4j-r2.json": "0fab4bd2e83f67e876363a4cbf47ae7bf31524df3284d9248ab522a0298ebf30",
+    "operations/results/round-uniform-10000-90_10-mysql-r0.json": "9543928c34002cddeaab7558dfa014a3d9ccf168ff6e5ae98d8bbcee486f87e0",
+    "operations/results/round-uniform-10000-90_10-mysql-r1.json": "da3a35040eb2e110c3bdbc85484be66f4f5c67f75c0597458c3f4bf4125596ce",
+    "operations/results/round-uniform-10000-90_10-mysql-r2.json": "08e40d0b9142ecb9ddb907d4a10651dc021bb8d9e627b348840c26e693d372c8",
+    "operations/results/round-uniform-10000-90_10-neo4j-r0.json": "53c85ebdb69883be4d2882be3b3b555e74eab76921dd88f118c66e49058f805d",
+    "operations/results/round-uniform-10000-90_10-neo4j-r1.json": "42f16f2d5babc77ba3777f49ff35ae632740749a7e2875f60892243b0d205d23",
+    "operations/results/round-uniform-10000-90_10-neo4j-r2.json": "9776a6425a0323d6cc64515c86b6528182eb88ebefebcd62223362103937bb68",
+    "operations/results/round-uniform-30000-50_50-mysql-r0.json": "c56ecc8b42fae016419dd6d36db184be694f54ece18554f59e457da5d4054ccb",
+    "operations/results/round-uniform-30000-50_50-mysql-r1.json": "dfd7778e6209c0633d1ce696c80a29e1c4ae496da4526fc755b23ca5455c5b08",
+    "operations/results/round-uniform-30000-50_50-mysql-r2.json": "f2cdfaba8e6590fdce445f1b05e1771e5f47e669e458a3556f19a3555d50138e",
+    "operations/results/round-uniform-30000-50_50-neo4j-r0.json": "405a15fd0ddd6dba8ccd2c68ae95e790aa99e12fcd5669c7011715fb40ea61c4",
+    "operations/results/round-uniform-30000-50_50-neo4j-r1.json": "a98703934cda7755dbdf01373e40bdebe5ca6ab7593e9086420fe48b4cd092da",
+    "operations/results/round-uniform-30000-50_50-neo4j-r2.json": "680afeaaad4a459372b5156efab0ee80ab4ab9e07a7159bd2cfa63faf70fdb3d",
+    "operations/results/round-uniform-30000-90_10-mysql-r0.json": "01815336d8b0ee05bac4abe2f3ec078b9d0bfa2c007ccfe2b5f221b30ac99783",
+    "operations/results/round-uniform-30000-90_10-mysql-r1.json": "45de28c58b9f8e53952713740bbd43b05247fd048f04a85b59834acb5d5ff33d",
+    "operations/results/round-uniform-30000-90_10-mysql-r2.json": "3cd9c5802045d83642411a308bbfcf9b7d581c6cf1fc3a6e93d99a8789f98617",
+    "operations/results/round-uniform-30000-90_10-neo4j-r0.json": "b9c8c309086933e4abc447c2f8047a8d998916cfb87d7845e44158797fc7adbb",
+    "operations/results/round-uniform-30000-90_10-neo4j-r1.json": "ad744897383c9d7a627c9d696dc789e106812e1133ddeb7cfae7540fac4e8a39",
+    "operations/results/round-uniform-30000-90_10-neo4j-r2.json": "659e69c0a7e183b14ae3650065cad77db77ede9591c166780f14ad1645572623"
+  },
+  "scope": "final read-only independent audit of all eight operations conditions",
+  "source_diagnostic": {
+    "optimized": {
+      "client_cypher_calls_per_write": "1",
+      "measured_rows": 18,
+      "rounds": 3,
+      "source_sha256": {
+        "csv": "1c4bddd078e19174258719275e39585e55c6085af13593f36223daa39aa2a29f",
+        "json": "849a3c4f65b2a0f6307a77c256f3ecf778f44841f56ac27f16552295dbaf7cdb"
+      }
+    },
+    "source_shape": {
+      "client_cypher_calls_per_write": "2*depth+3",
+      "measured_rows": 18,
+      "rounds": 3,
+      "source_sha256": {
+        "csv": "dba1f3f8cf71052a1d65c26761f94c95cffb29f6786cfe4fd4a9d16844de15c1",
+        "json": "f921369499bb2cb9a9dfe8eaf7f66541da476f7714e68d96f850ef562ee595cd"
+      }
+    }
+  },
+  "source_diagnostic_final_and_reset_match": true,
+  "warmup_attempts": 9600,
+  "warmup_raw_rows": 0
+}

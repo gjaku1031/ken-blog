@@ -1,0 +1,24 @@
+{
+  "collector_sha256": "3bcfa877f71f98805debffe9dd7189f26dfcfa11c134ff1e99212b028666f3c3",
+  "complete_fixture": false,
+  "condition": "30000_skew_partial_after_oom",
+  "counts": {
+    "edges": 280000,
+    "heads": 24000,
+    "roots": 30,
+    "steps": 304000
+  },
+  "indexes": [
+    {
+      "name": "sr1_root_domain",
+      "state": "ONLINE",
+      "type": "RANGE"
+    },
+    {
+      "name": "sr1_step_id",
+      "state": "ONLINE",
+      "type": "RANGE"
+    }
+  ],
+  "search_attempts": 0
+}

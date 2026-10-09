@@ -1,0 +1,68 @@
+{
+  "time_utc": "2026-09-29T07:04:16.174464+00:00",
+  "backend": "mysql",
+  "host_load_1_5_15": [
+    4.86572265625,
+    2.94091796875,
+    1.9306640625
+  ],
+  "host_memory_available_bytes": 9836060672,
+  "host_memory_used_bytes": 15300554752,
+  "running_container_stats": [
+    {
+      "Name": "friendly_mcnulty",
+      "CPUPerc": "37.28%",
+      "MemUsage": "265.1MiB / 23.41GiB"
+    },
+    {
+      "Name": "sleepy_galois",
+      "CPUPerc": "0.32%",
+      "MemUsage": "478.3MiB / 23.41GiB"
+    },
+    {
+      "Name": "testcontainers-ryuk-018716a4-f893-4130-b86b-57542fbe172e",
+      "CPUPerc": "0.00%",
+      "MemUsage": "8.828MiB / 23.41GiB"
+    },
+    {
+      "Name": "vowser-eval-v2-mysql",
+      "CPUPerc": "0.91%",
+      "MemUsage": "611.9MiB / 3GiB"
+    },
+    {
+      "Name": "ken-blog-live-api-1",
+      "CPUPerc": "0.13%",
+      "MemUsage": "928.9MiB / 1GiB"
+    },
+    {
+      "Name": "devspace-root-devspace-1",
+      "CPUPerc": "0.10%",
+      "MemUsage": "167.4MiB / 23.41GiB"
+    },
+    {
+      "Name": "ken-blog-live-web-1",
+      "CPUPerc": "0.00%",
+      "MemUsage": "8.531MiB / 128MiB"
+    }
+  ],
+  "db_cpu_stat": {
+    "exit_code": 0,
+    "stdout": "usage_usec 1289493\nuser_usec 545954\nsystem_usec 743539\nnice_usec 0\ncore_sched.force_idle_usec 0\nnr_periods 41\nnr_throttled 5\nthrottled_usec 72618\nnr_bursts 0\nburst_usec 0",
+    "stderr": ""
+  },
+  "db_memory_current": {
+    "exit_code": 0,
+    "stdout": "642781184",
+    "stderr": ""
+  },
+  "db_memory_peak": {
+    "exit_code": 0,
+    "stdout": "658468864",
+    "stderr": ""
+  },
+  "db_store_du_bytes": {
+    "exit_code": 0,
+    "stdout": "122798200\t/var/lib/mysql/vowser_eval_v2",
+    "stderr": ""
+  }
+}

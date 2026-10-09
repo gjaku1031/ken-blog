@@ -1,0 +1,7 @@
+{
+  "utc": "2026-09-29T06:26:20Z",
+  "reason": "host_state dependency fix before first timed request",
+  "input_query_hashes_same_as_pre_smoke": true,
+  "host_state_sha256": "6a1d931bdad4781ecc9ba90e3cb5b63e8a71d1ceacc9d0ba791e40cf48b92995",
+  "previous_freeze_file_sha256": "e959ee9c83c465e3628d693875afb92f1982789629814a90db6c92bfd401a5b1"
+}

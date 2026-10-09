@@ -1,0 +1,18 @@
+{
+  "utc": "2026-09-29T07:33:01.690726+00:00",
+  "containers": {
+    "vowser-eval-v2-mysql": {
+      "running": false,
+      "exit_code": 0,
+      "oom_killed": false,
+      "finished_at": "2026-09-29T07:30:17.291264201Z"
+    },
+    "vowser-eval-v2-neo4j": {
+      "running": false,
+      "exit_code": 137,
+      "oom_killed": false,
+      "finished_at": "2026-09-29T07:32:48.689124381Z"
+    }
+  },
+  "db_dependent_evidence_complete": true
+}

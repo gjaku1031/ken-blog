@@ -1,0 +1,313 @@
+{
+  "backend": "mysql",
+  "collector_sha256": "ebd0e326e17c37156b67844b48e61c9f296af465c2bcc786df2d23e1e0ec6f7d",
+  "method": "read-only after official search measurement",
+  "result": {
+    "counts": {
+      "logical_edges": 350000,
+      "paths": 30000,
+      "roots": 30,
+      "steps": 380000
+    },
+    "explain_plan": {
+      "query_block": {
+        "cost_info": {
+          "query_cost": "39.67"
+        },
+        "ordering_operation": {
+          "nested_loop": [
+            {
+              "table": {
+                "access_type": "range",
+                "attached_condition": "(`vowser_eval_v2`.`p`.`path_id` in (0,1,2))",
+                "cost_info": {
+                  "data_read_per_join": "840",
+                  "eval_cost": "0.30",
+                  "prefix_cost": "2.88",
+                  "read_cost": "2.58"
+                },
+                "filtered": "100.00",
+                "key": "PRIMARY",
+                "key_length": "4",
+                "possible_keys": [
+                  "PRIMARY",
+                  "sr1_path_domain"
+                ],
+                "rows_examined_per_scan": 3,
+                "rows_produced_per_join": 3,
+                "table_name": "p",
+                "used_columns": [
+                  "path_id",
+                  "domain_id",
+                  "task_intent",
+                  "weight"
+                ],
+                "used_key_parts": [
+                  "path_id"
+                ]
+              }
+            },
+            {
+              "table": {
+                "access_type": "eq_ref",
+                "cost_info": {
+                  "data_read_per_join": "792",
+                  "eval_cost": "0.30",
+                  "prefix_cost": "6.18",
+                  "read_cost": "3.00"
+                },
+                "filtered": "100.00",
+                "key": "PRIMARY",
+                "key_length": "1",
+                "possible_keys": [
+                  "PRIMARY"
+                ],
+                "ref": [
+                  "vowser_eval_v2.p.domain_id"
+                ],
+                "rows_examined_per_scan": 1,
+                "rows_produced_per_join": 3,
+                "table_name": "r",
+                "used_columns": [
+                  "domain_id",
+                  "domain"
+                ],
+                "used_key_parts": [
+                  "domain_id"
+                ]
+              }
+            },
+            {
+              "table": {
+                "access_type": "ref",
+                "cost_info": {
+                  "data_read_per_join": "170K",
+                  "eval_cost": "3.91",
+                  "prefix_cost": "39.67",
+                  "read_cost": "29.58"
+                },
+                "filtered": "100.00",
+                "key": "sr1_step_path_ordinal",
+                "key_length": "4",
+                "possible_keys": [
+                  "sr1_step_path_ordinal"
+                ],
+                "ref": [
+                  "vowser_eval_v2.p.path_id"
+                ],
+                "rows_examined_per_scan": 13,
+                "rows_produced_per_join": 39,
+                "table_name": "s",
+                "used_columns": [
+                  "step_id",
+                  "path_id",
+                  "ordinal",
+                  "url",
+                  "action",
+                  "selectors",
+                  "description",
+                  "is_input",
+                  "input_type",
+                  "input_placeholder",
+                  "should_wait",
+                  "wait_message",
+                  "text_labels"
+                ],
+                "used_key_parts": [
+                  "path_id"
+                ]
+              }
+            }
+          ],
+          "using_filesort": true,
+          "using_temporary_table": true
+        },
+        "select_id": 1
+      }
+    },
+    "indexes": {
+      "sr1_path": [
+        {
+          "Cardinality": 15001,
+          "Collation": "A",
+          "Column_name": "path_id",
+          "Comment": "",
+          "Expression": null,
+          "Index_comment": "",
+          "Index_type": "BTREE",
+          "Key_name": "PRIMARY",
+          "Non_unique": 0,
+          "Null": "",
+          "Packed": null,
+          "Seq_in_index": 1,
+          "Sub_part": null,
+          "Table": "sr1_path",
+          "Visible": "YES"
+        },
+        {
+          "Cardinality": 30,
+          "Collation": "A",
+          "Column_name": "domain_id",
+          "Comment": "",
+          "Expression": null,
+          "Index_comment": "",
+          "Index_type": "BTREE",
+          "Key_name": "sr1_path_domain",
+          "Non_unique": 1,
+          "Null": "",
+          "Packed": null,
+          "Seq_in_index": 1,
+          "Sub_part": null,
+          "Table": "sr1_path",
+          "Visible": "YES"
+        },
+        {
+          "Cardinality": 15001,
+          "Collation": "A",
+          "Column_name": "first_step_id",
+          "Comment": "",
+          "Expression": null,
+          "Index_comment": "",
+          "Index_type": "BTREE",
+          "Key_name": "sr1_path_first",
+          "Non_unique": 1,
+          "Null": "",
+          "Packed": null,
+          "Seq_in_index": 1,
+          "Sub_part": null,
+          "Table": "sr1_path",
+          "Visible": "YES"
+        }
+      ],
+      "sr1_root": [
+        {
+          "Cardinality": 30,
+          "Collation": "A",
+          "Column_name": "domain_id",
+          "Comment": "",
+          "Expression": null,
+          "Index_comment": "",
+          "Index_type": "BTREE",
+          "Key_name": "PRIMARY",
+          "Non_unique": 0,
+          "Null": "",
+          "Packed": null,
+          "Seq_in_index": 1,
+          "Sub_part": null,
+          "Table": "sr1_root",
+          "Visible": "YES"
+        },
+        {
+          "Cardinality": 30,
+          "Collation": "A",
+          "Column_name": "domain",
+          "Comment": "",
+          "Expression": null,
+          "Index_comment": "",
+          "Index_type": "BTREE",
+          "Key_name": "domain",
+          "Non_unique": 0,
+          "Null": "",
+          "Packed": null,
+          "Seq_in_index": 1,
+          "Sub_part": null,
+          "Table": "sr1_root",
+          "Visible": "YES"
+        }
+      ],
+      "sr1_step": [
+        {
+          "Cardinality": 392237,
+          "Collation": "A",
+          "Column_name": "step_id",
+          "Comment": "",
+          "Expression": null,
+          "Index_comment": "",
+          "Index_type": "BTREE",
+          "Key_name": "PRIMARY",
+          "Non_unique": 0,
+          "Null": "",
+          "Packed": null,
+          "Seq_in_index": 1,
+          "Sub_part": null,
+          "Table": "sr1_step",
+          "Visible": "YES"
+        },
+        {
+          "Cardinality": 30113,
+          "Collation": "A",
+          "Column_name": "path_id",
+          "Comment": "",
+          "Expression": null,
+          "Index_comment": "",
+          "Index_type": "BTREE",
+          "Key_name": "sr1_step_path_ordinal",
+          "Non_unique": 1,
+          "Null": "",
+          "Packed": null,
+          "Seq_in_index": 1,
+          "Sub_part": null,
+          "Table": "sr1_step",
+          "Visible": "YES"
+        },
+        {
+          "Cardinality": 379288,
+          "Collation": "A",
+          "Column_name": "ordinal",
+          "Comment": "",
+          "Expression": null,
+          "Index_comment": "",
+          "Index_type": "BTREE",
+          "Key_name": "sr1_step_path_ordinal",
+          "Non_unique": 1,
+          "Null": "",
+          "Packed": null,
+          "Seq_in_index": 2,
+          "Sub_part": null,
+          "Table": "sr1_step",
+          "Visible": "YES"
+        }
+      ]
+    },
+    "tables": [
+      {
+        "data_free": 4194304,
+        "data_length": 246120448,
+        "estimated_rows": 15001,
+        "index_length": 4227072,
+        "table_name": "sr1_path"
+      },
+      {
+        "data_free": 0,
+        "data_length": 16384,
+        "estimated_rows": 30,
+        "index_length": 16384,
+        "table_name": "sr1_root"
+      },
+      {
+        "data_free": 4194304,
+        "data_length": 112132096,
+        "estimated_rows": 392237,
+        "index_length": 17383424,
+        "table_name": "sr1_step"
+      }
+    ],
+    "tablespaces": [
+      {
+        "allocated_size": 260046848,
+        "file_size": 260046848,
+        "name": "vowser_eval_v2/sr1_path"
+      },
+      {
+        "allocated_size": 131072,
+        "file_size": 131072,
+        "name": "vowser_eval_v2/sr1_root"
+      },
+      {
+        "allocated_size": 138412032,
+        "file_size": 138412032,
+        "name": "vowser_eval_v2/sr1_step"
+      }
+    ]
+  }
+}

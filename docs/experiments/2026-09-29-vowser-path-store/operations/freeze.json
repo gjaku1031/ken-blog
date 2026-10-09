@@ -1,0 +1,31 @@
+{
+  "frozen_utc": "2026-09-29T05:20:54Z",
+  "scope": "Operations input, query semantics, result scope before any operations DB smoke/measurement. Execution bug fixes after smoke require append-only change record.",
+  "files": {
+    "operations/PROTOCOL.md": "fab8d552693cef8e766521a6269768eed053115816c992a5aa53a2b9b17b7232",
+    "operations/trace.py": "9fc7b67bdbb444c60753216c0120a59c172cdab9065e549b1c00ee9852a1f8c8",
+    "operations/trace_manifest.json": "b29446999c64bca6c4f809d8df447133e7a3d6b66f7d36a67891222420bb7928",
+    "operations/trace_change.json": "90691f99bcf80739c2c57a5f620ccf0c1360ffead612f3bcc7df5fba40afe414",
+    "operations/stores.py": "7430532d9e7a7975498af7af4de714ac0aa87670d35e103e9f5fd4e84bba6fe9",
+    "operations/runner.py": "f665a48a468ef0751eca5492965e6e094d496a075b5c1ae294a165daa843b52d",
+    "shared/data.py": "b65551b2a388dfbe80e811dddfd385e6f5245ebc5d2204f7171270c498e4855e"
+  },
+  "trace_files": {
+    "operations/traces/skew-10000-50_50-oracle.json": "4362c7ff288cc8222f2c934f134ef6d0a5be35d0e745ca82c6b7c0065f09ee64",
+    "operations/traces/skew-10000-50_50.jsonl": "9575de31bf42db476f200504179a399c9642fa6a2f4ef18ce5be746996539b84",
+    "operations/traces/skew-10000-90_10-oracle.json": "35c0cc456709692c1ea022fb2a5f944aafc6ba7bc2a0713f6482463caf75ce0c",
+    "operations/traces/skew-10000-90_10.jsonl": "482f3402e99de7cc9283e0950a6c4e0396646ad15056ce450941b8680b42e1f7",
+    "operations/traces/uniform-1000-50_50-oracle.json": "524d57e6613df9b5ac24c2bfbd94590d42bd5a75ed40fdf8a85adb16f2ec7dd5",
+    "operations/traces/uniform-1000-50_50.jsonl": "9275a0343bfc3ea86346e00bbe7cc1e7c836f3f17553d3c25913a19069332327",
+    "operations/traces/uniform-1000-90_10-oracle.json": "3ff97efe4300768ced3a6809c7054d58811d3046f175b79aee0401486b75032d",
+    "operations/traces/uniform-1000-90_10.jsonl": "38d908ee208c7fb8905b0550e264c10345ce7804c2e9a2d6690544cec6e11104",
+    "operations/traces/uniform-10000-50_50-oracle.json": "cfaed4e5a6906228db0d330f4f27c25e993bd2870e9a42c7eb28207f630854a6",
+    "operations/traces/uniform-10000-50_50.jsonl": "2e437d923cbf3684b9127a048b51a0e965c452a5026e4d5285313de4d5bc855f",
+    "operations/traces/uniform-10000-90_10-oracle.json": "2af18eb5e916defa86e9699f483bdf12da7d5cb241770314a2dd260db693c97e",
+    "operations/traces/uniform-10000-90_10.jsonl": "7af3da3237ab674ccd11c0a21822bcbec6d44371aa7cbe9628229364e6ceab96",
+    "operations/traces/uniform-30000-50_50-oracle.json": "c7c71ddce7fabb9621524c7e147f28c0a0943db27cb5d990f01a2104fc82d030",
+    "operations/traces/uniform-30000-50_50.jsonl": "8514089e1f0516f88ec641bccd0e64be63670cecdcf8c7a302d94207d7f66e1e",
+    "operations/traces/uniform-30000-90_10-oracle.json": "b203f4ce88c2bc216a1892898865a1bca9e2234a56c32f43b32a8ae6369cd587",
+    "operations/traces/uniform-30000-90_10.jsonl": "e2eb49e4f0091aa084388c3a76b0622ac29d8dcd66fd83c7a956b36d5daa0518"
+  }
+}

@@ -1,0 +1,913 @@
+{
+  "backend": "mysql",
+  "distribution": "uniform",
+  "failure_count": 0,
+  "faiss_index_build_ms": 284.418,
+  "n": 1000,
+  "query_ids": [
+    0,
+    1,
+    10,
+    17,
+    39,
+    70,
+    100,
+    155,
+    180,
+    199
+  ],
+  "records": [
+    {
+      "arm": "mysql_faiss",
+      "db_roundtrips": 0,
+      "elapsed_ms": 0.721,
+      "harness_wall_ms": 0.757,
+      "hint": false,
+      "json_bytes": 38,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [],
+      "path_ids": [],
+      "query_id": 0
+    },
+    {
+      "arm": "mysql_faiss",
+      "db_roundtrips": 0,
+      "elapsed_ms": 0.676,
+      "harness_wall_ms": 0.711,
+      "hint": false,
+      "json_bytes": 38,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [],
+      "path_ids": [],
+      "query_id": 0
+    },
+    {
+      "arm": "mysql_faiss",
+      "db_roundtrips": 0,
+      "elapsed_ms": 0.164,
+      "harness_wall_ms": 0.177,
+      "hint": true,
+      "json_bytes": 38,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [],
+      "path_ids": [],
+      "query_id": 0
+    },
+    {
+      "arm": "mysql_faiss",
+      "db_roundtrips": 0,
+      "elapsed_ms": 0.128,
+      "harness_wall_ms": 0.139,
+      "hint": true,
+      "json_bytes": 38,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [],
+      "path_ids": [],
+      "query_id": 0
+    },
+    {
+      "arm": "mysql_faiss",
+      "db_roundtrips": 0,
+      "elapsed_ms": 0.453,
+      "harness_wall_ms": 0.466,
+      "hint": false,
+      "json_bytes": 38,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [],
+      "path_ids": [],
+      "query_id": 1
+    },
+    {
+      "arm": "mysql_faiss",
+      "db_roundtrips": 0,
+      "elapsed_ms": 0.663,
+      "harness_wall_ms": 0.677,
+      "hint": false,
+      "json_bytes": 38,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [],
+      "path_ids": [],
+      "query_id": 1
+    },
+    {
+      "arm": "mysql_faiss",
+      "db_roundtrips": 0,
+      "elapsed_ms": 0.172,
+      "harness_wall_ms": 0.184,
+      "hint": true,
+      "json_bytes": 38,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [],
+      "path_ids": [],
+      "query_id": 1
+    },
+    {
+      "arm": "mysql_faiss",
+      "db_roundtrips": 0,
+      "elapsed_ms": 0.132,
+      "harness_wall_ms": 0.142,
+      "hint": true,
+      "json_bytes": 38,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [],
+      "path_ids": [],
+      "query_id": 1
+    },
+    {
+      "arm": "mysql_faiss",
+      "db_roundtrips": 1,
+      "elapsed_ms": 2.763,
+      "harness_wall_ms": 3.095,
+      "hint": false,
+      "json_bytes": 7669,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [
+        270,
+        271,
+        847
+      ],
+      "path_ids": [
+        270,
+        271,
+        847
+      ],
+      "query_id": 10
+    },
+    {
+      "arm": "mysql_faiss",
+      "db_roundtrips": 1,
+      "elapsed_ms": 24.347,
+      "harness_wall_ms": 25.246,
+      "hint": false,
+      "json_bytes": 29924,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [
+        270,
+        271,
+        847,
+        272,
+        558,
+        560,
+        846,
+        559,
+        274,
+        561
+      ],
+      "path_ids": [
+        270,
+        271,
+        847,
+        272,
+        558,
+        560,
+        846,
+        559,
+        274,
+        561
+      ],
+      "query_id": 10
+    },
+    {
+      "arm": "mysql_faiss",
+      "db_roundtrips": 1,
+      "elapsed_ms": 2.219,
+      "harness_wall_ms": 2.68,
+      "hint": true,
+      "json_bytes": 10329,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [
+        270,
+        271,
+        272
+      ],
+      "path_ids": [
+        270,
+        271,
+        272
+      ],
+      "query_id": 10
+    },
+    {
+      "arm": "mysql_faiss",
+      "db_roundtrips": 1,
+      "elapsed_ms": 1.856,
+      "harness_wall_ms": 2.275,
+      "hint": true,
+      "json_bytes": 10329,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [
+        270,
+        271,
+        272
+      ],
+      "path_ids": [
+        270,
+        271,
+        272
+      ],
+      "query_id": 10
+    },
+    {
+      "arm": "mysql_faiss",
+      "db_roundtrips": 1,
+      "elapsed_ms": 2.104,
+      "harness_wall_ms": 2.451,
+      "hint": false,
+      "json_bytes": 8990,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [
+        50,
+        336,
+        48
+      ],
+      "path_ids": [
+        50,
+        336,
+        48
+      ],
+      "query_id": 17
+    },
+    {
+      "arm": "mysql_faiss",
+      "db_roundtrips": 1,
+      "elapsed_ms": 4.52,
+      "harness_wall_ms": 5.471,
+      "hint": false,
+      "json_bytes": 32544,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [
+        50,
+        336,
+        48,
+        49,
+        626,
+        912,
+        624,
+        337,
+        338,
+        625
+      ],
+      "path_ids": [
+        50,
+        336,
+        48,
+        49,
+        626,
+        912,
+        624,
+        337,
+        338,
+        625
+      ],
+      "query_id": 17
+    },
+    {
+      "arm": "mysql_faiss",
+      "db_roundtrips": 1,
+      "elapsed_ms": 1.82,
+      "harness_wall_ms": 2.27,
+      "hint": true,
+      "json_bytes": 10290,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [
+        50,
+        48,
+        49
+      ],
+      "path_ids": [
+        50,
+        48,
+        49
+      ],
+      "query_id": 17
+    },
+    {
+      "arm": "mysql_faiss",
+      "db_roundtrips": 1,
+      "elapsed_ms": 1.84,
+      "harness_wall_ms": 2.289,
+      "hint": true,
+      "json_bytes": 10290,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [
+        50,
+        48,
+        49
+      ],
+      "path_ids": [
+        50,
+        48,
+        49
+      ],
+      "query_id": 17
+    },
+    {
+      "arm": "mysql_faiss",
+      "db_roundtrips": 1,
+      "elapsed_ms": 2.289,
+      "harness_wall_ms": 2.626,
+      "hint": false,
+      "json_bytes": 10329,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [
+        781,
+        494,
+        492
+      ],
+      "path_ids": [
+        781,
+        494,
+        492
+      ],
+      "query_id": 39
+    },
+    {
+      "arm": "mysql_faiss",
+      "db_roundtrips": 1,
+      "elapsed_ms": 4.867,
+      "harness_wall_ms": 5.849,
+      "hint": false,
+      "json_bytes": 36554,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [
+        781,
+        494,
+        492,
+        493,
+        204,
+        497,
+        782,
+        206,
+        205,
+        780
+      ],
+      "path_ids": [
+        781,
+        494,
+        492,
+        493,
+        204,
+        497,
+        782,
+        206,
+        205,
+        780
+      ],
+      "query_id": 39
+    },
+    {
+      "arm": "mysql_faiss",
+      "db_roundtrips": 1,
+      "elapsed_ms": 1.842,
+      "harness_wall_ms": 2.334,
+      "hint": true,
+      "json_bytes": 10328,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [
+        494,
+        492,
+        493
+      ],
+      "path_ids": [
+        494,
+        492,
+        493
+      ],
+      "query_id": 39
+    },
+    {
+      "arm": "mysql_faiss",
+      "db_roundtrips": 1,
+      "elapsed_ms": 1.806,
+      "harness_wall_ms": 2.244,
+      "hint": true,
+      "json_bytes": 10328,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [
+        494,
+        492,
+        493
+      ],
+      "path_ids": [
+        494,
+        492,
+        493
+      ],
+      "query_id": 39
+    },
+    {
+      "arm": "mysql_faiss",
+      "db_roundtrips": 1,
+      "elapsed_ms": 2.131,
+      "harness_wall_ms": 2.493,
+      "hint": false,
+      "json_bytes": 10321,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [
+        72,
+        937,
+        938
+      ],
+      "path_ids": [
+        72,
+        937,
+        938
+      ],
+      "query_id": 70
+    },
+    {
+      "arm": "mysql_faiss",
+      "db_roundtrips": 1,
+      "elapsed_ms": 5.049,
+      "harness_wall_ms": 6.053,
+      "hint": false,
+      "json_bytes": 36515,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [
+        72,
+        937,
+        938,
+        361,
+        936,
+        73,
+        360,
+        365,
+        362,
+        74
+      ],
+      "path_ids": [
+        72,
+        937,
+        938,
+        361,
+        936,
+        73,
+        360,
+        365,
+        362,
+        74
+      ],
+      "query_id": 70
+    },
+    {
+      "arm": "mysql_faiss",
+      "db_roundtrips": 1,
+      "elapsed_ms": 1.909,
+      "harness_wall_ms": 2.387,
+      "hint": true,
+      "json_bytes": 10328,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [
+        937,
+        938,
+        936
+      ],
+      "path_ids": [
+        937,
+        938,
+        936
+      ],
+      "query_id": 70
+    },
+    {
+      "arm": "mysql_faiss",
+      "db_roundtrips": 1,
+      "elapsed_ms": 1.807,
+      "harness_wall_ms": 2.228,
+      "hint": true,
+      "json_bytes": 10328,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [
+        937,
+        938,
+        936
+      ],
+      "path_ids": [
+        937,
+        938,
+        936
+      ],
+      "query_id": 70
+    },
+    {
+      "arm": "mysql_faiss",
+      "db_roundtrips": 1,
+      "elapsed_ms": 2.179,
+      "harness_wall_ms": 2.521,
+      "hint": false,
+      "json_bytes": 10329,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [
+        270,
+        847,
+        272
+      ],
+      "path_ids": [
+        270,
+        847,
+        272
+      ],
+      "query_id": 100
+    },
+    {
+      "arm": "mysql_faiss",
+      "db_roundtrips": 1,
+      "elapsed_ms": 4.577,
+      "harness_wall_ms": 5.488,
+      "hint": false,
+      "json_bytes": 33893,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [
+        270,
+        847,
+        272,
+        271,
+        846,
+        559,
+        560,
+        848,
+        562,
+        558
+      ],
+      "path_ids": [
+        270,
+        847,
+        272,
+        271,
+        846,
+        559,
+        560,
+        848,
+        562,
+        558
+      ],
+      "query_id": 100
+    },
+    {
+      "arm": "mysql_faiss",
+      "db_roundtrips": 1,
+      "elapsed_ms": 1.895,
+      "harness_wall_ms": 2.347,
+      "hint": true,
+      "json_bytes": 10329,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [
+        270,
+        272,
+        271
+      ],
+      "path_ids": [
+        270,
+        272,
+        271
+      ],
+      "query_id": 100
+    },
+    {
+      "arm": "mysql_faiss",
+      "db_roundtrips": 1,
+      "elapsed_ms": 1.844,
+      "harness_wall_ms": 2.295,
+      "hint": true,
+      "json_bytes": 10329,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [
+        270,
+        272,
+        271
+      ],
+      "path_ids": [
+        270,
+        272,
+        271
+      ],
+      "query_id": 100
+    },
+    {
+      "arm": "mysql_faiss",
+      "db_roundtrips": 1,
+      "elapsed_ms": 2.132,
+      "harness_wall_ms": 2.471,
+      "hint": false,
+      "json_bytes": 10329,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [
+        382,
+        381,
+        383
+      ],
+      "path_ids": [
+        382,
+        381,
+        383
+      ],
+      "query_id": 155
+    },
+    {
+      "arm": "mysql_faiss",
+      "db_roundtrips": 1,
+      "elapsed_ms": 5.093,
+      "harness_wall_ms": 6.133,
+      "hint": false,
+      "json_bytes": 36517,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [
+        382,
+        381,
+        383,
+        670,
+        94,
+        959,
+        95,
+        671,
+        93,
+        669
+      ],
+      "path_ids": [
+        382,
+        381,
+        383,
+        670,
+        94,
+        959,
+        95,
+        671,
+        93,
+        669
+      ],
+      "query_id": 155
+    },
+    {
+      "arm": "mysql_faiss",
+      "db_roundtrips": 1,
+      "elapsed_ms": 1.888,
+      "harness_wall_ms": 2.383,
+      "hint": true,
+      "json_bytes": 10329,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [
+        382,
+        381,
+        383
+      ],
+      "path_ids": [
+        382,
+        381,
+        383
+      ],
+      "query_id": 155
+    },
+    {
+      "arm": "mysql_faiss",
+      "db_roundtrips": 1,
+      "elapsed_ms": 1.816,
+      "harness_wall_ms": 2.243,
+      "hint": true,
+      "json_bytes": 10329,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [
+        382,
+        381,
+        383
+      ],
+      "path_ids": [
+        382,
+        381,
+        383
+      ],
+      "query_id": 155
+    },
+    {
+      "arm": "mysql_faiss",
+      "db_roundtrips": 1,
+      "elapsed_ms": 2.186,
+      "harness_wall_ms": 2.573,
+      "hint": false,
+      "json_bytes": 10329,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [
+        159,
+        449,
+        160
+      ],
+      "path_ids": [
+        159,
+        449,
+        160
+      ],
+      "query_id": 180
+    },
+    {
+      "arm": "mysql_faiss",
+      "db_roundtrips": 1,
+      "elapsed_ms": 4.586,
+      "harness_wall_ms": 5.519,
+      "hint": false,
+      "json_bytes": 32584,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [
+        159,
+        449,
+        160,
+        161,
+        735,
+        448,
+        444,
+        447,
+        157,
+        734
+      ],
+      "path_ids": [
+        159,
+        449,
+        160,
+        161,
+        735,
+        448,
+        444,
+        447,
+        157,
+        734
+      ],
+      "query_id": 180
+    },
+    {
+      "arm": "mysql_faiss",
+      "db_roundtrips": 1,
+      "elapsed_ms": 1.864,
+      "harness_wall_ms": 2.317,
+      "hint": true,
+      "json_bytes": 10329,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [
+        159,
+        160,
+        161
+      ],
+      "path_ids": [
+        159,
+        160,
+        161
+      ],
+      "query_id": 180
+    },
+    {
+      "arm": "mysql_faiss",
+      "db_roundtrips": 1,
+      "elapsed_ms": 1.903,
+      "harness_wall_ms": 2.368,
+      "hint": true,
+      "json_bytes": 10329,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [
+        159,
+        160,
+        161
+      ],
+      "path_ids": [
+        159,
+        160,
+        161
+      ],
+      "query_id": 180
+    },
+    {
+      "arm": "mysql_faiss",
+      "db_roundtrips": 1,
+      "elapsed_ms": 2.757,
+      "harness_wall_ms": 3.165,
+      "hint": false,
+      "json_bytes": 14299,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [
+        848,
+        271,
+        272
+      ],
+      "path_ids": [
+        848,
+        271,
+        272
+      ],
+      "query_id": 199
+    },
+    {
+      "arm": "mysql_faiss",
+      "db_roundtrips": 1,
+      "elapsed_ms": 4.684,
+      "harness_wall_ms": 5.605,
+      "hint": false,
+      "json_bytes": 32583,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [
+        848,
+        271,
+        272,
+        270,
+        559,
+        560,
+        558,
+        847,
+        273,
+        846
+      ],
+      "path_ids": [
+        848,
+        271,
+        272,
+        270,
+        559,
+        560,
+        558,
+        847,
+        273,
+        846
+      ],
+      "query_id": 199
+    },
+    {
+      "arm": "mysql_faiss",
+      "db_roundtrips": 1,
+      "elapsed_ms": 1.973,
+      "harness_wall_ms": 2.438,
+      "hint": true,
+      "json_bytes": 10328,
+      "limit": 3,
+      "ok": true,
+      "oracle_ids": [
+        271,
+        272,
+        270
+      ],
+      "path_ids": [
+        271,
+        272,
+        270
+      ],
+      "query_id": 199
+    },
+    {
+      "arm": "mysql_faiss",
+      "db_roundtrips": 1,
+      "elapsed_ms": 1.836,
+      "harness_wall_ms": 2.258,
+      "hint": true,
+      "json_bytes": 10328,
+      "limit": 10,
+      "ok": true,
+      "oracle_ids": [
+        271,
+        272,
+        270
+      ],
+      "path_ids": [
+        271,
+        272,
+        270
+      ],
+      "query_id": 199
+    }
+  ],
+  "requests": 40,
+  "rss_after_init_bytes": 116084736,
+  "rss_before_bytes": 80560128,
+  "rss_end_bytes": 118706176
+}

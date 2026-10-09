@@ -1,0 +1,19 @@
+{
+  "agent_server_head": "d94eaf5f30f734952838528d7045e0eab8891509",
+  "experiment_file_sha256": {
+    "PROTOCOL.md": "1158536a648a0acdc3c0f239b0c3a1e6669c6221af6e5f4194eaad3cfeb8be6b",
+    "bench.py": "baa34d4833f53c677c167caffea7a7dab271fbbe8959b72b7bc2d460e6335b04",
+    "host_preflight.py": "d6570a98d7504494e968920a5571cc0d9e290ef8067f6354f167667a8f557071",
+    "managed.sh": "4c01b669e5863c337fa8b526f7043c77d7a93b302b6978548b166feafb2cef3b",
+    "model.py": "a3ad36c740b338e1b55ff00cca29830671d5a605c4f580856ed45988cc1ba338",
+    "orchestrate.py": "56764f3f00a2ef7470bf6f03d32c3e73c84224e5e92a2192fdf58813b04afe32",
+    "run.sh": "27a33ffdd81ec8277cd1f107cd18df76787305bc8b61550c7c9023890a11c3ed",
+    "storage.py": "994811bea9d1253f150b34b810cc011f49c72f46ac28d831ec3ee2c8fbc0e091",
+    "worker.py": "ae9e831b72993f0a457657f69c5862c8d45e221edbb2a833c497337191aa6853"
+  },
+  "kind": "main",
+  "python": "3.12.14 (main, Sep 19 2026, 01:11:14) [GCC 14.2.0]",
+  "shared_data_sha256": "b65551b2a388dfbe80e811dddfd385e6f5245ebc5d2204f7171270c498e4855e",
+  "source_sha256": "153593f35d9d32aad2416dd8efddc63629a1d2b0047a9bcfb74dd3add3a94e58",
+  "utc": "2026-09-29T07:40:03.105802+00:00"
+}

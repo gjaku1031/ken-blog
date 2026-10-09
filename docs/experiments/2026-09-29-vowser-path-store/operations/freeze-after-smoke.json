@@ -1,0 +1,22 @@
+{
+  "freeze_utc": "2026-09-29T06:24:21Z",
+  "input_and_query_hashes_unchanged": true,
+  "smoke_200_ops_each": true,
+  "full_payload_equal": true,
+  "final_and_reset_equal": true,
+  "implementation_hashes": {
+    "operations/runner.py": "5b78391c40e26431871dbd8e54a2e6600ade1402a579452a8b8c9e45d894e710",
+    "operations/stores.py": "7430532d9e7a7975498af7af4de714ac0aa87670d35e103e9f5fd4e84bba6fe9",
+    "operations/plans.py": "cd60709f15959d7f389d185d21ec7dc4f4493f127e442879d75c3d8f15d6bbfe",
+    "operations/run_case.sh": "5b4c3b222b827c6fa669f68db50b0667b013d3903229495441baf273f61d7b0a",
+    "operations/wait_db.py": "c279eb27994659edbfc6972929a048d49696eaf8f4a69e817506d0d591038982",
+    "operations/host_state.py": "181fd163cb93de629fcbba5e4abb18df1ace503b66ddba3026f9ee4a1ed7ce0a",
+    "operations/source_diagnostic.py": "5031d8887a0edf0fec5b625e1e72eb3c8d20732e6c95c75c79035f07dec9a928"
+  },
+  "smoke_files": {
+    "operations/results/smoke-mysql.json": "580e4c7f1a89d109cd5521de73044c1308eaae7638a2dd8ed7aed6df569a360a",
+    "operations/results/smoke-neo4j.json": "60b0aa3482e1a252dce61adeaf8ec50cc03334b32688713fef04f967d1579074",
+    "operations/results/plans-smoke1k-mysql.json": "d9c92ad730a14cc4a19a7d157b0d9fe822c2550f6e07867234eee3709e28f45e",
+    "operations/results/plans-smoke1k-neo4j.json": "c4393c066fc599197e79a4364199b5df7857b66f377a22972fcd1f87e8fc06b4"
+  }
+}

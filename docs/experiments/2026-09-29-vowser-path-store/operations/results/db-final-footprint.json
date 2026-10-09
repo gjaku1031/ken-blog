@@ -1,0 +1,30 @@
+{
+  "utc": "2026-09-29T07:31:36.832770+00:00",
+  "containers": {
+    "vowser-eval-v2-mysql": {
+      "running": false,
+      "oom_killed": false,
+      "exit_code": 0,
+      "size_rw_bytes": 20480,
+      "size_rootfs_bytes": 866930688,
+      "image_id": "sha256:0744ee5ef89ce6ccfa13de3e579fe6b9e27f93dd70da9c06d2c908b1b193fb8d",
+      "nano_cpus": 1000000000,
+      "memory_bytes": 3221225472
+    },
+    "vowser-eval-v2-neo4j": {
+      "running": true,
+      "oom_killed": false,
+      "exit_code": 0,
+      "size_rw_bytes": 134443008,
+      "size_rootfs_bytes": 670281728,
+      "image_id": "sha256:a75003730d84a6d885ec47fee0cc62d5d59626199d0884286bb535921f68a011",
+      "nano_cpus": 1000000000,
+      "memory_bytes": 3221225472
+    }
+  },
+  "bind_mount_bytes": {
+    "/tmp/vowser-eval-v2/mysql": 726128188,
+    "/tmp/vowser-eval-v2/neo4j/data": 2099971915,
+    "/tmp/vowser-eval-v2/neo4j/logs": 3455913
+  }
+}

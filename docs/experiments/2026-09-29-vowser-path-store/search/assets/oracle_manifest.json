@@ -1,0 +1,46 @@
+{
+  "cutoff": 0.3,
+  "files_sha256": {
+    "oracle_skew_1000.jsonl": "669680ed2efbccbed0fca45157f6b65b5a80c1b6d37c4244751cf1d33f3719be",
+    "oracle_skew_10000.jsonl": "f8588868e76c1ada6b4483f8ef9ac8f3c9972977a917fde357b5140bcd5dacbb",
+    "oracle_skew_30000.jsonl": "85f4b72832634307abdcc136e997bc25ef7b45324ef3815d4072077331b3b193",
+    "oracle_uniform_1000.jsonl": "83e6ab68446d9401b6bdb2d3392c494a8542f2040fd6730176ac8725d3c3a522",
+    "oracle_uniform_10000.jsonl": "4593ac6470c4fefaeaabcba457567bd52e7ab351582e0a7603a9f2b4763b1ab2",
+    "oracle_uniform_30000.jsonl": "5839a1ba5577803d5cdfc0f132a53707cd4ff6fd25f3cf4fcca6e506a25bd432"
+  },
+  "generator_sha256": "900ecce3d18ffa0fef821f44d25684f93fc745667dc5bf1bb613af14e36fddf7",
+  "inputs_manifest_sha256": "63585dffc957995541d11838e91fdfb2c0b5791ceebc7fae87cc0ba5f23f3955",
+  "method": "numpy float32 matrix dot; domain prefilter; raw cosine > 0.3; descending score, ascending path_id tie-break",
+  "no_match_counts": {
+    "skew_1000": {
+      "hint": 12,
+      "no_hint": 12
+    },
+    "skew_10000": {
+      "hint": 12,
+      "no_hint": 12
+    },
+    "skew_30000": {
+      "hint": 12,
+      "no_hint": 12
+    },
+    "uniform_1000": {
+      "hint": 12,
+      "no_hint": 12
+    },
+    "uniform_10000": {
+      "hint": 12,
+      "no_hint": 12
+    },
+    "uniform_30000": {
+      "hint": 12,
+      "no_hint": 12
+    }
+  },
+  "query_count": 250,
+  "scales": [
+    1000,
+    10000,
+    30000
+  ]
+}

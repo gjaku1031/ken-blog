@@ -1,0 +1,448 @@
+{
+  "cells": {
+    "n1000-d100-s0-b1": {
+      "arguments": [
+        1000,
+        0,
+        1,
+        100
+      ],
+      "expected.jsonl": {
+        "bytes": 13426912,
+        "sha256": "3654ad6e09c7066bb68b851ee3f9086fb4d046606a3d3e1dabc2118e9f24d0d9"
+      },
+      "group": "stress",
+      "input.json": {
+        "bytes": 112215,
+        "sha256": "0d828d6862ddbe2b62953b24d330661319aa467f41d09adc20bd0cc4c9f467de"
+      },
+      "oracle_manifest_sha256": "95045f7b24bdf0c11484c63096bd81d475bc6d32ab6563b0394acbb7f42f3886",
+      "original_expected_sha256": null,
+      "original_input_present": false,
+      "original_input_sha256": null,
+      "total_paths": 1000
+    },
+    "n1000-d100-s50-b4": {
+      "arguments": [
+        1000,
+        50,
+        4,
+        100
+      ],
+      "expected.jsonl": {
+        "bytes": 14551082,
+        "sha256": "3367b4f1e447eb0c4e3a715e5735cd6acc8ad3f73dc45c5fc3a990c41834e271"
+      },
+      "group": "stress",
+      "input.json": {
+        "bytes": 98391,
+        "sha256": "a387f22d0b1ea51e07a2999711c2d02514505eacb0ff3102d2c83b4e5bea3c13"
+      },
+      "oracle_manifest_sha256": "96d822417367167750cd229be9d4774cfef4dcb12585d438663f16a434274666",
+      "original_expected_sha256": null,
+      "original_input_present": false,
+      "original_input_sha256": null,
+      "total_paths": 1000
+    },
+    "n1000-d50-s0-b1": {
+      "arguments": [
+        1000,
+        0,
+        1,
+        50
+      ],
+      "expected.jsonl": {
+        "bytes": 6754452,
+        "sha256": "829472a79b59c7290968e4d426abc23515cc19901a5bec23734eb040bda1b8f4"
+      },
+      "group": "stress",
+      "input.json": {
+        "bytes": 112044,
+        "sha256": "cda85a8794114c91ecd3cfceefe26e2308d5c6a76f13c4331634827ac86af7d1"
+      },
+      "oracle_manifest_sha256": "d4f0ea6cea6758456c49a63243a5b0996d50c24f93fc8b23d0a5a215a7d020a1",
+      "original_expected_sha256": null,
+      "original_input_present": false,
+      "original_input_sha256": null,
+      "total_paths": 1000
+    },
+    "n1000-d50-s50-b4": {
+      "arguments": [
+        1000,
+        50,
+        4,
+        50
+      ],
+      "expected.jsonl": {
+        "bytes": 7321606,
+        "sha256": "cd13c1c096c87253643085b4fb2e15dca5aa0d84fb8e7e6958fcd39802ba0f57"
+      },
+      "group": "stress",
+      "input.json": {
+        "bytes": 98220,
+        "sha256": "1a00c7d5e71038bed59dd05c8bc94ef3b2b226041c716b7d14573438be4fda83"
+      },
+      "oracle_manifest_sha256": "756722a1c0cd9b1c70b9239a372a8f31f1ce3bb9ebeb8f8bc547d69e554741be",
+      "original_expected_sha256": null,
+      "original_input_present": false,
+      "original_input_sha256": null,
+      "total_paths": 1000
+    },
+    "n1000-s0-b1": {
+      "arguments": [
+        1000,
+        0,
+        1,
+        null
+      ],
+      "expected.jsonl": {
+        "bytes": 1679668,
+        "sha256": "f82ab2a75f9bcbfd2acd712749aa34971af986ffe87b4fd23b44229d5c6cfdc1"
+      },
+      "group": "main",
+      "input.json": {
+        "bytes": 150223,
+        "sha256": "363e8234b083d55cb94b39d50358f32a8b731bc1f9508eb872187cbcce475ea5"
+      },
+      "oracle_manifest_sha256": "6c5fd177da4bb99bfb4fd19517258d1863f9e92cb2cc257f594d2686d74fd104",
+      "original_expected_sha256": "f82ab2a75f9bcbfd2acd712749aa34971af986ffe87b4fd23b44229d5c6cfdc1",
+      "original_input_present": true,
+      "original_input_sha256": "363e8234b083d55cb94b39d50358f32a8b731bc1f9508eb872187cbcce475ea5",
+      "total_paths": 1000
+    },
+    "n1000-s0-b2": {
+      "arguments": [
+        1000,
+        0,
+        2,
+        null
+      ],
+      "expected.jsonl": {
+        "bytes": 1679668,
+        "sha256": "f82ab2a75f9bcbfd2acd712749aa34971af986ffe87b4fd23b44229d5c6cfdc1"
+      },
+      "group": "main",
+      "input.json": {
+        "bytes": 150223,
+        "sha256": "c1889df3cc146eb74110d8bd5fd5ade4f77619155c52a7c8708e357a1b592a65"
+      },
+      "oracle_manifest_sha256": "6c5fd177da4bb99bfb4fd19517258d1863f9e92cb2cc257f594d2686d74fd104",
+      "original_expected_sha256": "f82ab2a75f9bcbfd2acd712749aa34971af986ffe87b4fd23b44229d5c6cfdc1",
+      "original_input_present": true,
+      "original_input_sha256": "c1889df3cc146eb74110d8bd5fd5ade4f77619155c52a7c8708e357a1b592a65",
+      "total_paths": 1000
+    },
+    "n1000-s0-b4": {
+      "arguments": [
+        1000,
+        0,
+        4,
+        null
+      ],
+      "expected.jsonl": {
+        "bytes": 1679668,
+        "sha256": "f82ab2a75f9bcbfd2acd712749aa34971af986ffe87b4fd23b44229d5c6cfdc1"
+      },
+      "group": "main",
+      "input.json": {
+        "bytes": 150223,
+        "sha256": "84e3cfe59232a7fd90d2a23cc9ed60f7bde79cec5ff99206c101b3319b627ca9"
+      },
+      "oracle_manifest_sha256": "6c5fd177da4bb99bfb4fd19517258d1863f9e92cb2cc257f594d2686d74fd104",
+      "original_expected_sha256": "f82ab2a75f9bcbfd2acd712749aa34971af986ffe87b4fd23b44229d5c6cfdc1",
+      "original_input_present": true,
+      "original_input_sha256": "84e3cfe59232a7fd90d2a23cc9ed60f7bde79cec5ff99206c101b3319b627ca9",
+      "total_paths": 1000
+    },
+    "n1000-s25-b1": {
+      "arguments": [
+        1000,
+        25,
+        1,
+        null
+      ],
+      "expected.jsonl": {
+        "bytes": 1716954,
+        "sha256": "8e55adb2a3fe78faa6be48d417a74899ce5d7d9ce74573ae67739326544b49fe"
+      },
+      "group": "main",
+      "input.json": {
+        "bytes": 136441,
+        "sha256": "212a96b7e705a4f2919cb4755aa56608091f616889c7f096a8b18279822adf88"
+      },
+      "oracle_manifest_sha256": "c5c5db7c1b2485326e2f5139f066b1a75d75b05ab31a2eeafcea884e88410214",
+      "original_expected_sha256": "8e55adb2a3fe78faa6be48d417a74899ce5d7d9ce74573ae67739326544b49fe",
+      "original_input_present": true,
+      "original_input_sha256": "212a96b7e705a4f2919cb4755aa56608091f616889c7f096a8b18279822adf88",
+      "total_paths": 1000
+    },
+    "n1000-s25-b2": {
+      "arguments": [
+        1000,
+        25,
+        2,
+        null
+      ],
+      "expected.jsonl": {
+        "bytes": 1739274,
+        "sha256": "e08b887ff9321d71a20dc47a9f56c1ae78a7cef25338daab587615274167e6b2"
+      },
+      "group": "main",
+      "input.json": {
+        "bytes": 136434,
+        "sha256": "d6ea57733009f5ec0f2ecf30ddc66197157dc152e19bdfd162cf315aa984d74f"
+      },
+      "oracle_manifest_sha256": "2dfd49696818287cd8e6ec777e6ad13568bf1bb77060a68c87776db5900e3453",
+      "original_expected_sha256": "e08b887ff9321d71a20dc47a9f56c1ae78a7cef25338daab587615274167e6b2",
+      "original_input_present": true,
+      "original_input_sha256": "d6ea57733009f5ec0f2ecf30ddc66197157dc152e19bdfd162cf315aa984d74f",
+      "total_paths": 1000
+    },
+    "n1000-s25-b4": {
+      "arguments": [
+        1000,
+        25,
+        4,
+        null
+      ],
+      "expected.jsonl": {
+        "bytes": 1739274,
+        "sha256": "4b8122ef2a060a972d940f7c01b58278185190dfb4f0f80dd0f58c51ee585222"
+      },
+      "group": "main",
+      "input.json": {
+        "bytes": 136478,
+        "sha256": "f6085d2246523f6aeece46867de4cc353715ede5f7bd4d18352e7f6b5ab09f43"
+      },
+      "oracle_manifest_sha256": "551f3c76c8bc97a768d293b82bcd5bda11a6130c87be41a5956ab12278dd9607",
+      "original_expected_sha256": "4b8122ef2a060a972d940f7c01b58278185190dfb4f0f80dd0f58c51ee585222",
+      "original_input_present": true,
+      "original_input_sha256": "f6085d2246523f6aeece46867de4cc353715ede5f7bd4d18352e7f6b5ab09f43",
+      "total_paths": 1000
+    },
+    "n1000-s50-b1": {
+      "arguments": [
+        1000,
+        50,
+        1,
+        null
+      ],
+      "expected.jsonl": {
+        "bytes": 1754311,
+        "sha256": "1d66364d9f9d610267db080626b9bd2aa3fa9cef18913c6048220f7c9b07882a"
+      },
+      "group": "main",
+      "input.json": {
+        "bytes": 136426,
+        "sha256": "7c4743267057a0c9ea192d7354bcf356756b9884df824abd8b3b26ee4139ac7e"
+      },
+      "oracle_manifest_sha256": "9bfde4f91b01157fd3b2407267bf5109305751ef516437ae70ef1727c063b28d",
+      "original_expected_sha256": "1d66364d9f9d610267db080626b9bd2aa3fa9cef18913c6048220f7c9b07882a",
+      "original_input_present": true,
+      "original_input_sha256": "7c4743267057a0c9ea192d7354bcf356756b9884df824abd8b3b26ee4139ac7e",
+      "total_paths": 1000
+    },
+    "n1000-s50-b2": {
+      "arguments": [
+        1000,
+        50,
+        2,
+        null
+      ],
+      "expected.jsonl": {
+        "bytes": 1805311,
+        "sha256": "368bcb4ed034893ef3fc1494dbbb77b711605bd679eed2e51fad1d84e5fc406e"
+      },
+      "group": "main",
+      "input.json": {
+        "bytes": 136430,
+        "sha256": "58f4e50218ae865699a68935a74db039b7316b50e94919e07f27e424e6e002cc"
+      },
+      "oracle_manifest_sha256": "35c43eb84fedf6a98755370a29cb7f4e59602a934721a498ba63718a537fd67b",
+      "original_expected_sha256": "368bcb4ed034893ef3fc1494dbbb77b711605bd679eed2e51fad1d84e5fc406e",
+      "original_input_present": true,
+      "original_input_sha256": "58f4e50218ae865699a68935a74db039b7316b50e94919e07f27e424e6e002cc",
+      "total_paths": 1000
+    },
+    "n1000-s50-b4": {
+      "arguments": [
+        1000,
+        50,
+        4,
+        null
+      ],
+      "expected.jsonl": {
+        "bytes": 1805311,
+        "sha256": "930251986284f7026281d8aaf6c053f5bb32fb7cdfe2fc42dcd9152b0230b72f"
+      },
+      "group": "main",
+      "input.json": {
+        "bytes": 136475,
+        "sha256": "e4bc550e4624a7f5c4e3826a5a1a1f04f8d7e7881472f4709011d02f02d7cbf5"
+      },
+      "oracle_manifest_sha256": "63cc0b7d148f40e7493e0d41a7fb467f80897c3f69c3a9d95291a0dc27e51c4f",
+      "original_expected_sha256": "930251986284f7026281d8aaf6c053f5bb32fb7cdfe2fc42dcd9152b0230b72f",
+      "original_input_present": true,
+      "original_input_sha256": "e4bc550e4624a7f5c4e3826a5a1a1f04f8d7e7881472f4709011d02f02d7cbf5",
+      "total_paths": 1000
+    },
+    "n10000-s0-b1": {
+      "arguments": [
+        10000,
+        0,
+        1,
+        null
+      ],
+      "expected.jsonl": {
+        "bytes": 1679326,
+        "sha256": "3a5e9b9d9fcae895ce89b5fd8590f4a15050cff16bed9727da3bc62f5d633f22"
+      },
+      "group": "main",
+      "input.json": {
+        "bytes": 764589,
+        "sha256": "c072e0f1245fd5a1a5e75d5f9eadc64fc13c7879150e73dca3baae4ebcca97d2"
+      },
+      "oracle_manifest_sha256": "7a68781f5f98f002fd4e53460a2b7e3fbda4fd4c0fb41a5a233160d76eac2cf0",
+      "original_expected_sha256": "3a5e9b9d9fcae895ce89b5fd8590f4a15050cff16bed9727da3bc62f5d633f22",
+      "original_input_present": true,
+      "original_input_sha256": "c072e0f1245fd5a1a5e75d5f9eadc64fc13c7879150e73dca3baae4ebcca97d2",
+      "total_paths": 10000
+    },
+    "n10000-s25-b1": {
+      "arguments": [
+        10000,
+        25,
+        1,
+        null
+      ],
+      "expected.jsonl": {
+        "bytes": 1716659,
+        "sha256": "8ea02c3804a6b1524efe28a4b4d4f1c0f7035931ed8c8365630ba2abedf47860"
+      },
+      "group": "main",
+      "input.json": {
+        "bytes": 618554,
+        "sha256": "d9366fb534766a4d5dc965e7efd01787b692df521514544325364ffc818eeaa1"
+      },
+      "oracle_manifest_sha256": "a25465b978b9eb82e536e7bb4e4687267006fe5978279ab5b4df6f8be25df31c",
+      "original_expected_sha256": null,
+      "original_input_present": false,
+      "original_input_sha256": null,
+      "total_paths": 10000
+    },
+    "n10000-s25-b2": {
+      "arguments": [
+        10000,
+        25,
+        2,
+        null
+      ],
+      "expected.jsonl": {
+        "bytes": 1738979,
+        "sha256": "1836027ffa2dcb044175d9b1ec05b77f63159fed99de652602216f1dcd4fc0db"
+      },
+      "group": "main",
+      "input.json": {
+        "bytes": 618547,
+        "sha256": "8af72de8bda5b629dd949e32b15859120eb045f1541c3844a9c0d4f8b960c077"
+      },
+      "oracle_manifest_sha256": "956e072233da22c281b2936be4da2ec2506833ca4e0a853c163f6ae48090a3a9",
+      "original_expected_sha256": null,
+      "original_input_present": false,
+      "original_input_sha256": null,
+      "total_paths": 10000
+    },
+    "n10000-s25-b4": {
+      "arguments": [
+        10000,
+        25,
+        4,
+        null
+      ],
+      "expected.jsonl": {
+        "bytes": 1738979,
+        "sha256": "0220cecee49ab1bb8a93a315a853de7da7245d4ef7b19594922d903da57adbb5"
+      },
+      "group": "main",
+      "input.json": {
+        "bytes": 618589,
+        "sha256": "5ca21caaa4d2f5db19b507cbad6ede50a8a1ba030110fd83e13a1c85e2e2d82f"
+      },
+      "oracle_manifest_sha256": "00e9fe8467b9cb688bc170bc088b4b6e3291039ad3865a0549e95ea3d2e4365a",
+      "original_expected_sha256": null,
+      "original_input_present": false,
+      "original_input_sha256": null,
+      "total_paths": 10000
+    },
+    "n10000-s50-b1": {
+      "arguments": [
+        10000,
+        50,
+        1,
+        null
+      ],
+      "expected.jsonl": {
+        "bytes": 1754050,
+        "sha256": "3dbc6a2823d6a1f05121516cbcbab39667f33963da46b565fc6adb0b81d67a28"
+      },
+      "group": "main",
+      "input.json": {
+        "bytes": 618540,
+        "sha256": "e1a753b5e86483eb6028e7065ed907a2daeec3788d166d090e75737f9e56b4fc"
+      },
+      "oracle_manifest_sha256": "bf61fb7c3879c1cf3ce1acea7634870b68f6afcd6ee7ae048c7f019641ca387c",
+      "original_expected_sha256": null,
+      "original_input_present": false,
+      "original_input_sha256": null,
+      "total_paths": 10000
+    },
+    "n10000-s50-b2": {
+      "arguments": [
+        10000,
+        50,
+        2,
+        null
+      ],
+      "expected.jsonl": {
+        "bytes": 1805050,
+        "sha256": "3038042abe05e090a2f771800d99f0d1bb8a3b2b4127b2ce70a69886fe04e874"
+      },
+      "group": "main",
+      "input.json": {
+        "bytes": 618543,
+        "sha256": "3f24fde39f1b2cf3877f826bcaeb596517181ec1383bd55fc4efb65ac68a7017"
+      },
+      "oracle_manifest_sha256": "81a52bc324db3777c707964faf09ea79fab4aabf56c71a529613ae9d24f6628f",
+      "original_expected_sha256": null,
+      "original_input_present": false,
+      "original_input_sha256": null,
+      "total_paths": 10000
+    },
+    "n10000-s50-b4": {
+      "arguments": [
+        10000,
+        50,
+        4,
+        null
+      ],
+      "expected.jsonl": {
+        "bytes": 1805050,
+        "sha256": "240b58bc88324de21a10cf33b11ab5c6f158b11fd6b7cbf50552b1085331c620"
+      },
+      "group": "main",
+      "input.json": {
+        "bytes": 618576,
+        "sha256": "fe98a499670a37c3e25206227b091cb0ca59dd8ff8bdb44031d39466ce877dd7"
+      },
+      "oracle_manifest_sha256": "e403beead537ca5767610a64ab47795edc42c8ab7a4e7ed91a45baaf993db67a",
+      "original_expected_sha256": null,
+      "original_input_present": false,
+      "original_input_sha256": null,
+      "total_paths": 10000
+    }
+  },
+  "created_utc": "2026-09-29T08:52:17.261789+00:00",
+  "main_cells": 16,
+  "seed": 20260929,
+  "stress_cells": 4
+}

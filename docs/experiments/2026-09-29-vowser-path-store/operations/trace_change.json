@@ -1,0 +1,17 @@
+{
+  "timing": "before any operations DB smoke or measurement",
+  "changes": [
+    {
+      "condition": "skew-10000-90_10",
+      "old_uniform_read_sha256": "5aa6214b99b9e3cd6371f71b3663903f41ee6b273e0b3e3c736e51a0c6d22b24",
+      "new_hot_read_sha256": "482f3402e99de7cc9283e0950a6c4e0396646ad15056ce450941b8680b42e1f7",
+      "reason": "Before operations smoke/measurement, skew data had 50% d00 paths but only ~1/30 d00 reads; diagnostic now uses 50% d00 reads. Uniform traces unchanged."
+    },
+    {
+      "condition": "skew-10000-50_50",
+      "old_uniform_read_sha256": "ddfc4156bf3376183a1a56c68a301e408c83997e7247c2bb8f6258659a2edde4",
+      "new_hot_read_sha256": "9575de31bf42db476f200504179a399c9642fa6a2f4ef18ce5be746996539b84",
+      "reason": "Before operations smoke/measurement, skew data had 50% d00 paths but only ~1/30 d00 reads; diagnostic now uses 50% d00 reads. Uniform traces unchanged."
+    }
+  ]
+}

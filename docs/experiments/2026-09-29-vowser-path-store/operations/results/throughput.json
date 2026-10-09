@@ -1,0 +1,482 @@
+[
+  {
+    "scale": 10000,
+    "distribution": "skew",
+    "mix": "50:50",
+    "backend": "mysql",
+    "round": 0,
+    "operations": 200,
+    "wall_seconds": 0.3304442910011858,
+    "sequential_ops_per_second": 605.2457417074345
+  },
+  {
+    "scale": 10000,
+    "distribution": "skew",
+    "mix": "50:50",
+    "backend": "mysql",
+    "round": 1,
+    "operations": 200,
+    "wall_seconds": 0.36594664899166673,
+    "sequential_ops_per_second": 546.5277535703144
+  },
+  {
+    "scale": 10000,
+    "distribution": "skew",
+    "mix": "50:50",
+    "backend": "mysql",
+    "round": 2,
+    "operations": 200,
+    "wall_seconds": 0.31581293197814375,
+    "sequential_ops_per_second": 633.286289916213
+  },
+  {
+    "scale": 10000,
+    "distribution": "skew",
+    "mix": "50:50",
+    "backend": "neo4j",
+    "round": 0,
+    "operations": 200,
+    "wall_seconds": 3.9604989249492064,
+    "sequential_ops_per_second": 50.49868811732224
+  },
+  {
+    "scale": 10000,
+    "distribution": "skew",
+    "mix": "50:50",
+    "backend": "neo4j",
+    "round": 1,
+    "operations": 200,
+    "wall_seconds": 4.132757307961583,
+    "sequential_ops_per_second": 48.39384098715606
+  },
+  {
+    "scale": 10000,
+    "distribution": "skew",
+    "mix": "50:50",
+    "backend": "neo4j",
+    "round": 2,
+    "operations": 200,
+    "wall_seconds": 4.101175151998177,
+    "sequential_ops_per_second": 48.76651022879525
+  },
+  {
+    "scale": 10000,
+    "distribution": "skew",
+    "mix": "90:10",
+    "backend": "mysql",
+    "round": 0,
+    "operations": 200,
+    "wall_seconds": 0.34832360595464706,
+    "sequential_ops_per_second": 574.1787136472188
+  },
+  {
+    "scale": 10000,
+    "distribution": "skew",
+    "mix": "90:10",
+    "backend": "mysql",
+    "round": 1,
+    "operations": 200,
+    "wall_seconds": 0.3053585890447721,
+    "sequential_ops_per_second": 654.9676582723393
+  },
+  {
+    "scale": 10000,
+    "distribution": "skew",
+    "mix": "90:10",
+    "backend": "mysql",
+    "round": 2,
+    "operations": 200,
+    "wall_seconds": 0.41773129196371883,
+    "sequential_ops_per_second": 478.77667737031913
+  },
+  {
+    "scale": 10000,
+    "distribution": "skew",
+    "mix": "90:10",
+    "backend": "neo4j",
+    "round": 0,
+    "operations": 200,
+    "wall_seconds": 2.4064657039707527,
+    "sequential_ops_per_second": 83.10943292064916
+  },
+  {
+    "scale": 10000,
+    "distribution": "skew",
+    "mix": "90:10",
+    "backend": "neo4j",
+    "round": 1,
+    "operations": 200,
+    "wall_seconds": 2.395570783992298,
+    "sequential_ops_per_second": 83.48740990516397
+  },
+  {
+    "scale": 10000,
+    "distribution": "skew",
+    "mix": "90:10",
+    "backend": "neo4j",
+    "round": 2,
+    "operations": 200,
+    "wall_seconds": 2.815604031085968,
+    "sequential_ops_per_second": 71.03271546420565
+  },
+  {
+    "scale": 1000,
+    "distribution": "uniform",
+    "mix": "50:50",
+    "backend": "mysql",
+    "round": 0,
+    "operations": 200,
+    "wall_seconds": 0.29678637895267457,
+    "sequential_ops_per_second": 673.8853740720086
+  },
+  {
+    "scale": 1000,
+    "distribution": "uniform",
+    "mix": "50:50",
+    "backend": "mysql",
+    "round": 1,
+    "operations": 200,
+    "wall_seconds": 0.29791102604940534,
+    "sequential_ops_per_second": 671.341382197892
+  },
+  {
+    "scale": 1000,
+    "distribution": "uniform",
+    "mix": "50:50",
+    "backend": "mysql",
+    "round": 2,
+    "operations": 200,
+    "wall_seconds": 0.32391486898995936,
+    "sequential_ops_per_second": 617.4461846214276
+  },
+  {
+    "scale": 1000,
+    "distribution": "uniform",
+    "mix": "50:50",
+    "backend": "neo4j",
+    "round": 0,
+    "operations": 200,
+    "wall_seconds": 3.6874688350362703,
+    "sequential_ops_per_second": 54.23774652675343
+  },
+  {
+    "scale": 1000,
+    "distribution": "uniform",
+    "mix": "50:50",
+    "backend": "neo4j",
+    "round": 1,
+    "operations": 200,
+    "wall_seconds": 3.655129453050904,
+    "sequential_ops_per_second": 54.717624250780446
+  },
+  {
+    "scale": 1000,
+    "distribution": "uniform",
+    "mix": "50:50",
+    "backend": "neo4j",
+    "round": 2,
+    "operations": 200,
+    "wall_seconds": 3.7873914340743795,
+    "sequential_ops_per_second": 52.80679419630125
+  },
+  {
+    "scale": 1000,
+    "distribution": "uniform",
+    "mix": "90:10",
+    "backend": "mysql",
+    "round": 0,
+    "operations": 200,
+    "wall_seconds": 0.32080883102025837,
+    "sequential_ops_per_second": 623.4242348128205
+  },
+  {
+    "scale": 1000,
+    "distribution": "uniform",
+    "mix": "90:10",
+    "backend": "mysql",
+    "round": 1,
+    "operations": 200,
+    "wall_seconds": 0.28207400697283447,
+    "sequential_ops_per_second": 709.0337821140013
+  },
+  {
+    "scale": 1000,
+    "distribution": "uniform",
+    "mix": "90:10",
+    "backend": "mysql",
+    "round": 2,
+    "operations": 200,
+    "wall_seconds": 0.2813594479812309,
+    "sequential_ops_per_second": 710.8344910221095
+  },
+  {
+    "scale": 1000,
+    "distribution": "uniform",
+    "mix": "90:10",
+    "backend": "neo4j",
+    "round": 0,
+    "operations": 200,
+    "wall_seconds": 2.4986819060286507,
+    "sequential_ops_per_second": 80.04220125717224
+  },
+  {
+    "scale": 1000,
+    "distribution": "uniform",
+    "mix": "90:10",
+    "backend": "neo4j",
+    "round": 1,
+    "operations": 200,
+    "wall_seconds": 2.3867076160386205,
+    "sequential_ops_per_second": 83.79744492203594
+  },
+  {
+    "scale": 1000,
+    "distribution": "uniform",
+    "mix": "90:10",
+    "backend": "neo4j",
+    "round": 2,
+    "operations": 200,
+    "wall_seconds": 2.5866241509793326,
+    "sequential_ops_per_second": 77.32085851138332
+  },
+  {
+    "scale": 10000,
+    "distribution": "uniform",
+    "mix": "50:50",
+    "backend": "mysql",
+    "round": 0,
+    "operations": 200,
+    "wall_seconds": 0.29700510506518185,
+    "sequential_ops_per_second": 673.3890986692207
+  },
+  {
+    "scale": 10000,
+    "distribution": "uniform",
+    "mix": "50:50",
+    "backend": "mysql",
+    "round": 1,
+    "operations": 200,
+    "wall_seconds": 0.3009664920391515,
+    "sequential_ops_per_second": 664.5258036698079
+  },
+  {
+    "scale": 10000,
+    "distribution": "uniform",
+    "mix": "50:50",
+    "backend": "mysql",
+    "round": 2,
+    "operations": 200,
+    "wall_seconds": 0.2972956170560792,
+    "sequential_ops_per_second": 672.7310748152529
+  },
+  {
+    "scale": 10000,
+    "distribution": "uniform",
+    "mix": "50:50",
+    "backend": "neo4j",
+    "round": 0,
+    "operations": 200,
+    "wall_seconds": 3.3439114969223738,
+    "sequential_ops_per_second": 59.81019539065954
+  },
+  {
+    "scale": 10000,
+    "distribution": "uniform",
+    "mix": "50:50",
+    "backend": "neo4j",
+    "round": 1,
+    "operations": 200,
+    "wall_seconds": 3.6456118350615725,
+    "sequential_ops_per_second": 54.86047584016089
+  },
+  {
+    "scale": 10000,
+    "distribution": "uniform",
+    "mix": "50:50",
+    "backend": "neo4j",
+    "round": 2,
+    "operations": 200,
+    "wall_seconds": 3.348292010021396,
+    "sequential_ops_per_second": 59.73194673624717
+  },
+  {
+    "scale": 10000,
+    "distribution": "uniform",
+    "mix": "90:10",
+    "backend": "mysql",
+    "round": 0,
+    "operations": 200,
+    "wall_seconds": 0.27371635392773896,
+    "sequential_ops_per_second": 730.6834141623848
+  },
+  {
+    "scale": 10000,
+    "distribution": "uniform",
+    "mix": "90:10",
+    "backend": "mysql",
+    "round": 1,
+    "operations": 200,
+    "wall_seconds": 0.27483840100467205,
+    "sequential_ops_per_second": 727.7003478003794
+  },
+  {
+    "scale": 10000,
+    "distribution": "uniform",
+    "mix": "90:10",
+    "backend": "mysql",
+    "round": 2,
+    "operations": 200,
+    "wall_seconds": 0.2799873099429533,
+    "sequential_ops_per_second": 714.3180883474665
+  },
+  {
+    "scale": 10000,
+    "distribution": "uniform",
+    "mix": "90:10",
+    "backend": "neo4j",
+    "round": 0,
+    "operations": 200,
+    "wall_seconds": 2.3690643339650705,
+    "sequential_ops_per_second": 84.42151491313143
+  },
+  {
+    "scale": 10000,
+    "distribution": "uniform",
+    "mix": "90:10",
+    "backend": "neo4j",
+    "round": 1,
+    "operations": 200,
+    "wall_seconds": 2.4510135479504243,
+    "sequential_ops_per_second": 81.5988961657283
+  },
+  {
+    "scale": 10000,
+    "distribution": "uniform",
+    "mix": "90:10",
+    "backend": "neo4j",
+    "round": 2,
+    "operations": 200,
+    "wall_seconds": 2.0929386670468375,
+    "sequential_ops_per_second": 95.55941755436268
+  },
+  {
+    "scale": 30000,
+    "distribution": "uniform",
+    "mix": "50:50",
+    "backend": "mysql",
+    "round": 0,
+    "operations": 200,
+    "wall_seconds": 0.3346388490172103,
+    "sequential_ops_per_second": 597.6592394677825
+  },
+  {
+    "scale": 30000,
+    "distribution": "uniform",
+    "mix": "50:50",
+    "backend": "mysql",
+    "round": 1,
+    "operations": 200,
+    "wall_seconds": 0.3203188308980316,
+    "sequential_ops_per_second": 624.3779032262603
+  },
+  {
+    "scale": 30000,
+    "distribution": "uniform",
+    "mix": "50:50",
+    "backend": "mysql",
+    "round": 2,
+    "operations": 200,
+    "wall_seconds": 0.33224535605404526,
+    "sequential_ops_per_second": 601.9647719845531
+  },
+  {
+    "scale": 30000,
+    "distribution": "uniform",
+    "mix": "50:50",
+    "backend": "neo4j",
+    "round": 0,
+    "operations": 200,
+    "wall_seconds": 3.452224403969012,
+    "sequential_ops_per_second": 57.93366148795559
+  },
+  {
+    "scale": 30000,
+    "distribution": "uniform",
+    "mix": "50:50",
+    "backend": "neo4j",
+    "round": 1,
+    "operations": 200,
+    "wall_seconds": 3.8059258071007207,
+    "sequential_ops_per_second": 52.54963184696342
+  },
+  {
+    "scale": 30000,
+    "distribution": "uniform",
+    "mix": "50:50",
+    "backend": "neo4j",
+    "round": 2,
+    "operations": 200,
+    "wall_seconds": 3.821067367098294,
+    "sequential_ops_per_second": 52.34139594661984
+  },
+  {
+    "scale": 30000,
+    "distribution": "uniform",
+    "mix": "90:10",
+    "backend": "mysql",
+    "round": 0,
+    "operations": 200,
+    "wall_seconds": 0.31776264507789165,
+    "sequential_ops_per_second": 629.4006016691325
+  },
+  {
+    "scale": 30000,
+    "distribution": "uniform",
+    "mix": "90:10",
+    "backend": "mysql",
+    "round": 1,
+    "operations": 200,
+    "wall_seconds": 0.3146483440650627,
+    "sequential_ops_per_second": 635.6302322018392
+  },
+  {
+    "scale": 30000,
+    "distribution": "uniform",
+    "mix": "90:10",
+    "backend": "mysql",
+    "round": 2,
+    "operations": 200,
+    "wall_seconds": 0.32133591501042247,
+    "sequential_ops_per_second": 622.4016384645739
+  },
+  {
+    "scale": 30000,
+    "distribution": "uniform",
+    "mix": "90:10",
+    "backend": "neo4j",
+    "round": 0,
+    "operations": 200,
+    "wall_seconds": 2.0453308059368283,
+    "sequential_ops_per_second": 97.78369319010646
+  },
+  {
+    "scale": 30000,
+    "distribution": "uniform",
+    "mix": "90:10",
+    "backend": "neo4j",
+    "round": 1,
+    "operations": 200,
+    "wall_seconds": 2.0929065509699285,
+    "sequential_ops_per_second": 95.56088393307039
+  },
+  {
+    "scale": 30000,
+    "distribution": "uniform",
+    "mix": "90:10",
+    "backend": "neo4j",
+    "round": 2,
+    "operations": 200,
+    "wall_seconds": 2.448940234957263,
+    "sequential_ops_per_second": 81.66797913036463
+  }
+]

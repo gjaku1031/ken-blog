@@ -1,0 +1,524 @@
+{
+  "scope": "Neo4j only, 1k initial fixture, three depths, outside main engine comparison",
+  "mode": "optimized",
+  "seed_full_validation": {
+    "root": {
+      "rows": 30,
+      "sha256": "7819189b334f544d5328afbfc26a8c9dc12ab388b75cf8f814fd65aa94251ef3"
+    },
+    "has": {
+      "rows": 990,
+      "sha256": "ede5f6f92a63831f09e1d2fb16a59ceb723d0049ac6d2875179a19dafceb302f"
+    },
+    "step": {
+      "rows": 12540,
+      "sha256": "e3fc2c6228bdc9c0a5372c02719e45a99b79453f8b92ae0bda0a6cc67ce16498"
+    },
+    "edge": {
+      "rows": 11550,
+      "sha256": "0538cd15ca5b2314c56a85dc858afbb724d903ec027e0cb49118d17c686bac4c"
+    }
+  },
+  "rounds": [
+    {
+      "round": 0,
+      "final": {
+        "counts": {
+          "roots": 30,
+          "paths": 993,
+          "steps": 12578,
+          "edges": 11585
+        },
+        "weight_sha256": "f4de36208d2a35c7cfdde23a7c93badd6b448f83c2e96356ae2a8f1f86ae2ba5",
+        "root_visits": {
+          "d00.example.test": 38,
+          "d01.example.test": 32,
+          "d02.example.test": 32,
+          "d03.example.test": 32,
+          "d04.example.test": 32,
+          "d05.example.test": 32,
+          "d06.example.test": 32,
+          "d07.example.test": 32,
+          "d08.example.test": 32,
+          "d09.example.test": 32,
+          "d10.example.test": 32,
+          "d11.example.test": 32,
+          "d12.example.test": 32,
+          "d13.example.test": 32,
+          "d14.example.test": 32,
+          "d15.example.test": 32,
+          "d16.example.test": 32,
+          "d17.example.test": 32,
+          "d18.example.test": 32,
+          "d19.example.test": 32,
+          "d20.example.test": 32,
+          "d21.example.test": 32,
+          "d22.example.test": 32,
+          "d23.example.test": 32,
+          "d24.example.test": 32,
+          "d25.example.test": 32,
+          "d26.example.test": 32,
+          "d27.example.test": 32,
+          "d28.example.test": 32,
+          "d29.example.test": 32
+        },
+        "touched": {
+          "0": {
+            "has_weight": 2,
+            "step": [
+              2,
+              2,
+              6
+            ],
+            "edge": [
+              2,
+              2,
+              5
+            ]
+          },
+          "1": {
+            "has_weight": 2,
+            "step": [
+              2,
+              2,
+              11
+            ],
+            "edge": [
+              2,
+              2,
+              10
+            ]
+          },
+          "2": {
+            "has_weight": 2,
+            "step": [
+              2,
+              2,
+              21
+            ],
+            "edge": [
+              2,
+              2,
+              20
+            ]
+          },
+          "990": {
+            "has_weight": 1,
+            "step": [
+              1,
+              1,
+              6
+            ],
+            "edge": [
+              1,
+              1,
+              5
+            ]
+          },
+          "991": {
+            "has_weight": 1,
+            "step": [
+              1,
+              1,
+              11
+            ],
+            "edge": [
+              1,
+              1,
+              10
+            ]
+          },
+          "992": {
+            "has_weight": 1,
+            "step": [
+              1,
+              1,
+              21
+            ],
+            "edge": [
+              1,
+              1,
+              20
+            ]
+          }
+        }
+      },
+      "after_reset": {
+        "counts": {
+          "roots": 30,
+          "paths": 990,
+          "steps": 12540,
+          "edges": 11550
+        },
+        "weight_sha256": "41e7126b17005715b735bf8c48d3d90a3e572d9e7a8347c354d0f8bfd06575ec",
+        "root_visits": {
+          "d00.example.test": 32,
+          "d01.example.test": 32,
+          "d02.example.test": 32,
+          "d03.example.test": 32,
+          "d04.example.test": 32,
+          "d05.example.test": 32,
+          "d06.example.test": 32,
+          "d07.example.test": 32,
+          "d08.example.test": 32,
+          "d09.example.test": 32,
+          "d10.example.test": 32,
+          "d11.example.test": 32,
+          "d12.example.test": 32,
+          "d13.example.test": 32,
+          "d14.example.test": 32,
+          "d15.example.test": 32,
+          "d16.example.test": 32,
+          "d17.example.test": 32,
+          "d18.example.test": 32,
+          "d19.example.test": 32,
+          "d20.example.test": 32,
+          "d21.example.test": 32,
+          "d22.example.test": 32,
+          "d23.example.test": 32,
+          "d24.example.test": 32,
+          "d25.example.test": 32,
+          "d26.example.test": 32,
+          "d27.example.test": 32,
+          "d28.example.test": 32,
+          "d29.example.test": 32
+        },
+        "touched": {}
+      }
+    },
+    {
+      "round": 1,
+      "final": {
+        "counts": {
+          "roots": 30,
+          "paths": 993,
+          "steps": 12578,
+          "edges": 11585
+        },
+        "weight_sha256": "f4de36208d2a35c7cfdde23a7c93badd6b448f83c2e96356ae2a8f1f86ae2ba5",
+        "root_visits": {
+          "d00.example.test": 38,
+          "d01.example.test": 32,
+          "d02.example.test": 32,
+          "d03.example.test": 32,
+          "d04.example.test": 32,
+          "d05.example.test": 32,
+          "d06.example.test": 32,
+          "d07.example.test": 32,
+          "d08.example.test": 32,
+          "d09.example.test": 32,
+          "d10.example.test": 32,
+          "d11.example.test": 32,
+          "d12.example.test": 32,
+          "d13.example.test": 32,
+          "d14.example.test": 32,
+          "d15.example.test": 32,
+          "d16.example.test": 32,
+          "d17.example.test": 32,
+          "d18.example.test": 32,
+          "d19.example.test": 32,
+          "d20.example.test": 32,
+          "d21.example.test": 32,
+          "d22.example.test": 32,
+          "d23.example.test": 32,
+          "d24.example.test": 32,
+          "d25.example.test": 32,
+          "d26.example.test": 32,
+          "d27.example.test": 32,
+          "d28.example.test": 32,
+          "d29.example.test": 32
+        },
+        "touched": {
+          "0": {
+            "has_weight": 2,
+            "step": [
+              2,
+              2,
+              6
+            ],
+            "edge": [
+              2,
+              2,
+              5
+            ]
+          },
+          "1": {
+            "has_weight": 2,
+            "step": [
+              2,
+              2,
+              11
+            ],
+            "edge": [
+              2,
+              2,
+              10
+            ]
+          },
+          "2": {
+            "has_weight": 2,
+            "step": [
+              2,
+              2,
+              21
+            ],
+            "edge": [
+              2,
+              2,
+              20
+            ]
+          },
+          "990": {
+            "has_weight": 1,
+            "step": [
+              1,
+              1,
+              6
+            ],
+            "edge": [
+              1,
+              1,
+              5
+            ]
+          },
+          "991": {
+            "has_weight": 1,
+            "step": [
+              1,
+              1,
+              11
+            ],
+            "edge": [
+              1,
+              1,
+              10
+            ]
+          },
+          "992": {
+            "has_weight": 1,
+            "step": [
+              1,
+              1,
+              21
+            ],
+            "edge": [
+              1,
+              1,
+              20
+            ]
+          }
+        }
+      },
+      "after_reset": {
+        "counts": {
+          "roots": 30,
+          "paths": 990,
+          "steps": 12540,
+          "edges": 11550
+        },
+        "weight_sha256": "41e7126b17005715b735bf8c48d3d90a3e572d9e7a8347c354d0f8bfd06575ec",
+        "root_visits": {
+          "d00.example.test": 32,
+          "d01.example.test": 32,
+          "d02.example.test": 32,
+          "d03.example.test": 32,
+          "d04.example.test": 32,
+          "d05.example.test": 32,
+          "d06.example.test": 32,
+          "d07.example.test": 32,
+          "d08.example.test": 32,
+          "d09.example.test": 32,
+          "d10.example.test": 32,
+          "d11.example.test": 32,
+          "d12.example.test": 32,
+          "d13.example.test": 32,
+          "d14.example.test": 32,
+          "d15.example.test": 32,
+          "d16.example.test": 32,
+          "d17.example.test": 32,
+          "d18.example.test": 32,
+          "d19.example.test": 32,
+          "d20.example.test": 32,
+          "d21.example.test": 32,
+          "d22.example.test": 32,
+          "d23.example.test": 32,
+          "d24.example.test": 32,
+          "d25.example.test": 32,
+          "d26.example.test": 32,
+          "d27.example.test": 32,
+          "d28.example.test": 32,
+          "d29.example.test": 32
+        },
+        "touched": {}
+      }
+    },
+    {
+      "round": 2,
+      "final": {
+        "counts": {
+          "roots": 30,
+          "paths": 993,
+          "steps": 12578,
+          "edges": 11585
+        },
+        "weight_sha256": "f4de36208d2a35c7cfdde23a7c93badd6b448f83c2e96356ae2a8f1f86ae2ba5",
+        "root_visits": {
+          "d00.example.test": 38,
+          "d01.example.test": 32,
+          "d02.example.test": 32,
+          "d03.example.test": 32,
+          "d04.example.test": 32,
+          "d05.example.test": 32,
+          "d06.example.test": 32,
+          "d07.example.test": 32,
+          "d08.example.test": 32,
+          "d09.example.test": 32,
+          "d10.example.test": 32,
+          "d11.example.test": 32,
+          "d12.example.test": 32,
+          "d13.example.test": 32,
+          "d14.example.test": 32,
+          "d15.example.test": 32,
+          "d16.example.test": 32,
+          "d17.example.test": 32,
+          "d18.example.test": 32,
+          "d19.example.test": 32,
+          "d20.example.test": 32,
+          "d21.example.test": 32,
+          "d22.example.test": 32,
+          "d23.example.test": 32,
+          "d24.example.test": 32,
+          "d25.example.test": 32,
+          "d26.example.test": 32,
+          "d27.example.test": 32,
+          "d28.example.test": 32,
+          "d29.example.test": 32
+        },
+        "touched": {
+          "0": {
+            "has_weight": 2,
+            "step": [
+              2,
+              2,
+              6
+            ],
+            "edge": [
+              2,
+              2,
+              5
+            ]
+          },
+          "1": {
+            "has_weight": 2,
+            "step": [
+              2,
+              2,
+              11
+            ],
+            "edge": [
+              2,
+              2,
+              10
+            ]
+          },
+          "2": {
+            "has_weight": 2,
+            "step": [
+              2,
+              2,
+              21
+            ],
+            "edge": [
+              2,
+              2,
+              20
+            ]
+          },
+          "990": {
+            "has_weight": 1,
+            "step": [
+              1,
+              1,
+              6
+            ],
+            "edge": [
+              1,
+              1,
+              5
+            ]
+          },
+          "991": {
+            "has_weight": 1,
+            "step": [
+              1,
+              1,
+              11
+            ],
+            "edge": [
+              1,
+              1,
+              10
+            ]
+          },
+          "992": {
+            "has_weight": 1,
+            "step": [
+              1,
+              1,
+              21
+            ],
+            "edge": [
+              1,
+              1,
+              20
+            ]
+          }
+        }
+      },
+      "after_reset": {
+        "counts": {
+          "roots": 30,
+          "paths": 990,
+          "steps": 12540,
+          "edges": 11550
+        },
+        "weight_sha256": "41e7126b17005715b735bf8c48d3d90a3e572d9e7a8347c354d0f8bfd06575ec",
+        "root_visits": {
+          "d00.example.test": 32,
+          "d01.example.test": 32,
+          "d02.example.test": 32,
+          "d03.example.test": 32,
+          "d04.example.test": 32,
+          "d05.example.test": 32,
+          "d06.example.test": 32,
+          "d07.example.test": 32,
+          "d08.example.test": 32,
+          "d09.example.test": 32,
+          "d10.example.test": 32,
+          "d11.example.test": 32,
+          "d12.example.test": 32,
+          "d13.example.test": 32,
+          "d14.example.test": 32,
+          "d15.example.test": 32,
+          "d16.example.test": 32,
+          "d17.example.test": 32,
+          "d18.example.test": 32,
+          "d19.example.test": 32,
+          "d20.example.test": 32,
+          "d21.example.test": 32,
+          "d22.example.test": 32,
+          "d23.example.test": 32,
+          "d24.example.test": 32,
+          "d25.example.test": 32,
+          "d26.example.test": 32,
+          "d27.example.test": 32,
+          "d28.example.test": 32,
+          "d29.example.test": 32
+        },
+        "touched": {}
+      }
+    }
+  ],
+  "raw_csv": "source-diagnostic-optimized.csv",
+  "client_cypher_calls_per_write": "1"
+}

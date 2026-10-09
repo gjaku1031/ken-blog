@@ -1,0 +1,67 @@
+{
+  "backend": "neo4j",
+  "scale_final": 30000,
+  "scale_initial": 29990,
+  "distribution": "uniform",
+  "setup_seconds": 154.58276991394814,
+  "full_validation": {
+    "root": {
+      "rows": 30,
+      "sha256": "b7fba93d7ee120898c13b9f167effe5fa53633bd50735394605c19d64610dc06"
+    },
+    "has": {
+      "rows": 29990,
+      "sha256": "362a4b162855c4997c1d2e385a6cb6eb66cd1ad59d09d2888868c232be20e5ad"
+    },
+    "step": {
+      "rows": 379865,
+      "sha256": "8e479f9958bc6fb4ec2ff4a0db337dae38e69e0b21fc1625dcdf1fba42955433"
+    },
+    "edge": {
+      "rows": 349875,
+      "sha256": "c58c26118ab555c08b57f643ae9b8e309623b7ab4174b5f80ac79123821a1121"
+    }
+  },
+  "light_validation": {
+    "counts": {
+      "roots": 30,
+      "paths": 29990,
+      "steps": 379865,
+      "edges": 349875
+    },
+    "weight_sha256": "f03d6532ed3fa3c5bdea1e6d231f1076d9ca904d5296424b9a1f4a8cb6ea9277",
+    "root_visits": {
+      "d00.example.test": 1001,
+      "d01.example.test": 1001,
+      "d02.example.test": 1001,
+      "d03.example.test": 1001,
+      "d04.example.test": 1001,
+      "d05.example.test": 1001,
+      "d06.example.test": 1000,
+      "d07.example.test": 998,
+      "d08.example.test": 998,
+      "d09.example.test": 998,
+      "d10.example.test": 998,
+      "d11.example.test": 998,
+      "d12.example.test": 998,
+      "d13.example.test": 998,
+      "d14.example.test": 998,
+      "d15.example.test": 998,
+      "d16.example.test": 998,
+      "d17.example.test": 998,
+      "d18.example.test": 998,
+      "d19.example.test": 998,
+      "d20.example.test": 998,
+      "d21.example.test": 998,
+      "d22.example.test": 998,
+      "d23.example.test": 998,
+      "d24.example.test": 998,
+      "d25.example.test": 998,
+      "d26.example.test": 998,
+      "d27.example.test": 998,
+      "d28.example.test": 998,
+      "d29.example.test": 998
+    },
+    "touched": {}
+  }
+}

@@ -1,0 +1,754 @@
+{
+  "backend": "neo4j",
+  "scale": 10000,
+  "mix": "90:10",
+  "distribution": "uniform",
+  "round": 1,
+  "trace_sha256": "7af3da3237ab674ccd11c0a21822bcbec6d44371aa7cbe9628229364e6ceab96",
+  "initial": {
+    "counts": {
+      "roots": 30,
+      "paths": 9990,
+      "steps": 126540,
+      "edges": 116550
+    },
+    "weight_sha256": "a1d77be0e29c7384205e5a96b8e6608209a923d4b998bf9ee1b7f3cc5125f830",
+    "root_visits": {
+      "d00.example.test": 332,
+      "d01.example.test": 332,
+      "d02.example.test": 332,
+      "d03.example.test": 332,
+      "d04.example.test": 332,
+      "d05.example.test": 332,
+      "d06.example.test": 332,
+      "d07.example.test": 332,
+      "d08.example.test": 332,
+      "d09.example.test": 332,
+      "d10.example.test": 332,
+      "d11.example.test": 332,
+      "d12.example.test": 332,
+      "d13.example.test": 332,
+      "d14.example.test": 332,
+      "d15.example.test": 332,
+      "d16.example.test": 332,
+      "d17.example.test": 332,
+      "d18.example.test": 332,
+      "d19.example.test": 332,
+      "d20.example.test": 332,
+      "d21.example.test": 332,
+      "d22.example.test": 332,
+      "d23.example.test": 332,
+      "d24.example.test": 332,
+      "d25.example.test": 332,
+      "d26.example.test": 332,
+      "d27.example.test": 332,
+      "d28.example.test": 332,
+      "d29.example.test": 332
+    },
+    "touched": {}
+  },
+  "warmup": {
+    "wall_seconds": 11.316933216992766,
+    "attempted_ops": 200,
+    "raw_rows": 0
+  },
+  "warmup_final": {
+    "counts": {
+      "roots": 30,
+      "paths": 10000,
+      "steps": 126660,
+      "edges": 116660
+    },
+    "weight_sha256": "475745fcc5840b47a41ad3f8db3bcf3c6c4c40d65e9fe97f054579eb9825dc87",
+    "root_visits": {
+      "d00.example.test": 335,
+      "d01.example.test": 335,
+      "d02.example.test": 336,
+      "d03.example.test": 334,
+      "d04.example.test": 332,
+      "d05.example.test": 332,
+      "d06.example.test": 333,
+      "d07.example.test": 332,
+      "d08.example.test": 333,
+      "d09.example.test": 333,
+      "d10.example.test": 332,
+      "d11.example.test": 333,
+      "d12.example.test": 332,
+      "d13.example.test": 333,
+      "d14.example.test": 332,
+      "d15.example.test": 332,
+      "d16.example.test": 332,
+      "d17.example.test": 332,
+      "d18.example.test": 332,
+      "d19.example.test": 332,
+      "d20.example.test": 332,
+      "d21.example.test": 332,
+      "d22.example.test": 332,
+      "d23.example.test": 332,
+      "d24.example.test": 332,
+      "d25.example.test": 332,
+      "d26.example.test": 333,
+      "d27.example.test": 333,
+      "d28.example.test": 332,
+      "d29.example.test": 333
+    },
+    "touched": {
+      "10": {
+        "has_weight": 2,
+        "step": [
+          2,
+          2,
+          11
+        ],
+        "edge": [
+          2,
+          2,
+          10
+        ]
+      },
+      "186": {
+        "has_weight": 2,
+        "step": [
+          2,
+          2,
+          6
+        ],
+        "edge": [
+          2,
+          2,
+          5
+        ]
+      },
+      "267": {
+        "has_weight": 2,
+        "step": [
+          2,
+          2,
+          6
+        ],
+        "edge": [
+          2,
+          2,
+          5
+        ]
+      },
+      "350": {
+        "has_weight": 2,
+        "step": [
+          2,
+          2,
+          21
+        ],
+        "edge": [
+          2,
+          2,
+          20
+        ]
+      },
+      "468": {
+        "has_weight": 2,
+        "step": [
+          2,
+          2,
+          6
+        ],
+        "edge": [
+          2,
+          2,
+          5
+        ]
+      },
+      "579": {
+        "has_weight": 2,
+        "step": [
+          2,
+          2,
+          6
+        ],
+        "edge": [
+          2,
+          2,
+          5
+        ]
+      },
+      "656": {
+        "has_weight": 2,
+        "step": [
+          2,
+          2,
+          21
+        ],
+        "edge": [
+          2,
+          2,
+          20
+        ]
+      },
+      "754": {
+        "has_weight": 2,
+        "step": [
+          2,
+          2,
+          11
+        ],
+        "edge": [
+          2,
+          2,
+          10
+        ]
+      },
+      "802": {
+        "has_weight": 2,
+        "step": [
+          2,
+          2,
+          11
+        ],
+        "edge": [
+          2,
+          2,
+          10
+        ]
+      },
+      "839": {
+        "has_weight": 2,
+        "step": [
+          2,
+          2,
+          21
+        ],
+        "edge": [
+          2,
+          2,
+          20
+        ]
+      },
+      "9990": {
+        "has_weight": 1,
+        "step": [
+          1,
+          1,
+          6
+        ],
+        "edge": [
+          1,
+          1,
+          5
+        ]
+      },
+      "9991": {
+        "has_weight": 1,
+        "step": [
+          1,
+          1,
+          11
+        ],
+        "edge": [
+          1,
+          1,
+          10
+        ]
+      },
+      "9992": {
+        "has_weight": 1,
+        "step": [
+          1,
+          1,
+          21
+        ],
+        "edge": [
+          1,
+          1,
+          20
+        ]
+      },
+      "9993": {
+        "has_weight": 1,
+        "step": [
+          1,
+          1,
+          6
+        ],
+        "edge": [
+          1,
+          1,
+          5
+        ]
+      },
+      "9994": {
+        "has_weight": 1,
+        "step": [
+          1,
+          1,
+          11
+        ],
+        "edge": [
+          1,
+          1,
+          10
+        ]
+      },
+      "9995": {
+        "has_weight": 1,
+        "step": [
+          1,
+          1,
+          21
+        ],
+        "edge": [
+          1,
+          1,
+          20
+        ]
+      },
+      "9996": {
+        "has_weight": 1,
+        "step": [
+          1,
+          1,
+          6
+        ],
+        "edge": [
+          1,
+          1,
+          5
+        ]
+      },
+      "9997": {
+        "has_weight": 1,
+        "step": [
+          1,
+          1,
+          11
+        ],
+        "edge": [
+          1,
+          1,
+          10
+        ]
+      },
+      "9998": {
+        "has_weight": 1,
+        "step": [
+          1,
+          1,
+          21
+        ],
+        "edge": [
+          1,
+          1,
+          20
+        ]
+      },
+      "9999": {
+        "has_weight": 1,
+        "step": [
+          1,
+          1,
+          6
+        ],
+        "edge": [
+          1,
+          1,
+          5
+        ]
+      }
+    }
+  },
+  "after_warmup_reset": {
+    "counts": {
+      "roots": 30,
+      "paths": 9990,
+      "steps": 126540,
+      "edges": 116550
+    },
+    "weight_sha256": "a1d77be0e29c7384205e5a96b8e6608209a923d4b998bf9ee1b7f3cc5125f830",
+    "root_visits": {
+      "d00.example.test": 332,
+      "d01.example.test": 332,
+      "d02.example.test": 332,
+      "d03.example.test": 332,
+      "d04.example.test": 332,
+      "d05.example.test": 332,
+      "d06.example.test": 332,
+      "d07.example.test": 332,
+      "d08.example.test": 332,
+      "d09.example.test": 332,
+      "d10.example.test": 332,
+      "d11.example.test": 332,
+      "d12.example.test": 332,
+      "d13.example.test": 332,
+      "d14.example.test": 332,
+      "d15.example.test": 332,
+      "d16.example.test": 332,
+      "d17.example.test": 332,
+      "d18.example.test": 332,
+      "d19.example.test": 332,
+      "d20.example.test": 332,
+      "d21.example.test": 332,
+      "d22.example.test": 332,
+      "d23.example.test": 332,
+      "d24.example.test": 332,
+      "d25.example.test": 332,
+      "d26.example.test": 332,
+      "d27.example.test": 332,
+      "d28.example.test": 332,
+      "d29.example.test": 332
+    },
+    "touched": {}
+  },
+  "measured": {
+    "wall_seconds": 2.4510135479504243,
+    "attempted_ops": 200,
+    "raw_rows": 200
+  },
+  "final": {
+    "counts": {
+      "roots": 30,
+      "paths": 10000,
+      "steps": 126660,
+      "edges": 116660
+    },
+    "weight_sha256": "475745fcc5840b47a41ad3f8db3bcf3c6c4c40d65e9fe97f054579eb9825dc87",
+    "root_visits": {
+      "d00.example.test": 335,
+      "d01.example.test": 335,
+      "d02.example.test": 336,
+      "d03.example.test": 334,
+      "d04.example.test": 332,
+      "d05.example.test": 332,
+      "d06.example.test": 333,
+      "d07.example.test": 332,
+      "d08.example.test": 333,
+      "d09.example.test": 333,
+      "d10.example.test": 332,
+      "d11.example.test": 333,
+      "d12.example.test": 332,
+      "d13.example.test": 333,
+      "d14.example.test": 332,
+      "d15.example.test": 332,
+      "d16.example.test": 332,
+      "d17.example.test": 332,
+      "d18.example.test": 332,
+      "d19.example.test": 332,
+      "d20.example.test": 332,
+      "d21.example.test": 332,
+      "d22.example.test": 332,
+      "d23.example.test": 332,
+      "d24.example.test": 332,
+      "d25.example.test": 332,
+      "d26.example.test": 333,
+      "d27.example.test": 333,
+      "d28.example.test": 332,
+      "d29.example.test": 333
+    },
+    "touched": {
+      "10": {
+        "has_weight": 2,
+        "step": [
+          2,
+          2,
+          11
+        ],
+        "edge": [
+          2,
+          2,
+          10
+        ]
+      },
+      "186": {
+        "has_weight": 2,
+        "step": [
+          2,
+          2,
+          6
+        ],
+        "edge": [
+          2,
+          2,
+          5
+        ]
+      },
+      "267": {
+        "has_weight": 2,
+        "step": [
+          2,
+          2,
+          6
+        ],
+        "edge": [
+          2,
+          2,
+          5
+        ]
+      },
+      "350": {
+        "has_weight": 2,
+        "step": [
+          2,
+          2,
+          21
+        ],
+        "edge": [
+          2,
+          2,
+          20
+        ]
+      },
+      "468": {
+        "has_weight": 2,
+        "step": [
+          2,
+          2,
+          6
+        ],
+        "edge": [
+          2,
+          2,
+          5
+        ]
+      },
+      "579": {
+        "has_weight": 2,
+        "step": [
+          2,
+          2,
+          6
+        ],
+        "edge": [
+          2,
+          2,
+          5
+        ]
+      },
+      "656": {
+        "has_weight": 2,
+        "step": [
+          2,
+          2,
+          21
+        ],
+        "edge": [
+          2,
+          2,
+          20
+        ]
+      },
+      "754": {
+        "has_weight": 2,
+        "step": [
+          2,
+          2,
+          11
+        ],
+        "edge": [
+          2,
+          2,
+          10
+        ]
+      },
+      "802": {
+        "has_weight": 2,
+        "step": [
+          2,
+          2,
+          11
+        ],
+        "edge": [
+          2,
+          2,
+          10
+        ]
+      },
+      "839": {
+        "has_weight": 2,
+        "step": [
+          2,
+          2,
+          21
+        ],
+        "edge": [
+          2,
+          2,
+          20
+        ]
+      },
+      "9990": {
+        "has_weight": 1,
+        "step": [
+          1,
+          1,
+          6
+        ],
+        "edge": [
+          1,
+          1,
+          5
+        ]
+      },
+      "9991": {
+        "has_weight": 1,
+        "step": [
+          1,
+          1,
+          11
+        ],
+        "edge": [
+          1,
+          1,
+          10
+        ]
+      },
+      "9992": {
+        "has_weight": 1,
+        "step": [
+          1,
+          1,
+          21
+        ],
+        "edge": [
+          1,
+          1,
+          20
+        ]
+      },
+      "9993": {
+        "has_weight": 1,
+        "step": [
+          1,
+          1,
+          6
+        ],
+        "edge": [
+          1,
+          1,
+          5
+        ]
+      },
+      "9994": {
+        "has_weight": 1,
+        "step": [
+          1,
+          1,
+          11
+        ],
+        "edge": [
+          1,
+          1,
+          10
+        ]
+      },
+      "9995": {
+        "has_weight": 1,
+        "step": [
+          1,
+          1,
+          21
+        ],
+        "edge": [
+          1,
+          1,
+          20
+        ]
+      },
+      "9996": {
+        "has_weight": 1,
+        "step": [
+          1,
+          1,
+          6
+        ],
+        "edge": [
+          1,
+          1,
+          5
+        ]
+      },
+      "9997": {
+        "has_weight": 1,
+        "step": [
+          1,
+          1,
+          11
+        ],
+        "edge": [
+          1,
+          1,
+          10
+        ]
+      },
+      "9998": {
+        "has_weight": 1,
+        "step": [
+          1,
+          1,
+          21
+        ],
+        "edge": [
+          1,
+          1,
+          20
+        ]
+      },
+      "9999": {
+        "has_weight": 1,
+        "step": [
+          1,
+          1,
+          6
+        ],
+        "edge": [
+          1,
+          1,
+          5
+        ]
+      }
+    }
+  },
+  "full_final_validation": null,
+  "worker_cpu_seconds_measured_delta": 0.20999999999999996,
+  "worker_rss_bytes_before_measured": 85458944,
+  "worker_rss_bytes_after_measured": 85458944,
+  "after_round_reset": {
+    "counts": {
+      "roots": 30,
+      "paths": 9990,
+      "steps": 126540,
+      "edges": 116550
+    },
+    "weight_sha256": "a1d77be0e29c7384205e5a96b8e6608209a923d4b998bf9ee1b7f3cc5125f830",
+    "root_visits": {
+      "d00.example.test": 332,
+      "d01.example.test": 332,
+      "d02.example.test": 332,
+      "d03.example.test": 332,
+      "d04.example.test": 332,
+      "d05.example.test": 332,
+      "d06.example.test": 332,
+      "d07.example.test": 332,
+      "d08.example.test": 332,
+      "d09.example.test": 332,
+      "d10.example.test": 332,
+      "d11.example.test": 332,
+      "d12.example.test": 332,
+      "d13.example.test": 332,
+      "d14.example.test": 332,
+      "d15.example.test": 332,
+      "d16.example.test": 332,
+      "d17.example.test": 332,
+      "d18.example.test": 332,
+      "d19.example.test": 332,
+      "d20.example.test": 332,
+      "d21.example.test": 332,
+      "d22.example.test": 332,
+      "d23.example.test": 332,
+      "d24.example.test": 332,
+      "d25.example.test": 332,
+      "d26.example.test": 332,
+      "d27.example.test": 332,
+      "d28.example.test": 332,
+      "d29.example.test": 332
+    },
+    "touched": {}
+  }
+}

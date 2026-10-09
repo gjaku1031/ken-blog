@@ -1,0 +1,67 @@
+{
+  "utc": "2026-09-29T04:28:17Z",
+  "host": "Linux-7.0.0-1010-oracle-aarch64-with-glibc2.43",
+  "architecture": "aarch64",
+  "docker_server": "29.8.1",
+  "image": {
+    "mysql:8.4.11": {
+      "id": "sha256:0744ee5ef89ce6ccfa13de3e579fe6b9e27f93dd70da9c06d2c908b1b193fb8d",
+      "repo_digests": [
+        "mysql@sha256:0744ee5ef89ce6ccfa13de3e579fe6b9e27f93dd70da9c06d2c908b1b193fb8d"
+      ]
+    },
+    "neo4j:5.26.19-community": {
+      "id": "sha256:a75003730d84a6d885ec47fee0cc62d5d59626199d0884286bb535921f68a011",
+      "repo_digests": [
+        "neo4j@sha256:a75003730d84a6d885ec47fee0cc62d5d59626199d0884286bb535921f68a011"
+      ]
+    },
+    "vowser-eval-v2-client:py312": {
+      "id": "sha256:c6094ecd354539d6f502400aa5a47dbcb81fd5cef81e02a4055ee776650be79f",
+      "repo_digests": [
+        "vowser-eval-v2-client@sha256:c6094ecd354539d6f502400aa5a47dbcb81fd5cef81e02a4055ee776650be79f"
+      ]
+    }
+  },
+  "containers": {
+    "vowser-eval-v2-mysql": {
+      "image_id": "sha256:0744ee5ef89ce6ccfa13de3e579fe6b9e27f93dd70da9c06d2c908b1b193fb8d",
+      "running": true,
+      "nano_cpus": 1000000000,
+      "memory_bytes": 3221225472,
+      "memory_swap_bytes": 3221225472,
+      "port_bindings": {
+        "3306/tcp": [
+          {
+            "HostIp": "127.0.0.1",
+            "HostPort": "19506"
+          }
+        ]
+      },
+      "labels": {
+        "vowser.eval": "2026-09-29",
+        "vowser.eval.role": "mysql"
+      }
+    },
+    "vowser-eval-v2-neo4j": {
+      "image_id": "sha256:a75003730d84a6d885ec47fee0cc62d5d59626199d0884286bb535921f68a011",
+      "running": true,
+      "nano_cpus": 1000000000,
+      "memory_bytes": 3221225472,
+      "memory_swap_bytes": 3221225472,
+      "port_bindings": {
+        "7687/tcp": [
+          {
+            "HostIp": "127.0.0.1",
+            "HostPort": "19587"
+          }
+        ]
+      },
+      "labels": {
+        "vowser.eval": "2026-09-29",
+        "vowser.eval.role": "neo4j"
+      }
+    }
+  },
+  "worker_pip_freeze": "cffi==2.1.1\ncryptography==46.0.3\nfaiss-cpu==1.13.2\nmysql-connector-python==9.4.0\nneo4j==5.28.2\nnumpy==2.2.6\npackaging==26.3\npsutil==7.0.0\npycparser==3.0\nPyMySQL==1.1.2\npytz==2026.4"
+}

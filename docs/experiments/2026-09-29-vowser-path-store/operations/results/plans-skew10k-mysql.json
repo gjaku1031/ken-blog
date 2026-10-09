@@ -1,0 +1,582 @@
+{
+  "backend": "mysql",
+  "time_utc": "2026-09-29T06:59:16.134274+00:00",
+  "plans": {
+    "popular": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "2320.50"
+        },
+        "ordering_operation": {
+          "using_filesort": false,
+          "nested_loop": [
+            {
+              "table": {
+                "table_name": "h",
+                "access_type": "ref",
+                "possible_keys": [
+                  "domain_weight_path"
+                ],
+                "key": "domain_weight_path",
+                "used_key_parts": [
+                  "domain"
+                ],
+                "key_length": "258",
+                "ref": [
+                  "const"
+                ],
+                "rows_examined_per_scan": 4995,
+                "rows_produced_per_join": 4995,
+                "filtered": "100.00",
+                "cost_info": {
+                  "read_cost": "72.75",
+                  "eval_cost": "499.50",
+                  "prefix_cost": "572.25",
+                  "data_read_per_join": "3M"
+                },
+                "used_columns": [
+                  "path_id",
+                  "domain",
+                  "first_step_id",
+                  "task_intent",
+                  "weight"
+                ]
+              }
+            },
+            {
+              "table": {
+                "table_name": "s",
+                "access_type": "eq_ref",
+                "possible_keys": [
+                  "PRIMARY"
+                ],
+                "key": "PRIMARY",
+                "used_key_parts": [
+                  "step_id"
+                ],
+                "key_length": "128",
+                "ref": [
+                  "vowser_eval_v2.h.first_step_id"
+                ],
+                "rows_examined_per_scan": 1,
+                "rows_produced_per_join": 4995,
+                "filtered": "100.00",
+                "cost_info": {
+                  "read_cost": "1248.75",
+                  "eval_cost": "499.50",
+                  "prefix_cost": "2320.50",
+                  "data_read_per_join": "12M"
+                },
+                "used_columns": [
+                  "step_id",
+                  "description"
+                ]
+              }
+            }
+          ]
+        }
+      }
+    },
+    "visualize_membership": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "572.25"
+        },
+        "ordering_operation": {
+          "using_filesort": false,
+          "table": {
+            "table_name": "op2_has_step",
+            "access_type": "ref",
+            "possible_keys": [
+              "domain_weight_path"
+            ],
+            "key": "domain_weight_path",
+            "used_key_parts": [
+              "domain"
+            ],
+            "key_length": "258",
+            "ref": [
+              "const"
+            ],
+            "rows_examined_per_scan": 4995,
+            "rows_produced_per_join": 4995,
+            "filtered": "100.00",
+            "cost_info": {
+              "read_cost": "72.75",
+              "eval_cost": "499.50",
+              "prefix_cost": "572.25",
+              "data_read_per_join": "3M"
+            },
+            "used_columns": [
+              "path_id",
+              "domain",
+              "task_intent",
+              "depth",
+              "weight"
+            ]
+          }
+        }
+      }
+    },
+    "visualize_steps": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "17.86"
+        },
+        "ordering_operation": {
+          "using_filesort": false,
+          "table": {
+            "table_name": "op2_step",
+            "access_type": "range",
+            "possible_keys": [
+              "path_ordinal"
+            ],
+            "key": "path_ordinal",
+            "used_key_parts": [
+              "path_id"
+            ],
+            "key_length": "4",
+            "rows_examined_per_scan": 38,
+            "rows_produced_per_join": 38,
+            "filtered": "100.00",
+            "index_condition": "(`vowser_eval_v2`.`op2_step`.`path_id` in (0,1,2))",
+            "cost_info": {
+              "read_cost": "14.06",
+              "eval_cost": "3.80",
+              "prefix_cost": "17.86",
+              "data_read_per_join": "95K"
+            },
+            "used_columns": [
+              "step_id",
+              "path_id",
+              "ordinal",
+              "description"
+            ]
+          }
+        }
+      }
+    },
+    "update_root": {
+      "query_block": {
+        "select_id": 1,
+        "cost_info": {
+          "query_cost": "1.00"
+        },
+        "nested_loop": [
+          {
+            "table": {
+              "table_name": "h",
+              "access_type": "const",
+              "possible_keys": [
+                "PRIMARY",
+                "domain_weight_path"
+              ],
+              "key": "PRIMARY",
+              "used_key_parts": [
+                "path_id"
+              ],
+              "key_length": "4",
+              "ref": [
+                "const"
+              ],
+              "rows_examined_per_scan": 1,
+              "rows_produced_per_join": 1,
+              "filtered": "100.00",
+              "cost_info": {
+                "read_cost": "0.00",
+                "eval_cost": "0.10",
+                "prefix_cost": "0.00",
+                "data_read_per_join": "656"
+              },
+              "used_columns": [
+                "path_id",
+                "domain"
+              ]
+            }
+          },
+          {
+            "table": {
+              "update": true,
+              "table_name": "r",
+              "access_type": "const",
+              "possible_keys": [
+                "PRIMARY"
+              ],
+              "key": "PRIMARY",
+              "used_key_parts": [
+                "domain"
+              ],
+              "key_length": "258",
+              "ref": [
+                "const"
+              ],
+              "rows_examined_per_scan": 1,
+              "rows_produced_per_join": 1,
+              "filtered": "100.00",
+              "cost_info": {
+                "read_cost": "0.00",
+                "eval_cost": "0.10",
+                "prefix_cost": "0.00",
+                "data_read_per_join": "912"
+              },
+              "used_columns": [
+                "domain",
+                "base_url",
+                "visit_count"
+              ]
+            }
+          }
+        ]
+      }
+    },
+    "update_has": {
+      "query_block": {
+        "select_id": 1,
+        "table": {
+          "update": true,
+          "table_name": "op2_has_step",
+          "access_type": "range",
+          "possible_keys": [
+            "PRIMARY"
+          ],
+          "key": "PRIMARY",
+          "used_key_parts": [
+            "path_id"
+          ],
+          "key_length": "4",
+          "ref": [
+            "const"
+          ],
+          "rows_examined_per_scan": 1,
+          "filtered": "100.00",
+          "attached_condition": "(`vowser_eval_v2`.`op2_has_step`.`path_id` = 0)"
+        }
+      }
+    },
+    "update_steps": {
+      "query_block": {
+        "select_id": 1,
+        "table": {
+          "update": true,
+          "table_name": "op2_step",
+          "access_type": "range",
+          "possible_keys": [
+            "path_ordinal"
+          ],
+          "key": "path_ordinal",
+          "used_key_parts": [
+            "path_id"
+          ],
+          "key_length": "4",
+          "ref": [
+            "const"
+          ],
+          "rows_examined_per_scan": 6,
+          "filtered": "100.00",
+          "attached_condition": "(`vowser_eval_v2`.`op2_step`.`path_id` = 0)"
+        }
+      }
+    },
+    "update_edges": {
+      "query_block": {
+        "select_id": 1,
+        "table": {
+          "update": true,
+          "table_name": "op2_next_step",
+          "access_type": "range",
+          "possible_keys": [
+            "PRIMARY"
+          ],
+          "key": "PRIMARY",
+          "used_key_parts": [
+            "path_id"
+          ],
+          "key_length": "4",
+          "ref": [
+            "const"
+          ],
+          "rows_examined_per_scan": 5,
+          "filtered": "100.00",
+          "attached_condition": "(`vowser_eval_v2`.`op2_next_step`.`path_id` = 0)"
+        }
+      }
+    }
+  },
+  "indexes": {
+    "op2_root": [
+      {
+        "Table": "op2_root",
+        "Non_unique": 0,
+        "Key_name": "PRIMARY",
+        "Seq_in_index": 1,
+        "Column_name": "domain",
+        "Collation": "A",
+        "Cardinality": 30,
+        "Sub_part": null,
+        "Packed": null,
+        "Null": "",
+        "Index_type": "BTREE",
+        "Comment": "",
+        "Index_comment": "",
+        "Visible": "YES",
+        "Expression": null
+      }
+    ],
+    "op2_has_step": [
+      {
+        "Table": "op2_has_step",
+        "Non_unique": 0,
+        "Key_name": "PRIMARY",
+        "Seq_in_index": 1,
+        "Column_name": "path_id",
+        "Collation": "A",
+        "Cardinality": 9644,
+        "Sub_part": null,
+        "Packed": null,
+        "Null": "",
+        "Index_type": "BTREE",
+        "Comment": "",
+        "Index_comment": "",
+        "Visible": "YES",
+        "Expression": null
+      },
+      {
+        "Table": "op2_has_step",
+        "Non_unique": 1,
+        "Key_name": "domain_weight_path",
+        "Seq_in_index": 1,
+        "Column_name": "domain",
+        "Collation": "A",
+        "Cardinality": 30,
+        "Sub_part": null,
+        "Packed": null,
+        "Null": "",
+        "Index_type": "BTREE",
+        "Comment": "",
+        "Index_comment": "",
+        "Visible": "YES",
+        "Expression": null
+      },
+      {
+        "Table": "op2_has_step",
+        "Non_unique": 1,
+        "Key_name": "domain_weight_path",
+        "Seq_in_index": 2,
+        "Column_name": "weight",
+        "Collation": "D",
+        "Cardinality": 30,
+        "Sub_part": null,
+        "Packed": null,
+        "Null": "",
+        "Index_type": "BTREE",
+        "Comment": "",
+        "Index_comment": "",
+        "Visible": "YES",
+        "Expression": null
+      },
+      {
+        "Table": "op2_has_step",
+        "Non_unique": 1,
+        "Key_name": "domain_weight_path",
+        "Seq_in_index": 3,
+        "Column_name": "path_id",
+        "Collation": "A",
+        "Cardinality": 9644,
+        "Sub_part": null,
+        "Packed": null,
+        "Null": "",
+        "Index_type": "BTREE",
+        "Comment": "",
+        "Index_comment": "",
+        "Visible": "YES",
+        "Expression": null
+      }
+    ],
+    "op2_step": [
+      {
+        "Table": "op2_step",
+        "Non_unique": 0,
+        "Key_name": "PRIMARY",
+        "Seq_in_index": 1,
+        "Column_name": "step_id",
+        "Collation": "A",
+        "Cardinality": 115132,
+        "Sub_part": null,
+        "Packed": null,
+        "Null": "",
+        "Index_type": "BTREE",
+        "Comment": "",
+        "Index_comment": "",
+        "Visible": "YES",
+        "Expression": null
+      },
+      {
+        "Table": "op2_step",
+        "Non_unique": 0,
+        "Key_name": "path_ordinal",
+        "Seq_in_index": 1,
+        "Column_name": "path_id",
+        "Collation": "A",
+        "Cardinality": 9499,
+        "Sub_part": null,
+        "Packed": null,
+        "Null": "",
+        "Index_type": "BTREE",
+        "Comment": "",
+        "Index_comment": "",
+        "Visible": "YES",
+        "Expression": null
+      },
+      {
+        "Table": "op2_step",
+        "Non_unique": 0,
+        "Key_name": "path_ordinal",
+        "Seq_in_index": 2,
+        "Column_name": "ordinal",
+        "Collation": "A",
+        "Cardinality": 119784,
+        "Sub_part": null,
+        "Packed": null,
+        "Null": "",
+        "Index_type": "BTREE",
+        "Comment": "",
+        "Index_comment": "",
+        "Visible": "YES",
+        "Expression": null
+      },
+      {
+        "Table": "op2_step",
+        "Non_unique": 1,
+        "Key_name": "domain_action",
+        "Seq_in_index": 1,
+        "Column_name": "domain",
+        "Collation": "A",
+        "Cardinality": 29,
+        "Sub_part": null,
+        "Packed": null,
+        "Null": "",
+        "Index_type": "BTREE",
+        "Comment": "",
+        "Index_comment": "",
+        "Visible": "YES",
+        "Expression": null
+      },
+      {
+        "Table": "op2_step",
+        "Non_unique": 1,
+        "Key_name": "domain_action",
+        "Seq_in_index": 2,
+        "Column_name": "action",
+        "Collation": "A",
+        "Cardinality": 108,
+        "Sub_part": null,
+        "Packed": null,
+        "Null": "",
+        "Index_type": "BTREE",
+        "Comment": "",
+        "Index_comment": "",
+        "Visible": "YES",
+        "Expression": null
+      }
+    ],
+    "op2_next_step": [
+      {
+        "Table": "op2_next_step",
+        "Non_unique": 0,
+        "Key_name": "PRIMARY",
+        "Seq_in_index": 1,
+        "Column_name": "path_id",
+        "Collation": "A",
+        "Cardinality": 8551,
+        "Sub_part": null,
+        "Packed": null,
+        "Null": "",
+        "Index_type": "BTREE",
+        "Comment": "",
+        "Index_comment": "",
+        "Visible": "YES",
+        "Expression": null
+      },
+      {
+        "Table": "op2_next_step",
+        "Non_unique": 0,
+        "Key_name": "PRIMARY",
+        "Seq_in_index": 2,
+        "Column_name": "ordinal",
+        "Collation": "A",
+        "Cardinality": 98693,
+        "Sub_part": null,
+        "Packed": null,
+        "Null": "",
+        "Index_type": "BTREE",
+        "Comment": "",
+        "Index_comment": "",
+        "Visible": "YES",
+        "Expression": null
+      },
+      {
+        "Table": "op2_next_step",
+        "Non_unique": 1,
+        "Key_name": "next_from",
+        "Seq_in_index": 1,
+        "Column_name": "from_step_id",
+        "Collation": "A",
+        "Cardinality": 104458,
+        "Sub_part": null,
+        "Packed": null,
+        "Null": "",
+        "Index_type": "BTREE",
+        "Comment": "",
+        "Index_comment": "",
+        "Visible": "YES",
+        "Expression": null
+      },
+      {
+        "Table": "op2_next_step",
+        "Non_unique": 1,
+        "Key_name": "next_to",
+        "Seq_in_index": 1,
+        "Column_name": "to_step_id",
+        "Collation": "A",
+        "Cardinality": 100272,
+        "Sub_part": null,
+        "Packed": null,
+        "Null": "",
+        "Index_type": "BTREE",
+        "Comment": "",
+        "Index_comment": "",
+        "Visible": "YES",
+        "Expression": null
+      }
+    ]
+  },
+  "table_bytes_approx": [
+    {
+      "TABLE_NAME": "op2_has_step",
+      "TABLE_ROWS": 9644,
+      "DATA_LENGTH": 1589248,
+      "INDEX_LENGTH": 393216
+    },
+    {
+      "TABLE_NAME": "op2_next_step",
+      "TABLE_ROWS": 116083,
+      "DATA_LENGTH": 11026432,
+      "INDEX_LENGTH": 15826944
+    },
+    {
+      "TABLE_NAME": "op2_root",
+      "TABLE_ROWS": 30,
+      "DATA_LENGTH": 16384,
+      "INDEX_LENGTH": 0
+    },
+    {
+      "TABLE_NAME": "op2_step",
+      "TABLE_ROWS": 121972,
+      "DATA_LENGTH": 40517632,
+      "INDEX_LENGTH": 17924096
+    }
+  ]
+}
