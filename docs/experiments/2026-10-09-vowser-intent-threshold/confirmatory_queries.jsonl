@@ -1,0 +1,104 @@
+{"expected_id": "weather_today", "expression_type": "direct", "id": "weather_today-h1", "kind": "answerable", "query": "오늘 날씨 어때?"}
+{"expected_id": "weather_today", "expression_type": "paraphrase", "id": "weather_today-h2", "kind": "answerable", "query": "지금 밖이 더운지 추운지 보고 싶어"}
+{"expected_id": "weather_today", "expression_type": "paraphrase", "id": "weather_today-h3", "kind": "answerable", "query": "오늘 하늘 상태랑 기온 보여줘"}
+{"expected_id": "weather_today", "expression_type": "indirect", "id": "weather_today-h4", "kind": "answerable", "query": "오늘 빨래를 밖에 널어도 될지 확인하고 싶어"}
+{"expected_id": "weather_today", "expression_type": "confusable", "id": "weather_today-h5", "kind": "answerable", "query": "내일 예보 말고 지금 날씨를 알려줘"}
+{"expected_id": "weather_tomorrow", "expression_type": "direct", "id": "weather_tomorrow-h1", "kind": "answerable", "query": "내일 날씨 보여줘"}
+{"expected_id": "weather_tomorrow", "expression_type": "paraphrase", "id": "weather_tomorrow-h2", "kind": "answerable", "query": "내일 비 소식 있어?"}
+{"expected_id": "weather_tomorrow", "expression_type": "paraphrase", "id": "weather_tomorrow-h3", "kind": "answerable", "query": "다음 날 아침 기온이 얼마나 될지 봐 줘"}
+{"expected_id": "weather_tomorrow", "expression_type": "indirect", "id": "weather_tomorrow-h4", "kind": "answerable", "query": "내일 소풍 가는데 옷을 어떻게 입을지 정하고 싶어"}
+{"expected_id": "weather_tomorrow", "expression_type": "confusable", "id": "weather_tomorrow-h5", "kind": "answerable", "query": "오늘 날씨 말고 내일 날씨를 알려줘"}
+{"expected_id": "news_headlines", "expression_type": "direct", "id": "news_headlines-h1", "kind": "answerable", "query": "최신 뉴스 헤드라인 확인할래"}
+{"expected_id": "news_headlines", "expression_type": "paraphrase", "id": "news_headlines-h2", "kind": "answerable", "query": "지금 가장 큰 기사 제목들 알려줘"}
+{"expected_id": "news_headlines", "expression_type": "paraphrase", "id": "news_headlines-h3", "kind": "answerable", "query": "오늘 주요 뉴스 목록 열어 줘"}
+{"expected_id": "news_headlines", "expression_type": "indirect", "id": "news_headlines-h4", "kind": "answerable", "query": "요즘 무슨 일이 있는지 대충 훑어보고 싶어"}
+{"expected_id": "news_headlines", "expression_type": "confusable", "id": "news_headlines-h5", "kind": "answerable", "query": "키워드 검색 말고 오늘의 머리기사만 보여줘"}
+{"expected_id": "news_topic_search", "expression_type": "direct", "id": "news_topic_search-h1", "kind": "answerable", "query": "주제별로 뉴스 검색해 줘"}
+{"expected_id": "news_topic_search", "expression_type": "paraphrase", "id": "news_topic_search-h2", "kind": "answerable", "query": "반도체 관련 기사 찾아 줘"}
+{"expected_id": "news_topic_search", "expression_type": "paraphrase", "id": "news_topic_search-h3", "kind": "answerable", "query": "부동산 정책 뉴스만 골라서 보여줘"}
+{"expected_id": "news_topic_search", "expression_type": "indirect", "id": "news_topic_search-h4", "kind": "answerable", "query": "다음 주 발표 준비하느라 인공지능 동향 기사가 필요해"}
+{"expected_id": "news_topic_search", "expression_type": "confusable", "id": "news_topic_search-h5", "kind": "answerable", "query": "헤드라인 목록 말고 금리 관련 기사를 검색해 줘"}
+{"expected_id": "train_book", "expression_type": "direct", "id": "train_book-h1", "kind": "answerable", "query": "기차표 예매해 줘"}
+{"expected_id": "train_book", "expression_type": "paraphrase", "id": "train_book-h2", "kind": "answerable", "query": "부산 가는 KTX 자리 하나 잡아 줘"}
+{"expected_id": "train_book", "expression_type": "paraphrase", "id": "train_book-h3", "kind": "answerable", "query": "다음 주 금요일 열차 승차권 사고 싶어"}
+{"expected_id": "train_book", "expression_type": "indirect", "id": "train_book-h4", "kind": "answerable", "query": "명절에 집에 내려갈 교통편을 미리 확보해 두고 싶어"}
+{"expected_id": "train_book", "expression_type": "confusable", "id": "train_book-h5", "kind": "answerable", "query": "예약 내역 확인 말고 새로 열차표를 끊어 줘"}
+{"expected_id": "train_schedule", "expression_type": "direct", "id": "train_schedule-h1", "kind": "answerable", "query": "열차 시간표 조회해 줘"}
+{"expected_id": "train_schedule", "expression_type": "paraphrase", "id": "train_schedule-h2", "kind": "answerable", "query": "광주 가는 기차 몇 시에 있어?"}
+{"expected_id": "train_schedule", "expression_type": "paraphrase", "id": "train_schedule-h3", "kind": "answerable", "query": "서울역에서 대구 가는 열차 운행 시각 알려줘"}
+{"expected_id": "train_schedule", "expression_type": "indirect", "id": "train_schedule-h4", "kind": "answerable", "query": "기차 타러 가기 전에 몇 시 차가 있는지부터 알고 싶어"}
+{"expected_id": "train_schedule", "expression_type": "confusable", "id": "train_schedule-h5", "kind": "answerable", "query": "표 예매는 하지 말고 운행 시간만 확인해 줘"}
+{"expected_id": "train_reservation", "expression_type": "direct", "id": "train_reservation-h1", "kind": "answerable", "query": "기차 예약 내역 보여줘"}
+{"expected_id": "train_reservation", "expression_type": "paraphrase", "id": "train_reservation-h2", "kind": "answerable", "query": "내가 산 열차표 좌석 번호 확인해 줘"}
+{"expected_id": "train_reservation", "expression_type": "paraphrase", "id": "train_reservation-h3", "kind": "answerable", "query": "예매해 둔 승차권 정보 보여줘"}
+{"expected_id": "train_reservation", "expression_type": "indirect", "id": "train_reservation-h4", "kind": "answerable", "query": "역에 가기 전에 내 표가 몇 호차였는지 다시 보고 싶어"}
+{"expected_id": "train_reservation", "expression_type": "confusable", "id": "train_reservation-h5", "kind": "answerable", "query": "취소하지 말고 예약한 표 정보만 확인해 줘"}
+{"expected_id": "train_cancel", "expression_type": "direct", "id": "train_cancel-h1", "kind": "answerable", "query": "기차표 예매 취소해 줘"}
+{"expected_id": "train_cancel", "expression_type": "paraphrase", "id": "train_cancel-h2", "kind": "answerable", "query": "예약한 열차표 환불받고 싶어"}
+{"expected_id": "train_cancel", "expression_type": "paraphrase", "id": "train_cancel-h3", "kind": "answerable", "query": "KTX 승차권 반환해 줘"}
+{"expected_id": "train_cancel", "expression_type": "indirect", "id": "train_cancel-h4", "kind": "answerable", "query": "일정이 바뀌어서 내일 기차를 못 타게 됐어"}
+{"expected_id": "train_cancel", "expression_type": "confusable", "id": "train_cancel-h5", "kind": "answerable", "query": "예약 조회 말고 그 표를 취소하는 화면으로 가 줘"}
+{"expected_id": "resident_copy", "expression_type": "direct", "id": "resident_copy-h1", "kind": "answerable", "query": "주민등록등본 발급받을래"}
+{"expected_id": "resident_copy", "expression_type": "paraphrase", "id": "resident_copy-h2", "kind": "answerable", "query": "세대원 전부 나오는 등본 떼고 싶어"}
+{"expected_id": "resident_copy", "expression_type": "paraphrase", "id": "resident_copy-h3", "kind": "answerable", "query": "등본 한 통 출력해 줘"}
+{"expected_id": "resident_copy", "expression_type": "indirect", "id": "resident_copy-h4", "kind": "answerable", "query": "전입 신고 서류로 우리 집 세대 구성을 증명해야 해"}
+{"expected_id": "resident_copy", "expression_type": "confusable", "id": "resident_copy-h5", "kind": "answerable", "query": "초본 말고 세대원이 다 나오는 등본으로 발급해 줘"}
+{"expected_id": "resident_extract", "expression_type": "direct", "id": "resident_extract-h1", "kind": "answerable", "query": "주민등록초본 발급받을래"}
+{"expected_id": "resident_extract", "expression_type": "paraphrase", "id": "resident_extract-h2", "kind": "answerable", "query": "초본 한 부 뽑아 줘"}
+{"expected_id": "resident_extract", "expression_type": "paraphrase", "id": "resident_extract-h3", "kind": "answerable", "query": "주소 변동 내역이 들어간 초본 신청할래"}
+{"expected_id": "resident_extract", "expression_type": "indirect", "id": "resident_extract-h4", "kind": "answerable", "query": "회사에 예전 주소들을 증명하는 서류를 내야 해"}
+{"expected_id": "resident_extract", "expression_type": "confusable", "id": "resident_extract-h5", "kind": "answerable", "query": "등본 말고 나만 나오는 초본으로 떼 줘"}
+{"expected_id": "family_certificate", "expression_type": "direct", "id": "family_certificate-h1", "kind": "answerable", "query": "가족관계증명서 발급받을래"}
+{"expected_id": "family_certificate", "expression_type": "paraphrase", "id": "family_certificate-h2", "kind": "answerable", "query": "가족관계 증명 서류 출력하고 싶어"}
+{"expected_id": "family_certificate", "expression_type": "paraphrase", "id": "family_certificate-h3", "kind": "answerable", "query": "부모님과의 관계가 나오는 증명서 떼 줘"}
+{"expected_id": "family_certificate", "expression_type": "indirect", "id": "family_certificate-h4", "kind": "answerable", "query": "학교에 보호자 관계를 증명하는 서류를 제출해야 해"}
+{"expected_id": "family_certificate", "expression_type": "confusable", "id": "family_certificate-h5", "kind": "answerable", "query": "주민등록 서류 말고 가족 관계를 증명하는 서류가 필요해"}
+{"expected_id": "youtube_search", "expression_type": "direct", "id": "youtube_search-h1", "kind": "answerable", "query": "유튜브 영상 검색해 줘"}
+{"expected_id": "youtube_search", "expression_type": "paraphrase", "id": "youtube_search-h2", "kind": "answerable", "query": "유튜브에서 요리 영상 찾아 줘"}
+{"expected_id": "youtube_search", "expression_type": "paraphrase", "id": "youtube_search-h3", "kind": "answerable", "query": "고양이 동영상 검색 결과 보여줘"}
+{"expected_id": "youtube_search", "expression_type": "indirect", "id": "youtube_search-h4", "kind": "answerable", "query": "기타 치는 법을 배울 만한 강의 영상을 보고 싶어"}
+{"expected_id": "youtube_search", "expression_type": "confusable", "id": "youtube_search-h5", "kind": "answerable", "query": "좋아요 말고 유튜브에서 노래를 검색해 줘"}
+{"expected_id": "youtube_like", "expression_type": "direct", "id": "youtube_like-h1", "kind": "answerable", "query": "유튜브 영상 좋아요 눌러 줘"}
+{"expected_id": "youtube_like", "expression_type": "paraphrase", "id": "youtube_like-h2", "kind": "answerable", "query": "지금 보는 영상에 좋아요 표시해 줘"}
+{"expected_id": "youtube_like", "expression_type": "paraphrase", "id": "youtube_like-h3", "kind": "answerable", "query": "이 동영상 엄지척 버튼 눌러 줘"}
+{"expected_id": "youtube_like", "expression_type": "indirect", "id": "youtube_like-h4", "kind": "answerable", "query": "이 영상 만든 사람을 응원하고 싶어"}
+{"expected_id": "youtube_like", "expression_type": "confusable", "id": "youtube_like-h5", "kind": "answerable", "query": "다른 영상 찾지 말고 지금 영상에 좋아요만 눌러 줘"}
+{"expected_id": "order_track", "expression_type": "direct", "id": "order_track-h1", "kind": "answerable", "query": "쇼핑 주문 배송 조회해 줘"}
+{"expected_id": "order_track", "expression_type": "paraphrase", "id": "order_track-h2", "kind": "answerable", "query": "주문한 택배 어디쯤 왔어?"}
+{"expected_id": "order_track", "expression_type": "paraphrase", "id": "order_track-h3", "kind": "answerable", "query": "쿠팡 배송 상태 확인해 줘"}
+{"expected_id": "order_track", "expression_type": "indirect", "id": "order_track-h4", "kind": "answerable", "query": "어제 산 물건이 언제 오는지 궁금해"}
+{"expected_id": "order_track", "expression_type": "confusable", "id": "order_track-h5", "kind": "answerable", "query": "주문 취소하지 말고 배송이 어디까지 왔는지만 알려줘"}
+{"expected_id": "order_cancel", "expression_type": "direct", "id": "order_cancel-h1", "kind": "answerable", "query": "쇼핑 주문 취소해 줘"}
+{"expected_id": "order_cancel", "expression_type": "paraphrase", "id": "order_cancel-h2", "kind": "answerable", "query": "방금 결제한 주문 취소할래"}
+{"expected_id": "order_cancel", "expression_type": "paraphrase", "id": "order_cancel-h3", "kind": "answerable", "query": "쿠팡에서 산 물건 주문 철회해 줘"}
+{"expected_id": "order_cancel", "expression_type": "indirect", "id": "order_cancel-h4", "kind": "answerable", "query": "실수로 같은 물건을 두 번 샀어"}
+{"expected_id": "order_cancel", "expression_type": "confusable", "id": "order_cancel-h5", "kind": "answerable", "query": "배송 확인 말고 주문을 취소하는 화면으로 가 줘"}
+{"expected_id": "map_route", "expression_type": "direct", "id": "map_route-h1", "kind": "answerable", "query": "길찾기 경로 조회해 줘"}
+{"expected_id": "map_route", "expression_type": "paraphrase", "id": "map_route-h2", "kind": "answerable", "query": "여기서 강남역까지 가는 길 알려줘"}
+{"expected_id": "map_route", "expression_type": "paraphrase", "id": "map_route-h3", "kind": "answerable", "query": "회사까지 대중교통으로 얼마나 걸려?"}
+{"expected_id": "map_route", "expression_type": "indirect", "id": "map_route-h4", "kind": "answerable", "query": "처음 가는 병원인데 어떻게 가야 할지 모르겠어"}
+{"expected_id": "map_route", "expression_type": "confusable", "id": "map_route-h5", "kind": "answerable", "query": "기차 시간표 말고 집에서 공항 가는 길을 찾아 줘"}
+{"acceptable_ids": ["weather_today", "weather_tomorrow"], "expression_type": "underspecified", "id": "ambiguous-h1", "kind": "ambiguous", "query": "날씨 정보 열어 줘", "reason": "조회 날짜 없음"}
+{"acceptable_ids": ["news_headlines", "news_topic_search"], "expression_type": "underspecified", "id": "ambiguous-h2", "kind": "ambiguous", "query": "뉴스 좀 보여줘", "reason": "목록과 주제 검색 모두 가능"}
+{"acceptable_ids": ["train_schedule", "train_reservation"], "expression_type": "underspecified", "id": "ambiguous-h3", "kind": "ambiguous", "query": "기차 시간 좀 확인해 줘", "reason": "운행 시각과 내 예약 시각 모두 가능"}
+{"acceptable_ids": ["train_book", "train_reservation", "train_cancel"], "expression_type": "underspecified", "id": "ambiguous-h4", "kind": "ambiguous", "query": "기차표 일 좀 처리해 줘", "reason": "예매·조회·취소 중 무엇인지 없음"}
+{"acceptable_ids": ["resident_copy", "resident_extract"], "expression_type": "underspecified", "id": "ambiguous-h5", "kind": "ambiguous", "query": "주민등록 서류 떼 줘", "reason": "등본·초본 구분 없음"}
+{"acceptable_ids": ["resident_copy", "resident_extract", "family_certificate"], "expression_type": "underspecified", "id": "ambiguous-h6", "kind": "ambiguous", "query": "관공서 증명서 하나 발급해 줘", "reason": "서류 종류 없음"}
+{"acceptable_ids": ["youtube_search", "youtube_like"], "expression_type": "underspecified", "id": "ambiguous-h7", "kind": "ambiguous", "query": "유튜브 영상 관련해서 도와줘", "reason": "검색·좋아요 구분 없음"}
+{"acceptable_ids": ["order_track", "order_cancel"], "expression_type": "underspecified", "id": "ambiguous-h8", "kind": "ambiguous", "query": "주문한 거 처리해 줘", "reason": "조회·취소 구분 없음"}
+{"expression_type": "near", "id": "unanswerable-h1", "kind": "unanswerable", "query": "여권 재발급 신청해 줘"}
+{"expression_type": "near", "id": "unanswerable-h2", "kind": "unanswerable", "query": "운전면허 갱신해 줘"}
+{"expression_type": "near", "id": "unanswerable-h3", "kind": "unanswerable", "query": "비행기 출발 시간 확인해 줘"}
+{"expression_type": "near", "id": "unanswerable-h4", "kind": "unanswerable", "query": "택배 보내기 접수해 줘"}
+{"expression_type": "near", "id": "unanswerable-h5", "kind": "unanswerable", "query": "버스 도착 시간 알려줘"}
+{"expression_type": "near", "id": "unanswerable-h6", "kind": "unanswerable", "query": "영화 예매해 줘"}
+{"expression_type": "near", "id": "unanswerable-h7", "kind": "unanswerable", "query": "주식 시세 확인해 줘"}
+{"expression_type": "near", "id": "unanswerable-h8", "kind": "unanswerable", "query": "건강검진 결과 조회해 줘"}
+{"expression_type": "far", "id": "unanswerable-h9", "kind": "unanswerable", "query": "식당 예약해 줘"}
+{"expression_type": "far", "id": "unanswerable-h10", "kind": "unanswerable", "query": "전기요금 납부해 줘"}
+{"expression_type": "far", "id": "unanswerable-h11", "kind": "unanswerable", "query": "카톡 메시지 보내 줘"}
+{"expression_type": "far", "id": "unanswerable-h12", "kind": "unanswerable", "query": "음식 배달 주문해 줘"}
+{"expression_type": "far", "id": "unanswerable-h13", "kind": "unanswerable", "query": "환율 계산해 줘"}
+{"expression_type": "far", "id": "unanswerable-h14", "kind": "unanswerable", "query": "알람 맞춰 줘"}
+{"expression_type": "far", "id": "unanswerable-h15", "kind": "unanswerable", "query": "자동차 보험 가입해 줘"}
+{"expression_type": "far", "id": "unanswerable-h16", "kind": "unanswerable", "query": "도서관 책 대출 연장해 줘"}
