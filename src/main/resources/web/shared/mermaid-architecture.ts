@@ -4,7 +4,7 @@
 export const ARCHITECTURE_ICONS = [
   "git", "github", "github-actions", "spring", "mysql", "kotlin", "playwright", "fastapi", "neo4j", "redis",
   "cloudwatch", "eventbridge", "lambda", "fargate", "route53", "rds", "docker", "caddy", "proxmox", "disk", "user",
-  "ecr", "alb", "vpn", "nodejs",
+  "ecr", "alb", "vpn", "nodejs", "nextjs", "nestjs", "postgresql", "google-cloud", "wireguard", "google-sheets",
 ] as const;
 
 /**

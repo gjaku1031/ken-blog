@@ -1,0 +1,424 @@
+{
+  "width": 1290,
+  "height": 720,
+  "legend": [
+    {
+      "kind": "runtime",
+      "title": "요청 · 데이터 접근"
+    },
+    {
+      "kind": "delivery",
+      "title": "비동기 전송 · 동기화"
+    }
+  ],
+  "groups": {
+    "users": [
+      10,
+      40,
+      240,
+      300,
+      "사용자"
+    ],
+    "presentation": [
+      300,
+      40,
+      340,
+      130,
+      "표현 계층 · DB 접근 없음"
+    ],
+    "application": [
+      300,
+      230,
+      340,
+      130,
+      "업무 계층 · DB 역할 npr_app"
+    ],
+    "delivery": [
+      740,
+      230,
+      280,
+      130,
+      "전달 계층 · DB 역할 npr_worker"
+    ],
+    "data": [
+      300,
+      430,
+      720,
+      130,
+      "데이터 계층"
+    ],
+    "external": [
+      1030,
+      40,
+      240,
+      420,
+      "외부 서비스"
+    ]
+  },
+  "services": {
+    "parent": [
+      30,
+      80,
+      "예약 · 조회"
+    ],
+    "admin": [
+      30,
+      170,
+      "명단 · 문자 · 통계"
+    ],
+    "scanner": [
+      30,
+      260,
+      "현장 입장"
+    ],
+    "web": [
+      320,
+      90,
+      "화면만 · DB 접속 정보 없음"
+    ],
+    "api": [
+      320,
+      280,
+      "업무 규칙 · 트랜잭션"
+    ],
+    "worker": [
+      760,
+      280,
+      "outbox · 외부 전송"
+    ],
+    "redis": [
+      320,
+      480,
+      "세션 · 요청 제한"
+    ],
+    "pg": [
+      560,
+      480,
+      "원장 · outbox"
+    ],
+    "tong": [
+      1050,
+      90,
+      "재원생 원천"
+    ],
+    "sms": [
+      1050,
+      280,
+      "문자 발송"
+    ],
+    "sheets": [
+      1050,
+      380,
+      "운영 명단 사본"
+    ]
+  },
+  "members": {
+    "parent": "users",
+    "admin": "users",
+    "scanner": "users",
+    "web": "presentation",
+    "api": "application",
+    "worker": "delivery",
+    "redis": "data",
+    "pg": "data",
+    "tong": "external",
+    "sms": "external",
+    "sheets": "external"
+  },
+  "parents": {
+    "users": "",
+    "presentation": "",
+    "application": "",
+    "delivery": "",
+    "data": "",
+    "external": ""
+  },
+  "sourceGroups": [
+    "group users[Users]",
+    "group presentation[Presentation]",
+    "group application[Application]",
+    "group delivery[Delivery]",
+    "group data[Data]",
+    "group external[External services]"
+  ],
+  "sourceEdges": [
+    "parent:R -[Request]-> L:web",
+    "admin:R -[Request]-> L:web",
+    "scanner:R -[Request]-> L:web",
+    "web:B -[API]-> T:api",
+    "api:B -[Sessions]-> T:redis",
+    "api:R -[SQL]-> T:pg",
+    "api:R -[Sync]-> L:tong",
+    "worker:B -[Lease]-> R:pg",
+    "worker:R -[SMS]-> L:sms",
+    "worker:R -[Sheets]-> L:sheets"
+  ],
+  "edges": [
+    {
+      "source": "parent",
+      "target": "web",
+      "groupTarget": false,
+      "points": [
+        [
+          158,
+          102
+        ],
+        [
+          275,
+          102
+        ],
+        [
+          275,
+          112
+        ],
+        [
+          316,
+          112
+        ]
+      ],
+      "kind": "runtime",
+      "label": "화면 요청",
+      "at": [
+        275,
+        150
+      ]
+    },
+    {
+      "source": "admin",
+      "target": "web",
+      "groupTarget": false,
+      "points": [
+        [
+          206,
+          192
+        ],
+        [
+          275,
+          192
+        ],
+        [
+          275,
+          112
+        ],
+        [
+          316,
+          112
+        ]
+      ],
+      "kind": "runtime",
+      "label": "",
+      "at": [
+        0,
+        0
+      ]
+    },
+    {
+      "source": "scanner",
+      "target": "web",
+      "groupTarget": false,
+      "points": [
+        [
+          182,
+          282
+        ],
+        [
+          275,
+          282
+        ],
+        [
+          275,
+          112
+        ],
+        [
+          316,
+          112
+        ]
+      ],
+      "kind": "runtime",
+      "label": "",
+      "at": [
+        0,
+        0
+      ]
+    },
+    {
+      "source": "web",
+      "target": "api",
+      "groupTarget": false,
+      "points": [
+        [
+          342,
+          136
+        ],
+        [
+          342,
+          276
+        ]
+      ],
+      "kind": "runtime",
+      "label": "/api/v1 · OpenAPI 계약",
+      "at": [
+        342,
+        200
+      ]
+    },
+    {
+      "source": "api",
+      "target": "redis",
+      "groupTarget": false,
+      "points": [
+        [
+          342,
+          326
+        ],
+        [
+          342,
+          476
+        ]
+      ],
+      "kind": "runtime",
+      "label": "세션 · 요청 제한",
+      "at": [
+        342,
+        400
+      ]
+    },
+    {
+      "source": "api",
+      "target": "pg",
+      "groupTarget": false,
+      "points": [
+        [
+          496,
+          302
+        ],
+        [
+          582,
+          302
+        ],
+        [
+          582,
+          476
+        ]
+      ],
+      "kind": "runtime",
+      "label": "예약 · 입장 · outbox 기록",
+      "at": [
+        582,
+        400
+      ]
+    },
+    {
+      "source": "api",
+      "target": "tong",
+      "groupTarget": false,
+      "points": [
+        [
+          496,
+          292
+        ],
+        [
+          540,
+          292
+        ],
+        [
+          540,
+          200
+        ],
+        [
+          1010,
+          200
+        ],
+        [
+          1010,
+          112
+        ],
+        [
+          1046,
+          112
+        ]
+      ],
+      "kind": "delivery",
+      "label": "6시간마다 동기화 · 로그인 1회",
+      "at": [
+        790,
+        200
+      ]
+    },
+    {
+      "source": "worker",
+      "target": "pg",
+      "groupTarget": false,
+      "points": [
+        [
+          782,
+          326
+        ],
+        [
+          782,
+          502
+        ],
+        [
+          726,
+          502
+        ]
+      ],
+      "kind": "runtime",
+      "label": "outbox lease",
+      "at": [
+        782,
+        420
+      ]
+    },
+    {
+      "source": "worker",
+      "target": "sms",
+      "groupTarget": false,
+      "points": [
+        [
+          955,
+          302
+        ],
+        [
+          1046,
+          302
+        ]
+      ],
+      "kind": "delivery",
+      "label": "문자",
+      "at": [
+        1000,
+        302
+      ]
+    },
+    {
+      "source": "worker",
+      "target": "sheets",
+      "groupTarget": false,
+      "points": [
+        [
+          955,
+          314
+        ],
+        [
+          1000,
+          314
+        ],
+        [
+          1000,
+          402
+        ],
+        [
+          1046,
+          402
+        ]
+      ],
+      "kind": "delivery",
+      "label": "시트",
+      "at": [
+        1000,
+        370
+      ]
+    }
+  ]
+}

@@ -1,0 +1,511 @@
+{
+  "width": 1390,
+  "height": 780,
+  "legend": [
+    {
+      "kind": "runtime",
+      "title": "요청 · 데이터 접근"
+    },
+    {
+      "kind": "delivery",
+      "title": "비동기 처리 · 동기화 · 백업"
+    }
+  ],
+  "groups": {
+    "users": [
+      10,
+      50,
+      250,
+      290,
+      "사용자"
+    ],
+    "gcp": [
+      290,
+      50,
+      300,
+      130,
+      "GCP VM · 공개 진입점"
+    ],
+    "academy": [
+      290,
+      240,
+      770,
+      480,
+      "학원 내부망"
+    ],
+    "vm": [
+      305,
+      285,
+      740,
+      320,
+      "운영 VM · Proxmox"
+    ],
+    "external": [
+      1090,
+      240,
+      280,
+      320,
+      "외부 서비스"
+    ]
+  },
+  "services": {
+    "parent": [
+      30,
+      90,
+      "학부모 예약 · 조회"
+    ],
+    "admin": [
+      30,
+      180,
+      "운영 콘솔 · 명단 · 문자"
+    ],
+    "scanner": [
+      30,
+      270,
+      "현장 입장 처리"
+    ],
+    "caddy": [
+      310,
+      90,
+      "HTTPS · 인증서 자동 갱신"
+    ],
+    "proxy": [
+      320,
+      330,
+      "WireGuard 주소에서만 수신"
+    ],
+    "web": [
+      600,
+      330,
+      "화면 · /api/v1 전달"
+    ],
+    "redis": [
+      320,
+      430,
+      "세션 · 요청 제한 · 페어링"
+    ],
+    "api": [
+      600,
+      430,
+      "인증 · 예약 · 입장 · 동기화"
+    ],
+    "worker": [
+      820,
+      430,
+      "문자 · 시트 outbox 처리"
+    ],
+    "pg": [
+      600,
+      530,
+      "원장 · 매일 03:30 백업"
+    ],
+    "nas": [
+      600,
+      650,
+      "PostgreSQL 백업 사본"
+    ],
+    "tong": [
+      1110,
+      280,
+      "학원 관리 서비스 · 재원생"
+    ],
+    "sms": [
+      1110,
+      380,
+      "Aligo 문자 발송"
+    ],
+    "sheets": [
+      1110,
+      480,
+      "운영 명단 사본"
+    ]
+  },
+  "members": {
+    "parent": "users",
+    "admin": "users",
+    "scanner": "users",
+    "caddy": "gcp",
+    "proxy": "vm",
+    "web": "vm",
+    "redis": "vm",
+    "api": "vm",
+    "worker": "vm",
+    "pg": "vm",
+    "nas": "academy",
+    "tong": "external",
+    "sms": "external",
+    "sheets": "external"
+  },
+  "parents": {
+    "users": "",
+    "gcp": "",
+    "academy": "",
+    "vm": "academy",
+    "external": ""
+  },
+  "sourceGroups": [
+    "group users[Users]",
+    "group gcp(ken:google-cloud)[GCP VM]",
+    "group academy[Academy network]",
+    "group vm(ken:proxmox)[Release VM] in academy",
+    "group external[External services]"
+  ],
+  "sourceEdges": [
+    "parent:R -[HTTPS]-> L:caddy",
+    "admin:R -[HTTPS]-> L:caddy",
+    "scanner:R -[HTTPS]-> L:caddy",
+    "caddy:R -[WireGuard]-> T:proxy",
+    "proxy:R -[Loopback]-> L:web",
+    "web:B -[API]-> T:api",
+    "api:L -[Sessions]-> R:redis",
+    "api:B -[SQL]-> T:pg",
+    "worker:B -[Claim outbox]-> R:pg",
+    "api:T -[Sync]-> L:tong",
+    "worker:R -[SMS]-> L:sms",
+    "worker:R -[Sheets]-> L:sheets",
+    "pg:B -[Backup]-> T:nas"
+  ],
+  "edges": [
+    {
+      "source": "parent",
+      "target": "caddy",
+      "groupTarget": false,
+      "points": [
+        [
+          196,
+          112
+        ],
+        [
+          275,
+          112
+        ],
+        [
+          275,
+          112
+        ],
+        [
+          306,
+          112
+        ]
+      ],
+      "kind": "runtime",
+      "label": "HTTPS",
+      "at": [
+        275,
+        150
+      ]
+    },
+    {
+      "source": "admin",
+      "target": "caddy",
+      "groupTarget": false,
+      "points": [
+        [
+          234,
+          202
+        ],
+        [
+          275,
+          202
+        ],
+        [
+          275,
+          112
+        ],
+        [
+          306,
+          112
+        ]
+      ],
+      "kind": "runtime",
+      "label": "",
+      "at": [
+        0,
+        0
+      ]
+    },
+    {
+      "source": "scanner",
+      "target": "caddy",
+      "groupTarget": false,
+      "points": [
+        [
+          182,
+          292
+        ],
+        [
+          275,
+          292
+        ],
+        [
+          275,
+          112
+        ],
+        [
+          306,
+          112
+        ]
+      ],
+      "kind": "runtime",
+      "label": "",
+      "at": [
+        0,
+        0
+      ]
+    },
+    {
+      "source": "caddy",
+      "target": "proxy",
+      "groupTarget": false,
+      "points": [
+        [
+          533,
+          112
+        ],
+        [
+          630,
+          112
+        ],
+        [
+          630,
+          215
+        ],
+        [
+          342,
+          215
+        ],
+        [
+          342,
+          326
+        ]
+      ],
+      "kind": "runtime",
+      "label": "WireGuard 터널",
+      "at": [
+        486,
+        215
+      ]
+    },
+    {
+      "source": "proxy",
+      "target": "web",
+      "groupTarget": false,
+      "points": [
+        [
+          553,
+          352
+        ],
+        [
+          596,
+          352
+        ]
+      ],
+      "kind": "runtime",
+      "label": "loopback",
+      "at": [
+        574,
+        330
+      ]
+    },
+    {
+      "source": "web",
+      "target": "api",
+      "groupTarget": false,
+      "points": [
+        [
+          622,
+          376
+        ],
+        [
+          622,
+          426
+        ]
+      ],
+      "kind": "runtime",
+      "label": "/api/v1",
+      "at": [
+        622,
+        401
+      ]
+    },
+    {
+      "source": "api",
+      "target": "redis",
+      "groupTarget": false,
+      "points": [
+        [
+          596,
+          452
+        ],
+        [
+          534,
+          452
+        ]
+      ],
+      "kind": "runtime",
+      "label": "",
+      "at": [
+        0,
+        0
+      ]
+    },
+    {
+      "source": "api",
+      "target": "pg",
+      "groupTarget": false,
+      "points": [
+        [
+          622,
+          476
+        ],
+        [
+          622,
+          526
+        ]
+      ],
+      "kind": "runtime",
+      "label": "SQL",
+      "at": [
+        640,
+        501
+      ]
+    },
+    {
+      "source": "worker",
+      "target": "pg",
+      "groupTarget": false,
+      "points": [
+        [
+          842,
+          476
+        ],
+        [
+          842,
+          552
+        ],
+        [
+          814,
+          552
+        ]
+      ],
+      "kind": "delivery",
+      "label": "outbox 처리",
+      "at": [
+        842,
+        510
+      ]
+    },
+    {
+      "source": "api",
+      "target": "tong",
+      "groupTarget": false,
+      "points": [
+        [
+          640,
+          426
+        ],
+        [
+          640,
+          395
+        ],
+        [
+          1075,
+          395
+        ],
+        [
+          1075,
+          302
+        ],
+        [
+          1106,
+          302
+        ]
+      ],
+      "kind": "delivery",
+      "label": "6시간마다 동기화",
+      "at": [
+        930,
+        395
+      ]
+    },
+    {
+      "source": "worker",
+      "target": "sms",
+      "groupTarget": false,
+      "points": [
+        [
+          1043,
+          452
+        ],
+        [
+          1080,
+          452
+        ],
+        [
+          1080,
+          402
+        ],
+        [
+          1106,
+          402
+        ]
+      ],
+      "kind": "delivery",
+      "label": "문자 발송",
+      "at": [
+        1080,
+        430
+      ]
+    },
+    {
+      "source": "worker",
+      "target": "sheets",
+      "groupTarget": false,
+      "points": [
+        [
+          1043,
+          460
+        ],
+        [
+          1080,
+          460
+        ],
+        [
+          1080,
+          502
+        ],
+        [
+          1106,
+          502
+        ]
+      ],
+      "kind": "delivery",
+      "label": "시트 반영",
+      "at": [
+        1080,
+        482
+      ]
+    },
+    {
+      "source": "pg",
+      "target": "nas",
+      "groupTarget": false,
+      "points": [
+        [
+          622,
+          576
+        ],
+        [
+          622,
+          646
+        ]
+      ],
+      "kind": "delivery",
+      "label": "백업 사본",
+      "at": [
+        660,
+        614
+      ]
+    }
+  ]
+}
