@@ -1,0 +1,5 @@
+FROM python:3.12.11-slim-bookworm
+ENV PYTHONDONTWRITEBYTECODE=1 PIP_DISABLE_PIP_VERSION_CHECK=1
+COPY requirements-eval.txt /tmp/requirements-eval.txt
+RUN python -m pip install --no-cache-dir -r /tmp/requirements-eval.txt
+WORKDIR /vowser

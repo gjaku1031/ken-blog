@@ -1,0 +1,17 @@
+{
+  "frozen_utc": "2026-10-09T18:02:17.397929+00:00",
+  "pre_execution_freeze": true,
+  "source_agent_server_commit": "d94eaf5f30f734952838528d7045e0eab8891509",
+  "authoring": "confirmatory_queries.jsonl은 탐색적 평가 결과를 본 뒤 AI 에이전트가 새로 작성한 합성 질의. 실제 사용자 발화가 아님",
+  "files_sha256": {
+    "PLAN.md": "0afeb200d3801bb8feed8df026c11cab2f644bbc8ce646ccf7d20e39eedf5fac",
+    "confirmatory_queries.jsonl": "a1f5b8047b28a51c398072c9457f74c08c205679dc4fae733b6d89db51353b7d",
+    "registered_paths.jsonl": "bf83732cfe9100086c6b79a8df0d3a9714a2e75f26b4cc28c3090b3fea7dcf03",
+    "exploratory_queries.jsonl": "308e58896ee8a27447a771d496ccc6df46f0a071ce896f9ae610ad1e07c76ef6",
+    "exploratory_reference.jsonl": "99f5f8739a9eaa3f2f033805bb4e2861a4887c5d54ac937b0321a5ad10fdb090",
+    "harness.py": "d8a32d304d60a32b6bbac3efbe737051b6bba5e8fe9e196ddf707117c371523a",
+    "analyze.py": "15a48e5d62042e91bb0726c5afa509d258b77f3503ebf6a3bcbc0d7b2a3c118f",
+    "requirements-eval.txt": "4eaac04b89124c301d90dc6f1b90e4d439a1f306af2c17fdac49f8b5d0fd82a1",
+    "Dockerfile.eval": "8f08f9ac16b09c15a4f5d0097996904fb1e26088ad836988dad7ec8a95ac8a40"
+  }
+}
