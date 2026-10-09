@@ -1,0 +1,16 @@
+# 원본 uv.lock 버전. 원본 lock에 없는 실제 import 의존성 4개는 아래에서 별도 고정.
+langchain==0.3.26
+langchain-core==0.3.69
+langchain-neo4j==0.4.0
+langchain-openai==0.3.28
+neo4j==5.28.1
+numpy==2.3.1
+openai==1.97.0
+pydantic==2.11.7
+python-dotenv==1.1.1
+# 원본 app import 및 requirements.txt 기반
+fastapi==0.116.1
+websockets==15.0.1
+uvicorn==0.35.0
+# 원본은 사용하지만 lock과 requirements에 빠진 LangGraph 호환 버전
+langgraph==0.5.3

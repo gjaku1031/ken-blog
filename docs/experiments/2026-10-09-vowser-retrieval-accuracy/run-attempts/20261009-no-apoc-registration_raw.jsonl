@@ -1,0 +1,1 @@
+{"elapsed_ms": 0.852, "id": "weather_today", "ok": false, "response": {"data": {"message": "Neo4j database is not connected.", "original_type": "save_new_path"}, "status": "error", "type": "error"}, "sent_utc": "2026-10-09T17:27:01.461728+00:00"}
