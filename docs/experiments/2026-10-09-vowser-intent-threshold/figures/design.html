@@ -29,50 +29,50 @@ svg text { fill:var(--ink); font-size:15px; }
 
 <!-- 1부 -->
 <rect x="0" y="0" width="552" height="470" rx="14" class="panel"/>
-<text x="24" y="38" class="h">1부 탐색적 평가</text>
-<text x="24" y="62" class="sub">요청마다 유사도에 따라 한 분기만 실행</text>
+<text x="24" y="38" class="h">1부 지금 상태 재 보기</text>
+<text x="24" y="62" class="sub">질문마다 유사도에 따라 한 방식만 실행</text>
 <rect x="176" y="90" width="200" height="56" rx="10" class="box"/>
-<text x="276" y="114" text-anchor="middle" class="b">정답형 요청 80개</text>
+<text x="276" y="114" text-anchor="middle" class="b">정답이 있는 질문 80개</text>
 <text x="276" y="134" text-anchor="middle" class="sub">최고 유사도 계산</text>
 <path d="M240,146 L130,212" class="edge" marker-end="url(#a)"/>
 <path d="M312,146 L422,212" class="edge" marker-end="url(#a)"/>
 <text x="150" y="180" text-anchor="end" class="sub">0.43 이상</text>
 <text x="402" y="180" class="sub">0.43 미만</text>
 <rect x="24" y="214" width="220" height="104" rx="10" class="rank"/>
-<text x="134" y="242" text-anchor="middle" class="t-rank">순위화 분기</text>
+<text x="134" y="242" text-anchor="middle" class="t-rank">바로 순위화</text>
 <text x="134" y="276" text-anchor="middle" class="big">41 / 63</text>
 <text x="134" y="302" text-anchor="middle" class="sub">1위 정답 65%</text>
 <rect x="308" y="214" width="220" height="104" rx="10" class="redis"/>
-<text x="418" y="242" text-anchor="middle" class="t-redis">재검색 분기</text>
+<text x="418" y="242" text-anchor="middle" class="t-redis">다시 찾기</text>
 <text x="418" y="276" text-anchor="middle" class="big">5 / 17</text>
 <text x="418" y="302" text-anchor="middle" class="sub">1위 정답 29%</text>
 <rect x="24" y="346" width="504" height="96" rx="10" class="warn"/>
-<text x="276" y="378" text-anchor="middle" class="t-warn">두 집단은 서로 다른 요청</text>
-<text x="276" y="404" text-anchor="middle">유사도가 낮은 요청은 원래 어려울 수 있어</text>
-<text x="276" y="426" text-anchor="middle">분기의 효과와 요청 난이도가 섞임</text>
+<text x="276" y="378" text-anchor="middle" class="t-warn">두 방식이 받은 질문이 서로 다름</text>
+<text x="276" y="404" text-anchor="middle">유사도가 낮은 질문은 원래 어려울 수 있어</text>
+<text x="276" y="426" text-anchor="middle">방식의 효과와 질문 난이도가 섞임</text>
 
 <!-- 2부 -->
 <rect x="592" y="0" width="552" height="470" rx="14" class="panel"/>
-<text x="616" y="38" class="h">2부 확증 실험</text>
-<text x="616" y="62" class="sub">같은 요청에서 분석을 한 번 하고 두 분기를 모두 실행</text>
+<text x="616" y="38" class="h">2부 같은 질문으로 비교</text>
+<text x="616" y="62" class="sub">같은 질문에서 분석을 한 번 하고 두 방식을 모두 실행</text>
 <rect x="718" y="90" width="300" height="56" rx="10" class="box"/>
-<text x="868" y="114" text-anchor="middle" class="b">새 정답형 요청 80개</text>
+<text x="868" y="114" text-anchor="middle" class="b">새로 쓴 질문 80개</text>
 <text x="868" y="134" text-anchor="middle" class="sub">유사도 검색 + LLM 의도 분석 1회</text>
 <path d="M832,146 L722,212" class="edge" marker-end="url(#a)"/>
 <path d="M904,146 L1014,212" class="edge" marker-end="url(#a)"/>
 <text x="742" y="180" text-anchor="end" class="sub">같은 상태 복사</text>
 <text x="994" y="180" class="sub">같은 상태 복사</text>
 <rect x="616" y="214" width="220" height="104" rx="10" class="rank"/>
-<text x="726" y="242" text-anchor="middle" class="t-rank">순위화 분기</text>
+<text x="726" y="242" text-anchor="middle" class="t-rank">바로 순위화</text>
 <text x="726" y="276" text-anchor="middle" class="big">52 / 80</text>
 <text x="726" y="302" text-anchor="middle" class="sub">1위 정답</text>
 <rect x="900" y="214" width="220" height="104" rx="10" class="redis"/>
-<text x="1010" y="242" text-anchor="middle" class="t-redis">재검색 분기</text>
+<text x="1010" y="242" text-anchor="middle" class="t-redis">다시 찾기</text>
 <text x="1010" y="276" text-anchor="middle" class="big">45 / 80</text>
 <text x="1010" y="302" text-anchor="middle" class="sub">1위 정답</text>
 <rect x="616" y="346" width="504" height="96" rx="10" class="good"/>
-<text x="868" y="378" text-anchor="middle" class="t-good">같은 요청끼리 짝지어 비교</text>
-<text x="868" y="404" text-anchor="middle">순위화만 맞음 18 · 재검색만 맞음 11</text>
-<text x="868" y="426" text-anchor="middle">McNemar p = 0.265 → 차이를 주장할 수 없음</text>
+<text x="868" y="378" text-anchor="middle" class="t-good">같은 질문끼리 나란히 비교</text>
+<text x="868" y="404" text-anchor="middle">바로 순위화만 맞음 18 · 다시 찾기만 맞음 11</text>
+<text x="868" y="426" text-anchor="middle">p = 0.265, 우연으로도 나올 수 있는 차이</text>
 </svg>
 </div></body></html>

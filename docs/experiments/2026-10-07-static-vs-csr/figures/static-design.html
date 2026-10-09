@@ -1,0 +1,109 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><title>세 구조가 본문을 화면에 올리는 순서</title>
+<style>
+/* ERD 문서 첫 방문에서 본문이 보이기까지의 단계.
+   근거: 순수 CSR f29ef35 apps/web/components/project-reader.tsx·auth-provider.tsx (auth/me → projects/{slug} → posts/{doc} 순차),
+   하이브리드 135169f 같은 파일(초기 상태를 HTML 본문으로 채우고 같은 API를 다시 호출),
+   정적 생성 811c95f src/main/resources/web/public/main.ts(/auth/me 1회),
+   results/body-location.tsv(HTML에 본문 표식 포함 여부), results/summary.csv erd_document R cold의 api_server_med(6·9) */
+:root { --bg:#ffffff; --panel:#f6f7f9; --ink:#1a2030; --soft:#4a5368; --muted:#6b7386; --line:#d3d8e1;
+  --acc:#2b59c3; --acc-soft:#e3eafa; --api:#b06d00; --api-soft:#fbefd9; }
+@media (prefers-color-scheme: dark) { :root { --bg:#171b24; --panel:#1d2230; --ink:#e4e8f0; --soft:#a9b2c3; --muted:#8a93a6; --line:#2c3442;
+  --acc:#7aa2ff; --acc-soft:#1d2a47; --api:#e3a64a; --api-soft:#34291a; } }
+body { margin:0; background:var(--bg); font-family:"Noto Sans CJK KR","Apple SD Gothic Neo",sans-serif; }
+#figure { width:1200px; padding:28px; box-sizing:border-box; background:var(--bg); }
+svg text { fill:var(--ink); font-size:15px; }
+.panel { fill:var(--panel); stroke:var(--line); }
+.h { font-size:19px; font-weight:700; }
+.sub { fill:var(--muted); font-size:13.5px; }
+.b { font-weight:600; }
+.box { fill:var(--bg); stroke:var(--soft); stroke-width:1.4; }
+.dash { stroke-dasharray:6 4; }
+.api { fill:var(--api-soft); stroke:var(--api); stroke-width:1.6; }
+.acc { fill:var(--acc-soft); stroke:var(--acc); stroke-width:2; }
+.t-api { fill:var(--api); font-weight:700; } .t-acc { fill:var(--acc); font-weight:700; }
+.edge { stroke:var(--soft); stroke-width:1.5; fill:none; }
+.lab { fill:var(--muted); font-size:12.5px; }
+.head { fill:var(--soft); }
+</style></head><body>
+<div id="figure"><svg id="chart" viewBox="0 0 1144 690" width="1144" height="690" role="img"
+aria-label="순수 CSR은 HTML, 스크립트, 로그인 상태 확인, 프로젝트 조회, 문서 본문 조회를 차례로 기다린 뒤에야 본문을 보여 주고, 하이브리드와 정적 생성은 HTML에 본문이 있어 API 응답을 기다리지 않음"></svg></div>
+<script>
+(() => {
+  const NS = "http://www.w3.org/2000/svg", svg = document.getElementById("chart");
+  const el = (t, a, txt) => { const n = document.createElementNS(NS, t); for (const k in a) n.setAttribute(k, a[k]); if (txt != null) n.textContent = txt; svg.appendChild(n); return n; };
+  const defs = el("defs", {});
+  const mk = document.createElementNS(NS, "marker");
+  for (const [k, v] of Object.entries({ id: "a", viewBox: "0 0 10 10", refX: 9, refY: 5, markerWidth: 7, markerHeight: 7, orient: "auto" })) mk.setAttribute(k, v);
+  const mp = document.createElementNS(NS, "path"); mp.setAttribute("d", "M0,0 L10,5 L0,10 z"); mp.setAttribute("class", "head"); mk.appendChild(mp); defs.appendChild(mk);
+
+  const BW = 136, BH = 58, GAP = 57.6, X0 = 20;
+  const cx = i => X0 + i * (BW + GAP);
+  const box = (i, y, title, sub, cls, tcls) => {
+    el("rect", { x: cx(i), y, width: BW, height: BH, rx: 9, class: cls });
+    el("text", { x: cx(i) + BW / 2, y: y + 25, "text-anchor": "middle", class: tcls || "b" }, title);
+    el("text", { x: cx(i) + BW / 2, y: y + 45, "text-anchor": "middle", class: "sub" }, sub);
+  };
+  const arrow = (i, y, label, dashed) => {
+    const x1 = cx(i) + BW, x2 = cx(i + 1) - 3, ym = y + BH / 2;
+    el("path", { d: `M${x1},${ym} L${x2},${ym}`, class: "edge" + (dashed ? " dash" : ""), "marker-end": "url(#a)" });
+    el("text", { x: (x1 + x2) / 2, y: ym - 8, "text-anchor": "middle", class: "lab" }, label);
+  };
+  const down = (y1, y2, label) => {          // HTML 상자 아래에서 둘째 줄 스크립트 상자로
+    const x = cx(0) + BW / 2, ym = y2 + BH / 2;
+    el("path", { d: `M${x},${y1} L${x},${ym} L${cx(1) - 3},${ym}`, class: "edge dash", "marker-end": "url(#a)" });
+    el("text", { x: x + 8, y: y1 + 22, class: "lab" }, label);
+  };
+  const lane = (y, h, title, sub, note, noteCls) => {
+    el("rect", { x: 0, y, width: 1144, height: h, rx: 14, class: "panel" });
+    const t = el("text", { x: 20, y: y + 32, class: "h" }, title);
+    el("text", { x: 20 + t.getComputedTextLength() + 14, y: y + 32, class: "sub" }, sub);
+    el("text", { x: 1124, y: y + 32, "text-anchor": "end", class: noteCls }, note);
+  };
+
+  // 시간 방향
+  el("path", { d: `M${X0},18 L1120,18`, class: "edge", "marker-end": "url(#a)" });
+  el("text", { x: X0, y: 40, class: "lab" }, "먼저");
+  el("text", { x: 1124, y: 40, "text-anchor": "end", class: "lab" }, "나중  (앞 단계 응답이 와야 다음 단계 시작)");
+
+  // 1. 순수 CSR
+  let y = 54, m = y + 52;
+  lane(y, 134, "순수 CSR", "HTML에 본문이 없음", "본문 전에 API 왕복 3번 · 열람 1회당 서버 API 6회", "t-api");
+  box(0, m, "HTML 받기", "본문 없음", "box");
+  box(1, m, "스크립트 받기", "화면 코드", "box");
+  box(2, m, "로그인 상태 확인", "API 왕복", "api", "t-api");
+  box(3, m, "프로젝트 조회", "API 왕복", "api", "t-api");
+  box(4, m, "문서 본문 조회", "API 왕복", "api", "t-api");
+  box(5, m, "본문 표시", "여기서 처음 보임", "acc", "t-acc");
+  arrow(0, m, "요청"); arrow(1, m, "실행"); arrow(2, m, "응답 뒤"); arrow(3, m, "응답 뒤"); arrow(4, m, "응답 뒤");
+
+  // 2. 하이브리드
+  y = 212; m = y + 52; let s = m + BH + 40;
+  lane(y, 228, "하이브리드", "빌드 때 본문을 HTML에 넣음", "본문 전에 API 왕복 0번 · 열람 1회당 서버 API 9회", "t-acc");
+  box(0, m, "HTML 받기", "본문 포함", "box");
+  box(1, m, "본문 표시", "HTML만으로 보임", "acc", "t-acc");
+  arrow(0, m, "바로");
+  box(1, s, "스크립트 받기", "화면 코드", "box dash");
+  box(2, s, "로그인 상태 확인", "API 왕복", "api dash", "t-api");
+  box(3, s, "프로젝트 조회", "API 왕복", "api dash", "t-api");
+  box(4, s, "문서 본문 조회", "API 왕복", "api dash", "t-api");
+  down(m + BH, s, "이어서");
+  arrow(1, s, "실행", true); arrow(2, s, "응답 뒤", true); arrow(3, s, "응답 뒤", true);
+  el("text", { x: cx(5), y: s + 25, class: "b" }, "같은 내용을 다시 받음");
+  el("text", { x: cx(5), y: s + 45, class: "sub" }, "본문 표시를 막지 않음");
+
+  // 3. 정적 생성
+  y = 458; m = y + 52; s = m + BH + 40;
+  lane(y, 228, "정적 생성", "빌드 때 본문·목록·역링크를 HTML에 넣음", "본문 전에 API 왕복 0번 · 본문 조회 API 없음", "t-acc");
+  box(0, m, "HTML 받기", "본문·목록 포함", "box");
+  box(1, m, "본문 표시", "HTML만으로 보임", "acc", "t-acc");
+  arrow(0, m, "바로");
+  box(1, s, "스크립트 받기", "화면 코드", "box dash");
+  box(2, s, "로그인 상태 확인", "API 1회", "api dash", "t-api");
+  down(m + BH, s, "이어서");
+  arrow(1, s, "실행", true);
+  el("text", { x: cx(3), y: s + 25, class: "b" }, "관리자 메뉴 표시용");
+  el("text", { x: cx(3), y: s + 45, class: "sub" }, "본문과 무관");
+  document.body.dataset.ready = "1";
+})();
+</script></body></html>

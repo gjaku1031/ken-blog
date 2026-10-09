@@ -27,13 +27,13 @@ const L = 90, R = 1110, T0 = 40, h1 = 330, gap = 50, h2 = 110, y0 = T0 + h1, b0 
 const n = D.length, step = (R - L) / (n - 1);
 const X = i => L + i * step;
 const Y = v => T0 + h1 - (v - 40) / (100 - 40) * h1;          // 40~100%
-const label = t => t === 0 ? "0\n(재검색 없음)" : t > 1 ? "1.01\n(항상 재검색)" : t.toFixed(2);
+const label = t => t === 0 ? "0\n(다시 찾기 없음)" : t > 1 ? "1.01\n(항상 다시 찾기)" : t.toFixed(2);
 for (let v = 40; v <= 100; v += 10) { el("line", { x1: L, x2: R, y1: Y(v), y2: Y(v), class: "grid" }); el("text", { x: L - 12, y: Y(v) + 4, "text-anchor": "end", class: "axis" }, v + "%"); }
-el("text", { x: L, y: 24, class: "h" }, "정답형 요청 80개의 정답률");
-// 현재 값 0.43 표시
+el("text", { x: L, y: 24, class: "h" }, "정답이 있는 질문 80개의 정답률");
+// 지금 기준값 0.43 표시
 const ci = D.findIndex(d => Math.abs(d.t - 0.43) < 1e-9);
 el("line", { x1: X(ci), x2: X(ci), y1: T0, y2: b0, class: "cur" });
-el("text", { x: X(ci) + 8, y: T0 + 16, class: "lab", fill: "var(--mark)", style: "fill:var(--mark)" }, "현재 값 0.43");
+el("text", { x: X(ci) + 8, y: T0 + 16, class: "lab", fill: "var(--mark)", style: "fill:var(--mark)" }, "지금 기준값 0.43");
 // 1위 정답 신뢰구간 띠
 const up = D.map((d, i) => `${X(i)},${Y(d.top1_ci[1] * 100)}`), lo = D.map((d, i) => `${X(i)},${Y(d.top1_ci[0] * 100)}`).reverse();
 el("polygon", { points: up.concat(lo).join(" "), class: "band" });
@@ -47,7 +47,7 @@ D.forEach((d, i) => {
 const lg = [[`1위 정답(점) · Wilson 95% 구간(띠)`, "l1"], [`3위 안 정답`, "l3"]];
 lg.forEach(([t, c], k) => { const x = 700 + k * 300; el("line", { x1: x, x2: x + 34, y1: 20, y2: 20, class: c }); el("text", { x: x + 42, y: 25 }, t); });
 // 아래 패널: 재검색 비율
-el("text", { x: L, y: y0 + gap - 12, class: "h" }, "재검색 분기로 가는 비율");
+el("text", { x: L, y: y0 + gap - 12, class: "h" }, "다시 찾기로 넘어가는 비율");
 const BY = v => b0 - v * h2;
 D.forEach((d, i) => {
   const w = 34; el("rect", { x: X(i) - w / 2, y: BY(d.rediscover_rate), width: w, height: Math.max(1, d.rediscover_rate * h2), class: "bar" });
@@ -55,6 +55,6 @@ D.forEach((d, i) => {
   label(d.t).split("\n").forEach((s, k) => el("text", { x: X(i), y: b0 + 22 + k * 17, "text-anchor": "middle", class: k ? "axis" : "" }, s));
 });
 el("line", { x1: L, x2: R, y1: b0, y2: b0, class: "grid" });
-el("text", { x: (L + R) / 2, y: b0 + 62, "text-anchor": "middle", class: "axis" }, "임계값(최고 유사도가 이 값보다 낮으면 재검색)");
+el("text", { x: (L + R) / 2, y: b0 + 62, "text-anchor": "middle", class: "axis" }, "기준값(가장 높은 유사도가 이 값보다 낮으면 다시 찾기)");
 document.body.dataset.ready = "1";
 </script></body></html>

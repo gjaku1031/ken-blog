@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><title>API 메모리와 한도</title>
+<style>
+/* 수치 출처: docs/ADR/ADR_infra.md "JVM 실서버 부하·메모리 측정"(b768152 기준 260·272행).
+   서버 RAM 3894MiB, API 제한 1536MiB, 유휴 API 중앙값 400.2MiB, API 최대 474.5MiB,
+   테스트 MySQL까지 합산한 스택 최대 749.0MiB, 호스트 최소 가용 2361.4MiB, OOM·자동 재시작 0회.
+   게시글 post-489faedf…의 '메모리 결과' 표와 같음 */
+:root { --bg:#ffffff; --panel:#f6f7f9; --ink:#1a2030; --soft:#4a5368; --muted:#6b7386; --line:#d3d8e1; --grid:#e3e7ee;
+  --acc:#2b59c3; --stack:#b06d00; --free:#1d6a55; --free-soft:#e0eee8; }
+@media (prefers-color-scheme: dark) { :root { --bg:#171b24; --panel:#1d2230; --ink:#e4e8f0; --soft:#a9b2c3; --muted:#8a93a6; --line:#2c3442; --grid:#2a3140;
+  --acc:#7aa2ff; --stack:#e3a64a; --free:#5fc6a5; --free-soft:#19302a; } }
+body { margin:0; background:var(--bg); font-family:"Noto Sans CJK KR","Apple SD Gothic Neo",sans-serif; }
+#figure { width:1200px; padding:28px; box-sizing:border-box; background:var(--bg); }
+svg text { fill:var(--ink); font-size:15px; }
+.panel { fill:var(--panel); stroke:var(--line); }
+.h { font-size:18px; font-weight:700; }
+.sub { fill:var(--muted); font-size:13.5px; }
+.axis { fill:var(--muted); font-size:13px; }
+.grid { stroke:var(--grid); stroke-width:1; }
+.b { font-weight:600; }
+.v { font-size:14px; }
+.track { fill:var(--bg); stroke:var(--soft); stroke-width:1.4; }
+</style></head><body>
+<div id="figure"><svg id="chart" viewBox="0 0 1144 350" width="1144" height="350" role="img"
+aria-label="API 메모리는 유휴 중앙값 400.2MiB, 최대 474.5MiB로 1,536MiB 컨테이너 한도의 약 31%였고, 테스트 MySQL까지 합친 스택 최대는 749.0MiB, 서버 최소 가용 메모리는 2,361.4MiB였음"></svg></div>
+<script>
+(() => {
+  const RAM = 3894, LIMIT = 1536, IDLE = 400.2, API_MAX = 474.5, STACK_MAX = 749.0, MIN_FREE = 2361.4;
+  const NS = "http://www.w3.org/2000/svg", svg = document.getElementById("chart");
+  const el = (t, a, txt) => { const n = document.createElementNS(NS, t); for (const k in a) n.setAttribute(k, a[k]); if (txt != null) n.textContent = txt; svg.appendChild(n); return n; };
+  const fmt = v => v.toLocaleString("ko-KR", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+  const L = 190, R = 1110, X = v => L + v / RAM * (R - L), BH = 34;
+
+  el("rect", { x: 0, y: 0, width: 1144, height: 318, rx: 14, class: "panel" });
+  el("text", { x: 24, y: 34, class: "h" }, "메모리 사용량과 한도");
+  el("text", { x: 24, y: 56, class: "sub" }, "2026-10-02 · 1초 간격 수집 · 같은 눈금(MiB)");
+
+  // 눈금
+  const yA = 110, yB = 210, axisY = yB + BH + 34;
+  for (let v = 0; v <= 3500; v += 500) {
+    el("line", { x1: X(v), x2: X(v), y1: yA - 30, y2: axisY - 14, class: "grid" });
+    el("text", { x: X(v), y: axisY, "text-anchor": "middle", class: "axis" }, v.toLocaleString("ko-KR"));
+  }
+  el("text", { x: R, y: axisY + 20, "text-anchor": "end", class: "axis" }, "MiB");
+
+  // 1. API 컨테이너: 한도 안의 사용량
+  el("text", { x: 24, y: yA + 15, class: "b" }, "API 컨테이너");
+  el("text", { x: 24, y: yA + 34, class: "sub" }, "한도 1,536MiB");
+  el("rect", { x: L, y: yA, width: X(LIMIT) - L, height: BH, rx: 4, class: "track", style: "stroke-dasharray:6 4;stroke:var(--acc)" });
+  el("rect", { x: L, y: yA, width: X(API_MAX) - L, height: BH, rx: 4, style: "fill:var(--acc)" });
+  el("line", { x1: X(IDLE), x2: X(IDLE), y1: yA - 6, y2: yA + BH + 6, style: "stroke:var(--ink);stroke-width:2" });
+  el("text", { x: X(IDLE) - 6, y: yA - 10, "text-anchor": "end", class: "v" }, `유휴 중앙값 ${fmt(IDLE)}`);
+  el("text", { x: X(API_MAX) + 10, y: yA + BH / 2 + 5, class: "v b" }, `최대 ${fmt(API_MAX)}`);
+  el("text", { x: X(LIMIT) + 10, y: yA + BH / 2 + 5, class: "v", style: "fill:var(--acc);font-weight:700" },
+    `한도 ${LIMIT.toLocaleString("ko-KR")} · 최대가 한도의 ${Math.round(API_MAX / LIMIT * 100)}%`);
+
+  // 2. 서버 전체 RAM
+  el("text", { x: 24, y: yB + 15, class: "b" }, "서버 전체");
+  el("text", { x: 24, y: yB + 34, class: "sub" }, "RAM 3,894MiB");
+  el("rect", { x: L, y: yB, width: R - L, height: BH, rx: 4, class: "track" });
+  el("rect", { x: L, y: yB, width: X(STACK_MAX) - L, height: BH, rx: 4, style: "fill:var(--stack)" });
+  el("rect", { x: X(RAM - MIN_FREE), y: yB, width: R - X(RAM - MIN_FREE), height: BH, rx: 4, style: "fill:var(--free-soft);stroke:var(--free);stroke-width:1.4" });
+  el("text", { x: L, y: yB - 10, class: "v" }, `API·Caddy·테스트 MySQL 합계 최대 ${fmt(STACK_MAX)}`);
+  el("text", { x: (X(RAM - MIN_FREE) + R) / 2, y: yB + BH / 2 + 5, "text-anchor": "middle", class: "v b", style: "fill:var(--free)" }, `가장 적었을 때의 가용 메모리 ${fmt(MIN_FREE)}`);
+
+  el("text", { x: 0, y: 342, class: "axis" }, "OOM·자동 재시작 0회. 최대와 최소 가용은 서로 다른 시점일 수 있음.");
+  document.body.dataset.ready = "1";
+})();
+</script></body></html>

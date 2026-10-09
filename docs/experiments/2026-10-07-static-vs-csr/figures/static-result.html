@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><title>ERD 문서 첫 방문의 본문 표시 시각</title>
+<style>
+/* 수치 출처: results/summary.csv, scenario=erd_document, cache=cold, 열 visible_med·visible_p95 (각 n=15).
+   R: csr 746.7/810.385, hybrid 625.163/1147.853, static 463.311/493.841
+   M: csr 3535.691/4062.794, hybrid 1581.788/2144.351, static 868.569/1607.389
+   배수: 746.7/463.311=1.61, 3535.691/868.569=4.07 */
+:root { --bg:#ffffff; --panel:#f6f7f9; --ink:#1a2030; --soft:#4a5368; --muted:#6b7386; --line:#d3d8e1; --grid:#e3e7ee;
+  --acc:#2b59c3; --api:#b06d00; --mid:#8a93a6; }
+@media (prefers-color-scheme: dark) { :root { --bg:#171b24; --panel:#1d2230; --ink:#e4e8f0; --soft:#a9b2c3; --muted:#8a93a6; --line:#2c3442; --grid:#2a3140;
+  --acc:#7aa2ff; --api:#e3a64a; --mid:#6b7386; } }
+body { margin:0; background:var(--bg); font-family:"Noto Sans CJK KR","Apple SD Gothic Neo",sans-serif; }
+#figure { width:1200px; padding:28px; box-sizing:border-box; background:var(--bg); }
+svg text { fill:var(--ink); font-size:15px; }
+.panel { fill:var(--panel); stroke:var(--line); }
+.h { font-size:18px; font-weight:700; }
+.sub { fill:var(--muted); font-size:13.5px; }
+.axis { fill:var(--muted); font-size:13px; }
+.grid { stroke:var(--grid); stroke-width:1; }
+.b { font-weight:600; }
+.val { font-size:14px; }
+.p95 { fill:var(--muted); font-size:13px; }
+.edge { stroke:var(--soft); stroke-width:1.5; fill:none; }
+.ratio { font-size:22px; font-weight:700; fill:var(--acc); }
+</style></head><body>
+<div id="figure"><svg id="chart" viewBox="0 0 1144 494" width="1144" height="494" role="img"
+aria-label="ERD 문서 첫 방문의 본문 표시 시각 중앙값. 네트워크 R에서 순수 CSR 747ms, 하이브리드 625ms, 정적 생성 463ms로 1.6배 차이, 네트워크 M에서 3,536ms, 1,582ms, 869ms로 4.1배 차이"></svg></div>
+<script>
+(() => {
+  const DATA = [
+    { key: "R", title: "네트워크 R", sub: "실측 조건 · 왕복 38.6ms", rows: [
+      ["순수 CSR", 746.7, 810.385, "--api"], ["하이브리드", 625.163, 1147.853, "--mid"], ["정적 생성", 463.311, 493.841, "--acc"]] },
+    { key: "M", title: "네트워크 M", sub: "참고 조건 · 왕복 150ms 저속 모바일", rows: [
+      ["순수 CSR", 3535.691, 4062.794, "--api"], ["하이브리드", 1581.788, 2144.351, "--mid"], ["정적 생성", 868.569, 1607.389, "--acc"]] },
+  ];
+  const NS = "http://www.w3.org/2000/svg", svg = document.getElementById("chart");
+  const el = (t, a, txt) => { const n = document.createElementNS(NS, t); for (const k in a) n.setAttribute(k, a[k]); if (txt != null) n.textContent = txt; svg.appendChild(n); return n; };
+  const fmt = v => Math.round(v).toLocaleString("ko-KR");
+  const L = 150, R = 920, MAX = 5000, X = v => L + v / MAX * (R - L);
+  const PH = 222, BH = 26, STEP = 42;
+
+  DATA.forEach((p, k) => {
+    const y0 = k * (PH + 24);
+    el("rect", { x: 0, y: y0, width: 1144, height: PH, rx: 14, class: "panel" });
+    const t = el("text", { x: 20, y: y0 + 32, class: "h" }, p.title);
+    el("text", { x: 20 + t.getComputedTextLength() + 12, y: y0 + 32, class: "sub" }, p.sub);
+    const r0 = y0 + 56, axisY = r0 + 3 * STEP + 2;
+    for (let v = 0; v <= MAX; v += 1000) {
+      el("line", { x1: X(v), x2: X(v), y1: r0 - 6, y2: axisY, class: "grid" });
+      el("text", { x: X(v), y: axisY + 18, "text-anchor": "middle", class: "axis" }, v === 0 ? "0" : fmt(v) + "ms");
+    }
+    p.rows.forEach(([name, med, p95, c], i) => {
+      const y = r0 + i * STEP, col = `var(${c})`;
+      el("text", { x: L - 14, y: y + BH / 2 + 5, "text-anchor": "end", class: "b" }, name);
+      el("rect", { x: L, y, width: X(med) - L, height: BH, rx: 4, style: `fill:${col}` });
+      el("line", { x1: X(med), x2: X(p95), y1: y + BH / 2, y2: y + BH / 2, style: `stroke:${col};stroke-width:2` });
+      el("line", { x1: X(p95), x2: X(p95), y1: y + 5, y2: y + BH - 5, style: `stroke:${col};stroke-width:2` });
+      const v = el("text", { x: X(p95) + 10, y: y + BH / 2 + 5, class: "val b" }, fmt(med) + "ms");
+      el("text", { x: X(p95) + 10 + v.getComputedTextLength() + 8, y: y + BH / 2 + 5, class: "p95" }, "p95 " + fmt(p95));
+    });
+    // 순수 CSR과 정적 생성의 중앙값 배수
+    const ratio = p.rows[0][1] / p.rows[2][1], bx = 1010, ya = r0 + BH / 2, yb = r0 + 2 * STEP + BH / 2;
+    el("path", { d: `M${bx - 10},${ya} L${bx},${ya} L${bx},${yb} L${bx - 10},${yb}`, class: "edge" });
+    el("text", { x: bx + 12, y: (ya + yb) / 2 + 2, class: "ratio" }, ratio.toFixed(1) + "배");
+    el("text", { x: bx + 12, y: (ya + yb) / 2 + 22, class: "axis" }, "순수 CSR ÷ 정적");
+  });
+  el("text", { x: 20, y: 2 * PH + 24 + 24, class: "axis" }, "막대는 15회 중앙값, 가는 선 끝은 p95. 두 조건 모두 같은 눈금.");
+  document.body.dataset.ready = "1";
+})();
+</script></body></html>
