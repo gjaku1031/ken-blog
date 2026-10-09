@@ -1,0 +1,15 @@
+{
+  "ambiguous": 8,
+  "answerable": 80,
+  "authoring": "AI agent가 평가를 위해 직접 작성한 합성 문장과 합성 경로. 실제 이용자 발화·STT 결과·수집 클릭 경로가 아님.",
+  "created_utc": "2026-09-28",
+  "files_sha256": {
+    "gold.jsonl": "308e58896ee8a27447a771d496ccc6df46f0a071ce896f9ae610ad1e07c76ef6",
+    "registered_paths.jsonl": "bf83732cfe9100086c6b79a8df0d3a9714a2e75f26b4cc28c3090b3fea7dcf03"
+  },
+  "paths": 16,
+  "pre_execution_freeze": true,
+  "queries_total": 96,
+  "source_agent_server_commit": "d94eaf5f30f734952838528d7045e0eab8891509",
+  "unanswerable": 8
+}

@@ -1,0 +1,16 @@
+{
+  "elapsed_ms": 167.039,
+  "response": {
+    "data": {
+      "graph_statistics": {
+        "HAS_STEP_relations": 16,
+        "NEXT_STEP_relations": 16,
+        "ROOT_nodes": 7,
+        "STEP_nodes": 32,
+        "structure": "ROOT -> [HAS_STEP] -> STEP -> [NEXT_STEP] -> STEP"
+      }
+    },
+    "status": "success",
+    "type": "graph_check_result"
+  }
+}
