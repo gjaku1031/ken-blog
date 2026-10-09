@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><title>임계값별 1위·3위 안 정답과 재검색 비율</title>
+<style>
+/* results/summary.json의 sweep을 그대로 그림. 데이터는 render-figure.cjs가 window.FIGURE_DATA로 넣음 */
+:root { --bg:#ffffff; --ink:#1a2030; --soft:#4a5368; --muted:#6b7386; --grid:#e3e7ee; --top1:#2b59c3; --band:rgba(43,89,195,0.14); --top3:#11847a; --bar:#e9d6b4; --barline:#b06d00; --mark:#b02a22; }
+@media (prefers-color-scheme: dark) { :root { --bg:#171b24; --ink:#e4e8f0; --soft:#a9b2c3; --muted:#8a93a6; --grid:#2a3140; --top1:#7aa2ff; --band:rgba(122,162,255,0.18); --top3:#4fc7b9; --bar:#4a3a1f; --barline:#e3a64a; --mark:#f08b80; } }
+body { margin:0; background:var(--bg); font-family:"Noto Sans CJK KR","Apple SD Gothic Neo",sans-serif; }
+#figure { width:1200px; padding:28px; box-sizing:border-box; background:var(--bg); }
+svg text { fill:var(--ink); font-size:14px; }
+.axis { fill:var(--muted); font-size:13px; }
+.grid { stroke:var(--grid); stroke-width:1; }
+.l1 { fill:none; stroke:var(--top1); stroke-width:3; }
+.l3 { fill:none; stroke:var(--top3); stroke-width:2.2; stroke-dasharray:7 5; }
+.band { fill:var(--band); }
+.bar { fill:var(--bar); stroke:var(--barline); stroke-width:1; }
+.cur { stroke:var(--mark); stroke-width:1.6; stroke-dasharray:4 4; }
+.lab { font-size:13px; font-weight:600; }
+.h { font-size:17px; font-weight:700; }
+</style></head><body>
+<div id="figure"><svg id="chart" width="1144" height="620" viewBox="0 0 1144 620" role="img" aria-label="임계값별 1위 정답, 3위 안 정답, 재검색 비율"></svg></div>
+<script>
+const D = window.FIGURE_DATA.sweep;
+const NS = "http://www.w3.org/2000/svg", svg = document.getElementById("chart");
+const el = (t, a, txt) => { const n = document.createElementNS(NS, t); for (const k in a) n.setAttribute(k, a[k]); if (txt != null) n.textContent = txt; svg.appendChild(n); return n; };
+// 위: 정답률(%) 패널, 아래: 재검색 비율 막대 패널. 0과 1.01은 양 끝 범주로 따로 둠
+const L = 90, R = 1110, T0 = 40, h1 = 330, gap = 50, h2 = 110, y0 = T0 + h1, b0 = y0 + gap + h2;
+const n = D.length, step = (R - L) / (n - 1);
+const X = i => L + i * step;
+const Y = v => T0 + h1 - (v - 40) / (100 - 40) * h1;          // 40~100%
+const label = t => t === 0 ? "0\n(재검색 없음)" : t > 1 ? "1.01\n(항상 재검색)" : t.toFixed(2);
+for (let v = 40; v <= 100; v += 10) { el("line", { x1: L, x2: R, y1: Y(v), y2: Y(v), class: "grid" }); el("text", { x: L - 12, y: Y(v) + 4, "text-anchor": "end", class: "axis" }, v + "%"); }
+el("text", { x: L, y: 24, class: "h" }, "정답형 요청 80개의 정답률");
+// 현재 값 0.43 표시
+const ci = D.findIndex(d => Math.abs(d.t - 0.43) < 1e-9);
+el("line", { x1: X(ci), x2: X(ci), y1: T0, y2: b0, class: "cur" });
+el("text", { x: X(ci) + 8, y: T0 + 16, class: "lab", fill: "var(--mark)", style: "fill:var(--mark)" }, "현재 값 0.43");
+// 1위 정답 신뢰구간 띠
+const up = D.map((d, i) => `${X(i)},${Y(d.top1_ci[1] * 100)}`), lo = D.map((d, i) => `${X(i)},${Y(d.top1_ci[0] * 100)}`).reverse();
+el("polygon", { points: up.concat(lo).join(" "), class: "band" });
+el("polyline", { points: D.map((d, i) => `${X(i)},${Y(d.top3 / 80 * 100)}`).join(" "), class: "l3" });
+el("polyline", { points: D.map((d, i) => `${X(i)},${Y(d.top1 / 80 * 100)}`).join(" "), class: "l1" });
+D.forEach((d, i) => {
+  el("circle", { cx: X(i), cy: Y(d.top1 / 80 * 100), r: 5, style: "fill:var(--top1)" });
+  el("text", { x: X(i), y: Y(d.top1 / 80 * 100) + 24, "text-anchor": "middle", class: "lab", style: "fill:var(--top1)" }, d.top1);
+});
+// 범례
+const lg = [[`1위 정답(점) · Wilson 95% 구간(띠)`, "l1"], [`3위 안 정답`, "l3"]];
+lg.forEach(([t, c], k) => { const x = 700 + k * 300; el("line", { x1: x, x2: x + 34, y1: 20, y2: 20, class: c }); el("text", { x: x + 42, y: 25 }, t); });
+// 아래 패널: 재검색 비율
+el("text", { x: L, y: y0 + gap - 12, class: "h" }, "재검색 분기로 가는 비율");
+const BY = v => b0 - v * h2;
+D.forEach((d, i) => {
+  const w = 34; el("rect", { x: X(i) - w / 2, y: BY(d.rediscover_rate), width: w, height: Math.max(1, d.rediscover_rate * h2), class: "bar" });
+  el("text", { x: X(i), y: BY(d.rediscover_rate) - 6, "text-anchor": "middle", class: "axis" }, Math.round(d.rediscover_rate * 100) + "%");
+  label(d.t).split("\n").forEach((s, k) => el("text", { x: X(i), y: b0 + 22 + k * 17, "text-anchor": "middle", class: k ? "axis" : "" }, s));
+});
+el("line", { x1: L, x2: R, y1: b0, y2: b0, class: "grid" });
+el("text", { x: (L + R) / 2, y: b0 + 62, "text-anchor": "middle", class: "axis" }, "임계값(최고 유사도가 이 값보다 낮으면 재검색)");
+document.body.dataset.ready = "1";
+</script></body></html>

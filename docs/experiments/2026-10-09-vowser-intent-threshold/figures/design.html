@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><title>실험 설계: 한 분기만 vs 같은 요청에서 두 분기</title>
+<style>
+/* 1부와 2부의 설계 차이를 나란히 보여 주는 그림. 수치는 results/summary.json과 1부 원자료 기준 */
+:root { --bg:#ffffff; --panel:#f6f7f9; --ink:#1a2030; --soft:#4a5368; --muted:#6b7386; --line:#d3d8e1;
+  --rank:#2b59c3; --rank-soft:#e3eafa; --redis:#b06d00; --redis-soft:#fbefd9; --warn:#b02a22; --warn-soft:#f8e2df; --good:#1d6a55; --good-soft:#e0eee8; }
+@media (prefers-color-scheme: dark) { :root { --bg:#171b24; --panel:#1d2230; --ink:#e4e8f0; --soft:#a9b2c3; --muted:#8a93a6; --line:#2c3442;
+  --rank:#7aa2ff; --rank-soft:#1d2a47; --redis:#e3a64a; --redis-soft:#34291a; --warn:#f08b80; --warn-soft:#3b201d; --good:#5fc6a5; --good-soft:#19302a; } }
+body { margin:0; background:var(--bg); font-family:"Noto Sans CJK KR","Apple SD Gothic Neo",sans-serif; }
+#figure { width:1200px; padding:28px; box-sizing:border-box; background:var(--bg); }
+svg text { fill:var(--ink); font-size:15px; }
+.panel { fill:var(--panel); stroke:var(--line); }
+.h { font-size:19px; font-weight:700; }
+.sub { fill:var(--muted); font-size:13.5px; }
+.box { fill:var(--bg); stroke:var(--soft); stroke-width:1.4; }
+.rank { fill:var(--rank-soft); stroke:var(--rank); stroke-width:1.6; }
+.redis { fill:var(--redis-soft); stroke:var(--redis); stroke-width:1.6; }
+.warn { fill:var(--warn-soft); stroke:var(--warn); stroke-width:1.4; }
+.good { fill:var(--good-soft); stroke:var(--good); stroke-width:1.4; }
+.t-rank { fill:var(--rank); font-weight:700; } .t-redis { fill:var(--redis); font-weight:700; }
+.t-warn { fill:var(--warn); font-weight:600; } .t-good { fill:var(--good); font-weight:600; }
+.b { font-weight:600; } .big { font-size:24px; font-weight:700; }
+.edge { stroke:var(--soft); stroke-width:1.5; fill:none; }
+.head { fill:var(--soft); }
+</style></head><body>
+<div id="figure">
+<svg viewBox="0 0 1144 470" width="1144" height="470" role="img" aria-label="1부는 유사도에 따라 요청마다 한 분기만 실행해 두 분기의 요청이 서로 달랐고, 2부는 같은 요청 80개에서 분석을 한 번 하고 두 분기를 모두 실행해 짝지어 비교함">
+<defs><marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto"><path d="M0,0 L10,5 L0,10 z" class="head"/></marker></defs>
+
+<!-- 1부 -->
+<rect x="0" y="0" width="552" height="470" rx="14" class="panel"/>
+<text x="24" y="38" class="h">1부 탐색적 평가</text>
+<text x="24" y="62" class="sub">요청마다 유사도에 따라 한 분기만 실행</text>
+<rect x="176" y="90" width="200" height="56" rx="10" class="box"/>
+<text x="276" y="114" text-anchor="middle" class="b">정답형 요청 80개</text>
+<text x="276" y="134" text-anchor="middle" class="sub">최고 유사도 계산</text>
+<path d="M240,146 L130,212" class="edge" marker-end="url(#a)"/>
+<path d="M312,146 L422,212" class="edge" marker-end="url(#a)"/>
+<text x="150" y="180" text-anchor="end" class="sub">0.43 이상</text>
+<text x="402" y="180" class="sub">0.43 미만</text>
+<rect x="24" y="214" width="220" height="104" rx="10" class="rank"/>
+<text x="134" y="242" text-anchor="middle" class="t-rank">순위화 분기</text>
+<text x="134" y="276" text-anchor="middle" class="big">41 / 63</text>
+<text x="134" y="302" text-anchor="middle" class="sub">1위 정답 65%</text>
+<rect x="308" y="214" width="220" height="104" rx="10" class="redis"/>
+<text x="418" y="242" text-anchor="middle" class="t-redis">재검색 분기</text>
+<text x="418" y="276" text-anchor="middle" class="big">5 / 17</text>
+<text x="418" y="302" text-anchor="middle" class="sub">1위 정답 29%</text>
+<rect x="24" y="346" width="504" height="96" rx="10" class="warn"/>
+<text x="276" y="378" text-anchor="middle" class="t-warn">두 집단은 서로 다른 요청</text>
+<text x="276" y="404" text-anchor="middle">유사도가 낮은 요청은 원래 어려울 수 있어</text>
+<text x="276" y="426" text-anchor="middle">분기의 효과와 요청 난이도가 섞임</text>
+
+<!-- 2부 -->
+<rect x="592" y="0" width="552" height="470" rx="14" class="panel"/>
+<text x="616" y="38" class="h">2부 확증 실험</text>
+<text x="616" y="62" class="sub">같은 요청에서 분석을 한 번 하고 두 분기를 모두 실행</text>
+<rect x="718" y="90" width="300" height="56" rx="10" class="box"/>
+<text x="868" y="114" text-anchor="middle" class="b">새 정답형 요청 80개</text>
+<text x="868" y="134" text-anchor="middle" class="sub">유사도 검색 + LLM 의도 분석 1회</text>
+<path d="M832,146 L722,212" class="edge" marker-end="url(#a)"/>
+<path d="M904,146 L1014,212" class="edge" marker-end="url(#a)"/>
+<text x="742" y="180" text-anchor="end" class="sub">같은 상태 복사</text>
+<text x="994" y="180" class="sub">같은 상태 복사</text>
+<rect x="616" y="214" width="220" height="104" rx="10" class="rank"/>
+<text x="726" y="242" text-anchor="middle" class="t-rank">순위화 분기</text>
+<text x="726" y="276" text-anchor="middle" class="big">52 / 80</text>
+<text x="726" y="302" text-anchor="middle" class="sub">1위 정답</text>
+<rect x="900" y="214" width="220" height="104" rx="10" class="redis"/>
+<text x="1010" y="242" text-anchor="middle" class="t-redis">재검색 분기</text>
+<text x="1010" y="276" text-anchor="middle" class="big">45 / 80</text>
+<text x="1010" y="302" text-anchor="middle" class="sub">1위 정답</text>
+<rect x="616" y="346" width="504" height="96" rx="10" class="good"/>
+<text x="868" y="378" text-anchor="middle" class="t-good">같은 요청끼리 짝지어 비교</text>
+<text x="868" y="404" text-anchor="middle">순위화만 맞음 18 · 재검색만 맞음 11</text>
+<text x="868" y="426" text-anchor="middle">McNemar p = 0.265 → 차이를 주장할 수 없음</text>
+</svg>
+</div></body></html>
