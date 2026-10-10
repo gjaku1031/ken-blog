@@ -1,4 +1,4 @@
-jOOQ가 쓸 테이블 타입을 어디서 만들지 정한 기록임. JPA 엔티티를 스키마의 원본으로 두고, 앱과 같은 Hibernate로 뽑은 DDL에서 jOOQ 타입을 만들기로 했음.
+jOOQ 테이블 타입은 JPA 엔티티에서 Hibernate로 뽑은 DDL로 빌드 때마다 만듦. 스키마 정의를 두 곳에 두지 않으려는 선택임.
 
 | 항목 | 내용 |
 | --- | --- |
@@ -9,7 +9,7 @@ jOOQ가 쓸 테이블 타입을 어디서 만들지 정한 기록임. JPA 엔티
 
 ## 맥락
 
-JPA는 저장·단건 조회·변경 잠금을, jOOQ는 목록·집계·공개 스냅샷·공개 첨부 조회를 맡음. 둘이 같은 MySQL을 쓰므로 엔티티 매핑과 생성된 테이블 타입이 일치해야 함.
+저장과 단건 조회, 행 잠금은 JPA가 맡고, 목록과 집계, 공개 스냅샷과 공개 첨부 조회는 jOOQ가 맡음. 둘이 같은 MySQL을 쓰므로 엔티티 매핑과 생성된 테이블 타입이 일치해야 함.
 
 수동 `src/jooq/schema.sql`을 두면 엔티티와 SQL을 함께 고쳐야 하는 중복이 생김. 실제 DB를 역공학하면 빌드가 접속 정보·네트워크·스키마 준비에 의존하게 됨.
 
@@ -17,7 +17,7 @@ JPA는 저장·단건 조회·변경 잠금을, jOOQ는 목록·집계·공개 �
 
 ## 결정
 
-**JPA 엔티티 선행 컴파일 → Hibernate DDL 출력 → jOOQ 타입 생성 → 애플리케이션 컴파일.**
+엔티티만 먼저 컴파일해 Hibernate로 DDL을 출력하고, 그 DDL에서 jOOQ 타입을 만든 뒤 앱 전체를 컴파일함.
 
 | 단계 | 처리 |
 | --- | --- |
@@ -26,9 +26,9 @@ JPA는 저장·단건 조회·변경 잠금을, jOOQ는 목록·집계·공개 �
 | `jooqCodegen` | DDLDatabase로 Java 테이블 타입 생성 |
 | `compileJava` | 생성 타입을 포함해 앱 컴파일 |
 
-서비스·HTTP 변환기는 선행 컴파일에서 뺌. 엔티티는 복사본 없이 같은 원본을 씀. DDL과 jOOQ 타입은 Git에 올리지 않고 빌드 때마다 다시 만드는 산출물임.
+서비스와 HTTP 변환기는 먼저 컴파일하는 대상에서 뺌. 엔티티는 복사본을 두지 않고 앱과 같은 원본을 씀. DDL과 jOOQ 타입은 Git에 올리지 않고 빌드 때마다 다시 만드는 산출물임.
 
-Hibernate는 앱과 같은 Spring Boot BOM으로 버전을 맞추고, MySQL dialect와 snake_case 이름 정책을 적용함. JDBC 메타데이터 접근과 DB schema action은 끄고 파일만 출력하며, 성공·실패와 관계없이 클래스 로더와 레지스트리를 정리함.
+Hibernate는 앱과 같은 Spring Boot BOM으로 버전을 맞추고, MySQL dialect와 snake_case 이름 정책을 적용함. DB에 접속하지 않고 파일만 출력하도록 JDBC 메타데이터 조회와 스키마 변경은 끄고, 성공 여부와 관계없이 클래스 로더와 레지스트리를 정리함.
 
 코드 생성에는 실제 DB 접속이 필요 없음. 의존성을 내려받는 데는 네트워크가 필요함.
 
@@ -47,7 +47,7 @@ JPADatabase 판단은 당시 jOOQ 3.21.8 확장과 Hibernate 7.4 조합의 기�
 
 MySQL enum은 jOOQ 조회 경계에서 문자열로 매핑함. JOIN은 쿼리에 명시하고 필요한 메타데이터 열만 선택함.
 
-JPA 엔티티와 프록시 접근자는 `final`로 선언하지 않고, 보호된 기본 생성자와 setter를 유지함. 앱과 jpaModel은 같은 엔티티 원본을 쓰며, 일반 타입과 복합 키는 상속을 열지 않음.
+JPA 엔티티와 프록시 접근자는 `final`로 선언하지 않고, 보호된 기본 생성자와 setter를 유지함. 앱과 jpaModel은 같은 엔티티 원본을 쓰며, 일반 타입과 복합 키 클래스는 상속을 허용하지 않음.
 
 ## 결과와 비용
 
@@ -59,7 +59,7 @@ JPA 엔티티와 프록시 접근자는 `final`로 선언하지 않고, 보호�
 
 생성 DDL은 코드 생성의 입력일 뿐 운영 DB에 자동 실행하지 않음. JDBC 세션·인증 상태 같은 비 JPA 테이블은 별도 SQL로 관리함.
 
-운영은 validate와 SQL 초기화 비활성화로 기동하며, 기존 DB 이관과 최초 설치를 구분함. `posts.edit_version`·`admin_login_sources`는 검토한 이관 SQL로 반영했음. 엔티티만으로 모든 운영 상태를 복구할 수 있는 구조는 아님.
+운영은 스키마를 검증만 하고(validate) 초기화 SQL은 실행하지 않도록 기동함. 기존 DB를 이관할 때와 빈 DB에 처음 설치할 때의 절차가 다름. `posts.edit_version`과 `admin_login_sources`는 검토한 이관 SQL로 반영했음.[* [당시 이관 SQL](https://github.com/gjaku1031/ken-blog/blob/4b163b3/deploy/sql/review-2026-10-03.sql). 적용 후 2026-10-08 정리 커밋에서 저장소에서 지웠음] 엔티티만으로 모든 운영 상태를 복구할 수 있는 구조는 아님.
 
 ## 검증
 
@@ -83,6 +83,6 @@ JPA 엔티티와 프록시 접근자는 `final`로 선언하지 않고, 보호�
 - 실제 DB와 생성 DDL의 차이가 반복될 때
 - 다른 생성 방식의 호환성이 확인되어 유지 비용이 줄어들 때
 
-다시 검토할 때는 생성 시간, 매핑 일치, DB 접속 의존, 원본 중복, 운영 이관 책임을 기준으로 비교함.
+다시 검토한다면 생성에 걸리는 시간, 매핑이 일치하는지, 빌드가 DB 접속에 기대는지, 스키마 원본이 두 곳으로 나뉘는지, 운영 이관을 누가 맡는지를 비교함.
 
 [영속성 결정 원문](https://github.com/gjaku1031/ken-blog/blob/b768152/docs/ADR/ADR_persistence.md) · [Gradle 구현](https://github.com/gjaku1031/ken-blog/blob/b768152/build.gradle) · [영속성 통합 검사](https://github.com/gjaku1031/ken-blog/blob/b768152/src/test/java/io/github/gjaku1031/kenblog/PostPersistenceIntegrationTest.java)
