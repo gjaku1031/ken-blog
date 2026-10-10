@@ -21,6 +21,7 @@
 | `scripts/seed.py` | 운영 공개 스냅샷과 Git 원고로 옛 구조의 DB seed 생성 |
 | `scripts/Caddyfile.v2`, `scripts/compose-v2.yaml` | 측정용 정적 파일 서버·API·DB 구성 |
 | `results/summary.md`, `results/summary.csv` | 2차 측정 전체 지표 요약 |
+| `results/runs.csv` | 2차 측정의 회차별 기록 900행(워밍업 제외). 본문 표시 시각과 요청 수 등 요약에 쓴 지표만 담음 |
 | `results/load-cpu-summary.csv` | API 서버 CPU 요약 |
 | `results/body-location.tsv`, `results/data-compatibility.txt` | 구조별 본문 위치, 두 옛 구조의 마이그레이션·seed 동일성 |
 | `results/caddy-v1-headers.txt`, `results/caddy-v2-headers.txt`, `results/github-pages-headers.txt` | 1차·2차 측정 서버와 운영 GitHub Pages의 응답 헤더 |
@@ -30,7 +31,7 @@
 
 ## 재현에 필요한 것
 
-이 폴더에는 원자료와 입력 데이터를 넣지 않음. 재현하려면 다음을 별도로 준비함.
+이 폴더에는 요청 단위 원자료(회차마다의 요청 목록, 약 45MB)와 입력 데이터를 넣지 않음. 회차별 지표는 `results/runs.csv`에 있음. 재현하려면 다음을 별도로 준비함.
 
 1. 옛 소스: `git archive f29ef35`, `git archive 135169f`로 빈 디렉터리에 추출해 각 구조의 API·화면을 빌드.
 2. 정적 산출물: `gh run download 37590862774`로 Pages 산출물을 내려받음.
