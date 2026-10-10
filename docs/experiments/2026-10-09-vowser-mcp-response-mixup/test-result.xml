@@ -1,0 +1,851 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="com.vowser.backend.infrastructure.mcp.McpResponseMixupTest" tests="30" skipped="0" failures="0" errors="0" timestamp="2026-10-10T04:45:23.708Z" hostname="ae80c391ad84" time="315.951">
+  <properties/>
+  <testcase name="repetition 1 of 10" classname="com.vowser.backend.infrastructure.mcp.McpResponseMixupTest" time="12.504"/>
+  <testcase name="repetition 2 of 10" classname="com.vowser.backend.infrastructure.mcp.McpResponseMixupTest" time="10.606"/>
+  <testcase name="repetition 3 of 10" classname="com.vowser.backend.infrastructure.mcp.McpResponseMixupTest" time="10.612"/>
+  <testcase name="repetition 4 of 10" classname="com.vowser.backend.infrastructure.mcp.McpResponseMixupTest" time="10.61"/>
+  <testcase name="repetition 5 of 10" classname="com.vowser.backend.infrastructure.mcp.McpResponseMixupTest" time="10.602"/>
+  <testcase name="repetition 6 of 10" classname="com.vowser.backend.infrastructure.mcp.McpResponseMixupTest" time="10.604"/>
+  <testcase name="repetition 7 of 10" classname="com.vowser.backend.infrastructure.mcp.McpResponseMixupTest" time="10.624"/>
+  <testcase name="repetition 8 of 10" classname="com.vowser.backend.infrastructure.mcp.McpResponseMixupTest" time="10.628"/>
+  <testcase name="repetition 9 of 10" classname="com.vowser.backend.infrastructure.mcp.McpResponseMixupTest" time="10.606"/>
+  <testcase name="repetition 10 of 10" classname="com.vowser.backend.infrastructure.mcp.McpResponseMixupTest" time="10.624"/>
+  <testcase name="repetition 1 of 10" classname="com.vowser.backend.infrastructure.mcp.McpResponseMixupTest" time="10.635"/>
+  <testcase name="repetition 2 of 10" classname="com.vowser.backend.infrastructure.mcp.McpResponseMixupTest" time="10.607"/>
+  <testcase name="repetition 3 of 10" classname="com.vowser.backend.infrastructure.mcp.McpResponseMixupTest" time="10.625"/>
+  <testcase name="repetition 4 of 10" classname="com.vowser.backend.infrastructure.mcp.McpResponseMixupTest" time="10.603"/>
+  <testcase name="repetition 5 of 10" classname="com.vowser.backend.infrastructure.mcp.McpResponseMixupTest" time="10.623"/>
+  <testcase name="repetition 6 of 10" classname="com.vowser.backend.infrastructure.mcp.McpResponseMixupTest" time="10.624"/>
+  <testcase name="repetition 7 of 10" classname="com.vowser.backend.infrastructure.mcp.McpResponseMixupTest" time="10.606"/>
+  <testcase name="repetition 8 of 10" classname="com.vowser.backend.infrastructure.mcp.McpResponseMixupTest" time="10.603"/>
+  <testcase name="repetition 9 of 10" classname="com.vowser.backend.infrastructure.mcp.McpResponseMixupTest" time="10.606"/>
+  <testcase name="repetition 10 of 10" classname="com.vowser.backend.infrastructure.mcp.McpResponseMixupTest" time="10.602"/>
+  <testcase name="repetition 1 of 10" classname="com.vowser.backend.infrastructure.mcp.McpResponseMixupTest" time="10.174"/>
+  <testcase name="repetition 2 of 10" classname="com.vowser.backend.infrastructure.mcp.McpResponseMixupTest" time="10.176"/>
+  <testcase name="repetition 3 of 10" classname="com.vowser.backend.infrastructure.mcp.McpResponseMixupTest" time="10.174"/>
+  <testcase name="repetition 4 of 10" classname="com.vowser.backend.infrastructure.mcp.McpResponseMixupTest" time="10.173"/>
+  <testcase name="repetition 5 of 10" classname="com.vowser.backend.infrastructure.mcp.McpResponseMixupTest" time="10.155"/>
+  <testcase name="repetition 6 of 10" classname="com.vowser.backend.infrastructure.mcp.McpResponseMixupTest" time="10.178"/>
+  <testcase name="repetition 7 of 10" classname="com.vowser.backend.infrastructure.mcp.McpResponseMixupTest" time="10.174"/>
+  <testcase name="repetition 8 of 10" classname="com.vowser.backend.infrastructure.mcp.McpResponseMixupTest" time="10.177"/>
+  <testcase name="repetition 9 of 10" classname="com.vowser.backend.infrastructure.mcp.McpResponseMixupTest" time="10.172"/>
+  <testcase name="repetition 10 of 10" classname="com.vowser.backend.infrastructure.mcp.McpResponseMixupTest" time="10.173"/>
+  <system-out><![CDATA[Standard Commons Logging discovery in action with spring-jcl: please remove commons-logging.jar from classpath in order to avoid potential conflicts
+04:45:25.432 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 초기화 시작: url=[ws://localhost:32901/ws]
+04:45:25.498 [OkHttp http://localhost:32901/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 성공: url=[ws://localhost:32901/ws], protocol=[http/1.1]
+04:45:25.532 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버로 음성 명령 전송 성공: sessionId=[session-voice], transcript=[뉴스 보여줘]
+04:45:25.532 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "관리자 경로 조회" (limit: 3, domain: all)
+04:45:25.589 [OkHttp http://localhost:32901/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[51]
+04:45:25.630 [OkHttp http://localhost:32901/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[54]
+04:45:26.195 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 시작
+04:45:26.196 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP WebSocket 연결 종료 요청 완료
+04:45:31.197 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 완료
+04:45:31.199 [OkHttp http://localhost:32901/...] ERROR com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 실패: response=[null]
+java.io.EOFException: null
+	at okio.RealBufferedSource.require(RealBufferedSource.kt:202)
+	at okio.RealBufferedSource.readByte(RealBufferedSource.kt:212)
+	at okhttp3.internal.ws.WebSocketReader.readHeader(WebSocketReader.kt:119)
+	at okhttp3.internal.ws.WebSocketReader.processNextFrame(WebSocketReader.kt:102)
+	at okhttp3.internal.ws.RealWebSocket.loopReader(RealWebSocket.kt:293)
+	at okhttp3.internal.ws.RealWebSocket$connect$1.onResponse(RealWebSocket.kt:195)
+	at okhttp3.internal.connection.RealCall$AsyncCall.run(RealCall.kt:519)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+04:45:36.241 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 초기화 시작: url=[ws://localhost:34303/ws]
+04:45:36.248 [OkHttp http://localhost:34303/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 성공: url=[ws://localhost:34303/ws], protocol=[http/1.1]
+04:45:36.294 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버로 음성 명령 전송 성공: sessionId=[session-voice], transcript=[뉴스 보여줘]
+04:45:36.294 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "관리자 경로 조회" (limit: 3, domain: all)
+04:45:36.336 [OkHttp http://localhost:34303/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[51]
+04:45:36.337 [OkHttp http://localhost:34303/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[54]
+04:45:36.838 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 시작
+04:45:36.839 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP WebSocket 연결 종료 요청 완료
+04:45:41.839 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 완료
+04:45:41.840 [OkHttp http://localhost:34303/...] ERROR com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 실패: response=[null]
+java.io.EOFException: null
+	at okio.RealBufferedSource.require(RealBufferedSource.kt:202)
+	at okio.RealBufferedSource.readByte(RealBufferedSource.kt:212)
+	at okhttp3.internal.ws.WebSocketReader.readHeader(WebSocketReader.kt:119)
+	at okhttp3.internal.ws.WebSocketReader.processNextFrame(WebSocketReader.kt:102)
+	at okhttp3.internal.ws.RealWebSocket.loopReader(RealWebSocket.kt:293)
+	at okhttp3.internal.ws.RealWebSocket$connect$1.onResponse(RealWebSocket.kt:195)
+	at okhttp3.internal.connection.RealCall$AsyncCall.run(RealCall.kt:519)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+04:45:46.854 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 초기화 시작: url=[ws://localhost:35473/ws]
+04:45:46.862 [OkHttp http://localhost:35473/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 성공: url=[ws://localhost:35473/ws], protocol=[http/1.1]
+04:45:46.909 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버로 음성 명령 전송 성공: sessionId=[session-voice], transcript=[뉴스 보여줘]
+04:45:46.910 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "관리자 경로 조회" (limit: 3, domain: all)
+04:45:46.952 [OkHttp http://localhost:35473/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[51]
+04:45:46.953 [OkHttp http://localhost:35473/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[54]
+04:45:47.455 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 시작
+04:45:47.456 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP WebSocket 연결 종료 요청 완료
+04:45:52.457 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 완료
+04:45:52.458 [OkHttp http://localhost:35473/...] ERROR com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 실패: response=[null]
+java.io.EOFException: null
+	at okio.RealBufferedSource.require(RealBufferedSource.kt:202)
+	at okio.RealBufferedSource.readByte(RealBufferedSource.kt:212)
+	at okhttp3.internal.ws.WebSocketReader.readHeader(WebSocketReader.kt:119)
+	at okhttp3.internal.ws.WebSocketReader.processNextFrame(WebSocketReader.kt:102)
+	at okhttp3.internal.ws.RealWebSocket.loopReader(RealWebSocket.kt:293)
+	at okhttp3.internal.ws.RealWebSocket$connect$1.onResponse(RealWebSocket.kt:195)
+	at okhttp3.internal.connection.RealCall$AsyncCall.run(RealCall.kt:519)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+04:45:57.465 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 초기화 시작: url=[ws://localhost:35943/ws]
+04:45:57.469 [OkHttp http://localhost:35943/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 성공: url=[ws://localhost:35943/ws], protocol=[http/1.1]
+04:45:57.516 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버로 음성 명령 전송 성공: sessionId=[session-voice], transcript=[뉴스 보여줘]
+04:45:57.517 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "관리자 경로 조회" (limit: 3, domain: all)
+04:45:57.561 [OkHttp http://localhost:35943/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[51]
+04:45:57.561 [OkHttp http://localhost:35943/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[54]
+04:45:58.064 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 시작
+04:45:58.066 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP WebSocket 연결 종료 요청 완료
+04:46:03.066 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 완료
+04:46:03.067 [OkHttp http://localhost:35943/...] ERROR com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 실패: response=[null]
+java.io.EOFException: null
+	at okio.RealBufferedSource.require(RealBufferedSource.kt:202)
+	at okio.RealBufferedSource.readByte(RealBufferedSource.kt:212)
+	at okhttp3.internal.ws.WebSocketReader.readHeader(WebSocketReader.kt:119)
+	at okhttp3.internal.ws.WebSocketReader.processNextFrame(WebSocketReader.kt:102)
+	at okhttp3.internal.ws.RealWebSocket.loopReader(RealWebSocket.kt:293)
+	at okhttp3.internal.ws.RealWebSocket$connect$1.onResponse(RealWebSocket.kt:195)
+	at okhttp3.internal.connection.RealCall$AsyncCall.run(RealCall.kt:519)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+04:46:08.076 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 초기화 시작: url=[ws://localhost:58905/ws]
+04:46:08.080 [OkHttp http://localhost:58905/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 성공: url=[ws://localhost:58905/ws], protocol=[http/1.1]
+04:46:08.128 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버로 음성 명령 전송 성공: sessionId=[session-voice], transcript=[뉴스 보여줘]
+04:46:08.128 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "관리자 경로 조회" (limit: 3, domain: all)
+04:46:08.170 [OkHttp http://localhost:58905/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[51]
+04:46:08.171 [OkHttp http://localhost:58905/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[54]
+04:46:08.672 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 시작
+04:46:08.672 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP WebSocket 연결 종료 요청 완료
+04:46:13.673 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 완료
+04:46:13.674 [OkHttp http://localhost:58905/...] ERROR com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 실패: response=[null]
+java.io.EOFException: null
+	at okio.RealBufferedSource.require(RealBufferedSource.kt:202)
+	at okio.RealBufferedSource.readByte(RealBufferedSource.kt:212)
+	at okhttp3.internal.ws.WebSocketReader.readHeader(WebSocketReader.kt:119)
+	at okhttp3.internal.ws.WebSocketReader.processNextFrame(WebSocketReader.kt:102)
+	at okhttp3.internal.ws.RealWebSocket.loopReader(RealWebSocket.kt:293)
+	at okhttp3.internal.ws.RealWebSocket$connect$1.onResponse(RealWebSocket.kt:195)
+	at okhttp3.internal.connection.RealCall$AsyncCall.run(RealCall.kt:519)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+04:46:18.680 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 초기화 시작: url=[ws://localhost:54889/ws]
+04:46:18.683 [OkHttp http://localhost:54889/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 성공: url=[ws://localhost:54889/ws], protocol=[http/1.1]
+04:46:18.732 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버로 음성 명령 전송 성공: sessionId=[session-voice], transcript=[뉴스 보여줘]
+04:46:18.732 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "관리자 경로 조회" (limit: 3, domain: all)
+04:46:18.774 [OkHttp http://localhost:54889/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[51]
+04:46:18.775 [OkHttp http://localhost:54889/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[54]
+04:46:19.276 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 시작
+04:46:19.277 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP WebSocket 연결 종료 요청 완료
+04:46:24.277 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 완료
+04:46:24.278 [OkHttp http://localhost:54889/...] ERROR com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 실패: response=[null]
+java.io.EOFException: null
+	at okio.RealBufferedSource.require(RealBufferedSource.kt:202)
+	at okio.RealBufferedSource.readByte(RealBufferedSource.kt:212)
+	at okhttp3.internal.ws.WebSocketReader.readHeader(WebSocketReader.kt:119)
+	at okhttp3.internal.ws.WebSocketReader.processNextFrame(WebSocketReader.kt:102)
+	at okhttp3.internal.ws.RealWebSocket.loopReader(RealWebSocket.kt:293)
+	at okhttp3.internal.ws.RealWebSocket$connect$1.onResponse(RealWebSocket.kt:195)
+	at okhttp3.internal.connection.RealCall$AsyncCall.run(RealCall.kt:519)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+04:46:29.287 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 초기화 시작: url=[ws://localhost:39677/ws]
+04:46:29.291 [OkHttp http://localhost:39677/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 성공: url=[ws://localhost:39677/ws], protocol=[http/1.1]
+04:46:29.340 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버로 음성 명령 전송 성공: sessionId=[session-voice], transcript=[뉴스 보여줘]
+04:46:29.340 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "관리자 경로 조회" (limit: 3, domain: all)
+04:46:29.403 [OkHttp http://localhost:39677/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[51]
+04:46:29.404 [OkHttp http://localhost:39677/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[54]
+04:46:29.905 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 시작
+04:46:29.906 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP WebSocket 연결 종료 요청 완료
+04:46:34.906 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 완료
+04:46:34.907 [OkHttp http://localhost:39677/...] ERROR com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 실패: response=[null]
+java.io.EOFException: null
+	at okio.RealBufferedSource.require(RealBufferedSource.kt:202)
+	at okio.RealBufferedSource.readByte(RealBufferedSource.kt:212)
+	at okhttp3.internal.ws.WebSocketReader.readHeader(WebSocketReader.kt:119)
+	at okhttp3.internal.ws.WebSocketReader.processNextFrame(WebSocketReader.kt:102)
+	at okhttp3.internal.ws.RealWebSocket.loopReader(RealWebSocket.kt:293)
+	at okhttp3.internal.ws.RealWebSocket$connect$1.onResponse(RealWebSocket.kt:195)
+	at okhttp3.internal.connection.RealCall$AsyncCall.run(RealCall.kt:519)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+04:46:39.917 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 초기화 시작: url=[ws://localhost:39467/ws]
+04:46:39.939 [OkHttp http://localhost:39467/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 성공: url=[ws://localhost:39467/ws], protocol=[http/1.1]
+04:46:39.970 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버로 음성 명령 전송 성공: sessionId=[session-voice], transcript=[뉴스 보여줘]
+04:46:39.971 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "관리자 경로 조회" (limit: 3, domain: all)
+04:46:40.033 [OkHttp http://localhost:39467/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[51]
+04:46:40.073 [OkHttp http://localhost:39467/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[54]
+04:46:40.534 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 시작
+04:46:40.535 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP WebSocket 연결 종료 요청 완료
+04:46:45.535 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 완료
+04:46:45.536 [OkHttp http://localhost:39467/...] ERROR com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 실패: response=[null]
+java.io.EOFException: null
+	at okio.RealBufferedSource.require(RealBufferedSource.kt:202)
+	at okio.RealBufferedSource.readByte(RealBufferedSource.kt:212)
+	at okhttp3.internal.ws.WebSocketReader.readHeader(WebSocketReader.kt:119)
+	at okhttp3.internal.ws.WebSocketReader.processNextFrame(WebSocketReader.kt:102)
+	at okhttp3.internal.ws.RealWebSocket.loopReader(RealWebSocket.kt:293)
+	at okhttp3.internal.ws.RealWebSocket$connect$1.onResponse(RealWebSocket.kt:195)
+	at okhttp3.internal.connection.RealCall$AsyncCall.run(RealCall.kt:519)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+04:46:50.546 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 초기화 시작: url=[ws://localhost:33339/ws]
+04:46:50.552 [OkHttp http://localhost:33339/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 성공: url=[ws://localhost:33339/ws], protocol=[http/1.1]
+04:46:50.600 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버로 음성 명령 전송 성공: sessionId=[session-voice], transcript=[뉴스 보여줘]
+04:46:50.601 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "관리자 경로 조회" (limit: 3, domain: all)
+04:46:50.643 [OkHttp http://localhost:33339/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[51]
+04:46:50.644 [OkHttp http://localhost:33339/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[54]
+04:46:51.145 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 시작
+04:46:51.145 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP WebSocket 연결 종료 요청 완료
+04:46:56.145 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 완료
+04:46:56.146 [OkHttp http://localhost:33339/...] ERROR com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 실패: response=[null]
+java.io.EOFException: null
+	at okio.RealBufferedSource.require(RealBufferedSource.kt:202)
+	at okio.RealBufferedSource.readByte(RealBufferedSource.kt:212)
+	at okhttp3.internal.ws.WebSocketReader.readHeader(WebSocketReader.kt:119)
+	at okhttp3.internal.ws.WebSocketReader.processNextFrame(WebSocketReader.kt:102)
+	at okhttp3.internal.ws.RealWebSocket.loopReader(RealWebSocket.kt:293)
+	at okhttp3.internal.ws.RealWebSocket$connect$1.onResponse(RealWebSocket.kt:195)
+	at okhttp3.internal.connection.RealCall$AsyncCall.run(RealCall.kt:519)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+04:47:01.152 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 초기화 시작: url=[ws://localhost:59387/ws]
+04:47:01.154 [OkHttp http://localhost:59387/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 성공: url=[ws://localhost:59387/ws], protocol=[http/1.1]
+04:47:01.203 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버로 음성 명령 전송 성공: sessionId=[session-voice], transcript=[뉴스 보여줘]
+04:47:01.203 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "관리자 경로 조회" (limit: 3, domain: all)
+04:47:01.266 [OkHttp http://localhost:59387/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[51]
+04:47:01.267 [OkHttp http://localhost:59387/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[54]
+04:47:01.768 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 시작
+04:47:01.770 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP WebSocket 연결 종료 요청 완료
+04:47:06.770 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 완료
+04:47:06.771 [OkHttp http://localhost:59387/...] ERROR com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 실패: response=[null]
+java.io.EOFException: null
+	at okio.RealBufferedSource.require(RealBufferedSource.kt:202)
+	at okio.RealBufferedSource.readByte(RealBufferedSource.kt:212)
+	at okhttp3.internal.ws.WebSocketReader.readHeader(WebSocketReader.kt:119)
+	at okhttp3.internal.ws.WebSocketReader.processNextFrame(WebSocketReader.kt:102)
+	at okhttp3.internal.ws.RealWebSocket.loopReader(RealWebSocket.kt:293)
+	at okhttp3.internal.ws.RealWebSocket$connect$1.onResponse(RealWebSocket.kt:195)
+	at okhttp3.internal.connection.RealCall$AsyncCall.run(RealCall.kt:519)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+04:47:11.780 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 초기화 시작: url=[ws://localhost:40455/ws]
+04:47:11.783 [OkHttp http://localhost:40455/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 성공: url=[ws://localhost:40455/ws], protocol=[http/1.1]
+04:47:11.860 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버로 기여모드 데이터 전송 성공: sessionId=[rec-1], stepCount=[1]
+04:47:11.860 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "날씨 알려줘" (limit: 3, domain: all)
+04:47:11.903 [OkHttp http://localhost:40455/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[69]
+04:47:11.905 [OkHttp http://localhost:40455/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[51]
+04:47:12.405 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 시작
+04:47:12.407 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP WebSocket 연결 종료 요청 완료
+04:47:17.407 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 완료
+04:47:17.409 [OkHttp http://localhost:40455/...] ERROR com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 실패: response=[null]
+java.io.EOFException: null
+	at okio.RealBufferedSource.require(RealBufferedSource.kt:202)
+	at okio.RealBufferedSource.readByte(RealBufferedSource.kt:212)
+	at okhttp3.internal.ws.WebSocketReader.readHeader(WebSocketReader.kt:119)
+	at okhttp3.internal.ws.WebSocketReader.processNextFrame(WebSocketReader.kt:102)
+	at okhttp3.internal.ws.RealWebSocket.loopReader(RealWebSocket.kt:293)
+	at okhttp3.internal.ws.RealWebSocket$connect$1.onResponse(RealWebSocket.kt:195)
+	at okhttp3.internal.connection.RealCall$AsyncCall.run(RealCall.kt:519)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+04:47:22.416 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 초기화 시작: url=[ws://localhost:53989/ws]
+04:47:22.421 [OkHttp http://localhost:53989/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 성공: url=[ws://localhost:53989/ws], protocol=[http/1.1]
+04:47:22.470 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버로 기여모드 데이터 전송 성공: sessionId=[rec-1], stepCount=[1]
+04:47:22.470 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "날씨 알려줘" (limit: 3, domain: all)
+04:47:22.513 [OkHttp http://localhost:53989/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[69]
+04:47:22.513 [OkHttp http://localhost:53989/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[51]
+04:47:23.015 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 시작
+04:47:23.015 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP WebSocket 연결 종료 요청 완료
+04:47:28.016 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 완료
+04:47:28.016 [OkHttp http://localhost:53989/...] ERROR com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 실패: response=[null]
+java.io.EOFException: null
+	at okio.RealBufferedSource.require(RealBufferedSource.kt:202)
+	at okio.RealBufferedSource.readByte(RealBufferedSource.kt:212)
+	at okhttp3.internal.ws.WebSocketReader.readHeader(WebSocketReader.kt:119)
+	at okhttp3.internal.ws.WebSocketReader.processNextFrame(WebSocketReader.kt:102)
+	at okhttp3.internal.ws.RealWebSocket.loopReader(RealWebSocket.kt:293)
+	at okhttp3.internal.ws.RealWebSocket$connect$1.onResponse(RealWebSocket.kt:195)
+	at okhttp3.internal.connection.RealCall$AsyncCall.run(RealCall.kt:519)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+04:47:33.022 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 초기화 시작: url=[ws://localhost:45467/ws]
+04:47:33.026 [OkHttp http://localhost:45467/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 성공: url=[ws://localhost:45467/ws], protocol=[http/1.1]
+04:47:33.076 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버로 기여모드 데이터 전송 성공: sessionId=[rec-1], stepCount=[1]
+04:47:33.076 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "날씨 알려줘" (limit: 3, domain: all)
+04:47:33.138 [OkHttp http://localhost:45467/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[69]
+04:47:33.140 [OkHttp http://localhost:45467/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[51]
+04:47:33.640 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 시작
+04:47:33.641 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP WebSocket 연결 종료 요청 완료
+04:47:38.642 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 완료
+04:47:38.643 [OkHttp http://localhost:45467/...] ERROR com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 실패: response=[null]
+java.io.EOFException: null
+	at okio.RealBufferedSource.require(RealBufferedSource.kt:202)
+	at okio.RealBufferedSource.readByte(RealBufferedSource.kt:212)
+	at okhttp3.internal.ws.WebSocketReader.readHeader(WebSocketReader.kt:119)
+	at okhttp3.internal.ws.WebSocketReader.processNextFrame(WebSocketReader.kt:102)
+	at okhttp3.internal.ws.RealWebSocket.loopReader(RealWebSocket.kt:293)
+	at okhttp3.internal.ws.RealWebSocket$connect$1.onResponse(RealWebSocket.kt:195)
+	at okhttp3.internal.connection.RealCall$AsyncCall.run(RealCall.kt:519)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+04:47:43.648 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 초기화 시작: url=[ws://localhost:38367/ws]
+04:47:43.652 [OkHttp http://localhost:38367/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 성공: url=[ws://localhost:38367/ws], protocol=[http/1.1]
+04:47:43.702 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버로 기여모드 데이터 전송 성공: sessionId=[rec-1], stepCount=[1]
+04:47:43.702 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "날씨 알려줘" (limit: 3, domain: all)
+04:47:43.744 [OkHttp http://localhost:38367/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[69]
+04:47:43.745 [OkHttp http://localhost:38367/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[51]
+04:47:44.246 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 시작
+04:47:44.246 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP WebSocket 연결 종료 요청 완료
+04:47:49.246 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 완료
+04:47:49.248 [OkHttp http://localhost:38367/...] ERROR com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 실패: response=[null]
+java.io.EOFException: null
+	at okio.RealBufferedSource.require(RealBufferedSource.kt:202)
+	at okio.RealBufferedSource.readByte(RealBufferedSource.kt:212)
+	at okhttp3.internal.ws.WebSocketReader.readHeader(WebSocketReader.kt:119)
+	at okhttp3.internal.ws.WebSocketReader.processNextFrame(WebSocketReader.kt:102)
+	at okhttp3.internal.ws.RealWebSocket.loopReader(RealWebSocket.kt:293)
+	at okhttp3.internal.ws.RealWebSocket$connect$1.onResponse(RealWebSocket.kt:195)
+	at okhttp3.internal.connection.RealCall$AsyncCall.run(RealCall.kt:519)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+04:47:54.252 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 초기화 시작: url=[ws://localhost:57493/ws]
+04:47:54.254 [OkHttp http://localhost:57493/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 성공: url=[ws://localhost:57493/ws], protocol=[http/1.1]
+04:47:54.305 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버로 기여모드 데이터 전송 성공: sessionId=[rec-1], stepCount=[1]
+04:47:54.306 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "날씨 알려줘" (limit: 3, domain: all)
+04:47:54.368 [OkHttp http://localhost:57493/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[69]
+04:47:54.369 [OkHttp http://localhost:57493/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[51]
+04:47:54.870 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 시작
+04:47:54.871 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP WebSocket 연결 종료 요청 완료
+04:47:59.871 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 완료
+04:47:59.872 [OkHttp http://localhost:57493/...] ERROR com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 실패: response=[null]
+java.io.EOFException: null
+	at okio.RealBufferedSource.require(RealBufferedSource.kt:202)
+	at okio.RealBufferedSource.readByte(RealBufferedSource.kt:212)
+	at okhttp3.internal.ws.WebSocketReader.readHeader(WebSocketReader.kt:119)
+	at okhttp3.internal.ws.WebSocketReader.processNextFrame(WebSocketReader.kt:102)
+	at okhttp3.internal.ws.RealWebSocket.loopReader(RealWebSocket.kt:293)
+	at okhttp3.internal.ws.RealWebSocket$connect$1.onResponse(RealWebSocket.kt:195)
+	at okhttp3.internal.connection.RealCall$AsyncCall.run(RealCall.kt:519)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+04:48:04.876 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 초기화 시작: url=[ws://localhost:51899/ws]
+04:48:04.880 [OkHttp http://localhost:51899/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 성공: url=[ws://localhost:51899/ws], protocol=[http/1.1]
+04:48:04.930 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버로 기여모드 데이터 전송 성공: sessionId=[rec-1], stepCount=[1]
+04:48:04.930 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "날씨 알려줘" (limit: 3, domain: all)
+04:48:04.992 [OkHttp http://localhost:51899/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[69]
+04:48:04.993 [OkHttp http://localhost:51899/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[51]
+04:48:05.494 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 시작
+04:48:05.494 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP WebSocket 연결 종료 요청 완료
+04:48:10.494 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 완료
+04:48:10.496 [OkHttp http://localhost:51899/...] ERROR com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 실패: response=[null]
+java.io.EOFException: null
+	at okio.RealBufferedSource.require(RealBufferedSource.kt:202)
+	at okio.RealBufferedSource.readByte(RealBufferedSource.kt:212)
+	at okhttp3.internal.ws.WebSocketReader.readHeader(WebSocketReader.kt:119)
+	at okhttp3.internal.ws.WebSocketReader.processNextFrame(WebSocketReader.kt:102)
+	at okhttp3.internal.ws.RealWebSocket.loopReader(RealWebSocket.kt:293)
+	at okhttp3.internal.ws.RealWebSocket$connect$1.onResponse(RealWebSocket.kt:195)
+	at okhttp3.internal.connection.RealCall$AsyncCall.run(RealCall.kt:519)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+04:48:15.500 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 초기화 시작: url=[ws://localhost:34973/ws]
+04:48:15.503 [OkHttp http://localhost:34973/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 성공: url=[ws://localhost:34973/ws], protocol=[http/1.1]
+04:48:15.555 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버로 기여모드 데이터 전송 성공: sessionId=[rec-1], stepCount=[1]
+04:48:15.555 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "날씨 알려줘" (limit: 3, domain: all)
+04:48:15.597 [OkHttp http://localhost:34973/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[69]
+04:48:15.598 [OkHttp http://localhost:34973/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[51]
+04:48:16.101 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 시작
+04:48:16.102 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP WebSocket 연결 종료 요청 완료
+04:48:21.102 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 완료
+04:48:21.103 [OkHttp http://localhost:34973/...] ERROR com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 실패: response=[null]
+java.io.EOFException: null
+	at okio.RealBufferedSource.require(RealBufferedSource.kt:202)
+	at okio.RealBufferedSource.readByte(RealBufferedSource.kt:212)
+	at okhttp3.internal.ws.WebSocketReader.readHeader(WebSocketReader.kt:119)
+	at okhttp3.internal.ws.WebSocketReader.processNextFrame(WebSocketReader.kt:102)
+	at okhttp3.internal.ws.RealWebSocket.loopReader(RealWebSocket.kt:293)
+	at okhttp3.internal.ws.RealWebSocket$connect$1.onResponse(RealWebSocket.kt:195)
+	at okhttp3.internal.connection.RealCall$AsyncCall.run(RealCall.kt:519)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+04:48:26.108 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 초기화 시작: url=[ws://localhost:49599/ws]
+04:48:26.111 [OkHttp http://localhost:49599/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 성공: url=[ws://localhost:49599/ws], protocol=[http/1.1]
+04:48:26.161 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버로 기여모드 데이터 전송 성공: sessionId=[rec-1], stepCount=[1]
+04:48:26.162 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "날씨 알려줘" (limit: 3, domain: all)
+04:48:26.204 [OkHttp http://localhost:49599/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[69]
+04:48:26.205 [OkHttp http://localhost:49599/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[51]
+04:48:26.706 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 시작
+04:48:26.706 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP WebSocket 연결 종료 요청 완료
+04:48:31.706 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 완료
+04:48:31.707 [OkHttp http://localhost:49599/...] ERROR com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 실패: response=[null]
+java.io.EOFException: null
+	at okio.RealBufferedSource.require(RealBufferedSource.kt:202)
+	at okio.RealBufferedSource.readByte(RealBufferedSource.kt:212)
+	at okhttp3.internal.ws.WebSocketReader.readHeader(WebSocketReader.kt:119)
+	at okhttp3.internal.ws.WebSocketReader.processNextFrame(WebSocketReader.kt:102)
+	at okhttp3.internal.ws.RealWebSocket.loopReader(RealWebSocket.kt:293)
+	at okhttp3.internal.ws.RealWebSocket$connect$1.onResponse(RealWebSocket.kt:195)
+	at okhttp3.internal.connection.RealCall$AsyncCall.run(RealCall.kt:519)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+04:48:36.713 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 초기화 시작: url=[ws://localhost:39925/ws]
+04:48:36.716 [OkHttp http://localhost:39925/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 성공: url=[ws://localhost:39925/ws], protocol=[http/1.1]
+04:48:36.768 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버로 기여모드 데이터 전송 성공: sessionId=[rec-1], stepCount=[1]
+04:48:36.768 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "날씨 알려줘" (limit: 3, domain: all)
+04:48:36.810 [OkHttp http://localhost:39925/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[69]
+04:48:36.811 [OkHttp http://localhost:39925/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[51]
+04:48:37.312 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 시작
+04:48:37.312 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP WebSocket 연결 종료 요청 완료
+04:48:42.313 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 완료
+04:48:42.313 [OkHttp http://localhost:39925/...] ERROR com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 실패: response=[null]
+java.io.EOFException: null
+	at okio.RealBufferedSource.require(RealBufferedSource.kt:202)
+	at okio.RealBufferedSource.readByte(RealBufferedSource.kt:212)
+	at okhttp3.internal.ws.WebSocketReader.readHeader(WebSocketReader.kt:119)
+	at okhttp3.internal.ws.WebSocketReader.processNextFrame(WebSocketReader.kt:102)
+	at okhttp3.internal.ws.RealWebSocket.loopReader(RealWebSocket.kt:293)
+	at okhttp3.internal.ws.RealWebSocket$connect$1.onResponse(RealWebSocket.kt:195)
+	at okhttp3.internal.connection.RealCall$AsyncCall.run(RealCall.kt:519)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+04:48:47.318 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 초기화 시작: url=[ws://localhost:54631/ws]
+04:48:47.321 [OkHttp http://localhost:54631/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 성공: url=[ws://localhost:54631/ws], protocol=[http/1.1]
+04:48:47.372 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버로 기여모드 데이터 전송 성공: sessionId=[rec-1], stepCount=[1]
+04:48:47.372 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "날씨 알려줘" (limit: 3, domain: all)
+04:48:47.414 [OkHttp http://localhost:54631/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[69]
+04:48:47.416 [OkHttp http://localhost:54631/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[51]
+04:48:47.916 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 시작
+04:48:47.916 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP WebSocket 연결 종료 요청 완료
+04:48:52.917 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 완료
+04:48:52.917 [OkHttp http://localhost:54631/...] ERROR com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 실패: response=[null]
+java.io.EOFException: null
+	at okio.RealBufferedSource.require(RealBufferedSource.kt:202)
+	at okio.RealBufferedSource.readByte(RealBufferedSource.kt:212)
+	at okhttp3.internal.ws.WebSocketReader.readHeader(WebSocketReader.kt:119)
+	at okhttp3.internal.ws.WebSocketReader.processNextFrame(WebSocketReader.kt:102)
+	at okhttp3.internal.ws.RealWebSocket.loopReader(RealWebSocket.kt:293)
+	at okhttp3.internal.ws.RealWebSocket$connect$1.onResponse(RealWebSocket.kt:195)
+	at okhttp3.internal.connection.RealCall$AsyncCall.run(RealCall.kt:519)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+04:48:57.924 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 초기화 시작: url=[ws://localhost:52911/ws]
+04:48:57.929 [OkHttp http://localhost:52911/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 성공: url=[ws://localhost:52911/ws], protocol=[http/1.1]
+04:48:57.982 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-1" (limit: 3, domain: all)
+04:48:57.987 [OkHttp http://localhost:52911/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:48:57.989 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-2" (limit: 3, domain: all)
+04:48:57.991 [OkHttp http://localhost:52911/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:48:57.991 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-3" (limit: 3, domain: all)
+04:48:57.992 [OkHttp http://localhost:52911/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:48:57.993 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-4" (limit: 3, domain: all)
+04:48:57.995 [OkHttp http://localhost:52911/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:48:57.995 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-5" (limit: 3, domain: all)
+04:48:57.997 [OkHttp http://localhost:52911/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:48:57.997 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-6" (limit: 3, domain: all)
+04:48:57.999 [OkHttp http://localhost:52911/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:48:57.999 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-7" (limit: 3, domain: all)
+04:48:58.000 [OkHttp http://localhost:52911/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:48:58.001 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-8" (limit: 3, domain: all)
+04:48:58.003 [OkHttp http://localhost:52911/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:48:58.004 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-9" (limit: 3, domain: all)
+04:48:58.007 [OkHttp http://localhost:52911/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:48:58.009 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "날씨 알려줘" (limit: 3, domain: all)
+04:48:58.010 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "웹툰 보여줘" (limit: 3, domain: all)
+04:48:58.052 [OkHttp http://localhost:52911/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[51]
+04:48:58.093 [OkHttp http://localhost:52911/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[51]
+04:48:58.093 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 시작
+04:48:58.094 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP WebSocket 연결 종료 요청 완료
+04:49:03.094 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 완료
+04:49:03.095 [OkHttp http://localhost:52911/...] ERROR com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 실패: response=[null]
+java.io.EOFException: null
+	at okio.RealBufferedSource.require(RealBufferedSource.kt:202)
+	at okio.RealBufferedSource.readByte(RealBufferedSource.kt:212)
+	at okhttp3.internal.ws.WebSocketReader.readHeader(WebSocketReader.kt:119)
+	at okhttp3.internal.ws.WebSocketReader.processNextFrame(WebSocketReader.kt:102)
+	at okhttp3.internal.ws.RealWebSocket.loopReader(RealWebSocket.kt:293)
+	at okhttp3.internal.ws.RealWebSocket$connect$1.onResponse(RealWebSocket.kt:195)
+	at okhttp3.internal.connection.RealCall$AsyncCall.run(RealCall.kt:519)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+04:49:08.101 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 초기화 시작: url=[ws://localhost:43327/ws]
+04:49:08.104 [OkHttp http://localhost:43327/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 성공: url=[ws://localhost:43327/ws], protocol=[http/1.1]
+04:49:08.152 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-1" (limit: 3, domain: all)
+04:49:08.155 [OkHttp http://localhost:43327/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:08.155 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-2" (limit: 3, domain: all)
+04:49:08.156 [OkHttp http://localhost:43327/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:08.157 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-3" (limit: 3, domain: all)
+04:49:08.158 [OkHttp http://localhost:43327/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:08.158 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-4" (limit: 3, domain: all)
+04:49:08.159 [OkHttp http://localhost:43327/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:08.160 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-5" (limit: 3, domain: all)
+04:49:08.161 [OkHttp http://localhost:43327/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:08.162 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-6" (limit: 3, domain: all)
+04:49:08.162 [OkHttp http://localhost:43327/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:08.163 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-7" (limit: 3, domain: all)
+04:49:08.163 [OkHttp http://localhost:43327/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:08.164 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-8" (limit: 3, domain: all)
+04:49:08.166 [OkHttp http://localhost:43327/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:08.166 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-9" (limit: 3, domain: all)
+04:49:08.167 [OkHttp http://localhost:43327/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:08.168 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "날씨 알려줘" (limit: 3, domain: all)
+04:49:08.169 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "웹툰 보여줘" (limit: 3, domain: all)
+04:49:08.230 [OkHttp http://localhost:43327/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[51]
+04:49:08.270 [OkHttp http://localhost:43327/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[51]
+04:49:08.271 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 시작
+04:49:08.271 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP WebSocket 연결 종료 요청 완료
+04:49:13.271 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 완료
+04:49:13.272 [OkHttp http://localhost:43327/...] ERROR com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 실패: response=[null]
+java.io.EOFException: null
+	at okio.RealBufferedSource.require(RealBufferedSource.kt:202)
+	at okio.RealBufferedSource.readByte(RealBufferedSource.kt:212)
+	at okhttp3.internal.ws.WebSocketReader.readHeader(WebSocketReader.kt:119)
+	at okhttp3.internal.ws.WebSocketReader.processNextFrame(WebSocketReader.kt:102)
+	at okhttp3.internal.ws.RealWebSocket.loopReader(RealWebSocket.kt:293)
+	at okhttp3.internal.ws.RealWebSocket$connect$1.onResponse(RealWebSocket.kt:195)
+	at okhttp3.internal.connection.RealCall$AsyncCall.run(RealCall.kt:519)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+04:49:18.276 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 초기화 시작: url=[ws://localhost:45059/ws]
+04:49:18.279 [OkHttp http://localhost:45059/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 성공: url=[ws://localhost:45059/ws], protocol=[http/1.1]
+04:49:18.327 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-1" (limit: 3, domain: all)
+04:49:18.329 [OkHttp http://localhost:45059/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:18.329 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-2" (limit: 3, domain: all)
+04:49:18.331 [OkHttp http://localhost:45059/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:18.331 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-3" (limit: 3, domain: all)
+04:49:18.332 [OkHttp http://localhost:45059/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:18.332 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-4" (limit: 3, domain: all)
+04:49:18.333 [OkHttp http://localhost:45059/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:18.334 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-5" (limit: 3, domain: all)
+04:49:18.336 [OkHttp http://localhost:45059/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:18.338 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-6" (limit: 3, domain: all)
+04:49:18.338 [OkHttp http://localhost:45059/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:18.339 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-7" (limit: 3, domain: all)
+04:49:18.339 [OkHttp http://localhost:45059/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:18.340 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-8" (limit: 3, domain: all)
+04:49:18.341 [OkHttp http://localhost:45059/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:18.342 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-9" (limit: 3, domain: all)
+04:49:18.343 [OkHttp http://localhost:45059/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:18.343 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "날씨 알려줘" (limit: 3, domain: all)
+04:49:18.344 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "웹툰 보여줘" (limit: 3, domain: all)
+04:49:18.404 [OkHttp http://localhost:45059/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[51]
+04:49:18.445 [OkHttp http://localhost:45059/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[51]
+04:49:18.447 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 시작
+04:49:18.447 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP WebSocket 연결 종료 요청 완료
+04:49:23.447 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 완료
+04:49:23.448 [OkHttp http://localhost:45059/...] ERROR com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 실패: response=[null]
+java.io.EOFException: null
+	at okio.RealBufferedSource.require(RealBufferedSource.kt:202)
+	at okio.RealBufferedSource.readByte(RealBufferedSource.kt:212)
+	at okhttp3.internal.ws.WebSocketReader.readHeader(WebSocketReader.kt:119)
+	at okhttp3.internal.ws.WebSocketReader.processNextFrame(WebSocketReader.kt:102)
+	at okhttp3.internal.ws.RealWebSocket.loopReader(RealWebSocket.kt:293)
+	at okhttp3.internal.ws.RealWebSocket$connect$1.onResponse(RealWebSocket.kt:195)
+	at okhttp3.internal.connection.RealCall$AsyncCall.run(RealCall.kt:519)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+04:49:28.454 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 초기화 시작: url=[ws://localhost:35817/ws]
+04:49:28.459 [OkHttp http://localhost:35817/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 성공: url=[ws://localhost:35817/ws], protocol=[http/1.1]
+04:49:28.505 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-1" (limit: 3, domain: all)
+04:49:28.508 [OkHttp http://localhost:35817/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:28.508 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-2" (limit: 3, domain: all)
+04:49:28.509 [OkHttp http://localhost:35817/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:28.509 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-3" (limit: 3, domain: all)
+04:49:28.511 [OkHttp http://localhost:35817/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:28.511 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-4" (limit: 3, domain: all)
+04:49:28.512 [OkHttp http://localhost:35817/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:28.512 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-5" (limit: 3, domain: all)
+04:49:28.513 [OkHttp http://localhost:35817/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:28.513 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-6" (limit: 3, domain: all)
+04:49:28.514 [OkHttp http://localhost:35817/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:28.514 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-7" (limit: 3, domain: all)
+04:49:28.515 [OkHttp http://localhost:35817/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:28.515 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-8" (limit: 3, domain: all)
+04:49:28.516 [OkHttp http://localhost:35817/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:28.516 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-9" (limit: 3, domain: all)
+04:49:28.517 [OkHttp http://localhost:35817/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:28.517 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "날씨 알려줘" (limit: 3, domain: all)
+04:49:28.518 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "웹툰 보여줘" (limit: 3, domain: all)
+04:49:28.579 [OkHttp http://localhost:35817/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[51]
+04:49:28.619 [OkHttp http://localhost:35817/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[51]
+04:49:28.619 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 시작
+04:49:28.620 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP WebSocket 연결 종료 요청 완료
+04:49:33.620 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 완료
+04:49:33.621 [OkHttp http://localhost:35817/...] ERROR com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 실패: response=[null]
+java.io.EOFException: null
+	at okio.RealBufferedSource.require(RealBufferedSource.kt:202)
+	at okio.RealBufferedSource.readByte(RealBufferedSource.kt:212)
+	at okhttp3.internal.ws.WebSocketReader.readHeader(WebSocketReader.kt:119)
+	at okhttp3.internal.ws.WebSocketReader.processNextFrame(WebSocketReader.kt:102)
+	at okhttp3.internal.ws.RealWebSocket.loopReader(RealWebSocket.kt:293)
+	at okhttp3.internal.ws.RealWebSocket$connect$1.onResponse(RealWebSocket.kt:195)
+	at okhttp3.internal.connection.RealCall$AsyncCall.run(RealCall.kt:519)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+04:49:38.625 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 초기화 시작: url=[ws://localhost:53095/ws]
+04:49:38.628 [OkHttp http://localhost:53095/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 성공: url=[ws://localhost:53095/ws], protocol=[http/1.1]
+04:49:38.677 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-1" (limit: 3, domain: all)
+04:49:38.679 [OkHttp http://localhost:53095/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:38.679 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-2" (limit: 3, domain: all)
+04:49:38.680 [OkHttp http://localhost:53095/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:38.680 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-3" (limit: 3, domain: all)
+04:49:38.681 [OkHttp http://localhost:53095/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:38.681 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-4" (limit: 3, domain: all)
+04:49:38.682 [OkHttp http://localhost:53095/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:38.682 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-5" (limit: 3, domain: all)
+04:49:38.683 [OkHttp http://localhost:53095/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:38.684 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-6" (limit: 3, domain: all)
+04:49:38.684 [OkHttp http://localhost:53095/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:38.684 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-7" (limit: 3, domain: all)
+04:49:38.685 [OkHttp http://localhost:53095/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:38.685 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-8" (limit: 3, domain: all)
+04:49:38.688 [OkHttp http://localhost:53095/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:38.688 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-9" (limit: 3, domain: all)
+04:49:38.691 [OkHttp http://localhost:53095/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:38.691 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "날씨 알려줘" (limit: 3, domain: all)
+04:49:38.692 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "웹툰 보여줘" (limit: 3, domain: all)
+04:49:38.734 [OkHttp http://localhost:53095/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[51]
+04:49:38.775 [OkHttp http://localhost:53095/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[51]
+04:49:38.776 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 시작
+04:49:38.776 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP WebSocket 연결 종료 요청 완료
+04:49:43.776 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 완료
+04:49:43.777 [OkHttp http://localhost:53095/...] ERROR com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 실패: response=[null]
+java.io.EOFException: null
+	at okio.RealBufferedSource.require(RealBufferedSource.kt:202)
+	at okio.RealBufferedSource.readByte(RealBufferedSource.kt:212)
+	at okhttp3.internal.ws.WebSocketReader.readHeader(WebSocketReader.kt:119)
+	at okhttp3.internal.ws.WebSocketReader.processNextFrame(WebSocketReader.kt:102)
+	at okhttp3.internal.ws.RealWebSocket.loopReader(RealWebSocket.kt:293)
+	at okhttp3.internal.ws.RealWebSocket$connect$1.onResponse(RealWebSocket.kt:195)
+	at okhttp3.internal.connection.RealCall$AsyncCall.run(RealCall.kt:519)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+04:49:48.781 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 초기화 시작: url=[ws://localhost:44225/ws]
+04:49:48.785 [OkHttp http://localhost:44225/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 성공: url=[ws://localhost:44225/ws], protocol=[http/1.1]
+04:49:48.832 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-1" (limit: 3, domain: all)
+04:49:48.835 [OkHttp http://localhost:44225/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:48.836 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-2" (limit: 3, domain: all)
+04:49:48.837 [OkHttp http://localhost:44225/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:48.837 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-3" (limit: 3, domain: all)
+04:49:48.838 [OkHttp http://localhost:44225/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:48.838 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-4" (limit: 3, domain: all)
+04:49:48.840 [OkHttp http://localhost:44225/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:48.840 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-5" (limit: 3, domain: all)
+04:49:48.842 [OkHttp http://localhost:44225/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:48.842 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-6" (limit: 3, domain: all)
+04:49:48.844 [OkHttp http://localhost:44225/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:48.844 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-7" (limit: 3, domain: all)
+04:49:48.847 [OkHttp http://localhost:44225/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:48.848 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-8" (limit: 3, domain: all)
+04:49:48.850 [OkHttp http://localhost:44225/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:48.851 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-9" (limit: 3, domain: all)
+04:49:48.852 [OkHttp http://localhost:44225/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:48.852 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "날씨 알려줘" (limit: 3, domain: all)
+04:49:48.853 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "웹툰 보여줘" (limit: 3, domain: all)
+04:49:48.914 [OkHttp http://localhost:44225/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[51]
+04:49:48.955 [OkHttp http://localhost:44225/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[51]
+04:49:48.955 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 시작
+04:49:48.955 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP WebSocket 연결 종료 요청 완료
+04:49:53.956 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 완료
+04:49:53.956 [OkHttp http://localhost:44225/...] ERROR com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 실패: response=[null]
+java.io.EOFException: null
+	at okio.RealBufferedSource.require(RealBufferedSource.kt:202)
+	at okio.RealBufferedSource.readByte(RealBufferedSource.kt:212)
+	at okhttp3.internal.ws.WebSocketReader.readHeader(WebSocketReader.kt:119)
+	at okhttp3.internal.ws.WebSocketReader.processNextFrame(WebSocketReader.kt:102)
+	at okhttp3.internal.ws.RealWebSocket.loopReader(RealWebSocket.kt:293)
+	at okhttp3.internal.ws.RealWebSocket$connect$1.onResponse(RealWebSocket.kt:195)
+	at okhttp3.internal.connection.RealCall$AsyncCall.run(RealCall.kt:519)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+04:49:58.962 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 초기화 시작: url=[ws://localhost:48893/ws]
+04:49:58.964 [OkHttp http://localhost:48893/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 성공: url=[ws://localhost:48893/ws], protocol=[http/1.1]
+04:49:59.013 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-1" (limit: 3, domain: all)
+04:49:59.016 [OkHttp http://localhost:48893/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:59.016 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-2" (limit: 3, domain: all)
+04:49:59.017 [OkHttp http://localhost:48893/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:59.017 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-3" (limit: 3, domain: all)
+04:49:59.018 [OkHttp http://localhost:48893/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:59.019 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-4" (limit: 3, domain: all)
+04:49:59.019 [OkHttp http://localhost:48893/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:59.019 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-5" (limit: 3, domain: all)
+04:49:59.020 [OkHttp http://localhost:48893/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:59.020 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-6" (limit: 3, domain: all)
+04:49:59.022 [OkHttp http://localhost:48893/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:59.022 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-7" (limit: 3, domain: all)
+04:49:59.024 [OkHttp http://localhost:48893/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:59.025 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-8" (limit: 3, domain: all)
+04:49:59.026 [OkHttp http://localhost:48893/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:59.027 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-9" (limit: 3, domain: all)
+04:49:59.028 [OkHttp http://localhost:48893/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:49:59.028 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "날씨 알려줘" (limit: 3, domain: all)
+04:49:59.028 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "웹툰 보여줘" (limit: 3, domain: all)
+04:49:59.089 [OkHttp http://localhost:48893/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[51]
+04:49:59.130 [OkHttp http://localhost:48893/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[51]
+04:49:59.131 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 시작
+04:49:59.131 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP WebSocket 연결 종료 요청 완료
+04:50:04.131 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 완료
+04:50:04.131 [OkHttp http://localhost:48893/...] ERROR com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 실패: response=[null]
+java.io.EOFException: null
+	at okio.RealBufferedSource.require(RealBufferedSource.kt:202)
+	at okio.RealBufferedSource.readByte(RealBufferedSource.kt:212)
+	at okhttp3.internal.ws.WebSocketReader.readHeader(WebSocketReader.kt:119)
+	at okhttp3.internal.ws.WebSocketReader.processNextFrame(WebSocketReader.kt:102)
+	at okhttp3.internal.ws.RealWebSocket.loopReader(RealWebSocket.kt:293)
+	at okhttp3.internal.ws.RealWebSocket$connect$1.onResponse(RealWebSocket.kt:195)
+	at okhttp3.internal.connection.RealCall$AsyncCall.run(RealCall.kt:519)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+04:50:09.137 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 초기화 시작: url=[ws://localhost:39321/ws]
+04:50:09.139 [OkHttp http://localhost:39321/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 성공: url=[ws://localhost:39321/ws], protocol=[http/1.1]
+04:50:09.188 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-1" (limit: 3, domain: all)
+04:50:09.191 [OkHttp http://localhost:39321/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:50:09.192 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-2" (limit: 3, domain: all)
+04:50:09.193 [OkHttp http://localhost:39321/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:50:09.193 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-3" (limit: 3, domain: all)
+04:50:09.194 [OkHttp http://localhost:39321/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:50:09.194 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-4" (limit: 3, domain: all)
+04:50:09.195 [OkHttp http://localhost:39321/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:50:09.196 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-5" (limit: 3, domain: all)
+04:50:09.196 [OkHttp http://localhost:39321/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:50:09.197 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-6" (limit: 3, domain: all)
+04:50:09.198 [OkHttp http://localhost:39321/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:50:09.198 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-7" (limit: 3, domain: all)
+04:50:09.199 [OkHttp http://localhost:39321/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:50:09.199 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-8" (limit: 3, domain: all)
+04:50:09.202 [OkHttp http://localhost:39321/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:50:09.203 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-9" (limit: 3, domain: all)
+04:50:09.204 [OkHttp http://localhost:39321/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:50:09.204 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "날씨 알려줘" (limit: 3, domain: all)
+04:50:09.205 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "웹툰 보여줘" (limit: 3, domain: all)
+04:50:09.266 [OkHttp http://localhost:39321/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[51]
+04:50:09.307 [OkHttp http://localhost:39321/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[51]
+04:50:09.307 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 시작
+04:50:09.308 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP WebSocket 연결 종료 요청 완료
+04:50:14.308 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 완료
+04:50:14.309 [OkHttp http://localhost:39321/...] ERROR com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 실패: response=[null]
+java.io.EOFException: null
+	at okio.RealBufferedSource.require(RealBufferedSource.kt:202)
+	at okio.RealBufferedSource.readByte(RealBufferedSource.kt:212)
+	at okhttp3.internal.ws.WebSocketReader.readHeader(WebSocketReader.kt:119)
+	at okhttp3.internal.ws.WebSocketReader.processNextFrame(WebSocketReader.kt:102)
+	at okhttp3.internal.ws.RealWebSocket.loopReader(RealWebSocket.kt:293)
+	at okhttp3.internal.ws.RealWebSocket$connect$1.onResponse(RealWebSocket.kt:195)
+	at okhttp3.internal.connection.RealCall$AsyncCall.run(RealCall.kt:519)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+04:50:19.314 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 초기화 시작: url=[ws://localhost:59791/ws]
+04:50:19.317 [OkHttp http://localhost:59791/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 성공: url=[ws://localhost:59791/ws], protocol=[http/1.1]
+04:50:19.365 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-1" (limit: 3, domain: all)
+04:50:19.367 [OkHttp http://localhost:59791/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:50:19.368 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-2" (limit: 3, domain: all)
+04:50:19.368 [OkHttp http://localhost:59791/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:50:19.369 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-3" (limit: 3, domain: all)
+04:50:19.370 [OkHttp http://localhost:59791/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:50:19.370 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-4" (limit: 3, domain: all)
+04:50:19.370 [OkHttp http://localhost:59791/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:50:19.371 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-5" (limit: 3, domain: all)
+04:50:19.371 [OkHttp http://localhost:59791/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:50:19.372 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-6" (limit: 3, domain: all)
+04:50:19.376 [OkHttp http://localhost:59791/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:50:19.376 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-7" (limit: 3, domain: all)
+04:50:19.377 [OkHttp http://localhost:59791/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:50:19.377 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-8" (limit: 3, domain: all)
+04:50:19.377 [OkHttp http://localhost:59791/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:50:19.378 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-9" (limit: 3, domain: all)
+04:50:19.378 [OkHttp http://localhost:59791/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:50:19.379 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "날씨 알려줘" (limit: 3, domain: all)
+04:50:19.379 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "웹툰 보여줘" (limit: 3, domain: all)
+04:50:19.440 [OkHttp http://localhost:59791/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[51]
+04:50:19.481 [OkHttp http://localhost:59791/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[51]
+04:50:19.481 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 시작
+04:50:19.482 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP WebSocket 연결 종료 요청 완료
+04:50:24.482 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 완료
+04:50:24.483 [OkHttp http://localhost:59791/...] ERROR com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 실패: response=[null]
+java.io.EOFException: null
+	at okio.RealBufferedSource.require(RealBufferedSource.kt:202)
+	at okio.RealBufferedSource.readByte(RealBufferedSource.kt:212)
+	at okhttp3.internal.ws.WebSocketReader.readHeader(WebSocketReader.kt:119)
+	at okhttp3.internal.ws.WebSocketReader.processNextFrame(WebSocketReader.kt:102)
+	at okhttp3.internal.ws.RealWebSocket.loopReader(RealWebSocket.kt:293)
+	at okhttp3.internal.ws.RealWebSocket$connect$1.onResponse(RealWebSocket.kt:195)
+	at okhttp3.internal.connection.RealCall$AsyncCall.run(RealCall.kt:519)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+04:50:29.489 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 초기화 시작: url=[ws://localhost:50967/ws]
+04:50:29.493 [OkHttp http://localhost:50967/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 성공: url=[ws://localhost:50967/ws], protocol=[http/1.1]
+04:50:29.540 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-1" (limit: 3, domain: all)
+04:50:29.542 [OkHttp http://localhost:50967/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:50:29.543 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-2" (limit: 3, domain: all)
+04:50:29.543 [OkHttp http://localhost:50967/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:50:29.544 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-3" (limit: 3, domain: all)
+04:50:29.544 [OkHttp http://localhost:50967/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:50:29.545 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-4" (limit: 3, domain: all)
+04:50:29.546 [OkHttp http://localhost:50967/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:50:29.546 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-5" (limit: 3, domain: all)
+04:50:29.547 [OkHttp http://localhost:50967/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:50:29.547 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-6" (limit: 3, domain: all)
+04:50:29.548 [OkHttp http://localhost:50967/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:50:29.550 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-7" (limit: 3, domain: all)
+04:50:29.552 [OkHttp http://localhost:50967/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:50:29.552 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-8" (limit: 3, domain: all)
+04:50:29.553 [OkHttp http://localhost:50967/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:50:29.553 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "warmup-9" (limit: 3, domain: all)
+04:50:29.555 [OkHttp http://localhost:50967/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[53]
+04:50:29.555 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "날씨 알려줘" (limit: 3, domain: all)
+04:50:29.555 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- Searching paths: "웹툰 보여줘" (limit: 3, domain: all)
+04:50:29.616 [OkHttp http://localhost:50967/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[51]
+04:50:29.657 [OkHttp http://localhost:50967/...] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버에서 메시지 수신: messageLength=[51]
+04:50:29.657 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 시작
+04:50:29.657 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP WebSocket 연결 종료 요청 완료
+04:50:34.658 [Test worker] INFO com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 클라이언트 종료 완료
+04:50:34.658 [OkHttp http://localhost:50967/...] ERROR com.vowser.backend.infrastructure.mcp.McpWebSocketClient -- MCP 서버 연결 실패: response=[null]
+java.io.EOFException: null
+	at okio.RealBufferedSource.require(RealBufferedSource.kt:202)
+	at okio.RealBufferedSource.readByte(RealBufferedSource.kt:212)
+	at okhttp3.internal.ws.WebSocketReader.readHeader(WebSocketReader.kt:119)
+	at okhttp3.internal.ws.WebSocketReader.processNextFrame(WebSocketReader.kt:102)
+	at okhttp3.internal.ws.RealWebSocket.loopReader(RealWebSocket.kt:293)
+	at okhttp3.internal.ws.RealWebSocket$connect$1.onResponse(RealWebSocket.kt:195)
+	at okhttp3.internal.connection.RealCall$AsyncCall.run(RealCall.kt:519)
+	at java.base/java.util.concurrent.ThreadPoolExecutor.runWorker(ThreadPoolExecutor.java:1144)
+	at java.base/java.util.concurrent.ThreadPoolExecutor$Worker.run(ThreadPoolExecutor.java:642)
+	at java.base/java.lang.Thread.run(Thread.java:1583)
+]]></system-out>
+  <system-err><![CDATA[WARNING: A Java agent has been loaded dynamically (/w/.gh/caches/modules-2/files-2.1/net.bytebuddy/byte-buddy-agent/1.14.17/e3c251a39dc90badaf71c83427ba46840f219d8d/byte-buddy-agent-1.14.17.jar)
+WARNING: If a serviceability tool is in use, please run with -XX:+EnableDynamicAgentLoading to hide this warning
+WARNING: If a serviceability tool is not in use, please run with -Djdk.instrument.traceUsage for more information
+WARNING: Dynamic loading of agents will be disallowed by default in a future release
+]]></system-err>
+</testsuite>
