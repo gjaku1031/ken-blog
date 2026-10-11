@@ -79,6 +79,19 @@ test("Vowser system structure keeps its reference layout", async () => {
 });
 
 /**
+ * damdam 인프라 구성도가 고정 배치의 구성·연결과 일치하고 변경을 숨기지 않음
+ */
+test("damdam infrastructure keeps its reference layout", async () => {
+  const body = await readFile(new URL("../../content/posts/project-a3d53a55-de01-4888-9e9a-02e34f2579bb.md", import.meta.url), "utf8");
+  const infra = body.match(/```mermaid(?: [^\n]*)?\n(architecture-beta\n  %% layout: damdam-infrastructure[\s\S]*?)\n```/)[1];
+  assert.deepEqual([...validateReferenceLayout(infra).keys()].sort(), [
+    "customer", "operator", "cdn", "actions", "tunnel", "web", "api", "uploads", "pg",
+  ].sort());
+  assert.throws(() => validateReferenceLayout(infra.replace("  cdn:R -[Tunnel]-> L:tunnel", "")));
+  assert.throws(() => validateReferenceLayout(infra.replace("damdam-infrastructure", "npr-system")));
+});
+
+/**
  * 학원 ERP 시스템 구조 도식이 고정 배치의 구성·연결과 일치하고 변경을 숨기지 않음
  */
 test("npr-erp system structure keeps its reference layout", async () => {

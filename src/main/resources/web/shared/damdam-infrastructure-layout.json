@@ -1,0 +1,327 @@
+{
+  "width": 1220,
+  "height": 540,
+  "legend": [
+    {
+      "kind": "runtime",
+      "title": "요청 · 데이터 접근"
+    },
+    {
+      "kind": "delivery",
+      "title": "배포"
+    }
+  ],
+  "groups": {
+    "users": [
+      10,
+      40,
+      215,
+      210,
+      "사용자"
+    ],
+    "cf": [
+      280,
+      40,
+      200,
+      120,
+      "Cloudflare"
+    ],
+    "deploy": [
+      280,
+      240,
+      200,
+      120,
+      "배포"
+    ],
+    "server": [
+      540,
+      40,
+      660,
+      370,
+      "운영 서버 한 대"
+    ],
+    "compose": [
+      560,
+      170,
+      620,
+      220,
+      "Docker Compose"
+    ]
+  },
+  "services": {
+    "customer": [
+      30,
+      80,
+      "주문 · 조회"
+    ],
+    "operator": [
+      30,
+      170,
+      "편집 모드 · 주문 처리"
+    ],
+    "cdn": [
+      300,
+      90,
+      "공개 사진만 캐시"
+    ],
+    "actions": [
+      300,
+      290,
+      "수동 실행"
+    ],
+    "tunnel": [
+      700,
+      90,
+      "밖으로 나가는 연결만"
+    ],
+    "web": [
+      700,
+      220,
+      "화면 · /api 전달"
+    ],
+    "api": [
+      700,
+      320,
+      "업무 규칙 · 주기 작업"
+    ],
+    "uploads": [
+      975,
+      220,
+      "원본과 변환본 세 벌"
+    ],
+    "pg": [
+      975,
+      320,
+      "업무 데이터 · 세션"
+    ]
+  },
+  "members": {
+    "customer": "users",
+    "operator": "users",
+    "cdn": "cf",
+    "actions": "deploy",
+    "tunnel": "server",
+    "web": "compose",
+    "api": "compose",
+    "uploads": "compose",
+    "pg": "compose"
+  },
+  "parents": {
+    "users": "",
+    "cf": "",
+    "deploy": "",
+    "server": "",
+    "compose": "server"
+  },
+  "sourceGroups": [
+    "group users[Users]",
+    "group cf[Cloudflare]",
+    "group deploy[Deployment]",
+    "group server[Server]",
+    "group compose(ken:docker)[Docker Compose] in server"
+  ],
+  "sourceEdges": [
+    "customer:R -[HTTPS]-> L:cdn",
+    "operator:R -[HTTPS]-> L:cdn",
+    "cdn:R -[Tunnel]-> L:tunnel",
+    "tunnel:B -[HTTP]-> T:web",
+    "web:B -[API]-> T:api",
+    "api:R -[Files]-> L:uploads",
+    "api:R -[SQL]-> L:pg",
+    "actions:R -[Deploy]-> L:api{group}"
+  ],
+  "edges": [
+    {
+      "source": "customer",
+      "target": "cdn",
+      "groupTarget": false,
+      "points": [
+        [
+          156,
+          102
+        ],
+        [
+          252,
+          102
+        ],
+        [
+          252,
+          112
+        ],
+        [
+          296,
+          112
+        ]
+      ],
+      "kind": "runtime",
+      "label": "",
+      "at": [
+        0,
+        0
+      ]
+    },
+    {
+      "source": "operator",
+      "target": "cdn",
+      "groupTarget": false,
+      "points": [
+        [
+          198,
+          192
+        ],
+        [
+          252,
+          192
+        ],
+        [
+          252,
+          112
+        ],
+        [
+          296,
+          112
+        ]
+      ],
+      "kind": "runtime",
+      "label": "HTTPS",
+      "at": [
+        252,
+        150
+      ]
+    },
+    {
+      "source": "cdn",
+      "target": "tunnel",
+      "groupTarget": false,
+      "points": [
+        [
+          460,
+          112
+        ],
+        [
+          696,
+          112
+        ]
+      ],
+      "kind": "runtime",
+      "label": "터널",
+      "at": [
+        510,
+        112
+      ]
+    },
+    {
+      "source": "tunnel",
+      "target": "web",
+      "groupTarget": false,
+      "points": [
+        [
+          722,
+          136
+        ],
+        [
+          722,
+          216
+        ]
+      ],
+      "kind": "runtime",
+      "label": "",
+      "at": [
+        0,
+        0
+      ]
+    },
+    {
+      "source": "web",
+      "target": "api",
+      "groupTarget": false,
+      "points": [
+        [
+          722,
+          266
+        ],
+        [
+          722,
+          316
+        ]
+      ],
+      "kind": "runtime",
+      "label": "/api",
+      "at": [
+        722,
+        292
+      ]
+    },
+    {
+      "source": "api",
+      "target": "uploads",
+      "groupTarget": false,
+      "points": [
+        [
+          880,
+          342
+        ],
+        [
+          918,
+          342
+        ],
+        [
+          918,
+          242
+        ],
+        [
+          971,
+          242
+        ]
+      ],
+      "kind": "runtime",
+      "label": "파일",
+      "at": [
+        918,
+        290
+      ]
+    },
+    {
+      "source": "api",
+      "target": "pg",
+      "groupTarget": false,
+      "points": [
+        [
+          880,
+          342
+        ],
+        [
+          971,
+          342
+        ]
+      ],
+      "kind": "runtime",
+      "label": "SQL",
+      "at": [
+        946,
+        342
+      ]
+    },
+    {
+      "source": "actions",
+      "target": "api",
+      "groupTarget": true,
+      "points": [
+        [
+          474,
+          312
+        ],
+        [
+          556,
+          312
+        ]
+      ],
+      "kind": "delivery",
+      "label": "배포",
+      "at": [
+        514,
+        312
+      ]
+    }
+  ]
+}
