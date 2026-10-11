@@ -59,7 +59,7 @@ JPA 엔티티와 프록시 접근자는 `final`로 선언하지 않고, 보호�
 
 생성 DDL은 코드 생성의 입력일 뿐 운영 DB에 자동 실행하지 않음. JDBC 세션·인증 상태 같은 비 JPA 테이블은 별도 SQL로 관리함.
 
-운영은 스키마를 검증만 하고(validate) 초기화 SQL은 실행하지 않도록 기동함. 기존 DB를 이관할 때와 빈 DB에 처음 설치할 때의 절차가 다름. `posts.edit_version`과 `admin_login_sources`는 검토한 이관 SQL로 반영했음.[* [당시 이관 SQL](https://github.com/gjaku1031/ken-blog/blob/4b163b3/deploy/sql/review-2026-10-03.sql). 적용 후 2026-10-08 정리 커밋에서 저장소에서 지웠음] 엔티티만으로 모든 운영 상태를 복구할 수 있는 구조는 아님.
+운영은 스키마를 검증만 하고(validate) 초기화 SQL은 실행하지 않도록 기동함. 기존 DB를 이관할 때와 빈 DB에 처음 설치할 때의 절차가 다름. `posts.edit_version`과 `admin_login_sources`는 검토한 이관 SQL로 반영했음.[* 당시 이관 SQL(`review-2026-10-03.sql`). 적용 후 2026-10-08 정리 커밋에서 저장소에서 지웠음] 엔티티만으로 모든 운영 상태를 복구할 수 있는 구조는 아님.
 
 ## 검증
 
@@ -85,4 +85,4 @@ JPA 엔티티와 프록시 접근자는 `final`로 선언하지 않고, 보호�
 
 다시 검토한다면 생성에 걸리는 시간, 매핑이 일치하는지, 빌드가 DB 접속에 기대는지, 스키마 원본이 두 곳으로 나뉘는지, 운영 이관을 누가 맡는지를 비교함.
 
-[영속성 결정 원문](https://github.com/gjaku1031/ken-blog/blob/f5001e8/docs/ADR/ADR_persistence.md) · [Gradle 구현](https://github.com/gjaku1031/ken-blog/blob/f5001e8/build.gradle) · [영속성 통합 검사](https://github.com/gjaku1031/ken-blog/blob/f5001e8/src/test/java/io/github/gjaku1031/kenblog/PostPersistenceIntegrationTest.java)
+근거: 영속성 결정 원문(`ADR_persistence.md`) · Gradle 구현(`build.gradle`) · 영속성 통합 검사(`PostPersistenceIntegrationTest.java`)

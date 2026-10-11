@@ -114,7 +114,7 @@ flowchart TD
 - **문제**: 역할 이름을 보는 조건문이 기능마다 흩어져 있으면 역할을 바꿀 때마다 코드를 고쳐야 하고, 검사가 빠진 기능을 찾기 어려움
 - **결정**: 역할이 기능을 쓸 자격을 주고(RBAC), 폴더의 허용 목록이 그 자격을 쓸 범위를 정하며(ACL), 소속·학원 일치 같은 조건을 그 앞에서 확인하는(ABAC) 엔진을 하나 둠. 허용이 없으면 거부함
 - **대가**: 요청마다 권한 원장을 읽음. 명시적 거부, 상속 차단, 파일별 허용은 지원하지 않음
-- **검증**: 판단 규칙은 DB 없이 도는 단위 테스트로, 정책 변경의 경쟁과 마지막 관리자 보호는 실제 PostgreSQL에서 스레드를 겹쳐 실행하는 통합 테스트로 확인함[* [판단 규칙 테스트](https://github.com/gjaku1031/npr-erp/blob/c90b28a/src/test/java/com/npr/erp/accesscontrol/internal/authorization/AuthorizationPolicyEngineTest.java), [정책 변경 경쟁 테스트](https://github.com/gjaku1031/npr-erp/blob/c90b28a/src/test/java/com/npr/erp/integration/accesscontrol/AccessControlLockoutIntegrationTest.java). 전체는 단위 56개, 통합 76개이고 통합 테스트는 임베디드 PostgreSQL 18에서 실행함. 2026-10-11 기준]
+- **검증**: 판단 규칙은 DB 없이 도는 단위 테스트로, 정책 변경의 경쟁과 마지막 관리자 보호는 실제 PostgreSQL에서 스레드를 겹쳐 실행하는 통합 테스트로 확인함[* 판단 규칙 테스트(`AuthorizationPolicyEngineTest.java`), 정책 변경 경쟁 테스트(`AccessControlLockoutIntegrationTest.java`). 전체는 단위 56개, 통합 76개이고 통합 테스트는 임베디드 PostgreSQL 18에서 실행함. 2026-10-11 기준]
 
 | 구성 | 파일 읽기 요청의 결과 |
 | --- | --- |
@@ -131,11 +131,11 @@ flowchart TD
 - **결정**: 모듈마다 공개 계약과 내부 구현을 나누고 의존 방향을 빌드에서 검사함. 업무일지는 "업무를 받는 사람" 같은 집합을 스스로 구하지 않고 호출자에게 받음. 포트는 파일 저장소와 외부 ERP 두 곳에만 둠
   - 비교한 대안: DB 접근까지 모든 경계를 포트 뒤에 두는 헥사고날 아키텍처. DB 접근은 구현이 하나뿐이어서 포트를 두면 간접 호출만 늘어나므로, 구현이 바뀔 수 있는 두 경계로 줄임
 - **대가**: 기능을 쓸 자격은 컨트롤러가, 대상이 본인의 것인지는 업무일지가 확인하므로 검사가 두 층으로 나뉨
-- **검증**: 모듈 의존 방향과 내부 패키지 침범을 구조 테스트가 검사함. 외부 ERP 포트의 구현을 가상 데이터를 돌려주는 대역으로 두고도 전체 기능이 실행됨[* [구조 테스트](https://github.com/gjaku1031/npr-erp/blob/c90b28a/src/test/java/com/npr/erp/architecture/ModularityTest.java), [외부 ERP 포트](https://github.com/gjaku1031/npr-erp/blob/c90b28a/src/main/java/com/npr/erp/tng/TngGateway.java), [가상 구현](https://github.com/gjaku1031/npr-erp/blob/c90b28a/src/main/java/com/npr/erp/tng/internal/MockTngGateway.java)]
+- **검증**: 모듈 의존 방향과 내부 패키지 침범을 구조 테스트가 검사함. 외부 ERP 포트의 구현을 가상 데이터를 돌려주는 대역으로 두고도 전체 기능이 실행됨[* 구조 테스트(`ModularityTest.java`), 외부 ERP 포트(`TngGateway.java`), 가상 구현(`MockTngGateway.java`)]
 
 ### P3. 외부 호출을 기록·호출·확정으로 나누고 끊긴 작업을 따로 마무리함
 
 - **문제**: 폴더를 옮기거나 상담을 보내는 도중에 프로세스가 끊기면 DB와 바깥 상태가 달라짐. 결과를 모르는 채로 다시 보내면 같은 상담이 두 번 기록됨. 시범 운영에서는 수정 23건 가운데 18건이 외부 ERP와 주고받는 자료(상담, 반 명단, 출결)에 관한 것이었고, 외부 ERP가 저장을 거부한 상담이 전송 중 상태에 갇혀 다시 보내지도 고치지도 못한 일이 있었음[* 2026-07-17부터 2026-09-05까지의 수정 기록을 제목으로 분류한 값]
 - **결정**: 하려는 일을 먼저 DB에 커밋하고, 트랜잭션 밖에서 바깥을 호출한 뒤, 결과를 다시 커밋함. 끊긴 작업은 바깥이 멱등하면(파일 저장소) 같은 작업 ID로 다시 실행하고, 멱등하지 않으면(상담 기록) 다시 보내지 않고 외부의 기록과 대조함
 - **대가**: 마무리되기 전에는 그 폴더나 상담을 다시 다룰 수 없음. 재실행과 대조는 사람이 화면에서 실행함
-- **검증**: 호출 전후에 중단된 상황을 테스트에서 직접 만들어 확인함. 외부 ERP는 가상 구현이어서 실제 지연과 장애로는 확인하지 못했음[* [자료실 중단 테스트](https://github.com/gjaku1031/npr-erp/blob/c90b28a/src/test/java/com/npr/erp/integration/storage/StorageIntegrationTest.java), [상담 전송 테스트](https://github.com/gjaku1031/npr-erp/blob/c90b28a/src/test/java/com/npr/erp/integration/worklog/WorklogTaskIntegrationTest.java), [거부와 결과 모름을 나누는 테스트](https://github.com/gjaku1031/npr-erp/blob/c90b28a/src/test/java/com/npr/erp/worklog/internal/counsel/DefaultCounselDeskTest.java)]
+- **검증**: 호출 전후에 중단된 상황을 테스트에서 직접 만들어 확인함. 외부 ERP는 가상 구현이어서 실제 지연과 장애로는 확인하지 못했음[* 자료실 중단 테스트(`StorageIntegrationTest.java`), 상담 전송 테스트(`WorklogTaskIntegrationTest.java`), 거부와 결과 모름을 나누는 테스트(`DefaultCounselDeskTest.java`)]

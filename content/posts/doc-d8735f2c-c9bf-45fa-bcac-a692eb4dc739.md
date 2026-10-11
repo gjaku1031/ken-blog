@@ -24,7 +24,7 @@
 | 관계형 DB(회원 정보와 같은 MySQL) | 경로를 단계 테이블의 자기 참조와 재귀 조회로 이어야 함. 당시 실험에서 데이터가 많을수록 Neo4j보다 느렸음(조건·수치 기록 없음) |
 | **그래프 DB Neo4j (채택)** | 첫 모델은 여러 경로가 같은 페이지 노드를 공유하고 가변 길이 관계로 이동을 표현해 그래프 탐색이 맞았음. 경로 구조를 그래프로 시각화해 볼 수 있고, 벡터 검색도 같은 DB에서 쓸 수 있음 |
 
-이 간단한 비교와 벡터 검색을 근거로 설계 단계에서 Neo4j를 저장소로 정했음.[* 본인이 2025-07에 작성한 [에이전트 서버 PRD](https://github.com/Vovvser/vowser-agent-server/blob/4ea78bf/docs/PRD.md)에 Neo4j가 저장소로 정해져 있음] 첫 모델은 웹 페이지 요소를 `PAGE` 노드로, 화면 이동을 `NAVIGATES_TO` 관계로 두고 페이지 ID를 URL과 요소로 만들어, 여러 경로가 같은 페이지 노드를 공유하는 그래프였음.[* [이전 저장 코드](https://github.com/Vovvser/vowser-agent-server/blob/d94eaf5/app/services/neo4j_service_old.py)] 이후 의도를 표현할 노드가 없고 경로가 `PAGE` 관계와 `PATH` 노드에 이중으로 저장되는 문제 때문에, 작업 의도를 `HAS_STEP` 관계에 두고 기록 세션마다 단계를 따로 만드는 현재 구조로 재설계함.[* [재설계 문서](https://github.com/Vovvser/vowser-agent-server/blob/d94eaf5/docs/DB_refactor.md)] 재설계 뒤에는 경로끼리 공유하는 노드가 없어, 그래프 DB의 장점인 가변 길이 탐색과 공유 노드가 거의 쓰이지 않게 됨. 이 선택은 아래 검증의 2026년 실험에서 다시 측정함.
+이 간단한 비교와 벡터 검색을 근거로 설계 단계에서 Neo4j를 저장소로 정했음.[* 본인이 2025-07에 작성한 에이전트 서버 PRD에 Neo4j가 저장소로 정해져 있음] 첫 모델은 웹 페이지 요소를 `PAGE` 노드로, 화면 이동을 `NAVIGATES_TO` 관계로 두고 페이지 ID를 URL과 요소로 만들어, 여러 경로가 같은 페이지 노드를 공유하는 그래프였음.[* 이전 저장 코드(`neo4j_service_old.py`)] 이후 의도를 표현할 노드가 없고 경로가 `PAGE` 관계와 `PATH` 노드에 이중으로 저장되는 문제 때문에, 작업 의도를 `HAS_STEP` 관계에 두고 기록 세션마다 단계를 따로 만드는 현재 구조로 재설계함.[* 재설계 문서(`DB_refactor.md`)] 재설계 뒤에는 경로끼리 공유하는 노드가 없어, 그래프 DB의 장점인 가변 길이 탐색과 공유 노드가 거의 쓰이지 않게 됨. 이 선택은 아래 검증의 2026년 실험에서 다시 측정함.
 
 ### 대가
 
@@ -59,9 +59,9 @@
 
 요청 문장과 등록 문장이 글자로 겹치지 않아도 뜻이 같으면 같은 작업을 찾아야 하므로, 의도 문장의 임베딩 유사도를 1차 검색으로 두고 애매한 요청만 LLM 재검색으로 보냄. 대부분의 요청은 임베딩 한 번과 벡터 검색으로 끝남.
 
-임계값은 0.43으로, 최고 유사도가 이보다 낮으면 GPT-4o-mini로 요청의 의도와 키워드를 뽑아 키워드 2개까지 병렬로 다시 검색하고 결과를 합침. 유사도 검색과 의도 분석은 병렬로 실행하고, 같은 요청의 임베딩은 메모리 캐시에서 재사용함.[* [LangGraph 검색 흐름](https://github.com/Vovvser/vowser-agent-server/blob/d94eaf5/app/services/langgraph_service.py) · [임베딩 캐시](https://github.com/Vovvser/vowser-agent-server/blob/d94eaf5/app/services/embedding_service.py)] LangGraph 흐름과 0.43 기준값은 팀원이 본인의 프로토타입을 바탕으로 서버에 옮기며 넣은 것이고, 기준값을 정한 실험 기록은 남아 있지 않음. 본인의 프로토타입 단계에서 남은 기록은 커밋 메시지 한 줄로, 유사도 하한을 0.7에서 0.1로 낮춰 자연어 검색 성공률이 62.5%에서 93.8%로 올랐다고 적혀 있음.[* [커밋 b4dcf83](https://github.com/Vovvser/vowser-agent-server/commit/b4dcf835cadac6da12bf11619965c9e7aeaea72a). 몇 문장으로 쟀는지는 적혀 있지 않음]
+임계값은 0.43으로, 최고 유사도가 이보다 낮으면 GPT-4o-mini로 요청의 의도와 키워드를 뽑아 키워드 2개까지 병렬로 다시 검색하고 결과를 합침. 유사도 검색과 의도 분석은 병렬로 실행하고, 같은 요청의 임베딩은 메모리 캐시에서 재사용함.[* LangGraph 검색 흐름(`langgraph_service.py`) · 임베딩 캐시(`embedding_service.py`)] LangGraph 흐름과 0.43 기준값은 팀원이 본인의 프로토타입을 바탕으로 서버에 옮기며 넣은 것이고, 기준값을 정한 실험 기록은 남아 있지 않음. 본인의 프로토타입 단계에서 남은 기록은 커밋 메시지 한 줄로, 유사도 하한을 0.7에서 0.1로 낮춰 자연어 검색 성공률이 62.5%에서 93.8%로 올랐다고 적혀 있음.[* 커밋 b4dcf83. 몇 문장으로 쟀는지는 적혀 있지 않음]
 
-초기 구현에서는 사용 중인 Neo4j 환경에서 GDS 함수를 쓸 수 없어, 경로 모델은 유지하고 코사인 유사도 계산을 Python으로 옮김.[* [GDS 대체 커밋](https://github.com/Vovvser/vowser-agent-server/commit/b4dcf835cadac6da12bf11619965c9e7aeaea72a)] 이후 관계 벡터 인덱스로 후보를 찾게 바뀌었지만, 후보의 유사도를 Python에서 다시 계산해 0.3 미만을 버리는 단계가 남아 있음.
+초기 구현에서는 사용 중인 Neo4j 환경에서 GDS 함수를 쓸 수 없어, 경로 모델은 유지하고 코사인 유사도 계산을 Python으로 옮김.[* GDS 대체 커밋(커밋 `b4dcf83`)] 이후 관계 벡터 인덱스로 후보를 찾게 바뀌었지만, 후보의 유사도를 Python에서 다시 계산해 0.3 미만을 버리는 단계가 남아 있음.
 
 ### 대가
 
@@ -92,7 +92,7 @@
 
 로그인·본인 인증·결제는 사용자 계정의 비밀을 다루므로 서버가 대신할 수 없다고 보고, 실행기를 사용자 PC에 두는 구조로 정함. 인증은 사용자 PC의 브라우저에서 사용자가 직접 하고, 서버는 경로만 다룸.
 
-입력 단계의 값은 경로에 저장된 입력값, 회원 정보 자동 입력, 사용자 입력 순으로 정하고, 대기 단계는 사용자가 완료를 확인할 때까지 멈춤. 기록할 때 비밀번호·이메일·아이디로 분류된 칸의 값은 저장하지 않음.[* [경로 실행기](https://github.com/Vovvser/vowser-client/blob/8065803/shared/src/commonMain/kotlin/com/vowser/client/api/PathExecutor.kt) · [경로 저장 변환](https://github.com/Vovvser/vowser-client/blob/8065803/shared/src/commonMain/kotlin/com/vowser/client/api/PathApiClient.kt)]
+입력 단계의 값은 경로에 저장된 입력값, 회원 정보 자동 입력, 사용자 입력 순으로 정하고, 대기 단계는 사용자가 완료를 확인할 때까지 멈춤. 기록할 때 비밀번호·이메일·아이디로 분류된 칸의 값은 저장하지 않음.[* 경로 실행기(`PathExecutor.kt`) · 경로 저장 변환(`PathApiClient.kt`)]
 
 ### 클라이언트 구현 기술
 
@@ -101,7 +101,7 @@
 | 대안 | 판단 |
 | --- | --- |
 | React Native | 모바일·태블릿에는 맞음 |
-| **Kotlin Compose Multiplatform (채택)** | 데스크톱·Android·iOS가 공통 모듈을 공유함[* [공통 모듈 대상 설정](https://github.com/Vovvser/vowser-client/blob/8065803/shared/build.gradle.kts)]. 팀원이 모두 Java 개발자라 개발 속도를 유지할 수 있음 |
+| **Kotlin Compose Multiplatform (채택)** | 데스크톱·Android·iOS가 공통 모듈을 공유함[* 공통 모듈 대상 설정(`build.gradle.kts`)]. 팀원이 모두 Java 개발자라 개발 속도를 유지할 수 있음 |
 
 ### 대가
 

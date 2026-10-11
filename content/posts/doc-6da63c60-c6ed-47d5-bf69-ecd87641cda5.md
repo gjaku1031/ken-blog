@@ -1,4 +1,4 @@
-API는 앱이 호출하는 Spring Boot의 REST API와, Spring Boot가 에이전트 서버를 부르는 WebSocket 메시지 두 층으로 나뉨. 경로 API는 REST 요청을 WebSocket 메시지로 바꿔 전달하고 응답을 기다리며(P1·P2), 경로의 단계 구조는 앱의 기록기·에이전트의 저장소·앱의 실행기가 함께 쓰는 계약임. 전체 경로와 필드의 원본은 코드임.[* [경로 API 컨트롤러](https://github.com/Vovvser/vowser-backend/blob/488d8ea/src/main/java/com/vowser/backend/api/controller/PathManagementController.java) · [음성 API 컨트롤러](https://github.com/Vovvser/vowser-backend/blob/488d8ea/src/main/java/com/vowser/backend/api/controller/SpeechController.java) · [인증 API 컨트롤러](https://github.com/Vovvser/vowser-backend/blob/488d8ea/src/main/java/com/vowser/backend/api/controller/AuthController.java) · [에이전트 메시지 처리](https://github.com/Vovvser/vowser-agent-server/blob/d94eaf5/app/main.py) · [단계 모델](https://github.com/Vovvser/vowser-agent-server/blob/d94eaf5/app/models/step.py)]
+API는 앱이 호출하는 Spring Boot의 REST API와, Spring Boot가 에이전트 서버를 부르는 WebSocket 메시지 두 층으로 나뉨. 경로 API는 REST 요청을 WebSocket 메시지로 바꿔 전달하고 응답을 기다리며(P1·P2), 경로의 단계 구조는 앱의 기록기·에이전트의 저장소·앱의 실행기가 함께 쓰는 계약임. 전체 경로와 필드의 원본은 코드임.[* 경로 API 컨트롤러(`PathManagementController.java`) · 음성 API 컨트롤러(`SpeechController.java`) · 인증 API 컨트롤러(`AuthController.java`) · 에이전트 메시지 처리(`main.py`) · 단계 모델(`step.py`)]
 
 ## 설계 원칙
 
@@ -48,7 +48,7 @@ API는 앱이 호출하는 Spring Boot의 REST API와, Spring Boot가 에이전�
 | `shouldWait`·`waitMessage` | 기록에서는 항상 `false` | 그대로 저장 | `wait` 단계에서 문구를 보여 주고 사용자 확인까지 대기 |
 | `description`·`textLabels` | 요소의 텍스트·라벨로 설명 생성 | 단계 임베딩의 원문 | 진행 표시 문구 |
 
-`inputPlaceholder`에 입력값과 HTML placeholder 문구가 같은 필드로 들어가, 실행기는 둘을 구분하지 못하고 placeholder 문구도 입력값으로 넣음. 단계 수의 상한은 API에 없고, 저장은 되어도 경로 복원이 `NEXT_STEP` 20개까지만 따라가 그보다 긴 경로는 잘림.[* [경로 저장 변환](https://github.com/Vovvser/vowser-client/blob/8065803/shared/src/commonMain/kotlin/com/vowser/client/api/PathApiClient.kt) · [경로 실행기](https://github.com/Vovvser/vowser-client/blob/8065803/shared/src/commonMain/kotlin/com/vowser/client/api/PathExecutor.kt)]
+`inputPlaceholder`에 입력값과 HTML placeholder 문구가 같은 필드로 들어가, 실행기는 둘을 구분하지 못하고 placeholder 문구도 입력값으로 넣음. 단계 수의 상한은 API에 없고, 저장은 되어도 경로 복원이 `NEXT_STEP` 20개까지만 따라가 그보다 긴 경로는 잘림.[* 경로 저장 변환(`PathApiClient.kt`) · 경로 실행기(`PathExecutor.kt`)]
 
 ## REST와 WebSocket 사이의 요청 연결
 
@@ -61,7 +61,7 @@ API는 앱이 호출하는 Spring Boot의 REST API와, Spring Boot가 에이전�
 | `GET /api/v1/paths/popular`, `/graph/stats`, `/graph/visualize/{domain}` | `find_popular_paths`, `check_graph`, `visualize_paths` | 운영 조회 결과 |
 | `POST /api/v1/paths/admin/indexes`, `/admin/cleanup` | `create_new_indexes`, `cleanup_paths` | 인덱스 생성·연결 정리 결과 |
 
-Spring Boot는 보낼 때마다 요청 번호를 만들어 응답 대기 목록에 넣고 30초 시간 제한을 걺. 그런데 번호는 메시지에 실리지 않고, 응답이 오면 대기 목록에서 꺼낸 첫 항목에 연결함. 대기 목록은 순서를 보장하지 않는 해시 맵이고 에이전트도 번호를 돌려주지 않으므로, 두 요청이 동시에 대기 중이면 응답이 뒤바뀔 수 있음. 대기 중인 요청이 없을 때 온 메시지는 브라우저 제어 채널로 마지막에 연결된 앱에 중계됨.[* [에이전트 WebSocket 클라이언트](https://github.com/Vovvser/vowser-backend/blob/488d8ea/src/main/java/com/vowser/backend/infrastructure/mcp/McpWebSocketClient.java) · [제어 채널 서비스](https://github.com/Vovvser/vowser-backend/blob/488d8ea/src/main/java/com/vowser/backend/application/service/ControlService.java)]
+Spring Boot는 보낼 때마다 요청 번호를 만들어 응답 대기 목록에 넣고 30초 시간 제한을 걺. 그런데 번호는 메시지에 실리지 않고, 응답이 오면 대기 목록에서 꺼낸 첫 항목에 연결함. 대기 목록은 순서를 보장하지 않는 해시 맵이고 에이전트도 번호를 돌려주지 않으므로, 두 요청이 동시에 대기 중이면 응답이 뒤바뀔 수 있음. 대기 중인 요청이 없을 때 온 메시지는 브라우저 제어 채널로 마지막에 연결된 앱에 중계됨.[* 에이전트 WebSocket 클라이언트(`McpWebSocketClient.java`) · 제어 채널 서비스(`ControlService.java`)]
 
 에이전트 서버는 연결 하나의 메시지를 받은 순서대로 하나씩 처리하고, 검색 1위의 가중치 증가만 별도 작업으로 떼어 실행함. 그래서 응답은 요청 순서대로 돌아오지만, 백엔드가 순서가 아닌 해시 맵의 첫 항목으로 짝을 지어 이 순서를 활용하지 못함.
 

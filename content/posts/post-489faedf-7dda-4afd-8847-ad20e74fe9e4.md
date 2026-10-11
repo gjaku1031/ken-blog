@@ -1,4 +1,4 @@
-ken-blog API는 메모리를 적게 쓰는 Native Image 대신 일반 JVM으로 돌리기로 했음. Spring과 JPA, jOOQ, ImageIO는 리플렉션 같은 동적 기능을 많이 써서, Native Image로는 빌드 설정과 런타임 힌트를 계속 맞춰야 했기 때문임. 대가는 메모리임. 예전 구현을 같은 조건에서 재 봤을 때 JVM이 Native Image보다 메모리를 약 5배(684MiB 대 136MiB) 썼으므로, 당시 1코어, 약 4GB 서버에서 정말 버틸 수 있는지 2026년 10월 2일에 직접 부하를 걸어 봤음.[* 예전 구현에서 같은 코드, 1 CPU·1GiB 조건으로 읽기 요청 120번 뒤의 메모리 중앙값. [인프라 ADR](https://github.com/gjaku1031/ken-blog/blob/c16cf3e/docs/ADR/ADR_infra.md)의 Native Image 검증 기록]
+ken-blog API는 메모리를 적게 쓰는 Native Image 대신 일반 JVM으로 돌리기로 했음. Spring과 JPA, jOOQ, ImageIO는 리플렉션 같은 동적 기능을 많이 써서, Native Image로는 빌드 설정과 런타임 힌트를 계속 맞춰야 했기 때문임. 대가는 메모리임. 예전 구현을 같은 조건에서 재 봤을 때 JVM이 Native Image보다 메모리를 약 5배(684MiB 대 136MiB) 썼으므로, 당시 1코어, 약 4GB 서버에서 정말 버틸 수 있는지 2026년 10월 2일에 직접 부하를 걸어 봤음.[* 예전 구현에서 같은 코드, 1 CPU·1GiB 조건으로 읽기 요청 120번 뒤의 메모리 중앙값. 인프라 ADR(`ADR_infra.md`)의 Native Image 검증 기록]
 
 > 잰 범위에서는 API가 1.5GiB 한도 안에서 멈추거나 다시 시작되지 않고 버텼음. 메모리는 많아야 474.5MiB였지만, 초당 200건에서 서버 CPU가 88%까지 올라 여유는 크지 않았음.
 
@@ -79,4 +79,4 @@ JVM 설정의 최대 힙은 약 626.4MiB, 메타스페이스 상한은 256MiB였
 
 ## 재현 자료
 
-원기록은 [인프라 ADR](https://github.com/gjaku1031/ken-blog/blob/f5001e8/docs/ADR/ADR_infra.md#jvm-실서버-부하메모리-측정)에 있고, 요청별 원자료는 남기지 않았음.
+원기록은 인프라 ADR(`ADR_infra.md`)에 있고, 요청별 원자료는 남기지 않았음.
