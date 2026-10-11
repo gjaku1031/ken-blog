@@ -50,7 +50,7 @@ architecture-beta
 | 소스·빌드 | `git`, `github`, `github-actions` |
 | 애플리케이션 | `spring`, `kotlin`, `fastapi`, `playwright`, `nodejs`, `nextjs`, `nestjs` |
 | 데이터 | `mysql`, `redis`, `neo4j`, `rds`, `postgresql`, `google-sheets` |
-| 실행 환경·진입점 | `docker`, `caddy`, `proxmox`, `fargate`, `alb`, `vpn`, `google-cloud`, `wireguard` |
+| 실행 환경·진입점 | `docker`, `caddy`, `proxmox`, `fargate`, `alb`, `vpn`, `google-cloud`, `wireguard`, `cloudflare` |
 | 배포·제어 | `ecr`, `cloudwatch`, `eventbridge`, `lambda`, `route53` |
 | 사용자·디스크 | `user`, `disk` |
 
@@ -119,3 +119,5 @@ ECR·ALB·VPN은 [AWS Architecture Icons](https://aws.amazon.com/architecture/ic
 Node.js(`nodejs`)는 `@iconify-json/logos`의 `nodejs-icon`(CC0)을 2026-10-07 Iconify API에서 가져왔다.
 
 NestJS·PostgreSQL·Google Cloud는 `@iconify-json/logos`(CC0), Next.js(`nextdotjs`)·WireGuard·Google Sheets(`googlesheets`)는 `@iconify-json/simple-icons`(CC0)에서 2026-10-09 Iconify API로 가져왔다. 단색 아이콘의 `currentColor`는 각 브랜드 색(Next.js `#000000`, WireGuard `#88171A`, Google Sheets `#34A853`)으로 치환했다.
+
+Cloudflare(`cloudflare`)는 `@iconify-json/logos`의 `cloudflare-icon`(CC0)을 2026-10-11 Iconify API에서 가져왔다.
