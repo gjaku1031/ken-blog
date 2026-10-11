@@ -1,0 +1,554 @@
+{
+  "width": 1310,
+  "height": 565,
+  "legend": [
+    {
+      "kind": "runtime",
+      "title": "요청 · 데이터 접근"
+    },
+    {
+      "kind": "delivery",
+      "title": "외부 ERP 연동"
+    }
+  ],
+  "groups": {
+    "users": [
+      10,
+      40,
+      235,
+      300,
+      "사용자"
+    ],
+    "app": [
+      300,
+      40,
+      725,
+      300,
+      "애플리케이션 · 프로세스 하나"
+    ],
+    "data": [
+      300,
+      400,
+      725,
+      120,
+      "데이터"
+    ],
+    "external": [
+      1100,
+      40,
+      200,
+      150,
+      "외부 시스템"
+    ]
+  },
+  "services": {
+    "lead": [
+      30,
+      80,
+      "업무 배정 · 보고 확인"
+    ],
+    "teacher": [
+      30,
+      170,
+      "일일보고 · 상담"
+    ],
+    "admin": [
+      30,
+      260,
+      "역할 · 권한 구성"
+    ],
+    "web": [
+      320,
+      90,
+      "화면 · 로그인 · 권한 확인"
+    ],
+    "tng": [
+      877,
+      90,
+      "외부 ERP 포트"
+    ],
+    "storage": [
+      360,
+      250,
+      "자료실 · 작업 원장"
+    ],
+    "identity": [
+      525,
+      250,
+      "계정 · 비밀번호"
+    ],
+    "access": [
+      690,
+      250,
+      "권한 엔진 · 감사"
+    ],
+    "worklog": [
+      865,
+      250,
+      "업무 · 보고 · 상담"
+    ],
+    "files": [
+      346,
+      445,
+      "파일 본문 · 로컬 디스크"
+    ],
+    "pg": [
+      620,
+      445,
+      "계정 · 권한 원장 · 자료실 메타데이터 · 업무일지"
+    ],
+    "erp": [
+      1120,
+      90,
+      "반 · 학생 · 출결 원장"
+    ]
+  },
+  "members": {
+    "lead": "users",
+    "teacher": "users",
+    "admin": "users",
+    "web": "app",
+    "tng": "app",
+    "storage": "app",
+    "identity": "app",
+    "access": "app",
+    "worklog": "app",
+    "files": "data",
+    "pg": "data",
+    "erp": "external"
+  },
+  "parents": {
+    "users": "",
+    "app": "",
+    "data": "",
+    "external": ""
+  },
+  "sourceGroups": [
+    "group users[Users]",
+    "group app[Application]",
+    "group data[Data]",
+    "group external[External system]"
+  ],
+  "sourceEdges": [
+    "lead:R -[Request]-> L:web",
+    "teacher:R -[Request]-> L:web",
+    "admin:R -[Request]-> L:web",
+    "web:B -[Files]-> T:storage",
+    "web:B -[Login]-> T:identity",
+    "web:B -[Authorize]-> T:access",
+    "web:B -[Tasks]-> T:worklog",
+    "web:R -[Staff list]-> L:tng",
+    "worklog:T -[Port]-> B:tng",
+    "tng:R -[Read and write]-> L:erp",
+    "storage:B -[Files]-> T:files",
+    "storage:B -[SQL]-> T:pg",
+    "identity:B -[SQL]-> T:pg",
+    "access:B -[SQL]-> T:pg",
+    "worklog:B -[SQL]-> T:pg"
+  ],
+  "edges": [
+    {
+      "source": "lead",
+      "target": "web",
+      "groupTarget": false,
+      "points": [
+        [
+          194,
+          102
+        ],
+        [
+          272,
+          102
+        ],
+        [
+          272,
+          112
+        ],
+        [
+          316,
+          112
+        ]
+      ],
+      "kind": "runtime",
+      "label": "",
+      "at": [
+        0,
+        0
+      ]
+    },
+    {
+      "source": "teacher",
+      "target": "web",
+      "groupTarget": false,
+      "points": [
+        [
+          154,
+          192
+        ],
+        [
+          272,
+          192
+        ],
+        [
+          272,
+          112
+        ],
+        [
+          316,
+          112
+        ]
+      ],
+      "kind": "runtime",
+      "label": "",
+      "at": [
+        0,
+        0
+      ]
+    },
+    {
+      "source": "admin",
+      "target": "web",
+      "groupTarget": false,
+      "points": [
+        [
+          168,
+          282
+        ],
+        [
+          272,
+          282
+        ],
+        [
+          272,
+          112
+        ],
+        [
+          316,
+          112
+        ]
+      ],
+      "kind": "runtime",
+      "label": "화면 요청",
+      "at": [
+        272,
+        150
+      ]
+    },
+    {
+      "source": "web",
+      "target": "storage",
+      "groupTarget": false,
+      "points": [
+        [
+          342,
+          136
+        ],
+        [
+          342,
+          190
+        ],
+        [
+          382,
+          190
+        ],
+        [
+          382,
+          246
+        ]
+      ],
+      "kind": "runtime",
+      "label": "",
+      "at": [
+        0,
+        0
+      ]
+    },
+    {
+      "source": "web",
+      "target": "identity",
+      "groupTarget": false,
+      "points": [
+        [
+          342,
+          136
+        ],
+        [
+          342,
+          190
+        ],
+        [
+          547,
+          190
+        ],
+        [
+          547,
+          246
+        ]
+      ],
+      "kind": "runtime",
+      "label": "",
+      "at": [
+        0,
+        0
+      ]
+    },
+    {
+      "source": "web",
+      "target": "access",
+      "groupTarget": false,
+      "points": [
+        [
+          342,
+          136
+        ],
+        [
+          342,
+          190
+        ],
+        [
+          712,
+          190
+        ],
+        [
+          712,
+          246
+        ]
+      ],
+      "kind": "runtime",
+      "label": "요청마다 권한 확인",
+      "at": [
+        712,
+        220
+      ]
+    },
+    {
+      "source": "web",
+      "target": "worklog",
+      "groupTarget": false,
+      "points": [
+        [
+          342,
+          136
+        ],
+        [
+          342,
+          190
+        ],
+        [
+          877,
+          190
+        ],
+        [
+          877,
+          246
+        ]
+      ],
+      "kind": "runtime",
+      "label": "공개 계약 호출",
+      "at": [
+        464,
+        190
+      ]
+    },
+    {
+      "source": "web",
+      "target": "tng",
+      "groupTarget": false,
+      "points": [
+        [
+          512,
+          112
+        ],
+        [
+          873,
+          112
+        ]
+      ],
+      "kind": "runtime",
+      "label": "직원 목록",
+      "at": [
+        690,
+        112
+      ]
+    },
+    {
+      "source": "worklog",
+      "target": "tng",
+      "groupTarget": false,
+      "points": [
+        [
+          899,
+          246
+        ],
+        [
+          899,
+          140
+        ]
+      ],
+      "kind": "runtime",
+      "label": "명단 · 출결 · 상담",
+      "at": [
+        899,
+        165
+      ]
+    },
+    {
+      "source": "tng",
+      "target": "erp",
+      "groupTarget": false,
+      "points": [
+        [
+          1008,
+          112
+        ],
+        [
+          1116,
+          112
+        ]
+      ],
+      "kind": "delivery",
+      "label": "조회 · 기록",
+      "at": [
+        1062,
+        112
+      ]
+    },
+    {
+      "source": "storage",
+      "target": "files",
+      "groupTarget": false,
+      "points": [
+        [
+          368,
+          296
+        ],
+        [
+          368,
+          441
+        ]
+      ],
+      "kind": "runtime",
+      "label": "",
+      "at": [
+        0,
+        0
+      ]
+    },
+    {
+      "source": "storage",
+      "target": "pg",
+      "groupTarget": false,
+      "points": [
+        [
+          392,
+          296
+        ],
+        [
+          392,
+          370
+        ],
+        [
+          642,
+          370
+        ],
+        [
+          642,
+          441
+        ]
+      ],
+      "kind": "runtime",
+      "label": "",
+      "at": [
+        0,
+        0
+      ]
+    },
+    {
+      "source": "identity",
+      "target": "pg",
+      "groupTarget": false,
+      "points": [
+        [
+          547,
+          296
+        ],
+        [
+          547,
+          370
+        ],
+        [
+          642,
+          370
+        ],
+        [
+          642,
+          441
+        ]
+      ],
+      "kind": "runtime",
+      "label": "",
+      "at": [
+        0,
+        0
+      ]
+    },
+    {
+      "source": "access",
+      "target": "pg",
+      "groupTarget": false,
+      "points": [
+        [
+          712,
+          296
+        ],
+        [
+          712,
+          370
+        ],
+        [
+          642,
+          370
+        ],
+        [
+          642,
+          441
+        ]
+      ],
+      "kind": "runtime",
+      "label": "",
+      "at": [
+        0,
+        0
+      ]
+    },
+    {
+      "source": "worklog",
+      "target": "pg",
+      "groupTarget": false,
+      "points": [
+        [
+          887,
+          296
+        ],
+        [
+          887,
+          370
+        ],
+        [
+          642,
+          370
+        ],
+        [
+          642,
+          441
+        ]
+      ],
+      "kind": "runtime",
+      "label": "JPA · jOOQ",
+      "at": [
+        790,
+        370
+      ]
+    }
+  ]
+}

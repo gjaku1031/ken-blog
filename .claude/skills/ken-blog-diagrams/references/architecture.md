@@ -80,6 +80,7 @@ architecture-beta
 | `%% layout: vowser-system` | [Vowser 시스템 구조 JSON](../../../../src/main/resources/web/shared/vowser-system-layout.json) | [Vowser 아키텍처](../../../../content/posts/doc-fd568125-2806-4210-a0b2-e4bf2d1b509e.md) |
 | `%% layout: npr-infrastructure` | [npr 인프라 JSON](../../../../src/main/resources/web/shared/npr-infrastructure-layout.json) | [npr 대문·아키텍처](../../../../content/posts/doc-71ac4b10-9f99-4251-893d-a57dd46ad334.md) |
 | `%% layout: npr-system` | [npr 시스템 구조 JSON](../../../../src/main/resources/web/shared/npr-system-layout.json) | [npr 아키텍처](../../../../content/posts/doc-71ac4b10-9f99-4251-893d-a57dd46ad334.md) |
+| `%% layout: npr-erp-system` | [학원 ERP 시스템 구조 JSON](../../../../src/main/resources/web/shared/npr-erp-system-layout.json) | [학원 ERP 대문](../../../../content/posts/project-b17d9daa-5d61-4433-bfc3-710425d7cae7.md)·[아키텍처](../../../../content/posts/doc-c2513d8a-31f4-49df-a99a-675fca3305a3.md) |
 
 주석은 `architecture-beta` 다음 줄에 둔다. Mermaid 초기화 전에 원고와 배치의 일치를 검증하고, 렌더링 후 검증된 SVG에 좌표·선 경로·설명을 적용한다. 다른 Mermaid 뷰어는 구성과 연결을 읽을 수 있지만 이 사이트의 배치 주석과 `ken:` 팩을 자동 제공하지 않는다.
 
@@ -94,6 +95,8 @@ architecture-beta
 | `legend` | 범례 항목의 `kind`, `title`. 범례는 도식 오른쪽 아래 상자에 자동 배치되므로 좌표를 넣지 않음. 상자 높이만큼 오른쪽 아래를 비워 둠 |
 
 그룹·연결 문구나 방향이 바뀌면 원고, `sourceGroups`·`sourceEdges`, 실제 표시 제목·문구·경로를 함께 갱신한다. 공백과 선언 순서는 정규화하지만 문구·아이콘·방향·중복 개수는 검사한다. 검증 목록만 바꿔 낡은 번역이나 연결 경로를 그대로 두지 않는다.
+
+여러 선이 같은 구간을 지나면 문구는 그 구간을 지나는 선 가운데 마지막에 선언한 선에 단다. 앞선 선에 달면 뒤에 그려지는 선이 문구를 가로지른다(2026-10-11, 학원 ERP 시스템 구조에서 확인).
 
 `points`는 출발점부터 화살표 끝까지의 SVG 좌표다. 마지막 구간이 화살표 방향을 결정하므로 원문의 대상·입출력 방향과 함께 확인한다. 아이콘 크기만 줄이는 것과 영역·선 좌표를 재배치하는 작업은 구분한다.
 

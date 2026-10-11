@@ -59,34 +59,44 @@
 
 ## 전체 아키텍처
 
-### 모듈 구성
+### 시스템 구조
 
-```mermaid caption="화면 요청은 bootstrap에서 권한 엔진(accesscontrol)을 거친 뒤 자료실(storage)과 업무일지(worklog)로 들어감. 업무 모듈끼리는 서로 의존하지 않고, worklog만 외부 ERP 포트(tng)를 씀"
-flowchart TD
-    %% legend: solid=호출; dotted=포트 구현; color:#eff6ff:#2563eb=조합; color:#fff1f2:#e11d48=인증·인가; color:#f0fdfa:#0d9488=업무; color:#f1f5f9:#64748b=외부 경계
-    web[bootstrap]
-    identity[identity]
-    access[accesscontrol]
-    storage[storage]
-    worklog[worklog]
-    tng[tng]
-    disk[(File storage)]
-    erp[(External ERP)]
-    web --> identity
-    web --> access
-    web --> storage
-    web --> worklog
-    worklog --> tng
-    storage -.-> disk
-    tng -.-> erp
-    classDef compose fill:#eff6ff,stroke:#2563eb,color:#172554,stroke-width:2px
-    classDef auth fill:#fff1f2,stroke:#e11d48,color:#881337,stroke-width:2px
-    classDef domain fill:#f0fdfa,stroke:#0d9488,color:#134e4a,stroke-width:2px
-    classDef edge fill:#f1f5f9,stroke:#64748b,color:#0f172a,stroke-width:2px
-    class web compose
-    class identity,access auth
-    class storage,worklog domain
-    class tng,disk,erp edge
+```mermaid caption="직원의 화면 요청은 bootstrap이 받아 권한을 확인한 뒤 모듈의 공개 계약을 부름. 반 명단과 출결은 tng 포트로 외부 ERP에서 읽고, 상담과 알림장은 같은 포트로 외부 ERP에 기록함. 공개 저장소에는 이 포트의 구현으로 가상 데이터를 돌려주는 대역이 들어 있음"
+architecture-beta
+  %% layout: npr-erp-system
+  group users[Users]
+  group app[Application]
+  group data[Data]
+  group external[External system]
+
+  service lead(ken:user)[Team lead] in users
+  service teacher(ken:user)[Teacher] in users
+  service admin(ken:user)[Admin] in users
+  service web(ken:spring)[bootstrap] in app
+  service tng(ken:spring)[tng] in app
+  service storage(ken:spring)[storage] in app
+  service identity(ken:spring)[identity] in app
+  service access(ken:spring)[accesscontrol] in app
+  service worklog(ken:spring)[worklog] in app
+  service files(ken:disk)[File storage] in data
+  service pg(ken:postgresql)[PostgreSQL] in data
+  service erp(server)[External ERP] in external
+
+  lead:R -[Request]-> L:web
+  teacher:R -[Request]-> L:web
+  admin:R -[Request]-> L:web
+  web:B -[Files]-> T:storage
+  web:B -[Login]-> T:identity
+  web:B -[Authorize]-> T:access
+  web:B -[Tasks]-> T:worklog
+  web:R -[Staff list]-> L:tng
+  worklog:T -[Port]-> B:tng
+  tng:R -[Read and write]-> L:erp
+  storage:B -[Files]-> T:files
+  storage:B -[SQL]-> T:pg
+  identity:B -[SQL]-> T:pg
+  access:B -[SQL]-> T:pg
+  worklog:B -[SQL]-> T:pg
 ```
 
 애플리케이션 한 프로세스와 PostgreSQL이 전부이고 화면도 같은 프로세스가 그림. 계정, 권한 원장, 자료실 메타데이터, 업무일지는 PostgreSQL에, 파일 본문은 저장소 포트 뒤의 디스크에 둠.

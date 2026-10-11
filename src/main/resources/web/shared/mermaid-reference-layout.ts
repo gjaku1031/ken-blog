@@ -4,11 +4,12 @@ import kenBlogSystemLayout from "./ken-blog-system-layout.json" with { type: "js
 import vowserSystemLayout from "./vowser-system-layout.json" with { type: "json" };
 import nprInfrastructureLayout from "./npr-infrastructure-layout.json" with { type: "json" };
 import nprSystemLayout from "./npr-system-layout.json" with { type: "json" };
+import nprErpSystemLayout from "./npr-erp-system-layout.json" with { type: "json" };
 
 /**
  * 게시글에서 선택할 수 있는 로컬 아키텍처 배치
  */
-const REFERENCE_LAYOUTS = { "vowser-infrastructure": vowserLayout, "ken-blog-infrastructure": kenBlogLayout, "ken-blog-system": kenBlogSystemLayout, "vowser-system": vowserSystemLayout, "npr-infrastructure": nprInfrastructureLayout, "npr-system": nprSystemLayout };
+const REFERENCE_LAYOUTS = { "vowser-infrastructure": vowserLayout, "ken-blog-infrastructure": kenBlogLayout, "ken-blog-system": kenBlogSystemLayout, "vowser-system": vowserSystemLayout, "npr-infrastructure": nprInfrastructureLayout, "npr-system": nprSystemLayout, "npr-erp-system": nprErpSystemLayout };
 
 /**
  * 원고의 명시적 주석으로 기준 배치를 선택하며 누락·중복·미등록 이름은 거부함
