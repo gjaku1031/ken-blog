@@ -16,6 +16,7 @@
     <meta name="twitter:title" content="{{ socialTitle }}">
     <meta name="twitter:description" content="{{ summary }}">
     <link rel="canonical" href="{{ canonical }}">
+    {% include "favicon.njk" %}
     <link rel="stylesheet" href="{{ assetsCss }}">{% if articleCss %}<link rel="stylesheet" href="{{ articleCss }}">{% endif %}</head>
   <body data-route="{{ section | lower }}" data-api-base="{{ apiBase }}" data-forms-css="{{ formsCss }}"{% if searchIndex %} data-search-index="{{ searchIndex }}"{% endif %}>
     <div class="site-root">

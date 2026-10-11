@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { readFile, mkdtemp, rm } from 'node:fs/promises';
+import { readFile, mkdtemp, rm, stat } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { generateSite } from '../../src/main/resources/web/site/generate.ts';
@@ -37,6 +37,13 @@ test('representative site keeps public names, tags and canonical routes', async 
     assert.doesNotMatch(related, /project-intro|fixture-6/);
     const ordinary = await readFile(join(output, 'post/fixture-1/index.html'), 'utf8');
     assert.doesNotMatch(ordinary, /related-posts-nav/);
+    // 공개·이동·관리 문서가 모두 같은 파비콘을 가리키고 그 파일이 산출물에 있음
+    const manage = await readFile(join(output, 'manage/index.html'), 'utf8');
+    for (const document of [html, redirect, manage])
+      for (const name of ['favicon-48.png', 'favicon.svg', 'apple-touch-icon.png']) {
+        assert.ok(document.includes(`href="/ken-blog/assets/${name}"`), name);
+        assert.ok((await stat(join(output, 'assets', name))).size > 0, name);
+      }
   } finally { await rm(output, { recursive: true, force: true }); }
 });
 

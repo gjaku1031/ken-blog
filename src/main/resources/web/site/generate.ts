@@ -463,7 +463,10 @@ export async function generateSite(payload: Input, output: string) {
   const gaMeasurementId = payload.gaMeasurementId?.trim() ?? '';
   if (gaMeasurementId && !/^G-[A-Z0-9]+$/.test(gaMeasurementId)) throw new Error("GA_MEASUREMENT_ID 형식 오류: G-로 시작하는 측정 ID 필요");
   await mkdir(join(output, "assets"), { recursive: true });
-  await copyFile(join(import.meta.dirname, "../public/profile-placeholder.svg"), join(output, "assets/profile-placeholder.svg"));
+  // 해시 이름 없이 고정 주소로 제공하는 프로필 이미지와 파비콘
+  // PNG 두 장은 favicon.svg를 래스터화한 것이므로 SVG를 고치면 함께 다시 만들어야 함
+  for (const name of ["profile-placeholder.svg", "favicon.svg", "favicon-48.png", "apple-touch-icon.png"])
+    await copyFile(join(import.meta.dirname, "../public", name), join(output, "assets", name));
   const engine = new nunjucks.Environment(new nunjucks.FileSystemLoader(join(import.meta.dirname, "templates")), {
     autoescape: true, throwOnUndefined: true,
   });
@@ -627,7 +630,7 @@ export async function generateSite(payload: Input, output: string) {
     const queryTargets = path === 'post'
       ? Object.fromEntries(allPosts.map(post => [post.slug, postPath(post)]))
       : Object.fromEntries([...aliases].filter(([alias]) => alias.startsWith(`${path}/`)).map(([alias, href]) => [alias.slice(path.length + 1), href]));
-    await write(join(path, "index.html"), engine.render("redirect.njk", { target, canonical: ORIGIN + target,
+    await write(join(path, "index.html"), engine.render("redirect.njk", { base: BASE, target, canonical: ORIGIN + target,
       preserveQuery: path === "", queryKind: path, queryTargets: JSON.stringify(queryTargets) }));
   }
   await page("404.html", "missing", "", "페이지 없음", "페이지를 찾을 수 없습니다.", {}, false);
