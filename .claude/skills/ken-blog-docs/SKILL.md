@@ -126,7 +126,7 @@ ken-blog 문서는 대학원 진학용 포트폴리오이자, 이후 다른 프�
 2. **도식 검사**: `node .claude/skills/ken-blog-diagrams/scripts/check-mermaid.mts <원고.md>`.
 3. **테스트**: `npm test` (필요하면 `npm run test:browser`).
 4. **미리보기**: `.claude/skills/ken-blog-docs/scripts/preview.sh <scratchpad>` 후 `node .claude/skills/ken-blog-docs/scripts/preview-shots.cjs <slug> <저장 디렉터리>`. 출력된 도식 크기와 캡처를 직접 본다.
-5. **커밋·push·배포**: 직접 한다(2026-10-08부터 배포 전담 pane에 요청하지 않음). 바뀐 게시 원고만 스테이징하고 `git push https://github.com/gjaku1031/ken-blog.git main`으로 올리며(force 금지), 커밋 메시지 끝에는 세션이 안내하는 Co-Authored-By 줄을 붙인다.[^ssh]
+5. **커밋·push·배포**: 직접 한다(2026-10-08부터 배포 전담 pane에 요청하지 않음). 바뀐 게시 원고만 스테이징하고 `git push https://github.com/gjaku1031/ken-blog.git main`으로 올리며(force 금지), 커밋 메시지는 Conventional Commits 형식의 제목과 본문만 쓴다.[^ssh]
 6. **Pages 확인**: 해당 커밋의 Pages 실행 결과를 확인한다. 배포 직전 `main`이 바뀌면 Pages가 의도적으로 실패하고 다음 실행이 반영하므로 최신 실행을 본다. 공개 주소 `https://gjaku1031.github.io/ken-blog/post/{slug}/`에서 바뀐 문구를 `curl`로 확인하고 주소를 사용자에게 알린다. GitHub Pages는 최대 10분 캐시하므로, 사용자가 예전 화면을 보면 강력 새로고침을 안내한다.
 
 ## 글 메타데이터(DB)
