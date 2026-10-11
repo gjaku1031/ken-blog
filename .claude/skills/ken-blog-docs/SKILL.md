@@ -44,7 +44,7 @@ ken-blog 문서는 대학원 진학용 포트폴리오이자, 이후 다른 프�
 3. **작성**: 편집 원본(`temp/NN-*.md`가 있으면 그것, 없으면 게시 원고)을 고친다.
 4. **확인**: 아래 '배포 절차'의 사실 확인과 미리보기.
 5. **배포**: 합의한 수정은 매번 게시 원고·커밋·push·Pages 배포·공개 화면 확인까지 한다.
-6. **기록**: 확정 사항은 `temp/review-notes.md`에, 다른 프로젝트에도 적용할 규칙은 [decisions.md](references/decisions.md)에 새 번호로 추가하고 이 파일·document-types.md에 반영한다.
+6. **기록**: 확정 사항은 `temp/review-notes.md`에, 다른 프로젝트에도 적용할 규칙은 [decisions.md](references/decisions.md)에 새 번호로 추가하고 이 파일·document-types.md에 반영한다. 인터뷰에서 받은 답은 같은 턴에 프로젝트별 인터뷰 요약(`docs/interviews/<프로젝트>.md`)에도 정리한다. 이 파일은 저장소에 올리되 블로그에는 게시하지 않고, 실명·계정·비밀값·개인정보·내부 사정의 세부를 빼고 완곡하게 쓰며 본문과 같은 규칙을 적용한다(D-072).
 7. **README**: 모든 문서의 작성·검토·검증이 끝난 뒤 마지막에 저장소 README를 씀(D-044, 구성은 document-types.md '저장소 README').
 
 ## 문체
