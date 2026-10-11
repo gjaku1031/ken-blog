@@ -129,6 +129,7 @@ flowchart TD
 
 - **문제**: 업무일지가 권한 엔진을 직접 부르면 두 모듈이 함께 바뀌고, 모든 계층에 인터페이스를 두면 구현이 하나뿐인 곳까지 읽을 코드가 늘어남
 - **결정**: 모듈마다 공개 계약과 내부 구현을 나누고 의존 방향을 빌드에서 검사함. 업무일지는 "업무를 받는 사람" 같은 집합을 스스로 구하지 않고 호출자에게 받음. 포트는 파일 저장소와 외부 ERP 두 곳에만 둠
+  - 비교한 대안: DB 접근까지 모든 경계를 포트 뒤에 두는 헥사고날 아키텍처. DB 접근은 구현이 하나뿐이어서 포트를 두면 간접 호출만 늘어나므로, 구현이 바뀔 수 있는 두 경계로 줄임
 - **대가**: 기능을 쓸 자격은 컨트롤러가, 대상이 본인의 것인지는 업무일지가 확인하므로 검사가 두 층으로 나뉨
 - **검증**: 모듈 의존 방향과 내부 패키지 침범을 구조 테스트가 검사함. 외부 ERP 포트의 구현을 가상 데이터를 돌려주는 대역으로 두고도 전체 기능이 실행됨[* [구조 테스트](https://github.com/gjaku1031/npr-erp/blob/c90b28a/src/test/java/com/npr/erp/architecture/ModularityTest.java), [외부 ERP 포트](https://github.com/gjaku1031/npr-erp/blob/c90b28a/src/main/java/com/npr/erp/tng/TngGateway.java), [가상 구현](https://github.com/gjaku1031/npr-erp/blob/c90b28a/src/main/java/com/npr/erp/tng/internal/MockTngGateway.java)]
 
