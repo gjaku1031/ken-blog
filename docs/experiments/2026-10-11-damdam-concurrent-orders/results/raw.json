@@ -1,0 +1,1924 @@
+{
+ "environment": {
+  "postgres": "PostgreSQL 16.15 (Debian 16.15-1.pgdg12+2) on aarch64-unknown-linux-gnu, compiled by gcc (Debian 12.2.0-14+deb12u1) 12.2.0, 64-bit",
+  "isolation": "read committed",
+  "statementTimeout": "5000ms (API 연결 설정)",
+  "stock": 2,
+  "requests": 20,
+  "repeats": 10,
+  "gapSeconds": 0.02,
+  "users": 10
+ },
+ "results": [
+  {
+   "condition": "A",
+   "repeat": 1,
+   "success": 2,
+   "statuses": [
+    201,
+    201,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400
+   ],
+   "stock": 0,
+   "ledgerSum": 0,
+   "overlapped": 20,
+   "startSpreadSeconds": 0.006,
+   "requests": [
+    {
+     "request": 0,
+     "status": 400,
+     "started": 0.0003,
+     "ended": 0.5438,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-1\",\"timestamp\":\"2026-10-11T20:06:00.347Z\"}"
+    },
+    {
+     "request": 1,
+     "status": 400,
+     "started": 0.0034,
+     "ended": 0.5096,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-1\",\"timestamp\":\"2026-10-11T20:06:00.318Z\"}"
+    },
+    {
+     "request": 2,
+     "status": 400,
+     "started": 0.0052,
+     "ended": 0.6181,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-1\",\"timestamp\":\"2026-10-11T20:06:00.432Z\"}"
+    },
+    {
+     "request": 3,
+     "status": 400,
+     "started": 0.0013,
+     "ended": 0.5846,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-1\",\"timestamp\":\"2026-10-11T20:06:00.392Z\"}"
+    },
+    {
+     "request": 4,
+     "status": 400,
+     "started": 0.0008,
+     "ended": 0.5252,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-1\",\"timestamp\":\"2026-10-11T20:06:00.332Z\"}"
+    },
+    {
+     "request": 5,
+     "status": 400,
+     "started": 0.0016,
+     "ended": 0.6065,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-1\",\"timestamp\":\"2026-10-11T20:06:00.419Z\"}"
+    },
+    {
+     "request": 6,
+     "status": 400,
+     "started": 0.0018,
+     "ended": 0.5933,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-1\",\"timestamp\":\"2026-10-11T20:06:00.400Z\"}"
+    },
+    {
+     "request": 7,
+     "status": 400,
+     "started": 0.0005,
+     "ended": 0.6079,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-1\",\"timestamp\":\"2026-10-11T20:06:00.414Z\"}"
+    },
+    {
+     "request": 8,
+     "status": 400,
+     "started": 0.0045,
+     "ended": 0.5519,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-1\",\"timestamp\":\"2026-10-11T20:06:00.283Z\"}"
+    },
+    {
+     "request": 9,
+     "status": 400,
+     "started": 0.005,
+     "ended": 0.5026,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-1\",\"timestamp\":\"2026-10-11T20:06:00.300Z\"}"
+    },
+    {
+     "request": 10,
+     "status": 201,
+     "started": 0.0019,
+     "ended": 0.5102,
+     "body": "{\"id\":\"4c5bb2a4-280b-49c8-bb6c-5c4734cbedd6\",\"createdAt\":\"2026-10-11T20:06:00.055Z\",\"updatedAt\":\"2026-10-11T20:06:00.055Z\",\"orderNo\":\"ORD-20261011200600-8OK729\""
+    },
+    {
+     "request": 11,
+     "status": 400,
+     "started": 0.0032,
+     "ended": 0.4547,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-1\",\"timestamp\":\"2026-10-11T20:06:00.248Z\"}"
+    },
+    {
+     "request": 12,
+     "status": 201,
+     "started": 0.0057,
+     "ended": 0.4471,
+     "body": "{\"id\":\"82657f54-67d4-459c-a9fd-51f445910619\",\"createdAt\":\"2026-10-11T20:06:00.169Z\",\"updatedAt\":\"2026-10-11T20:06:00.169Z\",\"orderNo\":\"ORD-20261011200600-1EV0GZ\""
+    },
+    {
+     "request": 13,
+     "status": 400,
+     "started": 0.0043,
+     "ended": 0.5692,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-1\",\"timestamp\":\"2026-10-11T20:06:00.375Z\"}"
+    },
+    {
+     "request": 14,
+     "status": 400,
+     "started": 0.006,
+     "ended": 0.6042,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-1\",\"timestamp\":\"2026-10-11T20:06:00.409Z\"}"
+    },
+    {
+     "request": 15,
+     "status": 400,
+     "started": 0.0055,
+     "ended": 0.4762,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-1\",\"timestamp\":\"2026-10-11T20:06:00.287Z\"}"
+    },
+    {
+     "request": 16,
+     "status": 400,
+     "started": 0.0037,
+     "ended": 0.5022,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-1\",\"timestamp\":\"2026-10-11T20:06:00.310Z\"}"
+    },
+    {
+     "request": 17,
+     "status": 400,
+     "started": 0.0048,
+     "ended": 0.5742,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-1\",\"timestamp\":\"2026-10-11T20:06:00.383Z\"}"
+    },
+    {
+     "request": 18,
+     "status": 400,
+     "started": 0.004,
+     "ended": 0.5446,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-1\",\"timestamp\":\"2026-10-11T20:06:00.355Z\"}"
+    },
+    {
+     "request": 19,
+     "status": 400,
+     "started": 0.0,
+     "ended": 0.5782,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-1\",\"timestamp\":\"2026-10-11T20:06:00.371Z\"}"
+    }
+   ]
+  },
+  {
+   "condition": "A",
+   "repeat": 2,
+   "success": 2,
+   "statuses": [
+    201,
+    201,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400
+   ],
+   "stock": 0,
+   "ledgerSum": 0,
+   "overlapped": 20,
+   "startSpreadSeconds": 0.0059,
+   "requests": [
+    {
+     "request": 0,
+     "status": 400,
+     "started": 0.0004,
+     "ended": 0.1694,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-2\",\"timestamp\":\"2026-10-11T20:06:01.035Z\"}"
+    },
+    {
+     "request": 1,
+     "status": 400,
+     "started": 0.0003,
+     "ended": 0.2673,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-2\",\"timestamp\":\"2026-10-11T20:06:01.131Z\"}"
+    },
+    {
+     "request": 2,
+     "status": 400,
+     "started": 0.0048,
+     "ended": 0.2929,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-2\",\"timestamp\":\"2026-10-11T20:06:01.156Z\"}"
+    },
+    {
+     "request": 3,
+     "status": 400,
+     "started": 0.0051,
+     "ended": 0.3123,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-2\",\"timestamp\":\"2026-10-11T20:06:01.178Z\"}"
+    },
+    {
+     "request": 4,
+     "status": 400,
+     "started": 0.0054,
+     "ended": 0.2453,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-2\",\"timestamp\":\"2026-10-11T20:06:01.113Z\"}"
+    },
+    {
+     "request": 5,
+     "status": 400,
+     "started": 0.0008,
+     "ended": 0.1936,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-2\",\"timestamp\":\"2026-10-11T20:06:01.062Z\"}"
+    },
+    {
+     "request": 6,
+     "status": 400,
+     "started": 0.0043,
+     "ended": 0.2226,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-2\",\"timestamp\":\"2026-10-11T20:06:01.075Z\"}"
+    },
+    {
+     "request": 7,
+     "status": 201,
+     "started": 0.0006,
+     "ended": 0.1084,
+     "body": "{\"id\":\"0be88066-6031-4198-a6cf-4ebb87ad6f38\",\"createdAt\":\"2026-10-11T20:06:00.966Z\",\"updatedAt\":\"2026-10-11T20:06:00.966Z\",\"orderNo\":\"ORD-20261011200600-1333BY\""
+    },
+    {
+     "request": 8,
+     "status": 400,
+     "started": 0.0039,
+     "ended": 0.2945,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-2\",\"timestamp\":\"2026-10-11T20:06:01.161Z\"}"
+    },
+    {
+     "request": 9,
+     "status": 400,
+     "started": 0.0033,
+     "ended": 0.187,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-2\",\"timestamp\":\"2026-10-11T20:06:01.030Z\"}"
+    },
+    {
+     "request": 10,
+     "status": 400,
+     "started": 0.0031,
+     "ended": 0.1565,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-2\",\"timestamp\":\"2026-10-11T20:06:01.020Z\"}"
+    },
+    {
+     "request": 11,
+     "status": 400,
+     "started": 0.0056,
+     "ended": 0.2252,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-2\",\"timestamp\":\"2026-10-11T20:06:01.087Z\"}"
+    },
+    {
+     "request": 12,
+     "status": 201,
+     "started": 0.0028,
+     "ended": 0.1069,
+     "body": "{\"id\":\"8319b2ab-4ef6-4bf8-8fbd-ff7a7f6c5271\",\"createdAt\":\"2026-10-11T20:06:00.908Z\",\"updatedAt\":\"2026-10-11T20:06:00.908Z\",\"orderNo\":\"ORD-20261011200600-PYPF4V\""
+    },
+    {
+     "request": 13,
+     "status": 400,
+     "started": 0.0025,
+     "ended": 0.2193,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-2\",\"timestamp\":\"2026-10-11T20:06:01.003Z\"}"
+    },
+    {
+     "request": 14,
+     "status": 400,
+     "started": 0.0022,
+     "ended": 0.2795,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-2\",\"timestamp\":\"2026-10-11T20:06:01.146Z\"}"
+    },
+    {
+     "request": 15,
+     "status": 400,
+     "started": 0.0019,
+     "ended": 0.2423,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-2\",\"timestamp\":\"2026-10-11T20:06:01.105Z\"}"
+    },
+    {
+     "request": 16,
+     "status": 400,
+     "started": 0.0059,
+     "ended": 0.2561,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-2\",\"timestamp\":\"2026-10-11T20:06:01.125Z\"}"
+    },
+    {
+     "request": 17,
+     "status": 400,
+     "started": 0.0016,
+     "ended": 0.3056,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-2\",\"timestamp\":\"2026-10-11T20:06:01.171Z\"}"
+    },
+    {
+     "request": 18,
+     "status": 400,
+     "started": 0.0013,
+     "ended": 0.125,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-2\",\"timestamp\":\"2026-10-11T20:06:00.988Z\"}"
+    },
+    {
+     "request": 19,
+     "status": 400,
+     "started": 0.0,
+     "ended": 0.1826,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-2\",\"timestamp\":\"2026-10-11T20:06:01.044Z\"}"
+    }
+   ]
+  },
+  {
+   "condition": "A",
+   "repeat": 3,
+   "success": 2,
+   "statuses": [
+    201,
+    201,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400
+   ],
+   "stock": 0,
+   "ledgerSum": 0,
+   "overlapped": 20,
+   "startSpreadSeconds": 0.0127,
+   "requests": [
+    {
+     "request": 0,
+     "status": 400,
+     "started": 0.0071,
+     "ended": 0.4049,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-3\",\"timestamp\":\"2026-10-11T20:06:02.041Z\"}"
+    },
+    {
+     "request": 1,
+     "status": 400,
+     "started": 0.0017,
+     "ended": 0.3027,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-3\",\"timestamp\":\"2026-10-11T20:06:01.944Z\"}"
+    },
+    {
+     "request": 2,
+     "status": 400,
+     "started": 0.0078,
+     "ended": 0.2099,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-3\",\"timestamp\":\"2026-10-11T20:06:01.834Z\"}"
+    },
+    {
+     "request": 3,
+     "status": 400,
+     "started": 0.0101,
+     "ended": 0.2777,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-3\",\"timestamp\":\"2026-10-11T20:06:01.912Z\"}"
+    },
+    {
+     "request": 4,
+     "status": 400,
+     "started": 0.0061,
+     "ended": 0.3872,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-3\",\"timestamp\":\"2026-10-11T20:06:02.018Z\"}"
+    },
+    {
+     "request": 5,
+     "status": 400,
+     "started": 0.0065,
+     "ended": 0.3485,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-3\",\"timestamp\":\"2026-10-11T20:06:01.994Z\"}"
+    },
+    {
+     "request": 6,
+     "status": 400,
+     "started": 0.0051,
+     "ended": 0.3766,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-3\",\"timestamp\":\"2026-10-11T20:06:02.010Z\"}"
+    },
+    {
+     "request": 7,
+     "status": 400,
+     "started": 0.0127,
+     "ended": 0.2817,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-3\",\"timestamp\":\"2026-10-11T20:06:01.874Z\"}"
+    },
+    {
+     "request": 8,
+     "status": 400,
+     "started": 0.0025,
+     "ended": 0.3206,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-3\",\"timestamp\":\"2026-10-11T20:06:01.966Z\"}"
+    },
+    {
+     "request": 9,
+     "status": 201,
+     "started": 0.0048,
+     "ended": 0.1478,
+     "body": "{\"id\":\"5b51d69f-9170-4124-9e2c-b4e68e78b003\",\"createdAt\":\"2026-10-11T20:06:01.756Z\",\"updatedAt\":\"2026-10-11T20:06:01.756Z\",\"orderNo\":\"ORD-20261011200601-NTD1UY\""
+    },
+    {
+     "request": 10,
+     "status": 400,
+     "started": 0.0026,
+     "ended": 0.3556,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-3\",\"timestamp\":\"2026-10-11T20:06:02.001Z\"}"
+    },
+    {
+     "request": 11,
+     "status": 400,
+     "started": 0.0027,
+     "ended": 0.2583,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-3\",\"timestamp\":\"2026-10-11T20:06:01.897Z\"}"
+    },
+    {
+     "request": 12,
+     "status": 400,
+     "started": 0.0028,
+     "ended": 0.3346,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-3\",\"timestamp\":\"2026-10-11T20:06:01.982Z\"}"
+    },
+    {
+     "request": 13,
+     "status": 400,
+     "started": 0.0066,
+     "ended": 0.3275,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-3\",\"timestamp\":\"2026-10-11T20:06:01.973Z\"}"
+    },
+    {
+     "request": 14,
+     "status": 400,
+     "started": 0.0029,
+     "ended": 0.3116,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-3\",\"timestamp\":\"2026-10-11T20:06:01.957Z\"}"
+    },
+    {
+     "request": 15,
+     "status": 400,
+     "started": 0.003,
+     "ended": 0.1953,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-3\",\"timestamp\":\"2026-10-11T20:06:01.810Z\"}"
+    },
+    {
+     "request": 16,
+     "status": 201,
+     "started": 0.0054,
+     "ended": 0.1378,
+     "body": "{\"id\":\"075879b2-aa7b-49dd-9f61-bb1c73ce793d\",\"createdAt\":\"2026-10-11T20:06:01.725Z\",\"updatedAt\":\"2026-10-11T20:06:01.725Z\",\"orderNo\":\"ORD-20261011200601-3TMUJE\""
+    },
+    {
+     "request": 17,
+     "status": 400,
+     "started": 0.0075,
+     "ended": 0.2248,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-3\",\"timestamp\":\"2026-10-11T20:06:01.857Z\"}"
+    },
+    {
+     "request": 18,
+     "status": 400,
+     "started": 0.0067,
+     "ended": 0.4042,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-3\",\"timestamp\":\"2026-10-11T20:06:02.042Z\"}"
+    },
+    {
+     "request": 19,
+     "status": 400,
+     "started": 0.0,
+     "ended": 0.1743,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-3\",\"timestamp\":\"2026-10-11T20:06:01.789Z\"}"
+    }
+   ]
+  },
+  {
+   "condition": "A",
+   "repeat": 4,
+   "success": 2,
+   "statuses": [
+    201,
+    201,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400
+   ],
+   "stock": 0,
+   "ledgerSum": 0,
+   "overlapped": 20,
+   "startSpreadSeconds": 0.0258,
+   "requests": [
+    {
+     "request": 0,
+     "status": 201,
+     "started": 0.0063,
+     "ended": 0.1175,
+     "body": "{\"id\":\"ee0f251e-fec0-47e8-b8c8-745690ff937e\",\"createdAt\":\"2026-10-11T20:06:02.586Z\",\"updatedAt\":\"2026-10-11T20:06:02.586Z\",\"orderNo\":\"ORD-20261011200602-A3O9H6\""
+    },
+    {
+     "request": 1,
+     "status": 400,
+     "started": 0.0007,
+     "ended": 0.1825,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-4\",\"timestamp\":\"2026-10-11T20:06:02.662Z\"}"
+    },
+    {
+     "request": 2,
+     "status": 400,
+     "started": 0.0009,
+     "ended": 0.2269,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-4\",\"timestamp\":\"2026-10-11T20:06:02.698Z\"}"
+    },
+    {
+     "request": 3,
+     "status": 400,
+     "started": 0.0003,
+     "ended": 0.2215,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-4\",\"timestamp\":\"2026-10-11T20:06:02.612Z\"}"
+    },
+    {
+     "request": 4,
+     "status": 400,
+     "started": 0.0072,
+     "ended": 0.1469,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-4\",\"timestamp\":\"2026-10-11T20:06:02.626Z\"}"
+    },
+    {
+     "request": 5,
+     "status": 400,
+     "started": 0.0021,
+     "ended": 0.2544,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-4\",\"timestamp\":\"2026-10-11T20:06:02.738Z\"}"
+    },
+    {
+     "request": 6,
+     "status": 400,
+     "started": 0.0237,
+     "ended": 0.2704,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-4\",\"timestamp\":\"2026-10-11T20:06:02.753Z\"}"
+    },
+    {
+     "request": 7,
+     "status": 400,
+     "started": 0.0004,
+     "ended": 0.2574,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-4\",\"timestamp\":\"2026-10-11T20:06:02.742Z\"}"
+    },
+    {
+     "request": 8,
+     "status": 400,
+     "started": 0.0018,
+     "ended": 0.1359,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-4\",\"timestamp\":\"2026-10-11T20:06:02.620Z\"}"
+    },
+    {
+     "request": 9,
+     "status": 400,
+     "started": 0.0248,
+     "ended": 0.2685,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-4\",\"timestamp\":\"2026-10-11T20:06:02.756Z\"}"
+    },
+    {
+     "request": 10,
+     "status": 400,
+     "started": 0.0196,
+     "ended": 0.2009,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-4\",\"timestamp\":\"2026-10-11T20:06:02.676Z\"}"
+    },
+    {
+     "request": 11,
+     "status": 400,
+     "started": 0.0005,
+     "ended": 0.1734,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-4\",\"timestamp\":\"2026-10-11T20:06:02.656Z\"}"
+    },
+    {
+     "request": 12,
+     "status": 400,
+     "started": 0.0242,
+     "ended": 0.2341,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-4\",\"timestamp\":\"2026-10-11T20:06:02.714Z\"}"
+    },
+    {
+     "request": 13,
+     "status": 400,
+     "started": 0.0026,
+     "ended": 0.1634,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-4\",\"timestamp\":\"2026-10-11T20:06:02.640Z\"}"
+    },
+    {
+     "request": 14,
+     "status": 400,
+     "started": 0.0028,
+     "ended": 0.2834,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-4\",\"timestamp\":\"2026-10-11T20:06:02.770Z\"}"
+    },
+    {
+     "request": 15,
+     "status": 400,
+     "started": 0.0258,
+     "ended": 0.2432,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-4\",\"timestamp\":\"2026-10-11T20:06:02.723Z\"}"
+    },
+    {
+     "request": 16,
+     "status": 201,
+     "started": 0.0029,
+     "ended": 0.0896,
+     "body": "{\"id\":\"95c212e3-b8ae-42ca-90e0-f34908971288\",\"createdAt\":\"2026-10-11T20:06:02.556Z\",\"updatedAt\":\"2026-10-11T20:06:02.556Z\",\"orderNo\":\"ORD-20261011200602-XZ22NL\""
+    },
+    {
+     "request": 17,
+     "status": 400,
+     "started": 0.0034,
+     "ended": 0.2542,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-4\",\"timestamp\":\"2026-10-11T20:06:02.729Z\"}"
+    },
+    {
+     "request": 18,
+     "status": 400,
+     "started": 0.0233,
+     "ended": 0.278,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-4\",\"timestamp\":\"2026-10-11T20:06:02.764Z\"}"
+    },
+    {
+     "request": 19,
+     "status": 400,
+     "started": 0.0,
+     "ended": 0.2025,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-4\",\"timestamp\":\"2026-10-11T20:06:02.681Z\"}"
+    }
+   ]
+  },
+  {
+   "condition": "A",
+   "repeat": 5,
+   "success": 2,
+   "statuses": [
+    201,
+    201,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400
+   ],
+   "stock": 0,
+   "ledgerSum": 0,
+   "overlapped": 20,
+   "startSpreadSeconds": 0.0118,
+   "requests": [
+    {
+     "request": 0,
+     "status": 400,
+     "started": 0.0003,
+     "ended": 0.256,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-5\",\"timestamp\":\"2026-10-11T20:06:03.541Z\"}"
+    },
+    {
+     "request": 1,
+     "status": 201,
+     "started": 0.0007,
+     "ended": 0.1057,
+     "body": "{\"id\":\"40fcad8b-3385-4173-83be-59e3dfebc6ba\",\"createdAt\":\"2026-10-11T20:06:03.348Z\",\"updatedAt\":\"2026-10-11T20:06:03.348Z\",\"orderNo\":\"ORD-20261011200603-7XYT1L\""
+    },
+    {
+     "request": 2,
+     "status": 400,
+     "started": 0.0027,
+     "ended": 0.2392,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-5\",\"timestamp\":\"2026-10-11T20:06:03.471Z\"}"
+    },
+    {
+     "request": 3,
+     "status": 400,
+     "started": 0.0115,
+     "ended": 0.1624,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-5\",\"timestamp\":\"2026-10-11T20:06:03.427Z\"}"
+    },
+    {
+     "request": 4,
+     "status": 400,
+     "started": 0.0078,
+     "ended": 0.2483,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-5\",\"timestamp\":\"2026-10-11T20:06:03.517Z\"}"
+    },
+    {
+     "request": 5,
+     "status": 400,
+     "started": 0.002,
+     "ended": 0.1601,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-5\",\"timestamp\":\"2026-10-11T20:06:03.439Z\"}"
+    },
+    {
+     "request": 6,
+     "status": 400,
+     "started": 0.0087,
+     "ended": 0.2501,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-5\",\"timestamp\":\"2026-10-11T20:06:03.531Z\"}"
+    },
+    {
+     "request": 7,
+     "status": 400,
+     "started": 0.0014,
+     "ended": 0.1644,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-5\",\"timestamp\":\"2026-10-11T20:06:03.419Z\"}"
+    },
+    {
+     "request": 8,
+     "status": 400,
+     "started": 0.0004,
+     "ended": 0.2845,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-5\",\"timestamp\":\"2026-10-11T20:06:03.570Z\"}"
+    },
+    {
+     "request": 9,
+     "status": 400,
+     "started": 0.0118,
+     "ended": 0.3293,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-5\",\"timestamp\":\"2026-10-11T20:06:03.610Z\"}"
+    },
+    {
+     "request": 10,
+     "status": 400,
+     "started": 0.0073,
+     "ended": 0.3086,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-5\",\"timestamp\":\"2026-10-11T20:06:03.598Z\"}"
+    },
+    {
+     "request": 11,
+     "status": 400,
+     "started": 0.0109,
+     "ended": 0.2973,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-5\",\"timestamp\":\"2026-10-11T20:06:03.584Z\"}"
+    },
+    {
+     "request": 12,
+     "status": 400,
+     "started": 0.0012,
+     "ended": 0.3584,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-5\",\"timestamp\":\"2026-10-11T20:06:03.646Z\"}"
+    },
+    {
+     "request": 13,
+     "status": 201,
+     "started": 0.0102,
+     "ended": 0.1647,
+     "body": "{\"id\":\"08a76a38-19f9-4d1b-9d9a-b32540e98e75\",\"createdAt\":\"2026-10-11T20:06:03.395Z\",\"updatedAt\":\"2026-10-11T20:06:03.395Z\",\"orderNo\":\"ORD-20261011200603-24L16G\""
+    },
+    {
+     "request": 14,
+     "status": 400,
+     "started": 0.0022,
+     "ended": 0.2478,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-5\",\"timestamp\":\"2026-10-11T20:06:03.485Z\"}"
+    },
+    {
+     "request": 15,
+     "status": 400,
+     "started": 0.0005,
+     "ended": 0.247,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-5\",\"timestamp\":\"2026-10-11T20:06:03.521Z\"}"
+    },
+    {
+     "request": 16,
+     "status": 400,
+     "started": 0.0069,
+     "ended": 0.2799,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-5\",\"timestamp\":\"2026-10-11T20:06:03.557Z\"}"
+    },
+    {
+     "request": 17,
+     "status": 400,
+     "started": 0.004,
+     "ended": 0.3477,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-5\",\"timestamp\":\"2026-10-11T20:06:03.621Z\"}"
+    },
+    {
+     "request": 18,
+     "status": 400,
+     "started": 0.0017,
+     "ended": 0.2473,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-5\",\"timestamp\":\"2026-10-11T20:06:03.494Z\"}"
+    },
+    {
+     "request": 19,
+     "status": 400,
+     "started": 0.0,
+     "ended": 0.2452,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-5\",\"timestamp\":\"2026-10-11T20:06:03.429Z\"}"
+    }
+   ]
+  },
+  {
+   "condition": "A",
+   "repeat": 6,
+   "success": 2,
+   "statuses": [
+    201,
+    201,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400
+   ],
+   "stock": 0,
+   "ledgerSum": 0,
+   "overlapped": 20,
+   "startSpreadSeconds": 0.0153,
+   "requests": [
+    {
+     "request": 0,
+     "status": 400,
+     "started": 0.0125,
+     "ended": 0.2392,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-6\",\"timestamp\":\"2026-10-11T20:06:04.353Z\"}"
+    },
+    {
+     "request": 1,
+     "status": 400,
+     "started": 0.0008,
+     "ended": 0.2399,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-6\",\"timestamp\":\"2026-10-11T20:06:04.325Z\"}"
+    },
+    {
+     "request": 2,
+     "status": 400,
+     "started": 0.0147,
+     "ended": 0.2449,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-6\",\"timestamp\":\"2026-10-11T20:06:04.344Z\"}"
+    },
+    {
+     "request": 3,
+     "status": 400,
+     "started": 0.0153,
+     "ended": 0.2567,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-6\",\"timestamp\":\"2026-10-11T20:06:04.391Z\"}"
+    },
+    {
+     "request": 4,
+     "status": 400,
+     "started": 0.0134,
+     "ended": 0.2368,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-6\",\"timestamp\":\"2026-10-11T20:06:04.342Z\"}"
+    },
+    {
+     "request": 5,
+     "status": 400,
+     "started": 0.0021,
+     "ended": 0.1801,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-6\",\"timestamp\":\"2026-10-11T20:06:04.273Z\"}"
+    },
+    {
+     "request": 6,
+     "status": 201,
+     "started": 0.0003,
+     "ended": 0.119,
+     "body": "{\"id\":\"a877cafa-49a2-4904-9191-28c37db384d4\",\"createdAt\":\"2026-10-11T20:06:04.226Z\",\"updatedAt\":\"2026-10-11T20:06:04.226Z\",\"orderNo\":\"ORD-20261011200604-6KEMV8\""
+    },
+    {
+     "request": 7,
+     "status": 400,
+     "started": 0.0028,
+     "ended": 0.155,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-6\",\"timestamp\":\"2026-10-11T20:06:04.254Z\"}"
+    },
+    {
+     "request": 8,
+     "status": 400,
+     "started": 0.0024,
+     "ended": 0.2411,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-6\",\"timestamp\":\"2026-10-11T20:06:04.303Z\"}"
+    },
+    {
+     "request": 9,
+     "status": 201,
+     "started": 0.0033,
+     "ended": 0.0869,
+     "body": "{\"id\":\"346e2e46-6be7-4445-b7d1-118d51e3ed93\",\"createdAt\":\"2026-10-11T20:06:04.180Z\",\"updatedAt\":\"2026-10-11T20:06:04.180Z\",\"orderNo\":\"ORD-20261011200604-MEFUJP\""
+    },
+    {
+     "request": 10,
+     "status": 400,
+     "started": 0.0074,
+     "ended": 0.2605,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-6\",\"timestamp\":\"2026-10-11T20:06:04.398Z\"}"
+    },
+    {
+     "request": 11,
+     "status": 400,
+     "started": 0.0061,
+     "ended": 0.1598,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-6\",\"timestamp\":\"2026-10-11T20:06:04.282Z\"}"
+    },
+    {
+     "request": 12,
+     "status": 400,
+     "started": 0.0137,
+     "ended": 0.2448,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-6\",\"timestamp\":\"2026-10-11T20:06:04.367Z\"}"
+    },
+    {
+     "request": 13,
+     "status": 400,
+     "started": 0.0057,
+     "ended": 0.2383,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-6\",\"timestamp\":\"2026-10-11T20:06:04.360Z\"}"
+    },
+    {
+     "request": 14,
+     "status": 400,
+     "started": 0.0014,
+     "ended": 0.2445,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-6\",\"timestamp\":\"2026-10-11T20:06:04.360Z\"}"
+    },
+    {
+     "request": 15,
+     "status": 400,
+     "started": 0.0045,
+     "ended": 0.2631,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-6\",\"timestamp\":\"2026-10-11T20:06:04.381Z\"}"
+    },
+    {
+     "request": 16,
+     "status": 400,
+     "started": 0.0041,
+     "ended": 0.2397,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-6\",\"timestamp\":\"2026-10-11T20:06:04.305Z\"}"
+    },
+    {
+     "request": 17,
+     "status": 400,
+     "started": 0.0142,
+     "ended": 0.2375,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-6\",\"timestamp\":\"2026-10-11T20:06:04.350Z\"}"
+    },
+    {
+     "request": 18,
+     "status": 400,
+     "started": 0.0049,
+     "ended": 0.2348,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-6\",\"timestamp\":\"2026-10-11T20:06:04.310Z\"}"
+    },
+    {
+     "request": 19,
+     "status": 400,
+     "started": 0.0,
+     "ended": 0.1603,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-6\",\"timestamp\":\"2026-10-11T20:06:04.271Z\"}"
+    }
+   ]
+  },
+  {
+   "condition": "A",
+   "repeat": 7,
+   "success": 2,
+   "statuses": [
+    201,
+    201,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400
+   ],
+   "stock": 0,
+   "ledgerSum": 0,
+   "overlapped": 20,
+   "startSpreadSeconds": 0.0095,
+   "requests": [
+    {
+     "request": 0,
+     "status": 201,
+     "started": 0.0008,
+     "ended": 0.0997,
+     "body": "{\"id\":\"3d841bf8-25a3-48e0-bf9a-f2bffb2b40bf\",\"createdAt\":\"2026-10-11T20:06:04.898Z\",\"updatedAt\":\"2026-10-11T20:06:04.898Z\",\"orderNo\":\"ORD-20261011200604-YIM6YD\""
+    },
+    {
+     "request": 1,
+     "status": 400,
+     "started": 0.001,
+     "ended": 0.1662,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-7\",\"timestamp\":\"2026-10-11T20:06:04.983Z\"}"
+    },
+    {
+     "request": 2,
+     "status": 400,
+     "started": 0.0004,
+     "ended": 0.144,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-7\",\"timestamp\":\"2026-10-11T20:06:04.940Z\"}"
+    },
+    {
+     "request": 3,
+     "status": 400,
+     "started": 0.0029,
+     "ended": 0.2673,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-7\",\"timestamp\":\"2026-10-11T20:06:05.067Z\"}"
+    },
+    {
+     "request": 4,
+     "status": 400,
+     "started": 0.0002,
+     "ended": 0.1464,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-7\",\"timestamp\":\"2026-10-11T20:06:04.947Z\"}"
+    },
+    {
+     "request": 5,
+     "status": 400,
+     "started": 0.003,
+     "ended": 0.2669,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-7\",\"timestamp\":\"2026-10-11T20:06:05.075Z\"}"
+    },
+    {
+     "request": 6,
+     "status": 400,
+     "started": 0.0005,
+     "ended": 0.1108,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-7\",\"timestamp\":\"2026-10-11T20:06:04.923Z\"}"
+    },
+    {
+     "request": 7,
+     "status": 400,
+     "started": 0.0027,
+     "ended": 0.2542,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-7\",\"timestamp\":\"2026-10-11T20:06:05.005Z\"}"
+    },
+    {
+     "request": 8,
+     "status": 400,
+     "started": 0.0095,
+     "ended": 0.2707,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-7\",\"timestamp\":\"2026-10-11T20:06:05.062Z\"}"
+    },
+    {
+     "request": 9,
+     "status": 400,
+     "started": 0.0012,
+     "ended": 0.2681,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-7\",\"timestamp\":\"2026-10-11T20:06:05.037Z\"}"
+    },
+    {
+     "request": 10,
+     "status": 400,
+     "started": 0.0024,
+     "ended": 0.2671,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-7\",\"timestamp\":\"2026-10-11T20:06:05.008Z\"}"
+    },
+    {
+     "request": 11,
+     "status": 400,
+     "started": 0.0006,
+     "ended": 0.2662,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-7\",\"timestamp\":\"2026-10-11T20:06:05.057Z\"}"
+    },
+    {
+     "request": 12,
+     "status": 400,
+     "started": 0.0085,
+     "ended": 0.2666,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-7\",\"timestamp\":\"2026-10-11T20:06:05.030Z\"}"
+    },
+    {
+     "request": 13,
+     "status": 400,
+     "started": 0.0059,
+     "ended": 0.2672,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-7\",\"timestamp\":\"2026-10-11T20:06:05.013Z\"}"
+    },
+    {
+     "request": 14,
+     "status": 400,
+     "started": 0.0039,
+     "ended": 0.2668,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-7\",\"timestamp\":\"2026-10-11T20:06:05.072Z\"}"
+    },
+    {
+     "request": 15,
+     "status": 400,
+     "started": 0.0007,
+     "ended": 0.1567,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-7\",\"timestamp\":\"2026-10-11T20:06:04.965Z\"}"
+    },
+    {
+     "request": 16,
+     "status": 400,
+     "started": 0.0025,
+     "ended": 0.2683,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-7\",\"timestamp\":\"2026-10-11T20:06:05.044Z\"}"
+    },
+    {
+     "request": 17,
+     "status": 201,
+     "started": 0.0027,
+     "ended": 0.068,
+     "body": "{\"id\":\"b9b3f296-4c77-4195-8e12-c038e5126cde\",\"createdAt\":\"2026-10-11T20:06:04.857Z\",\"updatedAt\":\"2026-10-11T20:06:04.857Z\",\"orderNo\":\"ORD-20261011200604-BKPX8I\""
+    },
+    {
+     "request": 18,
+     "status": 400,
+     "started": 0.0011,
+     "ended": 0.2341,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-7\",\"timestamp\":\"2026-10-11T20:06:05.033Z\"}"
+    },
+    {
+     "request": 19,
+     "status": 400,
+     "started": 0.0,
+     "ended": 0.2677,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-7\",\"timestamp\":\"2026-10-11T20:06:05.048Z\"}"
+    }
+   ]
+  },
+  {
+   "condition": "A",
+   "repeat": 8,
+   "success": 2,
+   "statuses": [
+    201,
+    201,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400
+   ],
+   "stock": 0,
+   "ledgerSum": 0,
+   "overlapped": 20,
+   "startSpreadSeconds": 0.0809,
+   "requests": [
+    {
+     "request": 0,
+     "status": 201,
+     "started": 0.0065,
+     "ended": 0.1736,
+     "body": "{\"id\":\"02518252-e126-4f02-8ac7-6c6a0e6724ff\",\"createdAt\":\"2026-10-11T20:06:05.620Z\",\"updatedAt\":\"2026-10-11T20:06:05.620Z\",\"orderNo\":\"ORD-20261011200605-ND8VWT\""
+    },
+    {
+     "request": 1,
+     "status": 400,
+     "started": 0.0809,
+     "ended": 0.2426,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-8\",\"timestamp\":\"2026-10-11T20:06:05.765Z\"}"
+    },
+    {
+     "request": 2,
+     "status": 201,
+     "started": 0.0042,
+     "ended": 0.1743,
+     "body": "{\"id\":\"187b9b19-fbba-4ef6-b39d-8da63f970b20\",\"createdAt\":\"2026-10-11T20:06:05.554Z\",\"updatedAt\":\"2026-10-11T20:06:05.554Z\",\"orderNo\":\"ORD-20261011200605-VDVJN9\""
+    },
+    {
+     "request": 3,
+     "status": 400,
+     "started": 0.0072,
+     "ended": 0.1728,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-8\",\"timestamp\":\"2026-10-11T20:06:05.680Z\"}"
+    },
+    {
+     "request": 4,
+     "status": 400,
+     "started": 0.0004,
+     "ended": 0.2302,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-8\",\"timestamp\":\"2026-10-11T20:06:05.753Z\"}"
+    },
+    {
+     "request": 5,
+     "status": 400,
+     "started": 0.0088,
+     "ended": 0.2258,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-8\",\"timestamp\":\"2026-10-11T20:06:05.745Z\"}"
+    },
+    {
+     "request": 6,
+     "status": 400,
+     "started": 0.0007,
+     "ended": 0.1734,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-8\",\"timestamp\":\"2026-10-11T20:06:05.633Z\"}"
+    },
+    {
+     "request": 7,
+     "status": 400,
+     "started": 0.006,
+     "ended": 0.1857,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-8\",\"timestamp\":\"2026-10-11T20:06:05.695Z\"}"
+    },
+    {
+     "request": 8,
+     "status": 400,
+     "started": 0.0024,
+     "ended": 0.1726,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-8\",\"timestamp\":\"2026-10-11T20:06:05.652Z\"}"
+    },
+    {
+     "request": 9,
+     "status": 400,
+     "started": 0.0046,
+     "ended": 0.1721,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-8\",\"timestamp\":\"2026-10-11T20:06:05.662Z\"}"
+    },
+    {
+     "request": 10,
+     "status": 400,
+     "started": 0.0077,
+     "ended": 0.1901,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-8\",\"timestamp\":\"2026-10-11T20:06:05.704Z\"}"
+    },
+    {
+     "request": 11,
+     "status": 400,
+     "started": 0.0026,
+     "ended": 0.2532,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-8\",\"timestamp\":\"2026-10-11T20:06:05.774Z\"}"
+    },
+    {
+     "request": 12,
+     "status": 400,
+     "started": 0.0484,
+     "ended": 0.2191,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-8\",\"timestamp\":\"2026-10-11T20:06:05.722Z\"}"
+    },
+    {
+     "request": 13,
+     "status": 400,
+     "started": 0.004,
+     "ended": 0.2369,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-8\",\"timestamp\":\"2026-10-11T20:06:05.760Z\"}"
+    },
+    {
+     "request": 14,
+     "status": 400,
+     "started": 0.0002,
+     "ended": 0.2092,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-8\",\"timestamp\":\"2026-10-11T20:06:05.728Z\"}"
+    },
+    {
+     "request": 15,
+     "status": 400,
+     "started": 0.0005,
+     "ended": 0.2041,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-8\",\"timestamp\":\"2026-10-11T20:06:05.718Z\"}"
+    },
+    {
+     "request": 16,
+     "status": 400,
+     "started": 0.0108,
+     "ended": 0.2531,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-8\",\"timestamp\":\"2026-10-11T20:06:05.771Z\"}"
+    },
+    {
+     "request": 17,
+     "status": 400,
+     "started": 0.0095,
+     "ended": 0.2182,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-8\",\"timestamp\":\"2026-10-11T20:06:05.740Z\"}"
+    },
+    {
+     "request": 18,
+     "status": 400,
+     "started": 0.0081,
+     "ended": 0.1906,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-8\",\"timestamp\":\"2026-10-11T20:06:05.712Z\"}"
+    },
+    {
+     "request": 19,
+     "status": 400,
+     "started": 0.0,
+     "ended": 0.1732,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-8\",\"timestamp\":\"2026-10-11T20:06:05.648Z\"}"
+    }
+   ]
+  },
+  {
+   "condition": "A",
+   "repeat": 9,
+   "success": 2,
+   "statuses": [
+    201,
+    201,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400
+   ],
+   "stock": 0,
+   "ledgerSum": 0,
+   "overlapped": 20,
+   "startSpreadSeconds": 0.0154,
+   "requests": [
+    {
+     "request": 0,
+     "status": 201,
+     "started": 0.0004,
+     "ended": 0.1171,
+     "body": "{\"id\":\"549c54c8-4516-4be6-814a-6806e0577e20\",\"createdAt\":\"2026-10-11T20:06:06.365Z\",\"updatedAt\":\"2026-10-11T20:06:06.365Z\",\"orderNo\":\"ORD-20261011200606-5MJGQL\""
+    },
+    {
+     "request": 1,
+     "status": 400,
+     "started": 0.0064,
+     "ended": 0.1519,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-9\",\"timestamp\":\"2026-10-11T20:06:06.399Z\"}"
+    },
+    {
+     "request": 2,
+     "status": 400,
+     "started": 0.0154,
+     "ended": 0.2295,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-9\",\"timestamp\":\"2026-10-11T20:06:06.486Z\"}"
+    },
+    {
+     "request": 3,
+     "status": 400,
+     "started": 0.0043,
+     "ended": 0.1853,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-9\",\"timestamp\":\"2026-10-11T20:06:06.439Z\"}"
+    },
+    {
+     "request": 4,
+     "status": 400,
+     "started": 0.0026,
+     "ended": 0.2206,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-9\",\"timestamp\":\"2026-10-11T20:06:06.478Z\"}"
+    },
+    {
+     "request": 5,
+     "status": 400,
+     "started": 0.0008,
+     "ended": 0.2102,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-9\",\"timestamp\":\"2026-10-11T20:06:06.465Z\"}"
+    },
+    {
+     "request": 6,
+     "status": 400,
+     "started": 0.0145,
+     "ended": 0.2414,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-9\",\"timestamp\":\"2026-10-11T20:06:06.494Z\"}"
+    },
+    {
+     "request": 7,
+     "status": 400,
+     "started": 0.0052,
+     "ended": 0.1888,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-9\",\"timestamp\":\"2026-10-11T20:06:06.425Z\"}"
+    },
+    {
+     "request": 8,
+     "status": 400,
+     "started": 0.0148,
+     "ended": 0.1418,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-9\",\"timestamp\":\"2026-10-11T20:06:06.390Z\"}"
+    },
+    {
+     "request": 9,
+     "status": 400,
+     "started": 0.0093,
+     "ended": 0.194,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-9\",\"timestamp\":\"2026-10-11T20:06:06.415Z\"}"
+    },
+    {
+     "request": 10,
+     "status": 400,
+     "started": 0.015,
+     "ended": 0.2257,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-9\",\"timestamp\":\"2026-10-11T20:06:06.479Z\"}"
+    },
+    {
+     "request": 11,
+     "status": 400,
+     "started": 0.0003,
+     "ended": 0.2502,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-9\",\"timestamp\":\"2026-10-11T20:06:06.502Z\"}"
+    },
+    {
+     "request": 12,
+     "status": 400,
+     "started": 0.0088,
+     "ended": 0.1995,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-9\",\"timestamp\":\"2026-10-11T20:06:06.452Z\"}"
+    },
+    {
+     "request": 13,
+     "status": 400,
+     "started": 0.0032,
+     "ended": 0.1599,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-9\",\"timestamp\":\"2026-10-11T20:06:06.407Z\"}"
+    },
+    {
+     "request": 14,
+     "status": 400,
+     "started": 0.0057,
+     "ended": 0.2122,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-9\",\"timestamp\":\"2026-10-11T20:06:06.469Z\"}"
+    },
+    {
+     "request": 15,
+     "status": 400,
+     "started": 0.0048,
+     "ended": 0.1797,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-9\",\"timestamp\":\"2026-10-11T20:06:06.422Z\"}"
+    },
+    {
+     "request": 16,
+     "status": 201,
+     "started": 0.0037,
+     "ended": 0.1004,
+     "body": "{\"id\":\"f97fd39e-0674-45e7-b6f8-d7fa5ffd8f92\",\"createdAt\":\"2026-10-11T20:06:06.323Z\",\"updatedAt\":\"2026-10-11T20:06:06.323Z\",\"orderNo\":\"ORD-20261011200606-9ECXMQ\""
+    },
+    {
+     "request": 17,
+     "status": 400,
+     "started": 0.0024,
+     "ended": 0.1821,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-9\",\"timestamp\":\"2026-10-11T20:06:06.431Z\"}"
+    },
+    {
+     "request": 18,
+     "status": 400,
+     "started": 0.0111,
+     "ended": 0.1272,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-9\",\"timestamp\":\"2026-10-11T20:06:06.383Z\"}"
+    },
+    {
+     "request": 19,
+     "status": 400,
+     "started": 0.0,
+     "ended": 0.2061,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-9\",\"timestamp\":\"2026-10-11T20:06:06.462Z\"}"
+    }
+   ]
+  },
+  {
+   "condition": "A",
+   "repeat": 10,
+   "success": 2,
+   "statuses": [
+    201,
+    201,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400,
+    400
+   ],
+   "stock": 0,
+   "ledgerSum": 0,
+   "overlapped": 20,
+   "startSpreadSeconds": 0.0082,
+   "requests": [
+    {
+     "request": 0,
+     "status": 400,
+     "started": 0.0034,
+     "ended": 0.2065,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-10\",\"timestamp\":\"2026-10-11T20:06:07.110Z\"}"
+    },
+    {
+     "request": 1,
+     "status": 201,
+     "started": 0.0003,
+     "ended": 0.0933,
+     "body": "{\"id\":\"9ea312df-95e0-4bb1-b5e8-044473fb9723\",\"createdAt\":\"2026-10-11T20:06:06.958Z\",\"updatedAt\":\"2026-10-11T20:06:06.958Z\",\"orderNo\":\"ORD-20261011200606-CPHM3I\""
+    },
+    {
+     "request": 2,
+     "status": 400,
+     "started": 0.0029,
+     "ended": 0.2162,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-10\",\"timestamp\":\"2026-10-11T20:06:07.125Z\"}"
+    },
+    {
+     "request": 3,
+     "status": 400,
+     "started": 0.0009,
+     "ended": 0.1703,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-10\",\"timestamp\":\"2026-10-11T20:06:07.073Z\"}"
+    },
+    {
+     "request": 4,
+     "status": 400,
+     "started": 0.0041,
+     "ended": 0.1944,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-10\",\"timestamp\":\"2026-10-11T20:06:07.098Z\"}"
+    },
+    {
+     "request": 5,
+     "status": 400,
+     "started": 0.0004,
+     "ended": 0.1763,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-10\",\"timestamp\":\"2026-10-11T20:06:07.065Z\"}"
+    },
+    {
+     "request": 6,
+     "status": 400,
+     "started": 0.0006,
+     "ended": 0.1248,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-10\",\"timestamp\":\"2026-10-11T20:06:06.997Z\"}"
+    },
+    {
+     "request": 7,
+     "status": 400,
+     "started": 0.0023,
+     "ended": 0.1264,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-10\",\"timestamp\":\"2026-10-11T20:06:07.026Z\"}"
+    },
+    {
+     "request": 8,
+     "status": 400,
+     "started": 0.0011,
+     "ended": 0.1488,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-10\",\"timestamp\":\"2026-10-11T20:06:07.050Z\"}"
+    },
+    {
+     "request": 9,
+     "status": 201,
+     "started": 0.0013,
+     "ended": 0.1237,
+     "body": "{\"id\":\"96059767-2cff-4163-9a4f-4d5864ae2ead\",\"createdAt\":\"2026-10-11T20:06:06.940Z\",\"updatedAt\":\"2026-10-11T20:06:06.940Z\",\"orderNo\":\"ORD-20261011200606-89QBLF\""
+    },
+    {
+     "request": 10,
+     "status": 400,
+     "started": 0.0036,
+     "ended": 0.2206,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-10\",\"timestamp\":\"2026-10-11T20:06:07.131Z\"}"
+    },
+    {
+     "request": 11,
+     "status": 400,
+     "started": 0.0033,
+     "ended": 0.1834,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-10\",\"timestamp\":\"2026-10-11T20:06:07.094Z\"}"
+    },
+    {
+     "request": 12,
+     "status": 400,
+     "started": 0.0048,
+     "ended": 0.2153,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-10\",\"timestamp\":\"2026-10-11T20:06:07.117Z\"}"
+    },
+    {
+     "request": 13,
+     "status": 400,
+     "started": 0.0052,
+     "ended": 0.1697,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-10\",\"timestamp\":\"2026-10-11T20:06:07.080Z\"}"
+    },
+    {
+     "request": 14,
+     "status": 400,
+     "started": 0.0082,
+     "ended": 0.17,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-10\",\"timestamp\":\"2026-10-11T20:06:07.075Z\"}"
+    },
+    {
+     "request": 15,
+     "status": 400,
+     "started": 0.0019,
+     "ended": 0.152,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-10\",\"timestamp\":\"2026-10-11T20:06:07.064Z\"}"
+    },
+    {
+     "request": 16,
+     "status": 400,
+     "started": 0.0024,
+     "ended": 0.1069,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-10\",\"timestamp\":\"2026-10-11T20:06:07.015Z\"}"
+    },
+    {
+     "request": 17,
+     "status": 400,
+     "started": 0.0021,
+     "ended": 0.0878,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-10\",\"timestamp\":\"2026-10-11T20:06:06.995Z\"}"
+    },
+    {
+     "request": 18,
+     "status": 400,
+     "started": 0.0026,
+     "ended": 0.0845,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-10\",\"timestamp\":\"2026-10-11T20:06:06.984Z\"}"
+    },
+    {
+     "request": 19,
+     "status": 400,
+     "started": 0.0,
+     "ended": 0.0837,
+     "body": "{\"success\":false,\"statusCode\":400,\"message\":\"재고 부족: 동시 주문 시험 90e6a7 A-10\",\"timestamp\":\"2026-10-11T20:06:06.978Z\"}"
+    }
+   ]
+  },
+  {
+   "condition": "B",
+   "repeat": 1,
+   "success": 2,
+   "checkViolations": 18,
+   "soldout": 0,
+   "otherErrors": [],
+   "stock": 0
+  },
+  {
+   "condition": "B",
+   "repeat": 2,
+   "success": 2,
+   "checkViolations": 18,
+   "soldout": 0,
+   "otherErrors": [],
+   "stock": 0
+  },
+  {
+   "condition": "B",
+   "repeat": 3,
+   "success": 2,
+   "checkViolations": 18,
+   "soldout": 0,
+   "otherErrors": [],
+   "stock": 0
+  },
+  {
+   "condition": "B",
+   "repeat": 4,
+   "success": 2,
+   "checkViolations": 18,
+   "soldout": 0,
+   "otherErrors": [],
+   "stock": 0
+  },
+  {
+   "condition": "B",
+   "repeat": 5,
+   "success": 2,
+   "checkViolations": 18,
+   "soldout": 0,
+   "otherErrors": [],
+   "stock": 0
+  },
+  {
+   "condition": "B",
+   "repeat": 6,
+   "success": 2,
+   "checkViolations": 18,
+   "soldout": 0,
+   "otherErrors": [],
+   "stock": 0
+  },
+  {
+   "condition": "B",
+   "repeat": 7,
+   "success": 2,
+   "checkViolations": 18,
+   "soldout": 0,
+   "otherErrors": [],
+   "stock": 0
+  },
+  {
+   "condition": "B",
+   "repeat": 8,
+   "success": 2,
+   "checkViolations": 18,
+   "soldout": 0,
+   "otherErrors": [],
+   "stock": 0
+  },
+  {
+   "condition": "B",
+   "repeat": 9,
+   "success": 2,
+   "checkViolations": 18,
+   "soldout": 0,
+   "otherErrors": [],
+   "stock": 0
+  },
+  {
+   "condition": "B",
+   "repeat": 10,
+   "success": 2,
+   "checkViolations": 18,
+   "soldout": 0,
+   "otherErrors": [],
+   "stock": 0
+  },
+  {
+   "condition": "C",
+   "repeat": 1,
+   "success": 20,
+   "checkViolations": 0,
+   "soldout": 0,
+   "otherErrors": [],
+   "stock": -18
+  },
+  {
+   "condition": "C",
+   "repeat": 2,
+   "success": 20,
+   "checkViolations": 0,
+   "soldout": 0,
+   "otherErrors": [],
+   "stock": -18
+  },
+  {
+   "condition": "C",
+   "repeat": 3,
+   "success": 20,
+   "checkViolations": 0,
+   "soldout": 0,
+   "otherErrors": [],
+   "stock": -18
+  },
+  {
+   "condition": "C",
+   "repeat": 4,
+   "success": 20,
+   "checkViolations": 0,
+   "soldout": 0,
+   "otherErrors": [],
+   "stock": -18
+  },
+  {
+   "condition": "C",
+   "repeat": 5,
+   "success": 20,
+   "checkViolations": 0,
+   "soldout": 0,
+   "otherErrors": [],
+   "stock": -18
+  },
+  {
+   "condition": "C",
+   "repeat": 6,
+   "success": 20,
+   "checkViolations": 0,
+   "soldout": 0,
+   "otherErrors": [],
+   "stock": -18
+  },
+  {
+   "condition": "C",
+   "repeat": 7,
+   "success": 20,
+   "checkViolations": 0,
+   "soldout": 0,
+   "otherErrors": [],
+   "stock": -18
+  },
+  {
+   "condition": "C",
+   "repeat": 8,
+   "success": 20,
+   "checkViolations": 0,
+   "soldout": 0,
+   "otherErrors": [],
+   "stock": -18
+  },
+  {
+   "condition": "C",
+   "repeat": 9,
+   "success": 20,
+   "checkViolations": 0,
+   "soldout": 0,
+   "otherErrors": [],
+   "stock": -18
+  },
+  {
+   "condition": "C",
+   "repeat": 10,
+   "success": 20,
+   "checkViolations": 0,
+   "soldout": 0,
+   "otherErrors": [],
+   "stock": -18
+  }
+ ]
+}

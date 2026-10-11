@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="ko"><head><meta charset="utf-8"><title>동시 주문 실험의 결과</title>
+<style>
+/* 근거: results/summary.json. 조건 A는 201 응답 2건·400 응답 18건·재고 0, B는 차감 2건·CHECK 위반 18건·재고 0,
+   C는 차감 20건·재고 -18. 세 조건 모두 10회가 같은 값임(조립 스크립트가 확인) */
+:root { --bg:#ffffff; --ink:#1a2030; --muted:#5d6678; --line:#d3d8e1;
+  --ok:#2b7a33; --ok-soft:#dff0e0; --reject:#5d6678; --reject-soft:#eceff3; --warn:#a86200; --warn-soft:#fbefd9; --bad:#b02a22; --bad-soft:#f8e2df; }
+@media (prefers-color-scheme: dark) { :root { --bg:#171b24; --ink:#e4e8f0; --muted:#98a2b5; --line:#2c3442;
+  --ok:#7fca83; --ok-soft:#1c3020; --reject:#98a2b5; --reject-soft:#252b38; --warn:#e6a94f; --warn-soft:#34291a; --bad:#f08b80; --bad-soft:#3b201d; } }
+body { margin:0; background:var(--bg); font-family:"Noto Sans CJK KR","Apple SD Gothic Neo",sans-serif; }
+#figure { width:1200px; padding:28px; box-sizing:border-box; background:var(--bg); }
+svg text { fill:var(--ink); font-size:14px; }
+.h1 { font-size:20px; font-weight:700; } .h2 { font-size:16px; font-weight:700; }
+.sub { fill:var(--muted); font-size:13px; }
+.rule { stroke:var(--line); stroke-width:1; }
+.brace { fill:none; stroke:var(--muted); stroke-width:1.2; }
+.ok { fill:var(--ok-soft); stroke:var(--ok); stroke-width:1.6; } .t-ok { fill:var(--ok); font-weight:600; }
+.reject { fill:var(--reject-soft); stroke:var(--reject); stroke-width:1.2; } .t-reject { fill:var(--muted); font-weight:600; }
+.warn { fill:var(--warn-soft); stroke:var(--warn); stroke-width:1.6; } .t-warn { fill:var(--warn); font-weight:600; }
+.bad { fill:var(--bad-soft); stroke:var(--bad); stroke-width:1.8; } .t-bad { fill:var(--bad); font-weight:700; }
+.stock { font-size:26px; font-weight:700; }
+</style></head><body>
+<div id="figure"><svg viewBox="0 0 1144 452" width="1144" height="452" role="img" aria-label="재고 2개인 옵션에 주문 20건을 동시에 보낸 결과. 옵션 행을 잠그면 2건이 성공하고 18건이 재고 부족으로 거절되며 재고는 0. 잠금 없이 CHECK만 있으면 2건이 차감되고 18건이 제약 위반 오류로 끝나며 재고는 0. 잠금도 CHECK도 없으면 20건이 모두 차감돼 재고가 -18이 됨. 조건마다 10회 반복했고 10회 모두 같은 결과">
+    <text x="28" y="34" class="h1">재고 2개인 옵션에 주문 20건을 동시에 보낸 결과</text>
+    <text x="28" y="58" class="sub">조건마다 10회 반복했고 10회 모두 같았음. 네모 하나가 요청 한 건</text>
+    <text x="1086" y="58" text-anchor="middle" class="sub">실행 뒤 재고</text>
+    <line x1="28" y1="74" x2="1116" y2="74" class="rule"/>
+    <text x="28" y="113" class="h2">A. 옵션 행 잠금</text>
+    <text x="28" y="134" class="sub">실제 API. 잠근 뒤 확인하고 차감</text>
+    <rect x="330" y="100" width="29" height="29" rx="5" class="ok"/>
+    <rect x="365" y="100" width="29" height="29" rx="5" class="ok"/>
+    <rect x="400" y="100" width="29" height="29" rx="5" class="reject"/>
+    <rect x="435" y="100" width="29" height="29" rx="5" class="reject"/>
+    <rect x="470" y="100" width="29" height="29" rx="5" class="reject"/>
+    <rect x="505" y="100" width="29" height="29" rx="5" class="reject"/>
+    <rect x="540" y="100" width="29" height="29" rx="5" class="reject"/>
+    <rect x="575" y="100" width="29" height="29" rx="5" class="reject"/>
+    <rect x="610" y="100" width="29" height="29" rx="5" class="reject"/>
+    <rect x="645" y="100" width="29" height="29" rx="5" class="reject"/>
+    <rect x="680" y="100" width="29" height="29" rx="5" class="reject"/>
+    <rect x="715" y="100" width="29" height="29" rx="5" class="reject"/>
+    <rect x="750" y="100" width="29" height="29" rx="5" class="reject"/>
+    <rect x="785" y="100" width="29" height="29" rx="5" class="reject"/>
+    <rect x="820" y="100" width="29" height="29" rx="5" class="reject"/>
+    <rect x="855" y="100" width="29" height="29" rx="5" class="reject"/>
+    <rect x="890" y="100" width="29" height="29" rx="5" class="reject"/>
+    <rect x="925" y="100" width="29" height="29" rx="5" class="reject"/>
+    <rect x="960" y="100" width="29" height="29" rx="5" class="reject"/>
+    <rect x="995" y="100" width="29" height="29" rx="5" class="reject"/>
+    <path d="M330,135 v6 H394 v-6" class="brace"/><text x="362.0" y="159" text-anchor="middle" class="t-ok">2건 성공</text>
+    <path d="M400,135 v6 H1024 v-6" class="brace"/><text x="712.0" y="159" text-anchor="middle" class="t-reject">18건은 재고 부족 안내를 받고 거절됨</text>
+    <text x="1086" y="124" text-anchor="middle" class="stock t-ok">0</text>
+    <line x1="28" y1="196" x2="1116" y2="196" class="rule"/>
+    <text x="28" y="235" class="h2">B. 잠금 없음, CHECK 있음</text>
+    <text x="28" y="256" class="sub">읽고 확인한 뒤 차감. DB 제약만 남김</text>
+    <rect x="330" y="222" width="29" height="29" rx="5" class="ok"/>
+    <rect x="365" y="222" width="29" height="29" rx="5" class="ok"/>
+    <rect x="400" y="222" width="29" height="29" rx="5" class="warn"/>
+    <rect x="435" y="222" width="29" height="29" rx="5" class="warn"/>
+    <rect x="470" y="222" width="29" height="29" rx="5" class="warn"/>
+    <rect x="505" y="222" width="29" height="29" rx="5" class="warn"/>
+    <rect x="540" y="222" width="29" height="29" rx="5" class="warn"/>
+    <rect x="575" y="222" width="29" height="29" rx="5" class="warn"/>
+    <rect x="610" y="222" width="29" height="29" rx="5" class="warn"/>
+    <rect x="645" y="222" width="29" height="29" rx="5" class="warn"/>
+    <rect x="680" y="222" width="29" height="29" rx="5" class="warn"/>
+    <rect x="715" y="222" width="29" height="29" rx="5" class="warn"/>
+    <rect x="750" y="222" width="29" height="29" rx="5" class="warn"/>
+    <rect x="785" y="222" width="29" height="29" rx="5" class="warn"/>
+    <rect x="820" y="222" width="29" height="29" rx="5" class="warn"/>
+    <rect x="855" y="222" width="29" height="29" rx="5" class="warn"/>
+    <rect x="890" y="222" width="29" height="29" rx="5" class="warn"/>
+    <rect x="925" y="222" width="29" height="29" rx="5" class="warn"/>
+    <rect x="960" y="222" width="29" height="29" rx="5" class="warn"/>
+    <rect x="995" y="222" width="29" height="29" rx="5" class="warn"/>
+    <path d="M330,257 v6 H394 v-6" class="brace"/><text x="362.0" y="281" text-anchor="middle" class="t-ok">2건 차감</text>
+    <path d="M400,257 v6 H1024 v-6" class="brace"/><text x="712.0" y="281" text-anchor="middle" class="t-warn">18건은 차감을 시도하다 제약 위반 오류로 끝남</text>
+    <text x="1086" y="246" text-anchor="middle" class="stock t-ok">0</text>
+    <line x1="28" y1="318" x2="1116" y2="318" class="rule"/>
+    <text x="28" y="357" class="h2">C. 잠금 없음, CHECK 없음</text>
+    <text x="28" y="378" class="sub">읽고 확인한 뒤 차감. 제약도 뗌</text>
+    <rect x="330" y="344" width="29" height="29" rx="5" class="ok"/>
+    <rect x="365" y="344" width="29" height="29" rx="5" class="ok"/>
+    <rect x="400" y="344" width="29" height="29" rx="5" class="bad"/>
+    <rect x="435" y="344" width="29" height="29" rx="5" class="bad"/>
+    <rect x="470" y="344" width="29" height="29" rx="5" class="bad"/>
+    <rect x="505" y="344" width="29" height="29" rx="5" class="bad"/>
+    <rect x="540" y="344" width="29" height="29" rx="5" class="bad"/>
+    <rect x="575" y="344" width="29" height="29" rx="5" class="bad"/>
+    <rect x="610" y="344" width="29" height="29" rx="5" class="bad"/>
+    <rect x="645" y="344" width="29" height="29" rx="5" class="bad"/>
+    <rect x="680" y="344" width="29" height="29" rx="5" class="bad"/>
+    <rect x="715" y="344" width="29" height="29" rx="5" class="bad"/>
+    <rect x="750" y="344" width="29" height="29" rx="5" class="bad"/>
+    <rect x="785" y="344" width="29" height="29" rx="5" class="bad"/>
+    <rect x="820" y="344" width="29" height="29" rx="5" class="bad"/>
+    <rect x="855" y="344" width="29" height="29" rx="5" class="bad"/>
+    <rect x="890" y="344" width="29" height="29" rx="5" class="bad"/>
+    <rect x="925" y="344" width="29" height="29" rx="5" class="bad"/>
+    <rect x="960" y="344" width="29" height="29" rx="5" class="bad"/>
+    <rect x="995" y="344" width="29" height="29" rx="5" class="bad"/>
+    <path d="M330,379 v6 H394 v-6" class="brace"/><text x="362.0" y="403" text-anchor="middle" class="t-ok">2건 차감</text>
+    <path d="M400,379 v6 H1024 v-6" class="brace"/><text x="712.0" y="403" text-anchor="middle" class="t-bad">18건이 더 차감됨. 없는 재고를 판 것</text>
+    <text x="1086" y="368" text-anchor="middle" class="stock t-bad">−18</text>
+</svg></div>
+</body></html>
