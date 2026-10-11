@@ -102,5 +102,5 @@ Shadish·Cook·Campbell(2002)의 네 가지 관점으로 점검했음.
 
 ## 재현 자료
 
-- [실험 절차, 실행 코드, 집계 결과](https://github.com/gjaku1031/ken-blog/tree/31183f9/docs/experiments/2026-09-29-vowser-path-store). 요청별 원자료(약 600MB)는 크기 때문에 넣지 않고 집계와 감사 결과, 고정 해시로 대신함
+- [실험 절차, 실행 코드, 집계 결과](https://github.com/gjaku1031/ken-blog/tree/840f4a4/docs/experiments/2026-09-29-vowser-path-store). 요청별 원자료(약 600MB)는 크기 때문에 넣지 않고 집계와 감사 결과, 고정 해시로 대신함
 - 환경: Neo4j 5.26.19(드라이버 5.28.2), MySQL 8.4.11(PyMySQL 1.1.2), Python 3.12. 측정 2026-09-28~29

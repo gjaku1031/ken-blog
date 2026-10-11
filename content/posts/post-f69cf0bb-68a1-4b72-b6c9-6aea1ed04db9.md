@@ -85,4 +85,4 @@ JPA 엔티티와 프록시 접근자는 `final`로 선언하지 않고, 보호�
 
 다시 검토한다면 생성에 걸리는 시간, 매핑이 일치하는지, 빌드가 DB 접속에 기대는지, 스키마 원본이 두 곳으로 나뉘는지, 운영 이관을 누가 맡는지를 비교함.
 
-[영속성 결정 원문](https://github.com/gjaku1031/ken-blog/blob/b768152/docs/ADR/ADR_persistence.md) · [Gradle 구현](https://github.com/gjaku1031/ken-blog/blob/b768152/build.gradle) · [영속성 통합 검사](https://github.com/gjaku1031/ken-blog/blob/b768152/src/test/java/io/github/gjaku1031/kenblog/PostPersistenceIntegrationTest.java)
+[영속성 결정 원문](https://github.com/gjaku1031/ken-blog/blob/f5001e8/docs/ADR/ADR_persistence.md) · [Gradle 구현](https://github.com/gjaku1031/ken-blog/blob/f5001e8/build.gradle) · [영속성 통합 검사](https://github.com/gjaku1031/ken-blog/blob/f5001e8/src/test/java/io/github/gjaku1031/kenblog/PostPersistenceIntegrationTest.java)

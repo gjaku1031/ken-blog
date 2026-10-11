@@ -30,7 +30,7 @@ Vowser는 사용자의 요청 문장을 임베딩해 등록된 작업 의도 중
 
 ## 2부. 같은 질문으로 두 방식을 비교하기
 
-이번에는 결과를 보기 전에 무엇을 확인할지부터 정했음. 가설 세 개와, 어떤 결과가 나오면 가설이 틀렸다고 볼지를 적어 실행 전에 저장소에 올려 두고 한 번만 실행했음. 계획을 올린 커밋이 18시 2분, 질문을 보낸 것이 18시 4분부터 7분까지, 결과를 올린 커밋이 18시 11분이고(UTC), 그 사이 계획서는 바뀌지 않았음.[* 실행 전에 올린 [계획서](https://github.com/gjaku1031/ken-blog/tree/7a249b1/docs/experiments/2026-10-09-vowser-intent-threshold). 가설을 만든 1부 질문과 겹치지 않게 질문 104개를 새로 썼음]
+이번에는 결과를 보기 전에 무엇을 확인할지부터 정했음. 가설 세 개와, 어떤 결과가 나오면 가설이 틀렸다고 볼지를 적어 실행 전에 저장소에 올려 두고 한 번만 실행했음. 계획을 올린 커밋이 18시 2분, 질문을 보낸 것이 18시 4분부터 7분까지, 결과를 올린 커밋이 18시 11분이고(UTC), 그 사이 계획서는 바뀌지 않았음.[* 실행 전에 올린 [계획서](https://github.com/gjaku1031/ken-blog/tree/1686117/docs/experiments/2026-10-09-vowser-intent-threshold). 가설을 만든 1부 질문과 겹치지 않게 질문 104개를 새로 썼음]
 
 | 가설 | 틀렸다고 볼 기준 |
 | --- | --- |
@@ -107,6 +107,6 @@ Shadish·Cook·Campbell(2002)의 네 가지 관점으로 점검했음.
 
 ## 재현 자료
 
-- 1부: [탐색적 평가 자료](https://github.com/gjaku1031/ken-blog/tree/a6821d8/docs/experiments/2026-10-09-vowser-retrieval-accuracy)(방법, 질문과 정답, 실행 코드, 원자료, 실패한 첫 실행 기록)
-- 2부: [확증 실험 자료](https://github.com/gjaku1031/ken-blog/tree/50d37c3/docs/experiments/2026-10-09-vowser-intent-threshold)(실행 전 계획서와 해시, 새 질문, 실험 코드, 분석 스크립트, 원자료, 결과, 그림 원본)
+- 1부: [탐색적 평가 자료](https://github.com/gjaku1031/ken-blog/tree/71d51a1/docs/experiments/2026-10-09-vowser-retrieval-accuracy)(방법, 질문과 정답, 실행 코드, 원자료, 실패한 첫 실행 기록)
+- 2부: [확증 실험 자료](https://github.com/gjaku1031/ken-blog/tree/69b0f8b/docs/experiments/2026-10-09-vowser-intent-threshold)(실행 전 계획서와 해시, 새 질문, 실험 코드, 분석 스크립트, 원자료, 결과, 그림 원본)
 - 환경: Vowser agent 서버 커밋 `d94eaf5`, 임베딩 `text-embedding-3-small`, LLM `gpt-4o-mini`, Neo4j 5.26.0 Community + APOC, Python 3.12.11(LangGraph 0.5.3, langchain-openai 0.3.28, OpenAI SDK 1.97.0). 측정 2026-10-09
