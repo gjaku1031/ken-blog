@@ -12,7 +12,7 @@ import { connectHeader, updateHeaderSession } from '../shared/header';
 import { request, mutate, refreshCsrf, clearCsrf, HttpError } from '../shared/admin-api';
 import { el, setMessage, field, submit, value, stackIcon, type Badge } from '../shared/forms';
 import { seriesEditor, type Series } from '../shared/series-editor';
-import { deploymentManifest, readDeploymentManifest, deploymentState, filterPosts, type DeploymentComparison, type PostFilter } from '../shared/deployment-status';
+import { deploymentManifest, readDeploymentManifest, deploymentState, filterPosts, type DeploymentComparison, type PostFilter, type PostStatus } from '../shared/deployment-status';
 import { postEditor } from '../shared/post-editor';
 import { postFields, postPayload, type Category, type Tag } from '../shared/post-fields';
 import { connectPagesDeploy } from './pages-deploy';
@@ -113,9 +113,19 @@ type Post = {
   section: 'TECH' | 'PROJECT';
 
   /**
-   * 상태
+   * 공개 범위와 검수 단계
    */
-  status: 'DRAFT' | 'PUBLISHED';
+  status: PostStatus;
+
+  /**
+   * 검수 완료 시각, 공개 전환을 기다리는 미검수 글에만 있음
+   */
+  reviewedAt: string | null;
+
+  /**
+   * DB 본문 수정 시각, 본문이 저장소 원고에만 있으면 null
+   */
+  bodyUpdatedAt: string | null;
 
   /**
    * 요약
@@ -465,7 +475,7 @@ function smallAction(parent: HTMLElement, title: string, operation: () => Promis
   const button = el('button', 'button ghost', title);
   button.type = 'button';
   button.addEventListener('click', async () => {
-    if (confirmText && !await confirmDialog({ title, message: confirmText, confirmLabel: title, danger: title === '삭제' || title === '발행 취소' })) return;
+    if (confirmText && !await confirmDialog({ title, message: confirmText, confirmLabel: title, danger: title === '삭제' || title === '내리기' })) return;
     button.disabled = true;
     await action(operation, success);
     button.disabled = false;
@@ -493,7 +503,7 @@ async function loadDeployment(signal: AbortSignal): Promise<DeploymentComparison
     ]);
     if (!response.ok || !snapshotResponse.ok) return null;
     return { deployed: readDeploymentManifest(await response.json()), current: await deploymentManifest(await snapshotResponse.json()) };
-  } catch { return null; /* 비교 실패는 별도 안내하고 편집·미발행 필터는 계속 제공 */ }
+  } catch { return null; /* 비교 실패는 별도 안내하고 편집·미검수·비공개 필터는 계속 제공 */ }
 }
 
 /**
@@ -624,10 +634,10 @@ function render(data: AdminData, postsOnly = false) {
 }
 
 /**
- * 글 목록·편집·발행 동작과 페이지 이동 구성
+ * 글 목록·편집·공개 범위 전환 동작과 페이지 이동 구성
  *
  * 1. 전체 건수와 글 목록 표시
- * 2. 각 글의 편집·발행·발행 취소 동작 구성
+ * 2. 각 글의 편집·읽기·공개 범위 전환 동작 구성
  * 3. 전체 필터 결과를 열 개씩 페이지로 표시
  */
 function renderPosts(data: AdminData) {
@@ -643,7 +653,7 @@ function renderPosts(data: AdminData) {
   get('post-count').textContent = postFilter === 'all' ? `전체 ${data.posts.length}` : `${filtered.length}개 / 전체 ${data.posts.length}`;
   for (const button of document.querySelectorAll<HTMLButtonElement>('[data-post-filter]')) {
     const filter = button.dataset.postFilter as PostFilter;
-    const label = { all: '전체', draft: '미발행', pending: '배포 대기' }[filter];
+    const label = { all: '전체', unreviewed: '미검수', private: '비공개', pending: '배포 대기' }[filter];
     button.textContent = `${label} ${filter === 'pending' && !data.deployment ? '—' : filterPosts(data.posts, filter, data.deployment).length}`;
     button.setAttribute('aria-pressed', String(filter === postFilter));
   }
@@ -656,7 +666,7 @@ function renderPosts(data: AdminData) {
     for (const title of ['제목', '섹션', '상태', '수정일', '관리']) { const cell = el('th', '', title); cell.scope = 'col'; labels.append(cell); }
     head.append(labels); table.append(head);
     const body = el('tbody');
-    // 각 글의 편집·발행·발행 취소 동작 구성
+    // 각 글의 편집·읽기·공개 범위 전환 동작 구성
     for (const post of rows) {
       const row = el('tr'); const title = el('td', 'post-title');
       const editLink = el('button', 'title-button', post.title); editLink.type = 'button';
@@ -670,10 +680,25 @@ function renderPosts(data: AdminData) {
       const date = el('td', 'mono muted', post.updatedAt.slice(0, 10).replaceAll('-', '.')); date.dataset.label = '수정일';
       const actions = el('td', 'row-actions');
       const edit = el('button', 'text-button', '수정'); edit.type = 'button'; edit.dataset.focusKey = `post-${post.id}-edit`; edit.addEventListener('click', () => editPost(post, data)); actions.append(edit);
-      const published = post.status === 'PUBLISHED';
-      const publication = smallAction(actions, published ? '발행 취소' : '발행', () => mutate(`/admin/posts/${post.id}/publication`, 'PUT', { published: !published }), published ? '발행을 취소했습니다.' : '발행했습니다.', published ? '이 글의 발행을 취소할까요?' : '저장소 Markdown 원고를 확인하고 이 글을 발행할까요?');
-      publication.dataset.focusKey = `post-${post.id}-publication`;
-      publication.classList.toggle('danger', published);
+      /**
+       * 공개 범위 전환 버튼 추가, 같은 글의 버튼끼리 포커스 키 구분
+       */
+      const transition = (title: string, status: PostStatus, success: string, confirmText: string) => {
+        const button = smallAction(actions, title, () => mutate(`/admin/posts/${post.id}/publication`, 'PUT', { status }), success, confirmText);
+        button.dataset.focusKey = `post-${post.id}-status-${status}`;
+        return button;
+      };
+      if (post.status === 'PUBLISHED') {
+        transition('내리기', 'UNREVIEWED', '공개에서 내려 미검수로 바꿨습니다.', '이 글을 공개에서 내려 미검수로 바꿀까요? 다음 Pages 배포부터 공개 화면에서 빠집니다.').classList.add('danger');
+      } else {
+        // DB 본문이 있는 글은 검수 화면에서 읽고, 공개 전환은 원고를 저장소로 옮기는 절차에서만 수행
+        if (post.bodyUpdatedAt) {
+          const read = el('a', 'button ghost', '읽기'); read.href = sitePath(`manage/review/?post=${post.id}`);
+          read.dataset.focusKey = `post-${post.id}-read`; actions.append(read);
+        } else transition('공개', 'PUBLISHED', '공개로 바꿨습니다.', '저장소 Markdown 원고를 확인하고 이 글을 공개할까요?');
+        if (post.status === 'UNREVIEWED') transition('비공개로', 'PRIVATE', '비공개로 바꿨습니다.', '');
+        else transition('미검수로', 'UNREVIEWED', '미검수로 바꿨습니다.', '');
+      }
       const remove = smallAction(actions, '삭제', () => mutate(`/admin/posts/${post.id}`, 'DELETE'), '글을 삭제했습니다.', `${post.title} 글을 삭제할까요?`);
       remove.classList.add('danger'); remove.setAttribute('aria-label', `${post.title} 삭제`);
       row.append(title, section, state, date, actions); body.append(row);
@@ -739,7 +764,7 @@ async function editPost(post: Post, data: AdminData) {
  * 요청한 글·시리즈의 편집 화면 표시
  *
  * 1. 기존 작성 폼은 유지하며 선택할 프로젝트 목록만 갱신
- * 2. 미발행 글 저장 후 원고 경로와 관리 링크 표시
+ * 2. 미검수 글 저장 후 원고 경로와 관리 링크 표시
  * 3. 프로젝트 글 작성에서는 새 프로젝트 생성 동작도 연결
  */
 function renderEditor(data: AdminData) {
@@ -757,7 +782,7 @@ function renderEditor(data: AdminData) {
     }
     return;
   }
-  // 미발행 글 저장 후 원고 경로와 관리 링크 표시
+  // 미검수 글 저장 후 원고 경로와 관리 링크 표시
   const create = form(async input => {
     const session = sessionGeneration;
     const post = await mutate<Post>('/admin/posts', 'POST', postPayload(input));
@@ -767,7 +792,7 @@ function renderEditor(data: AdminData) {
     const back = el('a', 'button primary', '목록으로'); back.href = sitePath(`${editorMode === 'project' ? 'projects' : 'posts'}/`);
     const manage = el('a', 'button ghost', '글 관리'); manage.href = sitePath('manage/#posts'); done.append(back, manage);
     container.replaceChildren(done);
-  }, '미발행 글로 저장했습니다.');
+  }, '미검수 글로 저장했습니다.');
   const project = editorMode === 'project';
   postFields(create, data, project, { seriesId: Number(new URLSearchParams(location.search).get('project')) || null });
   // 프로젝트 글 작성에서는 새 프로젝트 생성 동작도 연결

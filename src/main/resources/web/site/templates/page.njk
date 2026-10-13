@@ -5,7 +5,8 @@
     {% include "analytics.njk" %}
     {% include "theme-init.njk" %}
     <meta name="viewport" content="width=device-width,initial-scale=1"><title>{{ documentTitle }}</title>
-    <meta name="description" content="{{ summary }}">
+    {% if noindex %}<meta name="robots" content="noindex,nofollow">
+    {% endif %}<meta name="description" content="{{ summary }}">
     <meta property="og:title" content="{{ socialTitle }}">
     <meta property="og:description" content="{{ summary }}">
     <meta property="og:url" content="{{ canonical }}">

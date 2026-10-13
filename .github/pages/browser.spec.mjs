@@ -44,9 +44,11 @@ async function confirmModal(page) {
  * 메서드·필수 필드·편집 버전을 검사하고 저장 결과를 후속 읽기에 반영하는 API 대역
  * 지원하지 않는 경로는 501로 실패하여 계약 누락을 숨기지 않음
  */
-async function mockApi(page, override = async () => false) {
+async function mockApi(page, override = async () => false, prepare = () => {}) {
   const posts = structuredClone(fixture.posts).map(post => ({ ...post, editVersion: 0, updatedAt: post.publishedAt,
-    status: 'DRAFT', seriesOrder: null, relatedSeriesId: post.relatedSeries?.id ?? null }));
+    status: 'UNREVIEWED', reviewedAt: null, bodyUpdatedAt: null, seriesOrder: null, relatedSeriesId: post.relatedSeries?.id ?? null }));
+  // 시나리오별 초기 글 상태 조정
+  prepare(posts);
   const series = structuredClone(fixture.series).map(row => ({ ...row, updatedAt: '2026-10-03T00:00:00', sortOrder: row.sortOrder ?? 0 }));
   const categories = structuredClone(fixture.categories).filter(item => item.depth === 1).map(item => ({ ...item, directCount: 1,
     children: fixture.categories.filter(child => child.path.startsWith(item.path + '/')).map(child => ({ ...child, directCount: 1, children: [] })) }));
@@ -71,7 +73,7 @@ async function mockApi(page, override = async () => false) {
     else if (method === 'POST' && path === '/admin/posts') {
       expectPostInput(body);
       const id = Math.max(...posts.map(row => row.id)) + 1;
-      data = { ...body, id, slug: `created-${id}`, editVersion: 0, status: 'DRAFT', updatedAt: '2026-10-03T00:00:00',
+      data = { ...body, id, slug: `created-${id}`, editVersion: 0, status: 'UNREVIEWED', reviewedAt: null, bodyUpdatedAt: null, updatedAt: '2026-10-03T00:00:00',
         section: 'TECH', category: null, series: null, seriesOrder: body.order, relatedSeriesId: body.relatedSeriesId };
       posts.push(data); status = 201;
     } else if (method === 'PUT' && /^\/admin\/posts\/\d+\/metadata$/.test(path)) {
@@ -86,10 +88,19 @@ async function mockApi(page, override = async () => false) {
         data = row;
       }
     } else if (method === 'PUT' && /^\/admin\/posts\/\d+\/publication$/.test(path)) {
-      expect(Object.keys(body)).toEqual(['published']); expect(typeof body.published).toBe('boolean');
+      expect(Object.keys(body)).toEqual(['status']); expect(['UNREVIEWED', 'PRIVATE', 'PUBLISHED']).toContain(body.status);
       const row = posts.find(post => post.id === Number(path.split('/')[3]));
-      row.status = body.published ? 'PUBLISHED' : 'DRAFT'; row.editVersion++; data = row;
-    } else if (method === 'GET' && path === '/admin/categories') data = categories;
+      row.status = body.status; row.reviewedAt = null; row.editVersion++; data = row;
+    } else if (method === 'PUT' && /^\/admin\/posts\/\d+\/review$/.test(path)) {
+      // 검수 완료는 읽은 본문 시각과 함께, 해제는 단일 키로만 허용
+      expect(Object.keys(body)).toEqual(body.reviewed ? ['reviewed', 'bodyUpdatedAt'] : ['reviewed']);
+      const row = posts.find(post => post.id === Number(path.split('/')[3]));
+      if (body.reviewed && body.bodyUpdatedAt !== row.bodyUpdatedAt) { status = 409; data = { detail: '읽은 뒤 본문이 바뀌었습니다. 글을 다시 열어 확인하세요.' }; }
+      else { row.reviewedAt = body.reviewed ? '2026-10-13T00:00:00' : null; data = row; }
+    }
+    // 연결 글이 없는 기본 응답, 필요한 시나리오는 override로 대체
+    else if (method === 'GET' && /^\/admin\/posts\/\d+\/links$/.test(path)) data = [];
+    else if (method === 'GET' && path === '/admin/categories') data = categories;
     else if (method === 'GET' && path === '/admin/tags') data = [...new Set([...Array.from({ length: 20 }, (_, i) => `tag${i}`), ...posts.flatMap(row => row.tags)])].map(name => ({ name, count: 1 }));
     else if (method === 'GET' && path === '/admin/series') data = series;
     else if (method === 'GET' && /^\/admin\/series\/\d+$/.test(path)) data = { series: series.find(row => row.id === Number(path.split('/').at(-1))) };
@@ -1121,4 +1132,140 @@ test('confirm modal replaces system dialogs and cancels without requests', async
   await remove.click(); await confirmModal(page);
   await expect.poll(() => deletes).toEqual(['/admin/posts/1']);
   expect(systemDialogs).toEqual([]);
+});
+
+/**
+ * 검수 화면 시나리오의 글 준비: 1·2번은 DB 본문이 있는 미검수, 3번은 비공개, 4번은 공개
+ */
+function reviewPosts(posts) {
+  for (const id of [1, 2, 3]) posts[id - 1].bodyUpdatedAt = `2026-10-12T00:00:0${id}`;
+  posts[2].status = 'PRIVATE'; posts[3].status = 'PUBLISHED';
+}
+
+/**
+ * 검수 화면 시나리오의 DB 본문: 제목·코드·수식·도식과 공개·미검수·없는 글로 가는 링크
+ */
+const reviewBody = '## 검수 제목\n\n$a+b$ [공개 글](/ken-blog/post/fixture-4/) [미검수 글](/ken-blog/post/fixture-2/) ' +
+  '[없는 글](/ken-blog/post/missing-post/)\n\n```js\nconst value = 1;\n```\n\n```mermaid\ngraph TD\n A-->B\n```\n\n### 하위 제목\n\n끝';
+
+// 익명 방문자에게는 로그인 안내만 보이고 관리자 글 정보를 요청하지 않는지 검증
+test('review page shows only a login notice to anonymous visitors', async ({ page }) => {
+  const requested = [];
+  await mockApi(page, async (route, path) => {
+    requested.push(path);
+    if (path !== '/auth/me') return false;
+    await route.fulfill({ status: 401, json: {} }); return true;
+  });
+  await page.goto('/ken-blog/manage/review/?post=1');
+  await expect(page.locator('#review-login')).toBeVisible();
+  await expect(page.locator('#review-message')).toBeHidden();
+  await expect(page.locator('#review-content')).toBeEmpty();
+  await expect(page.locator('#review-actions')).toBeHidden();
+  expect(requested.filter(path => path.startsWith('/admin/'))).toEqual([]);
+});
+
+// 단계별 목록, 공개 글과 같은 본문 렌더, 링크 해석, 검수 완료 요청과 다음 글 이동 검증
+test('review queue renders the stored body and marks the read version as reviewed', async ({ page }) => {
+  const reviews = [];
+  await mockApi(page, async (route, path) => {
+    if (/^\/admin\/posts\/[12]\/body$/.test(path)) {
+      const id = Number(path.split('/')[3]);
+      await route.fulfill({ json: { postId: id, body: reviewBody, updatedAt: `2026-10-12T00:00:0${id}` } }); return true;
+    }
+    if (path.endsWith('/review')) reviews.push(route.request().postDataJSON());
+    return false;
+  }, reviewPosts);
+  await page.goto('/ken-blog/manage/review/');
+  const groups = page.locator('.review-group');
+  // 미검수 33편 가운데 DB 본문이 있는 두 편만 읽기 링크 제공
+  await expect(groups.nth(0).locator('h2')).toHaveText('미검수33');
+  await expect(groups.nth(0).locator('a')).toHaveCount(2);
+  await expect(groups.nth(1).locator('.review-empty')).toBeVisible();
+  await expect(groups.nth(2).locator('h2')).toHaveText('비공개1');
+  // 공개 글은 목록에 나오지 않음
+  await expect(page.locator('.review-list a')).toHaveCount(3);
+  await expect(page.locator('#review-content')).not.toContainText('검사 글 4');
+  await page.getByRole('link', { name: '검사 글 1', exact: true }).click();
+  await expect(page.getByRole('heading', { level: 1, name: '검사 글 1' })).toBeVisible();
+  const body = page.locator('.markdown-body');
+  await expect(body.getByRole('heading', { name: '검수 제목' })).toBeVisible();
+  await expect(body.locator('.katex').first()).toBeVisible();
+  await expect(body.locator('pre code span').first()).toBeVisible();
+  await expect(body.locator('.ken-mermaid img')).toBeVisible({ timeout: 15000 });
+  await expect(body.getByRole('link', { name: '공개 글' })).toHaveAttribute('href', '/ken-blog/post/fixture-4/');
+  await expect(body.getByRole('link', { name: '미검수 글' })).toHaveAttribute('href', '/ken-blog/manage/review/?post=2');
+  await expect(body.getByRole('link', { name: '없는 글' })).toHaveCount(0);
+  await expect(page.locator('.post-toc a')).toHaveText(['검수 제목', '하위 제목']);
+  await expect(page.locator('.series-next strong')).toHaveText('검사 글 2');
+  await page.getByRole('button', { name: '검수 완료', exact: true }).click();
+  await expect(page).toHaveURL(/manage\/review\/\?post=2$/);
+  expect(reviews).toEqual([{ reviewed: true, bodyUpdatedAt: '2026-10-12T00:00:01' }]);
+  await expect(page.getByRole('heading', { level: 1, name: '검사 글 2' })).toBeVisible();
+  // 검수 완료한 1번은 다른 단계로 옮겨져 이전 글 탐색에서 빠짐
+  await expect(page.locator('.series-previous-next')).toHaveCount(0);
+});
+
+// 읽은 뒤 본문이 바뀐 글은 검수 완료가 거부되고 사유가 화면에 남는지 검증
+test('review rejects a body that changed after it was read', async ({ page }) => {
+  await mockApi(page, async (route, path) => {
+    if (path !== '/admin/posts/1/body') return false;
+    await route.fulfill({ json: { postId: 1, body: reviewBody, updatedAt: '2026-10-11T00:00:00' } }); return true;
+  }, reviewPosts);
+  await page.goto('/ken-blog/manage/review/?post=1');
+  await page.getByRole('button', { name: '검수 완료', exact: true }).click();
+  await expect(page.locator('#review-message')).toHaveText('읽은 뒤 본문이 바뀌었습니다. 글을 다시 열어 확인하세요.');
+  await expect(page).toHaveURL(/post=1$/);
+  await expect(page.getByRole('button', { name: '검수 완료', exact: true })).toBeEnabled();
+});
+
+// 공개 글의 연결 글은 관리자에게만 조회·표시되고 익명에게는 요청도 없는지 검증
+test('public article shows linked private notes only to the administrator', async ({ page }) => {
+  let anonymous = false; const linkReads = [];
+  await mockApi(page, async (route, path) => {
+    if (path === '/auth/me' && anonymous) { await route.fulfill({ status: 401, json: {} }); return true; }
+    if (!path.endsWith('/links')) return false;
+    linkReads.push(path);
+    await route.fulfill({ json: [{ id: 99, title: '비공개 노트', slug: 'private-note', status: 'PRIVATE' },
+      { id: 4, title: '검사 글 4', slug: 'fixture-4', status: 'PUBLISHED' }] });
+    return true;
+  });
+  await page.goto('/ken-blog/post/fixture-1/');
+  const links = page.locator('.private-links');
+  await expect(links.getByRole('link', { name: '비공개 노트' })).toHaveAttribute('href', '/ken-blog/manage/review/?post=99');
+  await expect(links.getByRole('link', { name: '검사 글 4' })).toHaveAttribute('href', '/ken-blog/post/fixture-4/');
+  expect(linkReads).toEqual(['/admin/posts/1/links']);
+  // 정적 HTML에는 연결 글이 없고 익명 방문에서는 요청도 표시도 없음
+  expect(await (await page.request.get('/ken-blog/post/fixture-1/')).text()).not.toContain('private-links');
+  anonymous = true;
+  await page.goto('/ken-blog/post/fixture-2/');
+  await expect(page.locator('[data-post-edit]')).toBeHidden();
+  await expect(page.locator('.private-links')).toHaveCount(0);
+  expect(linkReads).toEqual(['/admin/posts/1/links']);
+});
+
+// 관리 화면의 단계 필터와 본문 위치에 따른 읽기·공개 동작, 상태 전환 요청 검증
+test('manage filters hidden stages and offers actions by body location', async ({ page }) => {
+  const transitions = [];
+  await mockApi(page, async (route, path) => {
+    if (path.endsWith('/publication')) transitions.push(route.request().postDataJSON());
+    return false;
+  }, reviewPosts);
+  await page.goto('/ken-blog/manage/');
+  await expect(page.locator('[data-post-filter=unreviewed]')).toHaveText('미검수 33');
+  await expect(page.locator('[data-post-filter=private]')).toHaveText('비공개 1');
+  const first = page.locator('#post-list tbody tr').filter({ hasText: '검사 글 1' }).first();
+  // DB 본문이 있는 글은 읽기만, 저장소 원고 글은 공개 전환 제공
+  await expect(first.getByRole('link', { name: '읽기' })).toHaveAttribute('href', '/ken-blog/manage/review/?post=1');
+  await expect(first.getByRole('button', { name: '공개', exact: true })).toHaveCount(0);
+  const fifth = page.locator('#post-list tbody tr').filter({ hasText: '검사 글 5' }).first();
+  await expect(fifth.getByRole('button', { name: '공개', exact: true })).toBeVisible();
+  await expect(fifth.getByRole('link', { name: '읽기' })).toHaveCount(0);
+  await page.locator('[data-post-filter=private]').click();
+  const hidden = page.locator('#post-list tbody tr');
+  await expect(hidden).toHaveCount(1);
+  await expect(hidden.locator('.status')).toContainText('비공개');
+  await hidden.getByRole('button', { name: '미검수로', exact: true }).click();
+  await expect(page.locator('#dashboard-message')).toContainText('미검수로 바꿨습니다');
+  expect(transitions).toEqual([{ status: 'UNREVIEWED' }]);
+  await expect(page.locator('[data-post-filter=private]')).toHaveText('비공개 0');
 });

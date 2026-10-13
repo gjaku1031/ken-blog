@@ -21,8 +21,9 @@ test('representative site keeps public names, tags and canonical routes', async 
     const snapshot = normalizeSnapshot(fixture, true);
     snapshot.posts.forEach(post => { post.rendered = { html: '<p>본문 검색어</p>', headings: [], wikiTargets: [] }; });
     await generateSite({ snapshot, assets: { css: 'public.css', js: 'public.js' }, adminHref: '/ken-blog/manage/',
-      admin: { apiBase: '', css: 'admin.css', js: 'admin.js' } }, output);
+      gaMeasurementId: 'G-TEST123', admin: { apiBase: '', css: 'admin.css', js: 'admin.js' } }, output);
     const html = await readFile(join(output, 'posts/index.html'), 'utf8');
+    assert.match(html, /G-TEST123/);
     assert.ok(html.indexOf('data-category-link="z-first"') < html.indexOf('data-category-link="a-last"'));
     assert.match(html, /Child Name/);
     assert.match(html, /data-tags="\[&quot;A\|B&quot;\]"/);
@@ -37,6 +38,15 @@ test('representative site keeps public names, tags and canonical routes', async 
     assert.doesNotMatch(related, /project-intro|fixture-6/);
     const ordinary = await readFile(join(output, 'post/fixture-1/index.html'), 'utf8');
     assert.doesNotMatch(ordinary, /related-posts-nav/);
+    // 검수 화면은 내용 없는 골격만 생성하고 색인·방문 통계·사이트맵·경로 목록에서 제외
+    const review = await readFile(join(output, 'manage/review/index.html'), 'utf8');
+    assert.match(review, /<meta name="robots" content="noindex,nofollow">/);
+    assert.match(review, /data-route="review"/);
+    assert.match(review, /id="review-content"><\/div>/);
+    assert.doesNotMatch(review, /googletagmanager|본문 검색어|fixture-1/);
+    assert.doesNotMatch(html, /name="robots"/);
+    for (const name of ['sitemap.xml', 'routes.json'])
+      assert.doesNotMatch(await readFile(join(output, name), 'utf8'), /manage/);
     // 공개·이동·관리 문서가 모두 같은 파비콘을 가리키고 그 파일이 산출물에 있음
     const manage = await readFile(join(output, 'manage/index.html'), 'utf8');
     for (const document of [html, redirect, manage])

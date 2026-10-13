@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
-import { deploymentManifest, readDeploymentManifest, deploymentState, filterPosts } from '../../src/main/resources/web/shared/deployment-status.ts';
+import { deploymentManifest, readDeploymentManifest, deploymentState, filterPosts, statusLabel } from '../../src/main/resources/web/shared/deployment-status.ts';
 
 /**
  * 공개 프로젝트와 탐색 정보를 포함한 비교 입력
@@ -79,24 +79,33 @@ test('public category labels and order participate in deployment comparison', as
   assert.deepEqual((await deploymentManifest(categorized)).posts, deployed.posts);
 });
 
-// 발행·취소·비공개 전환을 실제 사이트 존재 여부와 함께 구분
-test('new publication, unpublication and private transition have distinct pending states', async () => {
+// 공개·내림·미검수·검수 완료·비공개를 실제 사이트 존재 여부와 함께 구분
+test('publication, withdrawal and hidden stages have distinct states', async () => {
   const current = await deploymentManifest(snapshot);
   const empty = await deploymentManifest({ version: 2, posts: [], series: [] });
-  assert.equal(deploymentState(published, { current, deployed: empty }).label, '발행 후 배포 대기');
-  const draft = { ...published, status: 'DRAFT' };
-  assert.equal(deploymentState(draft, { current: empty, deployed: current }).kind, 'pending');
-  assert.equal(deploymentState(draft, { current: empty, deployed: empty }).label, '미발행');
+  assert.equal(deploymentState(published, { current, deployed: empty }).label, '공개 후 배포 대기');
+  const unreviewed = { ...published, status: 'UNREVIEWED', reviewedAt: null };
+  const reviewed = { ...unreviewed, reviewedAt: '2026-10-13T00:00:00' };
+  const hidden = { ...published, status: 'PRIVATE', reviewedAt: null };
+  // 운영 산출물에 남아 있는 동안은 단계와 관계없이 내림 배포 대기
+  for (const post of [unreviewed, reviewed, hidden])
+    assert.equal(deploymentState(post, { current: empty, deployed: current }).kind, 'pending');
+  assert.equal(deploymentState(hidden, { current: empty, deployed: current }).label, '비공개 · 내림 배포 대기');
+  assert.deepEqual(deploymentState(unreviewed, { current: empty, deployed: empty }), { kind: 'unreviewed', label: '미검수' });
+  assert.deepEqual(deploymentState(reviewed, { current: empty, deployed: empty }), { kind: 'reviewed', label: '검수 완료' });
+  assert.deepEqual(deploymentState(hidden, { current: empty, deployed: empty }), { kind: 'private', label: '비공개' });
+  assert.equal(statusLabel(published), '공개');
   assert.equal(deploymentState(published, null).kind, 'unknown');
   assert.equal(deploymentState(published, { current: empty, deployed: current }).kind, 'unknown');
 });
 
 // 페이지로 자르기 전 필터링해야 뒤쪽 글도 조회 가능
-test('filters include drafts and pending posts beyond the first page', async () => {
+test('filters include hidden and pending posts beyond the first page', async () => {
   const current = await deploymentManifest(snapshot);
-  const posts = Array.from({ length: 25 }, (_, i) => ({ ...published, id: i + 1, status: i === 24 ? 'DRAFT' : 'PUBLISHED' }));
+  const posts = Array.from({ length: 25 }, (_, i) => ({ ...published, id: i + 1, status: i === 24 ? 'UNREVIEWED' : i === 21 ? 'PRIVATE' : 'PUBLISHED' }));
   const changed = { ...current, posts: { ...current.posts, 23: 'a'.repeat(64) } };
-  assert.deepEqual(filterPosts(posts, 'draft', { current, deployed: current }).map(p => p.id), [25]);
+  assert.deepEqual(filterPosts(posts, 'unreviewed', { current, deployed: current }).map(p => p.id), [25]);
+  assert.deepEqual(filterPosts(posts, 'private', { current, deployed: current }).map(p => p.id), [22]);
   assert.deepEqual(filterPosts(posts, 'pending', { current: changed, deployed: current }).map(p => p.id), [23]);
 });
 
@@ -108,8 +117,8 @@ test('invalid manifests and incomplete snapshots fail closed', async () => {
   await assert.rejects(deploymentManifest({ version: 2, posts: [{}], series: [] }));
 });
 
-// 비교 실패는 모든 발행 설정에서 미확인 상태로 유지
-test('unknown deployment remains unknown for drafts and published posts', () => {
-  for (const status of ['DRAFT', 'PUBLISHED'])
+// 비교 실패는 모든 공개 범위에서 미확인 상태로 유지
+test('unknown deployment remains unknown for every status', () => {
+  for (const status of ['UNREVIEWED', 'PRIVATE', 'PUBLISHED'])
     assert.equal(deploymentState({ id: 1, status }, null).kind, 'unknown');
 });

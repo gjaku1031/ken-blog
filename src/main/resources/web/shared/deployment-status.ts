@@ -1,6 +1,6 @@
 /**
  * 성공한 Pages 산출물에 포함되는 공개 글별 메타데이터 지문
- * 초안·관리자 데이터·본문은 포함하지 않음
+ * 공개하지 않은 글·관리자 데이터·본문은 포함하지 않음
  */
 export type DeploymentManifest = {
   /**
@@ -35,6 +35,11 @@ export type DeploymentComparison = {
 };
 
 /**
+ * 글의 공개 범위와 검수 단계
+ */
+export type PostStatus = 'UNREVIEWED' | 'PRIVATE' | 'PUBLISHED';
+
+/**
  * 글 상태와 필터에 필요한 관리자 필드
  */
 export type Publication = {
@@ -44,15 +49,29 @@ export type Publication = {
   id: number;
 
   /**
-   * 발행 여부
+   * 공개 범위와 검수 단계
    */
-  status: 'DRAFT' | 'PUBLISHED';
+  status: PostStatus;
+
+  /**
+   * 검수 완료 시각, 공개 전환을 기다리는 미검수 글에만 있음
+   */
+  reviewedAt?: string | null;
 };
 
 /**
- * 전체·미발행·배포 대기 목록 필터
+ * 전체·미검수·비공개·배포 대기 목록 필터
  */
-export type PostFilter = 'all' | 'draft' | 'pending';
+export type PostFilter = 'all' | 'unreviewed' | 'private' | 'pending';
+
+/**
+ * 공개 범위와 검수 단계의 표시 이름
+ */
+export function statusLabel(post: Publication): string {
+  if (post.status === 'PUBLISHED') return '공개';
+  if (post.status === 'PRIVATE') return '비공개';
+  return post.reviewedAt ? '검수 완료' : '미검수';
+}
 
 /**
  * 비교 불가능한 JSON 객체는 성공 상태로 취급하지 않도록 거부
@@ -148,18 +167,20 @@ export function readDeploymentManifest(input: unknown): DeploymentManifest {
 }
 
 /**
- * 발행 설정과 실제 반영 여부를 구분한 상태 표시
+ * 공개 범위 설정과 실제 반영 여부를 구분한 상태 표시
  * 배포 기록 조회 실패 시 공개 완료로 추정하지 않음
+ * 공개하지 않은 글이 운영 산출물에 남아 있으면 내림 배포 대기로 표시
  */
 export function deploymentState(post: Publication, comparison: DeploymentComparison | null) {
-  if (!comparison) return { kind: 'unknown', label: `${post.status === 'DRAFT' ? '미발행' : '공개 발행'} · 배포 상태 미확인` };
+  const label = statusLabel(post);
+  if (!comparison) return { kind: 'unknown', label: `${label} · 배포 상태 미확인` };
   const deployed = comparison.deployed.posts[post.id];
   const current = comparison?.current.posts[post.id];
-  if (post.status === 'DRAFT') return deployed
-    ? { kind: 'pending', label: '발행 취소 · 배포 대기' }
-    : { kind: 'draft', label: '미발행' };
+  if (post.status !== 'PUBLISHED') return deployed
+    ? { kind: 'pending', label: `${label} · 내림 배포 대기` }
+    : { kind: post.status === 'PRIVATE' ? 'private' : post.reviewedAt ? 'reviewed' : 'unreviewed', label };
   if (!current) return { kind: 'unknown', label: '배포 상태 확인 필요' };
-  if (!deployed) return { kind: 'pending', label: '발행 후 배포 대기' };
+  if (!deployed) return { kind: 'pending', label: '공개 후 배포 대기' };
   return current === deployed
     ? { kind: 'published', label: '공개 메타데이터 반영 확인' }
     : { kind: 'pending', label: '수정 후 배포 대기' };
@@ -169,5 +190,8 @@ export function deploymentState(post: Publication, comparison: DeploymentCompari
  * 전체 관리자 목록을 먼저 필터링하며 페이지 범위는 호출자가 적용
  */
 export function filterPosts<T extends Publication>(posts: T[], filter: PostFilter, comparison: DeploymentComparison | null): T[] {
-  return posts.filter(post => filter === 'all' || (filter === 'draft' ? post.status === 'DRAFT' : deploymentState(post, comparison).kind === 'pending'));
+  return posts.filter(post => filter === 'all'
+    || (filter === 'unreviewed' ? post.status === 'UNREVIEWED'
+      : filter === 'private' ? post.status === 'PRIVATE'
+      : deploymentState(post, comparison).kind === 'pending'));
 }

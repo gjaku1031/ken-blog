@@ -22,6 +22,23 @@ test('prepared Markdown shares parsing without losing mixed syntax or image refe
   assert.equal(first.headings.length, 2);
 });
 
+// 블로그 글 링크는 해석기가 준 주소로 바꾸고, 대상이 없으면 글자만 남기며 식별자를 보고
+test('post links are rewritten or dropped only for blog post addresses', async () => {
+  const source = '[공개](/ken-blog/post/open-post/#sec) [내림](/ken-blog/post/hidden-post/) ' +
+    '[전체](https://gjaku1031.github.io/ken-blog/post/hidden-post/) [목록](/ken-blog/posts/) [외부](https://example.com/ken-blog/post/x/)';
+  const postLink = (slug, hash) => slug === 'open-post' ? `/ken-blog/post/${slug}/${hash}` : null;
+  const result = await renderMarkdown(source, { postLink });
+  assert.match(result.html, /<a href="\/ken-blog\/post\/open-post\/#sec">공개<\/a>/);
+  assert.match(result.html, /<span>내림<\/span> <span>전체<\/span>/);
+  assert.match(result.html, /<a href="\/ken-blog\/posts\/">목록<\/a>/);
+  assert.match(result.html, /href="https:\/\/example\.com\/ken-blog\/post\/x\/"/);
+  assert.deepEqual(result.droppedPostLinks, ['hidden-post']);
+  // 해석기를 주지 않으면 원문 주소 유지
+  const plain = await renderMarkdown(source);
+  assert.match(plain.html, /<a href="\/ken-blog\/post\/hidden-post\/">내림<\/a>/);
+  assert.deepEqual(plain.droppedPostLinks, []);
+});
+
 // 캡션이 지정된 Mermaid를 이미지 figure와 같은 캡션 요소로 감쌈
 test('Mermaid captions follow the diagram and keep source controls inside the block', async () => {
   const rendered = await renderMarkdown('```mermaid caption="요청, 저장·응답."\nflowchart LR\nA-->B\n```');

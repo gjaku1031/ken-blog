@@ -19,6 +19,11 @@ type Csrf = {
 const apiBase = document.body.dataset.apiBase ?? '';
 
 /**
+ * 세션 쿠키로 직접 여는 관리자 API 주소, 이미지처럼 fetch를 거치지 않는 요청에 사용
+ */
+export const apiUrl = (path: string): string => new URL('/api/v1' + path, apiBase || location.origin).href;
+
+/**
  * 현재 세션의 CSRF 토큰
  */
 let csrf: Csrf | null = null;

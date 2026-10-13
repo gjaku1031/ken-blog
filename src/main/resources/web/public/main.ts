@@ -84,7 +84,12 @@ function filterCards(): void {
 connectHeader({
   onSearch: filterCards,
   onThemeChange: () => document.dispatchEvent(new Event('site-theme')),
-  onLogout: () => { isAdmin = false; document.querySelectorAll<HTMLDialogElement>('dialog.edit-dialog').forEach(dialog => dialog.close()); },
+  onLogout: () => {
+    isAdmin = false; document.querySelectorAll<HTMLDialogElement>('dialog.edit-dialog').forEach(dialog => dialog.close());
+    // 관리자에게만 보이던 연결 글과 검수 화면의 내용을 화면에서 제거
+    document.querySelectorAll('.private-links').forEach(element => element.remove());
+    if (route === 'review') location.reload();
+  },
   onError: error => window.alert(error.message),
 });
 filterCards();
@@ -95,7 +100,24 @@ void request<{
  * 계정 권한
  */
 role: string
-}>('/auth/me').then(user => { isAdmin = user.role === 'ADMIN'; updateHeaderSession(isAdmin); }).catch(() => updateHeaderSession(false));
+}>('/auth/me').then(user => { isAdmin = user.role === 'ADMIN'; updateHeaderSession(isAdmin); connectAdminViews(); })
+  .catch(() => { updateHeaderSession(false); connectAdminViews(); });
+
+/**
+ * 관리자 확인 뒤에만 받는 화면 연결
+ *
+ * 검수 화면은 관리자면 목록·본문 코드를 받고 아니면 로그인 안내만 표시
+ * 공개 글 상세는 관리자일 때만 나만 보이는 연결 글 조회
+ */
+function connectAdminViews(): void {
+  if (route === 'review') {
+    if (isAdmin) { void import('./review').then(module => module.connectReview()); return; }
+    document.getElementById('review-message')?.setAttribute('hidden', '');
+    document.getElementById('review-login')?.removeAttribute('hidden');
+  } else if (isAdmin && (route === 'post' || route === 'project')) {
+    void import('./private-links').then(module => module.connectPrivateLinks());
+  }
+}
 
 // 분류 트리의 접힘 상태와 접근성 속성을 함께 갱신
 for (const button of document.querySelectorAll<HTMLButtonElement>('[data-category-toggle]')) {

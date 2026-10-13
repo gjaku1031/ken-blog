@@ -11,6 +11,7 @@ import { collectWikiTitles, parseWikiMarkdown } from "./wiki-link-syntax";
 import { readableMathFallback, isOversizeMath } from "./math-format";
 import { highlightCode, resolveHighlightLanguage } from "./code-highlight";
 import { mermaidSourceError } from "./mermaid-render";
+import { BASE, ORIGIN } from "./site-path";
 
 /**
  * Pages 본문 생성에 사용하는 이미지·위키 주소 해석 계약
@@ -39,7 +40,15 @@ export type RenderOptions = {
   /**
    * 위키 제목의 이동 주소 해석기
    */
-  wikiUrl?: (title: string) => string | null
+  wikiUrl?: (title: string) => string | null;
+
+  /**
+   * 블로그 글 상세 주소를 가리키는 일반 링크의 해석기
+   *
+   * 반환한 주소로 링크를 바꾸며, null이면 링크를 풀어 글자만 남김
+   * 지정하지 않으면 원문 주소를 그대로 사용
+   */
+  postLink?: (slug: string, hash: string) => string | null
 };
 
 /**
@@ -89,7 +98,12 @@ export type RenderResult = {
   /**
    * 위키 대상 제목 목록
    */
-  wikiTargets: string[]
+  wikiTargets: string[];
+
+  /**
+   * 대상 글이 없어 링크를 푼 글 식별자 목록
+   */
+  droppedPostLinks: string[]
 };
 
 /**
@@ -191,6 +205,27 @@ function safeLink(url: string): boolean {
 const safeImage = (url: string): boolean => safeLocal(url) || /^https:\/\/[^\s<>"'\\]+$/i.test(url);
 
 /**
+ * 블로그 글 상세 주소의 식별자와 앵커, 다른 주소면 null
+ * 기준 경로로 시작하는 절대 경로와 공개 출처를 포함한 주소를 같은 글로 취급
+ */
+function postLinkTarget(href: string): {
+  /**
+   * 글 식별자
+   */
+  slug: string;
+
+  /**
+   * '#'을 포함한 앵커, 없으면 빈 문자열
+   */
+  hash: string
+} | null {
+  const path = href.startsWith(ORIGIN + BASE) ? href.slice(ORIGIN.length) : href;
+  if (!path.startsWith(`${BASE}post/`)) return null;
+  const match = path.slice(`${BASE}post/`.length).match(/^([a-z0-9]+(?:-[a-z0-9]+)*)\/?(#[^\s]*)?$/);
+  return match ? { slug: match[1], hash: match[2] ?? "" } : null;
+}
+
+/**
  * HTML 요소 노드 생성
  */
 const element = (tagName: string, properties: Element["properties"], children: ElementContent[] = []): Element => ({ type: "element", tagName, properties, children });
@@ -276,7 +311,7 @@ async function decorate(tree: HtmlRoot, options: RenderOptions, headings: TocIte
    * 참조 순번 목록
    */
   refs:number[]
-}>): Promise<void> {
+}>, dropped: Set<string>): Promise<void> {
   // 원문 행 기준 제목·목차 대응 준비
   const headingByLine = new Map(headings.map((item) => [item.line, item]));
 
@@ -292,7 +327,14 @@ async function decorate(tree: HtmlRoot, options: RenderOptions, headings: TocIte
     }
     if (tag === "a") {
       const href = String(node.properties.href ?? "");
+      const post = options.postLink ? postLinkTarget(href) : null;
       if (!safeLink(href)) { node.tagName = "span"; node.properties = {}; }
+      else if (post) {
+        // 공개하지 않은 글로 가는 링크는 풀고, 해석기가 준 주소는 같은 안전 규칙으로 다시 검사
+        const resolved = options.postLink!(post.slug, post.hash);
+        if (resolved && safeLink(resolved)) node.properties.href = resolved;
+        else { node.tagName = "span"; node.properties = {}; dropped.add(post.slug); }
+      }
       else if (/^https?:\/\//i.test(href)) { node.properties.target = "_blank"; node.properties.rel = ["noopener", "noreferrer"]; }
     }
     if (tag === "input") {
@@ -430,7 +472,8 @@ export async function renderPreparedMarkdown(prepared: ReturnType<typeof prepare
   const { parsed, headings, attachmentIds } = prepared;
   const wikiTargets = new Set(prepared.wikiTargets);
   const tree = toHast(parsed.root, { allowDangerousHtml: false }) as HtmlRoot;
-  await decorate(tree, options, headings, wikiTargets, parsed.items);
+  const droppedPostLinks = new Set<string>();
+  await decorate(tree, options, headings, wikiTargets, parsed.items, droppedPostLinks);
   const schema = { ...defaultSchema, clobberPrefix: "", tagNames: [...(defaultSchema.tagNames ?? []), "figure", "figcaption", "button", "details", "summary"], attributes: { ...defaultSchema.attributes,
     "*": ["className", "id", "title", "dataWidth", "dataAlign", "dataDarkSrc", "dataLanguage", "dataMermaidSource", "dataAnnotationIndex", "dataWikiTitle", "dataKatexHtml", "role", "ariaLabel", "tabIndex"],
     a: ["href", "target", "rel", "className", "ariaLabel", "dataAnnotationReturn"], img: ["src", "alt", "loading", "decoding", "className", "dataDarkSrc", "width", "height", "dataLightWidth", "dataLightHeight", "dataDarkWidth", "dataDarkHeight"], span: ["className", "style", "id", "role", "tabIndex", "ariaLabel", "dataAnnotationIndex", "dataKatexHtml"],
@@ -475,7 +518,7 @@ export async function renderPreparedMarkdown(prepared: ReturnType<typeof prepare
         content = `<span class="ken-annotation-content">${escapeHtml(item.content)}</span>`;
       } else {
         paragraph.tagName = "span"; paragraph.properties = { className: ["ken-annotation-content"] };
-        await decorate(noteTree, options, [], wikiTargets, []);
+        await decorate(noteTree, options, [], wikiTargets, [], droppedPostLinks);
         content = await serialize(noteTree);
       }
       const first = item.refs[0];
@@ -483,7 +526,7 @@ export async function renderPreparedMarkdown(prepared: ReturnType<typeof prepare
     }));
     html += `<section class="ken-annotations"><h2>주석</h2><ol role="list">${notes.join("")}</ol></section>`;
   }
-  return { html, headings, attachmentIds, wikiTargets: [...wikiTargets] };
+  return { html, headings, attachmentIds, wikiTargets: [...wikiTargets], droppedPostLinks: [...droppedPostLinks] };
 }
 
 /**

@@ -177,6 +177,9 @@ body { -webkit-font-smoothing:antialiased; }
 .deployment-help{font-size:12px;margin:0 0 16px}
 .status.pending{color:var(--pending-status,#9a6700)}
 .status.unknown{color:var(--muted)}
+/* 검수를 마치고 공개 전환을 기다리는 글 */
+.status.reviewed{color:var(--text)}
+.status.reviewed:before{background:var(--accent)}
 :root[data-theme=dark]{--pending-status:#e3b341}
 /* 시스템 확인창을 대신하는 확인 모달 */
 .confirm-dialog {width:min(calc(100% - 32px),420px);padding:0;border:1px solid var(--dialog-line);border-radius:12px;background:var(--dialog-bg);color:var(--text);box-shadow:var(--shadow2);font-size:14px;line-height:1.6}
