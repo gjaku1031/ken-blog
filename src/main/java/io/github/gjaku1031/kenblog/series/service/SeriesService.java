@@ -42,7 +42,7 @@ public class SeriesService {
     private final StackBadgeService badges;
 
     /**
-     * 초안·관련 글 삭제 제약 조회
+     * 공개하지 않은 글·관련 글 삭제 제약 조회
      */
     private final PostRepository posts;
 
@@ -109,7 +109,7 @@ public class SeriesService {
     }
 
     /**
-     * 관리자 시리즈 상세와 초안 포함 문서 목록
+     * 관리자 시리즈 상세와 공개하지 않은 글을 포함한 문서 목록
      */
     @Transactional(readOnly = true)
     public SeriesDetailResponse detail(long id) {
@@ -203,7 +203,7 @@ public class SeriesService {
     }
 
     /**
-     * 부모 잠금 후 초안 포함 모든 소속·관련 글이 없는 시리즈만 삭제
+     * 부모 잠금 후 공개 여부와 관계없이 소속·관련 글이 없는 시리즈만 삭제
      */
     @Transactional
     public void delete(long id) {

@@ -42,9 +42,9 @@ final class AttachmentDeliveryTest {
         var service =
                 new PostAttachmentDeliveryService(
                         queries, new LocalAssetStorage(directory.toString()));
-        Mockito.when(queries.readableAttachment(1, 1))
+        Mockito.when(queries.attachment(1, 1, true))
                 .thenReturn(new AttachmentDeliveryRow(key, "image/png", 3));
-        try (var stream = service.open(1, 1).stream()) {
+        try (var stream = service.open(1, 1, true).stream()) {
             assertArrayEquals(bytes, stream.readAllBytes());
         }
         for (var invalid :
@@ -54,10 +54,10 @@ final class AttachmentDeliveryTest {
                         new AttachmentDeliveryRow(key, "image/png", -1),
                         new AttachmentDeliveryRow(key, "image/png", 10_485_761),
                         new AttachmentDeliveryRow(key, "image/png", 4))) {
-            Mockito.when(queries.readableAttachment(1, 1)).thenReturn(invalid);
+            Mockito.when(queries.attachment(1, 1, true)).thenReturn(invalid);
             assertEquals(
                     HttpStatus.SERVICE_UNAVAILABLE,
-                    assertThrows(AttachmentFailure.class, () -> service.open(1, 1)).getStatus());
+                    assertThrows(AttachmentFailure.class, () -> service.open(1, 1, true)).getStatus());
         }
         assertArrayEquals(bytes, Files.readAllBytes(directory.resolve(key)));
     }

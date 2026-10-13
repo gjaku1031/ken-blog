@@ -45,9 +45,19 @@ public record PostRow(
         LocalDateTime publishedAt,
 
         /**
-         * 출간 상태
+         * 공개 범위와 검수 단계
          */
         PostStatus status,
+
+        /**
+         * 검수 완료 시각, 공개 전환을 기다리는 미검수 글에만 있음
+         */
+        LocalDateTime reviewedAt,
+
+        /**
+         * DB 본문 수정 시각, 본문이 저장소 원고에만 있으면 null
+         */
+        LocalDateTime bodyUpdatedAt,
 
         /**
          * 분류 ID

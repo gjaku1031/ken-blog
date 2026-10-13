@@ -402,6 +402,100 @@ final class AuthHttpIntegrationTest {
     }
 
     /**
+     * 공개 범위·검수·DB 본문·연결·관리자 첨부 경로의 HTTP 계약과 익명 차단
+     *
+     * 1. 익명 요청은 새 관리자 경로 모두 401
+     * 2. DB 본문이 없으면 본문 404, 있으면 no-store 200
+     * 3. 옛 불리언 입력과 모르는 상태 이름은 400, DB 본문이 남은 글의 공개는 409
+     * 4. 검수 완료는 읽은 본문 시각이 필수이며 다른 시각은 409
+     */
+    @Test
+    void reviewHttpContract() throws Exception {
+        var client = newClient().client();
+        assertEquals(
+                200,
+                send(
+                                client,
+                                "POST",
+                                "/api/v1/auth/login",
+                                csrfToken(client),
+                                loginBody(TEST_PASSWORD, "missing"))
+                        .statusCode());
+        String token = csrfToken(client);
+        var created = send(client, "POST", "/api/v1/admin/posts", token, "{\"title\":\"HTTP 검수\"}");
+        assertEquals(201, created.statusCode());
+        var row = mapper.readTree(created.body());
+        assertEquals("UNREVIEWED", row.path("status").stringValue());
+        long id = row.path("id").longValue();
+        String path = "/api/v1/admin/posts/" + id;
+        // 로그인하지 않은 클라이언트는 새 경로에 접근 불가
+        var anonymous = newClient().client();
+        for (String suffix : List.of("/body", "/links", "/attachments/1/content"))
+            assertEquals(401, send(anonymous, "GET", path + suffix).statusCode());
+        // 본문이 없을 때와 운영 절차가 본문을 넣은 뒤
+        assertEquals(404, send(client, "GET", path + "/body").statusCode());
+        jdbc.update(
+                "INSERT INTO post_bodies (post_id, body, updated_at) VALUES (?, '# 본문',"
+                    + " UTC_TIMESTAMP(6))",
+                id);
+        var body = send(client, "GET", path + "/body");
+        assertEquals(200, body.statusCode());
+        assertEquals("no-store", body.headers().firstValue("Cache-Control").orElse(null));
+        var loaded = mapper.readTree(body.body());
+        assertEquals("# 본문", loaded.path("body").stringValue());
+        String readAt = loaded.path("updatedAt").stringValue();
+        // 공개 범위 입력 검증과 본문 위치 충돌
+        for (String invalid : List.of("{\"published\":true}", "{\"status\":\"DRAFT\"}", "{\"status\":true}"))
+            assertEquals(400, send(client, "PUT", path + "/publication", token, invalid).statusCode());
+        assertProblem(
+                send(client, "PUT", path + "/publication", token, "{\"status\":\"PUBLISHED\"}"), 409);
+        // 검수 완료 입력 검증, 다른 본문 시각 거부, 표시와 해제
+        assertEquals(
+                400, send(client, "PUT", path + "/review", token, "{\"reviewed\":true}").statusCode());
+        assertProblem(
+                send(
+                        client,
+                        "PUT",
+                        path + "/review",
+                        token,
+                        "{\"reviewed\":true,\"bodyUpdatedAt\":\"2000-01-01T00:00:00\"}"),
+                409);
+        var reviewed =
+                send(
+                        client,
+                        "PUT",
+                        path + "/review",
+                        token,
+                        mapper.writeValueAsString(
+                                Map.of("reviewed", true, "bodyUpdatedAt", readAt)));
+        assertEquals(200, reviewed.statusCode());
+        var marked = mapper.readTree(reviewed.body());
+        assertTrue(marked.path("reviewedAt").isString());
+        assertEquals(readAt, marked.path("bodyUpdatedAt").stringValue());
+        var cleared = send(client, "PUT", path + "/review", token, "{\"reviewed\":false}");
+        assertEquals(200, cleared.statusCode());
+        assertTrue(mapper.readTree(cleared.body()).path("reviewedAt").isNull());
+        // 연결이 없는 글의 빈 목록과 연결되지 않은 첨부의 404
+        var links = send(client, "GET", path + "/links");
+        assertEquals(200, links.statusCode());
+        assertEquals(0, mapper.readTree(links.body()).size());
+        assertEquals(
+                404,
+                send(
+                                client,
+                                "GET",
+                                path + "/attachments/1/content",
+                                null,
+                                null,
+                                Map.of("Accept", "image/png"))
+                        .statusCode());
+        var hidden = send(client, "PUT", path + "/publication", token, "{\"status\":\"PRIVATE\"}");
+        assertEquals(200, hidden.statusCode());
+        assertEquals("PRIVATE", mapper.readTree(hidden.body()).path("status").stringValue());
+        jdbc.update("DELETE FROM posts WHERE id = ?", id);
+    }
+
+    /**
      * 공개·익명 접근과 origin별 CORS·로컬 쿠키 속성
      */
     @Test

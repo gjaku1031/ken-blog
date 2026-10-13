@@ -12,7 +12,7 @@ import org.springframework.stereotype.Service;
 import java.util.List;
 
 /**
- * 공개 권한·연결 확인 뒤 DB 트랜잭션 밖에서 파일 열기
+ * 공개 조건 또는 관리자 권한과 연결 확인 뒤 DB 트랜잭션 밖에서 파일 열기
  */
 @Service
 @RequiredArgsConstructor
@@ -29,10 +29,12 @@ public final class PostAttachmentDeliveryService {
 
     /**
      * 권한·행 부재는 같은 404, 저장소 실패는 503; 이미 시작한 전송은 소급 취소하지 않음
+     *
+     * @param publicOnly true면 공개 글의 첨부만, false면 관리자 요청으로 상태와 무관하게 엶
      */
-    public PostAttachmentContent open(long postId, long attachmentId) {
+    public PostAttachmentContent open(long postId, long attachmentId, boolean publicOnly) {
         if (postId <= 0 || attachmentId <= 0) throw notFound();
-        var row = queries.readableAttachment(postId, attachmentId);
+        var row = queries.attachment(postId, attachmentId, publicOnly);
         if (row == null) throw notFound();
         if (!List.of("image/png", "image/jpeg").contains(row.contentType())
                 || row.byteSize() < 1

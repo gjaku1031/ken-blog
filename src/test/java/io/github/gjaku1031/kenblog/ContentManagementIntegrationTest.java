@@ -9,6 +9,7 @@ import io.github.gjaku1031.kenblog.category.dto.CategoryNameRequest;
 import io.github.gjaku1031.kenblog.category.dto.CategoryReorderRequest;
 import io.github.gjaku1031.kenblog.category.service.CategoryService;
 import io.github.gjaku1031.kenblog.fixture.TestMysqlConfig;
+import io.github.gjaku1031.kenblog.post.domain.PostStatus;
 import io.github.gjaku1031.kenblog.post.dto.PostMetadataCreateRequest;
 import io.github.gjaku1031.kenblog.post.service.PostService;
 import io.github.gjaku1031.kenblog.series.domain.ProjectStatus;
@@ -153,7 +154,7 @@ final class ContentManagementIntegrationTest {
                                 null,
                                 null,
                                 List.of()));
-        posts.setPublished(post.id(), true);
+        posts.changeStatus(post.id(), PostStatus.PUBLISHED);
         assertThrows(SeriesInUseException.class, () -> series.delete(group.id()));
         posts.delete(post.id());
         series.delete(group.id());

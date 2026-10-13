@@ -32,12 +32,12 @@ public record CategoryTreeResponse(
         int sortOrder,
 
         /**
-         * 초안을 포함한 해당 분류의 직접 글 수
+         * 공개하지 않은 글을 포함한 해당 분류의 직접 글 수
          */
         long directCount,
 
         /**
-         * 초안을 포함한 해당 분류와 모든 하위 분류의 글 수
+         * 공개하지 않은 글을 포함한 해당 분류와 모든 하위 분류의 글 수
          */
         long totalCount,
 

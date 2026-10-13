@@ -34,7 +34,7 @@ public final class PostAttachmentController {
             @PathVariable("id") long id,
             HttpServletResponse response)
             throws IOException {
-        var content = service.open(postId, id);
+        var content = service.open(postId, id, true);
         try (var stream = content.stream()) {
             response.setContentType(content.contentType());
             response.setContentLengthLong(content.byteSize());

@@ -7,6 +7,7 @@ import io.github.gjaku1031.kenblog.category.service.CategoryService;
 import io.github.gjaku1031.kenblog.fixture.TestMysqlConfig;
 import io.github.gjaku1031.kenblog.pages.PagesSnapshotService;
 import io.github.gjaku1031.kenblog.category.dto.CategoryRefResponse;
+import io.github.gjaku1031.kenblog.post.domain.PostStatus;
 import io.github.gjaku1031.kenblog.post.dto.PostMetadataCreateRequest;
 import io.github.gjaku1031.kenblog.post.dto.PostSeriesItem;
 import io.github.gjaku1031.kenblog.post.service.PostService;
@@ -83,16 +84,16 @@ final class CategoryHierarchyIntegrationTest {
     }
 
     /**
-     * 소분류 탐색 순서와 초안 제외, 트리에는 초안 건수 포함
+     * 소분류 탐색 순서와 미검수 글 제외, 트리에는 미검수 글 건수 포함
      */
     @Test
     void secondLevelNavigationKeepsOrderAndExcludesDrafts() {
         var category = categories.create("Math/Linear Algebra");
         var second = posts.createMetadata(inCategory("두 번째", category.id(), 2));
         var first = posts.createMetadata(inCategory("첫 번째", category.id(), 1));
-        posts.createMetadata(inCategory("초안", category.id(), 3));
-        posts.setPublished(second.id(), true);
-        posts.setPublished(first.id(), true);
+        posts.createMetadata(inCategory("미검수", category.id(), 3));
+        posts.changeStatus(second.id(), PostStatus.PUBLISHED);
+        posts.changeStatus(first.id(), PostStatus.PUBLISHED);
         var snapshot = pages.snapshot();
         var entry = post(snapshot, second.id());
         var group = (Map<?, ?>) Objects.requireNonNull(entry.get("series"));
@@ -120,7 +121,7 @@ final class CategoryHierarchyIntegrationTest {
     void topLevelDoesNotCreateAnAutomaticReadingSeries() {
         var root = categories.create("Math");
         var post = posts.createMetadata(inCategory("대분류 글", root.id(), null));
-        posts.setPublished(post.id(), true);
+        posts.changeStatus(post.id(), PostStatus.PUBLISHED);
         assertNull(post(pages.snapshot(), post.id()).get("series"));
     }
 
@@ -132,7 +133,7 @@ final class CategoryHierarchyIntegrationTest {
         var child = categories.create("Z First/Child Name");
         categories.create("Private Empty");
         var post = posts.createMetadata(inCategory("분류 스냅샷", child.id(), null));
-        posts.setPublished(post.id(), true);
+        posts.changeStatus(post.id(), PostStatus.PUBLISHED);
         var snapshot = pages.snapshot();
         var visible = (List<?>) snapshot.get("categories");
         assertEquals(
