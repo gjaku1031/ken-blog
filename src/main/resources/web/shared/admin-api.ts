@@ -20,8 +20,12 @@ const apiBase = document.body.dataset.apiBase ?? '';
 
 /**
  * 세션 쿠키로 직접 여는 관리자 API 주소, 이미지처럼 fetch를 거치지 않는 요청에 사용
+ * API가 화면과 같은 출처면 경로만 반환(본문 렌더러는 내부 경로와 https 주소의 이미지만 허용)
  */
-export const apiUrl = (path: string): string => new URL('/api/v1' + path, apiBase || location.origin).href;
+export function apiUrl(path: string): string {
+  const url = new URL('/api/v1' + path, apiBase || location.origin);
+  return url.origin === location.origin ? url.pathname : url.href;
+}
 
 /**
  * 현재 세션의 CSRF 토큰

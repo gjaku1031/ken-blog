@@ -130,4 +130,6 @@ JDT LS 프로젝트 갱신·빌드 후 현재 Neovim에 수집된 오류·경고
 
 운영 스키마는 확장-축소 순서로 적용한다. ① [확장 SQL](../../deploy/sql/add-post-review-2026-10-13.sql): 옛 `ck_posts_status`(`DRAFT`·`PUBLISHED`만 허용)와 `ck_posts_published_at`(`DRAFT`가 아니면 출간일 필수)을 지우고, `reviewed_at` 열과 두 테이블을 추가하며, 상태 CHECK를 `DRAFT` 포함 4종으로, 출간일 CHECK를 "공개 글이면 출간일 필수"로 다시 건다. `DRAFT`를 남기는 이유는 교체 전의 API가 새 글을 `DRAFT`로 저장하기 때문이다. ② 새 API 배포 ③ [축소 SQL](../../deploy/sql/tighten-post-status-2026-10-13.sql): 남은 `DRAFT`를 `UNREVIEWED`로 옮기고 CHECK를 3종으로 줄인다. 생성 DDL에는 CHECK가 없으므로 CHECK는 운영 SQL로만 관리한다.
 
-검증: 운영과 같은 `posts` 정의를 둔 MySQL 8.4.11에서 확장 → 새 상태 저장 → 축소 순서 실행, 출간일 없는 공개 글·미검수가 아닌 글의 검수 시각·`DRAFT` 저장이 각각 CHECK로 거부되고 글 삭제 시 본문·연결이 연쇄 삭제됨을 확인. 격리 MySQL 통합 검사(`PostReviewIntegrationTest`)로 상태 전환과 최초 출간 시각 보존, DB 본문이 남은 글의 공개 거부, 검수 표시 조건, 공개하지 않은 글의 변경이 공개 스냅샷 revision을 바꾸지 않음, 삭제 연쇄를 확인. 전체 Java 검사 80개 통과. 운영 DB 적용은 이 기록 시점에 미수행.
+검증: 운영과 같은 `posts` 정의를 둔 MySQL 8.4.11에서 확장 → 새 상태 저장 → 축소 순서 실행, 출간일 없는 공개 글·미검수가 아닌 글의 검수 시각·`DRAFT` 저장이 각각 CHECK로 거부되고 글 삭제 시 본문·연결이 연쇄 삭제됨을 확인. 격리 MySQL 통합 검사(`PostReviewIntegrationTest`)로 상태 전환과 최초 출간 시각 보존, DB 본문이 남은 글의 공개 거부, 검수 표시 조건, 공개하지 않은 글의 변경이 공개 스냅샷 revision을 바꾸지 않음, 삭제 연쇄를 확인. 전체 Java 검사 80개 통과.
+
+운영 적용(2026-10-13): 확장 SQL 적용 후 새 API로 교체. 적용 전 글 52개는 모두 공개 상태였고 `DRAFT` 행은 없었음. 이어 Posts 구획의 공개 글 13개를 미검수로 내려 본문을 `post_bodies`로 옮기고 저장소 원고를 삭제함(공개 글 39개). 축소 SQL은 미적용.

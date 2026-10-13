@@ -98,6 +98,10 @@ async function mockApi(page, override = async () => false, prepare = () => {}) {
       if (body.reviewed && body.bodyUpdatedAt !== row.bodyUpdatedAt) { status = 409; data = { detail: '읽은 뒤 본문이 바뀌었습니다. 글을 다시 열어 확인하세요.' }; }
       else { row.reviewedAt = body.reviewed ? '2026-10-13T00:00:00' : null; data = row; }
     }
+    // 공개하지 않은 글의 본문 이미지는 관리자 첨부 경로의 1픽셀 PNG로 응답
+    else if (method === 'GET' && /^\/admin\/posts\/\d+\/attachments\/\d+\/content$/.test(path)) {
+      await route.fulfill({ contentType: 'image/png', body: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLbtAAAAABJRU5ErkJggg==', 'base64') }); return;
+    }
     // 연결 글이 없는 기본 응답, 필요한 시나리오는 override로 대체
     else if (method === 'GET' && /^\/admin\/posts\/\d+\/links$/.test(path)) data = [];
     else if (method === 'GET' && path === '/admin/categories') data = categories;
@@ -1143,10 +1147,10 @@ function reviewPosts(posts) {
 }
 
 /**
- * 검수 화면 시나리오의 DB 본문: 제목·코드·수식·도식과 공개·미검수·없는 글로 가는 링크
+ * 검수 화면 시나리오의 DB 본문: 제목·그림·코드·수식·도식과 공개·미검수·없는 글로 가는 링크
  */
 const reviewBody = '## 검수 제목\n\n$a+b$ [공개 글](/ken-blog/post/fixture-4/) [미검수 글](/ken-blog/post/fixture-2/) ' +
-  '[없는 글](/ken-blog/post/missing-post/)\n\n```js\nconst value = 1;\n```\n\n```mermaid\ngraph TD\n A-->B\n```\n\n### 하위 제목\n\n끝';
+  '[없는 글](/ken-blog/post/missing-post/)\n\n![노트 그림|w=100|a=center](attachment:7)\n\n```js\nconst value = 1;\n```\n\n```mermaid\ngraph TD\n A-->B\n```\n\n### 하위 제목\n\n끝';
 
 // 익명 방문자에게는 로그인 안내만 보이고 관리자 글 정보를 요청하지 않는지 검증
 test('review page shows only a login notice to anonymous visitors', async ({ page }) => {
@@ -1166,12 +1170,14 @@ test('review page shows only a login notice to anonymous visitors', async ({ pag
 
 // 단계별 목록, 공개 글과 같은 본문 렌더, 링크 해석, 검수 완료 요청과 다음 글 이동 검증
 test('review queue renders the stored body and marks the read version as reviewed', async ({ page }) => {
-  const reviews = [];
+  const reviews = []; let imageReads = 0;
   await mockApi(page, async (route, path) => {
     if (/^\/admin\/posts\/[12]\/body$/.test(path)) {
       const id = Number(path.split('/')[3]);
       await route.fulfill({ json: { postId: id, body: reviewBody, updatedAt: `2026-10-12T00:00:0${id}` } }); return true;
     }
+    // 본문 이미지는 익명 공개 경로가 아니라 글별 관리자 첨부 경로로 요청
+    if (path === '/admin/posts/1/attachments/7/content') imageReads++;
     if (path.endsWith('/review')) reviews.push(route.request().postDataJSON());
     return false;
   }, reviewPosts);
@@ -1190,6 +1196,9 @@ test('review queue renders the stored body and marks the read version as reviewe
   const body = page.locator('.markdown-body');
   await expect(body.getByRole('heading', { name: '검수 제목' })).toBeVisible();
   await expect(body.locator('.katex').first()).toBeVisible();
+  await expect(body.locator('img.ken-attachment')).toHaveAttribute('src', '/api/v1/admin/posts/1/attachments/7/content');
+  await expect(body.locator('figcaption')).toHaveText('노트 그림');
+  await expect.poll(() => imageReads).toBeGreaterThan(0);
   await expect(body.locator('pre code span').first()).toBeVisible();
   await expect(body.locator('.ken-mermaid img')).toBeVisible({ timeout: 15000 });
   await expect(body.getByRole('link', { name: '공개 글' })).toHaveAttribute('href', '/ken-blog/post/fixture-4/');

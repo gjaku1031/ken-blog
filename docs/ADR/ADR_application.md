@@ -290,4 +290,6 @@ GitHub Actions는 저장소 변수 `GA_MEASUREMENT_ID`를 운영 빌드에 전�
 
 영속 구조와 운영 스키마 적용 순서는 [영속성 ADR](ADR_persistence.md), 화면과 빌드 쪽 결정은 [프론트엔드 ADR](ADR_frontend.md) 참조.
 
-검증: 실제 HTTP 검사(`AuthHttpIntegrationTest.reviewHttpContract`)로 새 경로의 익명 401, 본문 404와 `no-store` 200, 입력 검증 400, 본문 위치·읽은 시각 불일치 409, 검수 표시·해제를 확인. JVM 이미지 시나리오(CI)에 SQL로 넣은 본문의 관리자 열람, 공개 스냅샷 revision 불변, 익명 이미지 404와 관리자 이미지 200, 본문 삭제 뒤 공개를 추가. 운영 반영은 이 기록 시점에 미수행.
+검증: 실제 HTTP 검사(`AuthHttpIntegrationTest.reviewHttpContract`)로 새 경로의 익명 401, 본문 404와 `no-store` 200, 입력 검증 400, 본문 위치·읽은 시각 불일치 409, 검수 표시·해제를 확인. JVM 이미지 시나리오(CI)에 SQL로 넣은 본문의 관리자 열람, 공개 스냅샷 revision 불변, 익명 이미지 404와 관리자 이미지 200, 본문 삭제 뒤 공개를 추가.
+
+운영 반영(2026-10-13): 새 API 교체 뒤 공개 스냅샷의 글 수와 revision이 교체 전과 같음을 확인. 새 관리자 경로는 익명 요청에 401, 공개하지 않은 글의 첨부는 익명 경로에서 404. Pages 출처에서 보낸 새 경로의 CORS 사전 요청은 자격 증명 허용으로 응답. 로그인 세션으로 여는 검수 화면의 본문·이미지 표시는 브라우저에서 따로 확인할 항목.
