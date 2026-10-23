@@ -105,31 +105,18 @@ JDT LS 프로젝트 갱신·빌드 후 현재 Neovim에 수집된 오류·경고
 
 현재 기능에서 읽지 않는 열을 엔티티와 운영 DB에서 함께 제거한다. 대상은 `posts.body`·`body_sha256`(Git 원고가 정본이 된 뒤 새 글에는 빈 값만 저장하던 열), `posts.pin_order`·`view_count`와 `ix_posts_pin` 인덱스, `attachments.pending_cleanup`, 코드에 없던 `admin_auth_state.last_totp_step`. `PostBodyHash`는 관리자 설정 지문 계산만 남아 `AdminAuthSettings`로 옮겼다.
 
-공개하지 않은 글의 본문은 2026-10-13 결정으로 별도 테이블 `post_bodies`에 둔다(문서 끝 참조). 공개 글의 본문이 Git 원고에만 있다는 기준은 그대로다.
-
 `ddl-auto=validate`는 DB에 남은 여분 열을 허용하지만 NOT NULL·기본값 없는 `body`·`body_sha256`은 새 엔티티의 INSERT를 막는다. 그래서 확장-축소 순서로 적용한다. ① [NULL 허용 SQL](../../deploy/sql/legacy-columns-nullable-2026-10-08.sql) ② 새 API 배포 ③ [열 삭제 SQL](../../deploy/sql/drop-legacy-columns-2026-10-08.sql). 옛 본문이 남아 있던 글 7개는 모두 Git 원고가 있어 사용자 결정으로 백업 없이 삭제한다. 앞선 ADR의 "옛 body/body_sha256 유지"는 이 결정으로 대체한다.
 
 ## 값이 고정된 열 제거 — 2026-10-08
 
-쓰기 기능을 없앤 뒤 값이 하나로 고정되거나 아무도 읽지 않는 열을 제거한다. `attachments.status`(모두 READY), `attachments.original_filename`·`uploaded_by`(등록자는 관리자 한 명), `users.display_name`, `posts.section`(모두 TECH), `posts.visibility`·`series.visibility`(CHECK로 PUBLIC만 저장 가능), `series.legacy_source`·`legacy_id`와 `uk_series_legacy`(이관 완료). 공개 조건은 "출간된 글"과 "공개 글에 연결된 첨부"가 되고(상태 값은 2026-10-13 결정으로 3종이 됐으나 공개 조건은 같음, 문서 끝 참조), 첨부 연결 교체는 상태 대신 첨부 행의 존재를 `FOR UPDATE`로 확인한다. 공개 스냅샷의 revision 입력에서도 첨부 상태 값이 빠진다.
+쓰기 기능을 없앤 뒤 값이 하나로 고정되거나 아무도 읽지 않는 열을 제거한다. `attachments.status`(모두 READY), `attachments.original_filename`·`uploaded_by`(등록자는 관리자 한 명), `users.display_name`, `posts.section`(모두 TECH), `posts.visibility`·`series.visibility`(CHECK로 PUBLIC만 저장 가능), `series.legacy_source`·`legacy_id`와 `uk_series_legacy`(이관 완료). 공개 조건은 "출간된 글"과 "공개 글에 연결된 첨부"가 되고, 첨부 연결 교체는 상태 대신 첨부 행의 존재를 `FOR UPDATE`로 확인한다. 공개 스냅샷의 revision 입력에서도 첨부 상태 값이 빠진다.
 
 같은 확장-축소 순서로 적용한다. ① [기본값 SQL](../../deploy/sql/fixed-columns-default-2026-10-08.sql)(기본값 없는 NOT NULL `series.visibility`) ② 새 API 배포 ③ [열 삭제 SQL](../../deploy/sql/drop-fixed-columns-2026-10-08.sql).
 
-## 공개 범위 3종과 DB 본문·글 연결 — 2026-10-13
+## 공개 범위 3종 철회 — 2026-10-23
 
-글 상태를 `UNREVIEWED`(미검수)·`PRIVATE`(비공개)·`PUBLISHED`(공개)로 나누고, 공개하지 않은 글의 본문과 관리자에게만 보이는 글 연결을 DB에 둔다. 배경과 HTTP 계약은 [애플리케이션 ADR](ADR_application.md) 끝의 같은 날짜 결정 참조.
+2026-10-13에 넣은 미검수·비공개 상태, 검수 시각 `posts.reviewed_at`, 공개하지 않은 글의 본문 `post_bodies`, 관리자 전용 글 연결 `post_links`를 사용자 결정으로 없애고 `DRAFT`·`PUBLISHED` 두 상태로 되돌린다. 공개 글의 본문이 Git 원고에만 있다는 기준은 그대로이고, 새 글도 원고를 커밋해 공개한다.
 
-- `posts.status`: `DRAFT`를 없애고 새 글의 기본값을 `UNREVIEWED`로 둔다. 공개 조건 `PostQueries.readable()`은 `status = 'PUBLISHED'` 그대로이며 스냅샷·시리즈 대문·첨부 익명 전달·revision이 모두 이 조건을 쓴다.
-- `posts.reviewed_at`: 검수 완료 시각. 미검수 글에만 값이 있고 상태가 바뀌면 NULL로 돌아간다.
-- `post_bodies(post_id PK·FK CASCADE, body MEDIUMTEXT, updated_at)`: 공개하지 않은 글의 Markdown 본문. `posts`에 열로 두지 않은 이유는 목록 조회와 글 잠금 조회(`findLockedById`)가 엔티티 전체를 읽기 때문이다. 목록은 LEFT JOIN으로 `updated_at`만 읽는다.
-- `post_links(post_id, linked_post_id)`: 글 사이의 연결. 방향 없이 양쪽에서 조회하며 두 FK 모두 CASCADE.
-- 본문은 한 곳에만 둔다. 공개 글은 Git 원고, 그 밖의 글은 `post_bodies`. 서버는 DB 본문이 남은 글의 공개 전환을 409로 거부해 원고가 없는 공개 글이 Pages 빌드를 실패시키는 경우를 막는다.
-- 애플리케이션은 `post_bodies`·`post_links`를 읽기만 한다. 본문 쓰기와 본문이 따라가는 상태 전환(공개 전환, 공개 글 내림)은 운영 절차의 SQL이 한 트랜잭션으로 수행한다. 본문을 고치는 화면이 없고, 쓰기 경로를 하나로 두어 "본문이 바뀌면 검수 표시 초기화"를 한 곳에서 지키기 위함이다.
+이관 순서: 숨겨 둔 글은 기능을 지우기 전에 기존 공개 전환 절차로 원고를 커밋하고 공개 상태로 바꿔, DB 본문을 비운다. 그 뒤 확장-축소 순서로 적용한다. ① [기본값 SQL](../../deploy/sql/restore-post-status-2026-10-23.sql): 상태 기본값을 `DRAFT`로(상태 CHECK는 [10-13 확장 SQL](../../deploy/sql/add-post-review-2026-10-13.sql)이 `DRAFT`를 남겨 두어 그대로) ② 옛 API 배포 ③ [축소 SQL](../../deploy/sql/drop-post-review-2026-10-23.sql): 두 테이블과 `reviewed_at`을 지우고 상태 CHECK를 `DRAFT`·`PUBLISHED`로, 출간일 CHECK를 "`DRAFT`가 아니면 출간일 필수"로 되돌린다. 10-13의 축소 SQL은 적용한 적이 없어 지웠다.
 
-받아들인 비용: 공개 전환이 버튼 하나로 끝나지 않고 원고 커밋 → 상태 전환 SQL → Pages 실행의 세 단계다. 운영 DB가 공개 전 본문의 유일한 서버 사본이 되며, 공개 전 본문에는 Git 변경 이력이 없다.
-
-운영 스키마는 확장-축소 순서로 적용한다. ① [확장 SQL](../../deploy/sql/add-post-review-2026-10-13.sql): 옛 `ck_posts_status`(`DRAFT`·`PUBLISHED`만 허용)와 `ck_posts_published_at`(`DRAFT`가 아니면 출간일 필수)을 지우고, `reviewed_at` 열과 두 테이블을 추가하며, 상태 CHECK를 `DRAFT` 포함 4종으로, 출간일 CHECK를 "공개 글이면 출간일 필수"로 다시 건다. `DRAFT`를 남기는 이유는 교체 전의 API가 새 글을 `DRAFT`로 저장하기 때문이다. ② 새 API 배포 ③ [축소 SQL](../../deploy/sql/tighten-post-status-2026-10-13.sql): 남은 `DRAFT`를 `UNREVIEWED`로 옮기고 CHECK를 3종으로 줄인다. 생성 DDL에는 CHECK가 없으므로 CHECK는 운영 SQL로만 관리한다.
-
-검증: 운영과 같은 `posts` 정의를 둔 MySQL 8.4.11에서 확장 → 새 상태 저장 → 축소 순서 실행, 출간일 없는 공개 글·미검수가 아닌 글의 검수 시각·`DRAFT` 저장이 각각 CHECK로 거부되고 글 삭제 시 본문·연결이 연쇄 삭제됨을 확인. 격리 MySQL 통합 검사(`PostReviewIntegrationTest`)로 상태 전환과 최초 출간 시각 보존, DB 본문이 남은 글의 공개 거부, 검수 표시 조건, 공개하지 않은 글의 변경이 공개 스냅샷 revision을 바꾸지 않음, 삭제 연쇄를 확인. 전체 Java 검사 80개 통과.
-
-운영 적용(2026-10-13): 확장 SQL 적용 후 새 API로 교체. 적용 전 글 52개는 모두 공개 상태였고 `DRAFT` 행은 없었음. 이어 Posts 구획의 공개 글 13개를 미검수로 내려 본문을 `post_bodies`로 옮기고 저장소 원고를 삭제함(공개 글 39개). 축소 SQL은 미적용.
+검증: 운영과 같은 `posts`·`post_bodies`·`post_links` 정의를 둔 MySQL 8.4.11에서 ①→③을 실행해, 상태 없이 넣은 글이 `DRAFT`가 되고 ③ 뒤에는 `UNREVIEWED`와 출간일 없는 공개 글이 CHECK로 거부됨을 확인. Java 검사 73개 통과.
