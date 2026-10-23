@@ -92,16 +92,16 @@ test("damdam infrastructure keeps its reference layout", async () => {
 });
 
 /**
- * 학원 ERP 시스템 구조 도식이 고정 배치의 구성·연결과 일치하고 변경을 숨기지 않음
+ * 학원 강사 업무일지 시스템 구조 도식이 고정 배치의 구성·연결과 일치하고 변경을 숨기지 않음
  */
 test("npr-erp system structure keeps its reference layout", async () => {
   for (const file of ["project-b17d9daa-5d61-4433-bfc3-710425d7cae7.md", "doc-c2513d8a-31f4-49df-a99a-675fca3305a3.md"]) {
     const body = await readFile(new URL(`../../content/posts/${file}`, import.meta.url), "utf8");
     const system = body.match(/```mermaid(?: [^\n]*)?\n(architecture-beta\n  %% layout: npr-erp-system[\s\S]*?)\n```/)[1];
     assert.deepEqual([...validateReferenceLayout(system).keys()].sort(), [
-      "lead", "teacher", "admin", "web", "tng", "storage", "identity", "access", "worklog", "files", "pg", "erp",
+      "lead", "teacher", "other", "spa", "api", "port", "replica", "primary", "erp",
     ].sort());
-    assert.throws(() => validateReferenceLayout(system.replace("  tng:R -[Read and write]-> L:erp", "")));
+    assert.throws(() => validateReferenceLayout(system.replace("  port:R -[Read and write]-> L:erp", "")));
     assert.throws(() => validateReferenceLayout(system.replace("npr-erp-system", "npr-system")));
   }
 });

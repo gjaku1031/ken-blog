@@ -80,7 +80,7 @@ architecture-beta
 | `%% layout: vowser-system` | [Vowser 시스템 구조 JSON](../../../../src/main/resources/web/shared/vowser-system-layout.json) | [Vowser 아키텍처](../../../../content/posts/doc-fd568125-2806-4210-a0b2-e4bf2d1b509e.md) |
 | `%% layout: npr-infrastructure` | [npr 인프라 JSON](../../../../src/main/resources/web/shared/npr-infrastructure-layout.json) | [npr 대문·아키텍처](../../../../content/posts/doc-71ac4b10-9f99-4251-893d-a57dd46ad334.md) |
 | `%% layout: npr-system` | [npr 시스템 구조 JSON](../../../../src/main/resources/web/shared/npr-system-layout.json) | [npr 아키텍처](../../../../content/posts/doc-71ac4b10-9f99-4251-893d-a57dd46ad334.md) |
-| `%% layout: npr-erp-system` | [학원 ERP 시스템 구조 JSON](../../../../src/main/resources/web/shared/npr-erp-system-layout.json) | [학원 ERP 대문](../../../../content/posts/project-b17d9daa-5d61-4433-bfc3-710425d7cae7.md)·[아키텍처](../../../../content/posts/doc-c2513d8a-31f4-49df-a99a-675fca3305a3.md) |
+| `%% layout: npr-erp-system` | [학원 강사 업무일지 시스템 구조 JSON](../../../../src/main/resources/web/shared/npr-erp-system-layout.json) | [학원 강사 업무일지 대문](../../../../content/posts/project-b17d9daa-5d61-4433-bfc3-710425d7cae7.md)·[아키텍처](../../../../content/posts/doc-c2513d8a-31f4-49df-a99a-675fca3305a3.md) |
 | `%% layout: damdam-infrastructure` | [damdam 인프라 JSON](../../../../src/main/resources/web/shared/damdam-infrastructure-layout.json) | [damdam 대문](../../../../content/posts/project-a3d53a55-de01-4888-9e9a-02e34f2579bb.md) |
 
 주석은 `architecture-beta` 다음 줄에 둔다. Mermaid 초기화 전에 원고와 배치의 일치를 검증하고, 렌더링 후 검증된 SVG에 좌표·선 경로·설명을 적용한다. 다른 Mermaid 뷰어는 구성과 연결을 읽을 수 있지만 이 사이트의 배치 주석과 `ken:` 팩을 자동 제공하지 않는다.

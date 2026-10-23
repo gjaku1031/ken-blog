@@ -1,43 +1,54 @@
 {
-  "width": 1310,
-  "height": 565,
+  "width": 1250,
+  "height": 620,
   "legend": [
     {
       "kind": "runtime",
       "title": "요청 · 데이터 접근"
     },
     {
+      "kind": "reference",
+      "title": "리플리카 동기화"
+    },
+    {
       "kind": "delivery",
-      "title": "외부 ERP 연동"
+      "title": "외부 ERP 조회 · 기록"
     }
   ],
   "groups": {
     "users": [
       10,
       40,
-      235,
+      230,
       300,
       "사용자"
     ],
-    "app": [
-      300,
-      40,
-      725,
-      300,
-      "애플리케이션 · 프로세스 하나"
+    "browser": [
+      290,
+      110,
+      210,
+      130,
+      "브라우저"
     ],
-    "data": [
-      300,
-      400,
-      725,
-      120,
-      "데이터"
+    "vercel": [
+      550,
+      40,
+      360,
+      440,
+      "Vercel · 서버리스 함수"
+    ],
+    "turso": [
+      960,
+      330,
+      280,
+      150,
+      "Turso"
     ],
     "external": [
-      1100,
+      960,
       40,
-      200,
-      150,
+      280,
+      130,
       "외부 시스템"
     ]
   },
@@ -50,55 +61,40 @@
     "teacher": [
       30,
       170,
-      "일일보고 · 상담"
+      "일일보고 · 상담 전송"
     ],
-    "admin": [
+    "other": [
       30,
       260,
-      "역할 · 권한 구성"
+      "본인 반 · 상담일정"
     ],
-    "web": [
-      320,
-      90,
-      "화면 · 로그인 · 권한 확인"
+    "spa": [
+      310,
+      150,
+      "화면 · 앱 상태"
     ],
-    "tng": [
-      877,
+    "api": [
+      570,
       90,
+      "모든 API · 업무 규칙"
+    ],
+    "port": [
+      750,
+      230,
       "외부 ERP 포트"
     ],
-    "storage": [
-      360,
-      250,
-      "자료실 · 작업 원장"
+    "replica": [
+      570,
+      390,
+      "인스턴스마다 /tmp 파일"
     ],
-    "identity": [
-      525,
-      250,
-      "계정 · 비밀번호"
-    ],
-    "access": [
-      690,
-      250,
-      "권한 엔진 · 감사"
-    ],
-    "worklog": [
-      865,
-      250,
-      "업무 · 보고 · 상담"
-    ],
-    "files": [
-      346,
-      445,
-      "파일 본문 · 로컬 디스크"
-    ],
-    "pg": [
-      620,
-      445,
-      "계정 · 권한 원장 · 자료실 메타데이터 · 업무일지"
+    "primary": [
+      980,
+      390,
+      "모든 데이터의 원본"
     ],
     "erp": [
-      1120,
+      980,
       90,
       "반 · 학생 · 출결 원장"
     ]
@@ -106,50 +102,43 @@
   "members": {
     "lead": "users",
     "teacher": "users",
-    "admin": "users",
-    "web": "app",
-    "tng": "app",
-    "storage": "app",
-    "identity": "app",
-    "access": "app",
-    "worklog": "app",
-    "files": "data",
-    "pg": "data",
+    "other": "users",
+    "spa": "browser",
+    "api": "vercel",
+    "port": "vercel",
+    "replica": "vercel",
+    "primary": "turso",
     "erp": "external"
   },
   "parents": {
     "users": "",
-    "app": "",
-    "data": "",
+    "browser": "",
+    "vercel": "",
+    "turso": "",
     "external": ""
   },
   "sourceGroups": [
     "group users[Users]",
-    "group app[Application]",
-    "group data[Data]",
+    "group browser[Browser]",
+    "group vercel[Vercel]",
+    "group turso[Turso]",
     "group external[External system]"
   ],
   "sourceEdges": [
-    "lead:R -[Request]-> L:web",
-    "teacher:R -[Request]-> L:web",
-    "admin:R -[Request]-> L:web",
-    "web:B -[Files]-> T:storage",
-    "web:B -[Login]-> T:identity",
-    "web:B -[Authorize]-> T:access",
-    "web:B -[Tasks]-> T:worklog",
-    "web:R -[Staff list]-> L:tng",
-    "worklog:T -[Port]-> B:tng",
-    "tng:R -[Read and write]-> L:erp",
-    "storage:B -[Files]-> T:files",
-    "storage:B -[SQL]-> T:pg",
-    "identity:B -[SQL]-> T:pg",
-    "access:B -[SQL]-> T:pg",
-    "worklog:B -[SQL]-> T:pg"
+    "lead:R -[Use]-> L:spa",
+    "teacher:R -[Use]-> L:spa",
+    "other:R -[Use]-> L:spa",
+    "spa:R -[HTTP]-> L:api",
+    "api:B -[Port]-> T:port",
+    "api:B -[SQL]-> T:replica",
+    "api:B -[Claim]-> T:primary",
+    "port:R -[Read and write]-> L:erp",
+    "replica:R -[Sync]-> L:primary"
   ],
   "edges": [
     {
       "source": "lead",
-      "target": "web",
+      "target": "spa",
       "groupTarget": false,
       "points": [
         [
@@ -157,16 +146,16 @@
           102
         ],
         [
-          272,
+          262,
           102
         ],
         [
-          272,
-          112
+          262,
+          172
         ],
         [
-          316,
-          112
+          306,
+          172
         ]
       ],
       "kind": "runtime",
@@ -178,24 +167,24 @@
     },
     {
       "source": "teacher",
-      "target": "web",
+      "target": "spa",
       "groupTarget": false,
       "points": [
         [
-          154,
+          182,
           192
         ],
         [
-          272,
+          262,
           192
         ],
         [
-          272,
-          112
+          262,
+          172
         ],
         [
-          316,
-          112
+          306,
+          172
         ]
       ],
       "kind": "runtime",
@@ -206,348 +195,194 @@
       ]
     },
     {
-      "source": "admin",
-      "target": "web",
+      "source": "other",
+      "target": "spa",
       "groupTarget": false,
       "points": [
         [
-          168,
+          180,
           282
         ],
         [
-          272,
+          262,
           282
         ],
         [
-          272,
+          262,
+          172
+        ],
+        [
+          306,
+          172
+        ]
+      ],
+      "kind": "runtime",
+      "label": "화면 사용",
+      "at": [
+        262,
+        240
+      ]
+    },
+    {
+      "source": "spa",
+      "target": "api",
+      "groupTarget": false,
+      "points": [
+        [
+          446,
+          172
+        ],
+        [
+          524,
+          172
+        ],
+        [
+          524,
           112
         ],
         [
-          316,
-          112
-        ]
-      ],
-      "kind": "runtime",
-      "label": "화면 요청",
-      "at": [
-        272,
-        150
-      ]
-    },
-    {
-      "source": "web",
-      "target": "storage",
-      "groupTarget": false,
-      "points": [
-        [
-          342,
-          136
-        ],
-        [
-          342,
-          190
-        ],
-        [
-          382,
-          190
-        ],
-        [
-          382,
-          246
-        ]
-      ],
-      "kind": "runtime",
-      "label": "",
-      "at": [
-        0,
-        0
-      ]
-    },
-    {
-      "source": "web",
-      "target": "identity",
-      "groupTarget": false,
-      "points": [
-        [
-          342,
-          136
-        ],
-        [
-          342,
-          190
-        ],
-        [
-          547,
-          190
-        ],
-        [
-          547,
-          246
-        ]
-      ],
-      "kind": "runtime",
-      "label": "",
-      "at": [
-        0,
-        0
-      ]
-    },
-    {
-      "source": "web",
-      "target": "access",
-      "groupTarget": false,
-      "points": [
-        [
-          342,
-          136
-        ],
-        [
-          342,
-          190
-        ],
-        [
-          712,
-          190
-        ],
-        [
-          712,
-          246
-        ]
-      ],
-      "kind": "runtime",
-      "label": "요청마다 권한 확인",
-      "at": [
-        712,
-        220
-      ]
-    },
-    {
-      "source": "web",
-      "target": "worklog",
-      "groupTarget": false,
-      "points": [
-        [
-          342,
-          136
-        ],
-        [
-          342,
-          190
-        ],
-        [
-          877,
-          190
-        ],
-        [
-          877,
-          246
-        ]
-      ],
-      "kind": "runtime",
-      "label": "공개 계약 호출",
-      "at": [
-        464,
-        190
-      ]
-    },
-    {
-      "source": "web",
-      "target": "tng",
-      "groupTarget": false,
-      "points": [
-        [
-          512,
-          112
-        ],
-        [
-          873,
+          566,
           112
         ]
       ],
       "kind": "runtime",
-      "label": "직원 목록",
+      "label": "HTTP 요청",
       "at": [
-        690,
-        112
+        524,
+        142
       ]
     },
     {
-      "source": "worklog",
-      "target": "tng",
+      "source": "api",
+      "target": "port",
       "groupTarget": false,
       "points": [
         [
-          899,
-          246
+          616,
+          136
         ],
         [
-          899,
-          140
+          616,
+          180
+        ],
+        [
+          772,
+          180
+        ],
+        [
+          772,
+          226
         ]
       ],
       "kind": "runtime",
-      "label": "명단 · 출결 · 상담",
+      "label": "포트 호출",
       "at": [
-        899,
-        165
+        694,
+        180
       ]
     },
     {
-      "source": "tng",
+      "source": "api",
+      "target": "replica",
+      "groupTarget": false,
+      "points": [
+        [
+          580,
+          136
+        ],
+        [
+          580,
+          386
+        ]
+      ],
+      "kind": "runtime",
+      "label": "읽기 · 쓰기",
+      "at": [
+        580,
+        300
+      ]
+    },
+    {
+      "source": "api",
+      "target": "primary",
+      "groupTarget": false,
+      "points": [
+        [
+          600,
+          136
+        ],
+        [
+          600,
+          330
+        ],
+        [
+          928,
+          330
+        ],
+        [
+          928,
+          402
+        ],
+        [
+          976,
+          402
+        ]
+      ],
+      "kind": "runtime",
+      "label": "선점 · 조건부 갱신",
+      "at": [
+        764,
+        330
+      ]
+    },
+    {
+      "source": "port",
       "target": "erp",
       "groupTarget": false,
       "points": [
         [
-          1008,
+          892,
+          252
+        ],
+        [
+          940,
+          252
+        ],
+        [
+          940,
           112
         ],
         [
-          1116,
+          976,
           112
         ]
       ],
       "kind": "delivery",
       "label": "조회 · 기록",
       "at": [
-        1062,
-        112
+        940,
+        180
       ]
     },
     {
-      "source": "storage",
-      "target": "files",
+      "source": "replica",
+      "target": "primary",
       "groupTarget": false,
       "points": [
         [
-          368,
-          296
+          770,
+          422
         ],
         [
-          368,
-          441
+          976,
+          422
         ]
       ],
-      "kind": "runtime",
-      "label": "",
+      "kind": "reference",
+      "label": "동기화",
       "at": [
-        0,
-        0
-      ]
-    },
-    {
-      "source": "storage",
-      "target": "pg",
-      "groupTarget": false,
-      "points": [
-        [
-          392,
-          296
-        ],
-        [
-          392,
-          370
-        ],
-        [
-          642,
-          370
-        ],
-        [
-          642,
-          441
-        ]
-      ],
-      "kind": "runtime",
-      "label": "",
-      "at": [
-        0,
-        0
-      ]
-    },
-    {
-      "source": "identity",
-      "target": "pg",
-      "groupTarget": false,
-      "points": [
-        [
-          547,
-          296
-        ],
-        [
-          547,
-          370
-        ],
-        [
-          642,
-          370
-        ],
-        [
-          642,
-          441
-        ]
-      ],
-      "kind": "runtime",
-      "label": "",
-      "at": [
-        0,
-        0
-      ]
-    },
-    {
-      "source": "access",
-      "target": "pg",
-      "groupTarget": false,
-      "points": [
-        [
-          712,
-          296
-        ],
-        [
-          712,
-          370
-        ],
-        [
-          642,
-          370
-        ],
-        [
-          642,
-          441
-        ]
-      ],
-      "kind": "runtime",
-      "label": "",
-      "at": [
-        0,
-        0
-      ]
-    },
-    {
-      "source": "worklog",
-      "target": "pg",
-      "groupTarget": false,
-      "points": [
-        [
-          887,
-          296
-        ],
-        [
-          887,
-          370
-        ],
-        [
-          642,
-          370
-        ],
-        [
-          642,
-          441
-        ]
-      ],
-      "kind": "runtime",
-      "label": "JPA · jOOQ",
-      "at": [
-        790,
-        370
+        870,
+        422
       ]
     }
   ]
