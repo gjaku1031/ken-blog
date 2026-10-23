@@ -15,6 +15,7 @@ ken-blog 문서는 대학원 진학용 포트폴리오이자, 이후 다른 프�
 | 결정을 추가하거나 근거·이력을 대조할 때 | [decisions.md](references/decisions.md) |
 | 문서 유형별 구성(넣을 절·넣지 않을 것) | [document-types.md](references/document-types.md) |
 | 새 프로젝트 대문 | [landing-template.md](references/landing-template.md) |
+| Posts 결정·트러블슈팅 글(회고형, 평서체) | [document-types.md](references/document-types.md)의 'Posts 결정·트러블슈팅 글' |
 | 학습 시리즈 글(개념을 가르치는 Posts 연재) | [document-types.md](references/document-types.md)의 '학습 시리즈 글' |
 | 도식 | `ken-blog-diagrams` 스킬 (`.claude/skills/ken-blog-diagrams/SKILL.md`) |
 | 실험·측정의 설계와 Posts 실험 글 | `ken-blog-experiments` 스킬 (`.claude/skills/ken-blog-experiments/SKILL.md`) |
@@ -50,7 +51,7 @@ ken-blog 문서는 대학원 진학용 포트폴리오이자, 이후 다른 프�
 
 ## 문체
 
-- 문서 본문은 `~했음`, `~임`, `~함` 간결체. 존댓말·감상적 수사 금지. 사용자에게 하는 답변은 해요체.
+- 프로젝트 문서(대문~보안 설계) 본문은 `~했음`, `~임`, `~함` 간결체. Posts 글(결정·트러블슈팅·실험·학습 시리즈)은 평서체(`~했다`, `~이다`, D-087·D-088). 존댓말·감상적 수사 금지. 사용자에게 하는 답변은 해요체.
 - 보고서 서식처럼 쓰지 않고 설명하듯 씀(D-068). "분류: ~", "~의 기록. ~ 측정" 같은 라벨 문장, 주어·동사 없는 명사 나열, 가운뎃점(·)으로 명사 쌓기, 한 문장에 숫자 몰아넣기, 번역투 신조어, 원칙을 가르치는 문장을 피함. 커밋·버전·모델명은 주석이나 재현 자료로 보냄. 금지 패턴 표는 `ken-blog-experiments` 스킬의 '문장 쓰기'
 - 메타 문장 금지: "이 문서는 ~를 다룸", "아래에서 설명함", 작성 경위·자료 수집 과정.
 - 문서 첫머리는 그 문서의 핵심 주장 한 줄로 시작한다. 요약 문단을 반복하지 않되, 대제목 바로 아래에 중제목이 오지 않게 한 줄은 둔다.
