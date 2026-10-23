@@ -86,18 +86,31 @@ server {
 
 `$proxy_add_x_forwarded_for`는 "받은 `X-Forwarded-For` 뒤에 내가 본 연결 상대 주소를 덧붙인 값"이다. 이 컨테이너들 사이에서 `172.20.0.1`은 내 컴퓨터 쪽(curl), `172.20.0.3`은 프록시 컨테이너의 주소다.[* Docker의 포트 연결을 거쳐 들어온 요청은 컨테이너에서 보면 가상 네트워크의 게이트웨이 주소(`172.20.0.1`)에서 온 것으로 보인다]
 
+```bash
+curl -s http://127.0.0.1:18401/        # app에 직접
+```
+
 ```text
-$ curl -s http://127.0.0.1:18401/        # app에 직접
 remote_addr: 172.20.0.1
 X-Forwarded-For:
 X-Forwarded-Proto:
+```
 
-$ curl -s http://127.0.0.1:18402/        # proxy를 거쳐서
+```bash
+curl -s http://127.0.0.1:18402/        # proxy를 거쳐서
+```
+
+```text
 remote_addr: 172.20.0.3
 X-Forwarded-For: 172.20.0.1
 X-Forwarded-Proto: http
+```
 
-$ curl -s -H 'X-Forwarded-For: 1.2.3.4' http://127.0.0.1:18402/    # 헤더를 위조해서
+```bash
+curl -s -H 'X-Forwarded-For: 1.2.3.4' http://127.0.0.1:18402/    # 헤더를 위조해서
+```
+
+```text
 remote_addr: 172.20.0.3
 X-Forwarded-For: 1.2.3.4, 172.20.0.1
 X-Forwarded-Proto: http
@@ -125,11 +138,19 @@ real_ip_header X-Forwarded-For;
 real_ip_recursive on;
 ```
 
-```text
-$ curl -s -H 'X-Forwarded-For: 1.2.3.4' http://127.0.0.1:18402/trust-proxy
-remote_addr: 172.20.0.1 (realip_remote_addr: 172.20.0.3)
+```bash
+curl -s -H 'X-Forwarded-For: 1.2.3.4' http://127.0.0.1:18402/trust-proxy
+```
 
-$ curl -s -H 'X-Forwarded-For: 1.2.3.4' http://127.0.0.1:18402/trust-all
+```text
+remote_addr: 172.20.0.1 (realip_remote_addr: 172.20.0.3)
+```
+
+```bash
+curl -s -H 'X-Forwarded-For: 1.2.3.4' http://127.0.0.1:18402/trust-all
+```
+
+```text
 remote_addr: 1.2.3.4 (realip_remote_addr: 172.20.0.3)
 ```
 

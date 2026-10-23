@@ -70,8 +70,11 @@ CDN 서버 하나의 IP에는 수많은 사이트가 함께 산다. 서버는 �
 
 ### 인증서 체인 보기
 
+```bash
+openssl s_client -connect example.com:443 -servername example.com </dev/null
+```
+
 ```text
-$ openssl s_client -connect example.com:443 -servername example.com </dev/null
 Certificate chain
  0 s:CN=example.com
    i:C=US, O=SSL Corporation, CN=Cloudflare TLS Issuing ECC CA 3
@@ -109,16 +112,29 @@ depth=0 CN=example.com
 
 같은 명령을 SNI만 바꿔 세 번 실행하고, 인증서 주인과 연결 결과 줄만 남겼다.
 
+```bash
+openssl s_client -connect example.com:443 -servername example.com
+```
+
 ```text
-$ openssl s_client -connect example.com:443 -servername example.com
  0 s:CN=example.com
 New, TLSv1.3, Cipher is TLS_AES_256_GCM_SHA384
+```
 
-$ openssl s_client -connect example.com:443 -noservername
+```bash
+openssl s_client -connect example.com:443 -noservername
+```
+
+```text
 ...:error:0A000410:SSL routines:ssl3_read_bytes:ssl/tls alert handshake failure:...:SSL alert number 40
 New, (NONE), Cipher is (NONE)
+```
 
-$ openssl s_client -connect 104.20.23.154:443 -servername www.cloudflare.com
+```bash
+openssl s_client -connect 104.20.23.154:443 -servername www.cloudflare.com
+```
+
+```text
  0 s:CN=www.cloudflare.com
 New, TLSv1.3, Cipher is TLS_AES_256_GCM_SHA384
 ```
@@ -129,18 +145,33 @@ SNI를 빼자 서버가 핸드셰이크 자체를 거절했다. 어느 사이트
 
 내 컴퓨터에 `localhost`라는 이름으로 자체 서명 인증서를 만들고, `openssl s_server`로 HTTPS 서버를 띄워 세 가지로 접속해 봤다.
 
-```text
-$ openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes \
+```bash
+openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes \
     -keyout key.pem -out cert.pem -days 1 -subj "/CN=localhost" -addext "subjectAltName=DNS:localhost"
-$ openssl s_server -accept 18401 -cert cert.pem -key key.pem -www
+openssl s_server -accept 18401 -cert cert.pem -key key.pem -www
+```
 
-$ curl -sS -o /dev/null https://localhost:18401/
+```bash
+curl -sS -o /dev/null https://localhost:18401/
+```
+
+```text
 curl: (60) SSL certificate OpenSSL verify result: self-signed certificate (18)
+```
 
-$ curl -sS -o /dev/null -w '%{http_code}\n' --cacert cert.pem https://localhost:18401/
+```bash
+curl -sS -o /dev/null -w '%{http_code}\n' --cacert cert.pem https://localhost:18401/
+```
+
+```text
 200
+```
 
-$ curl -sS -o /dev/null --cacert cert.pem --resolve wrong.example:18401:127.0.0.1 https://wrong.example:18401/
+```bash
+curl -sS -o /dev/null --cacert cert.pem --resolve wrong.example:18401:127.0.0.1 https://wrong.example:18401/
+```
+
+```text
 curl: (60) SSL: no alternative certificate subject name matches target hostname 'wrong.example'
 ```
 
@@ -156,10 +187,10 @@ curl: (60) SSL: no alternative certificate subject name matches target hostname 
 
 `time_appconnect - time_connect`로 핸드셰이크 시간만 떼어, 세 가지를 번갈아 10번씩 쟀다. 처음엔 1.3과 1.2를 그냥 비교했는데 차이가 1ms 남짓이라 이상했다. 확인해 보니 1.3은 `X25519MLKEM768`, 1.2는 `x25519`로 키 교환 방식이 달랐다. 그래서 1.3도 `--curves X25519`로 방식을 맞춘 경우를 더했다.
 
-```text
-$ curl -s -o /dev/null --tlsv1.3 --curves X25519 -w '%{time_connect} %{time_appconnect}\n' https://example.com/
-$ curl -s -o /dev/null --tlsv1.2 --tls-max 1.2 -w '%{time_connect} %{time_appconnect}\n' https://example.com/
-$ curl -s -o /dev/null --tlsv1.3 -w '%{time_connect} %{time_appconnect}\n' https://example.com/
+```bash
+curl -s -o /dev/null --tlsv1.3 --curves X25519 -w '%{time_connect} %{time_appconnect}\n' https://example.com/
+curl -s -o /dev/null --tlsv1.2 --tls-max 1.2 -w '%{time_connect} %{time_appconnect}\n' https://example.com/
+curl -s -o /dev/null --tlsv1.3 -w '%{time_connect} %{time_appconnect}\n' https://example.com/
 ```
 
 | 경우 | 키 교환 | 핸드셰이크 중앙값 | 범위 |

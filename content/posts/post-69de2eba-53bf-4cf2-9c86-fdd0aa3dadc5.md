@@ -71,8 +71,11 @@
 
 먼저 curl로 재검증을 흉내 냈다. 처음 받은 응답의 `ETag`를 그대로 `If-None-Match`에 넣어 다시 보냈다.
 
+```bash
+curl -si http://127.0.0.1:18300/no-cache.js
+```
+
 ```text
-$ curl -si http://127.0.0.1:18300/no-cache.js
 HTTP/1.1 200 OK
 Content-Type: text/javascript
 Content-Length: 22
@@ -80,12 +83,16 @@ ETag: "5e39b3ff"
 Cache-Control: no-cache
 
 console.log('hello');
+```
 
-$ curl -si -H 'If-None-Match: "5e39b3ff"' http://127.0.0.1:18300/no-cache.js
+```bash
+curl -si -H 'If-None-Match: "5e39b3ff"' http://127.0.0.1:18300/no-cache.js
+```
+
+```text
 HTTP/1.1 304 Not Modified
 ETag: "5e39b3ff"
 Cache-Control: no-cache
-
 ```
 
 | 출력 | 뜻 |
@@ -120,11 +127,19 @@ Cache-Control: no-cache
 
 마지막으로 실제 사이트 두 곳의 쪽지를 봤다.
 
-```text
-$ curl -s -o /dev/null -D - https://github.com/ | grep -i cache-control
-cache-control: max-age=0, private, must-revalidate
+```bash
+curl -s -o /dev/null -D - https://github.com/ | grep -i cache-control
+```
 
-$ curl -s -o /dev/null -D - https://developer.mozilla.org/en-US/ | grep -i cache-control
+```text
+cache-control: max-age=0, private, must-revalidate
+```
+
+```bash
+curl -s -o /dev/null -D - https://developer.mozilla.org/en-US/ | grep -i cache-control
+```
+
+```text
 cache-control: public, max-age=3600
 ```
 
