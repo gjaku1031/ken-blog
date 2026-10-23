@@ -452,7 +452,7 @@ function card(post: Post, categories: PublicCategory[]) {
  * 1. 스냅샷 검증과 프로필 자산·공통 템플릿 준비
  * 2. 관리·작성 전용 페이지 생성
  * 3. 위키 대표 대상과 역링크 구성
- * 4. 공개 목록·검색·프로젝트·글 상세와 관리자 전용 검수 골격 생성
+ * 4. 공개 목록·검색·프로젝트·글 상세 생성
  * 5. 과거 주소 이동과 사이트맵·경로 목록 생성
  */
 export async function generateSite(payload: Input, output: string) {
@@ -510,7 +510,7 @@ export async function generateSite(payload: Input, output: string) {
     const nav = header(active).nav;
     await write(path === "404.html" ? path : join(path, "index.html"), engine.render("page.njk", {
       view, section, documentTitle, socialTitle: article ? title : documentTitle, summary, canonical,
-      gaMeasurementId, analyticsOrigin: ORIGIN, noindex: false,
+      gaMeasurementId, analyticsOrigin: ORIGIN,
       searchIndex: '',
       articleJs: article && assets.articleJs ? route(`assets/${assets.articleJs}`) : '',
       articleCss: article && assets.articleCss ? route(`assets/${assets.articleCss}`) : '',
@@ -586,10 +586,6 @@ export async function generateSite(payload: Input, output: string) {
     related.push(post); relatedPostsByProject.set(post.relatedSeries.id, related);
   }
   await listing("posts", "Posts", "Posts", feed.filter(p => p.section === "TECH"));
-  // 공개하지 않은 글의 열람·검수 골격, 내용은 로그인 뒤 관리자 API로만 채우고 색인·방문 통계·사이트맵에서 제외
-  await page("manage/review", "review", "Review", "검수", "관리자 전용 화면", {
-    noindex: true, gaMeasurementId: '', articleCss: assets.articleCss ? route(`assets/${assets.articleCss}`) : '',
-  }, false);
   const status: Record<string, string> = { PLAN: "기획 중", DEV: "개발 중", MAINT: "유지보수 중", DONE: "완료" };
   const projects = snapshot.series.filter(s => s.kind === "PROJECT").sort((a, b) => a.sortOrder - b.sortOrder || a.id - b.id)
     .map(p => ({ ...p, href: postPath(p.cover), statusLabel: status[p.projectStatus ?? ""] ?? p.projectStatus ?? "",

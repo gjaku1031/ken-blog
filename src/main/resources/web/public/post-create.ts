@@ -65,7 +65,7 @@ export function connectPostCreator() {
           if (!dialog.open || run !== generation) return;
           // 현재 세대의 결과만 완료 화면에 반영
           const done = el('div', 'creation-complete');
-          done.append(el('h3', '', '미검수 글로 저장했습니다.'), el('p', '', post.title), el('code', '', `content/posts/${post.slug}.md`));
+          done.append(el('h3', '', '미발행 글로 저장했습니다.'), el('p', '', post.title), el('code', '', `content/posts/${post.slug}.md`));
           const manage = el('a', 'button', '글 관리'); manage.href = sitePath(`manage/?post=${post.id}#posts`);
           const finish = el('button', 'button primary', '완료'); finish.type = 'button'; finish.addEventListener('click', () => dialog.close());
           done.append(manage, finish); content.replaceChildren(done); finish.focus();

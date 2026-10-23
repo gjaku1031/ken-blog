@@ -220,26 +220,3 @@ h1, h2, h3 { word-break: keep-all; line-height: 1.35; }
 /* 분류 트리·접기·건수 */
 .category-breadcrumb { display:inline-flex; align-items:center; flex-wrap:wrap; gap:6px; }
 .category-breadcrumb > span { color:var(--muted2); }
-/* 관리자 전용 검수 화면: 안내 줄, 단계별 목록 */
-.review-message { margin: 18px 0; color: var(--muted); font-size: 14px; }
-.review-message.error { color: var(--danger); }
-.review-message a { color: var(--accent-d); font-weight: 600; }
-.review-heading { margin: 22px 0 6px; font-size: 26px; }
-.review-group { margin: 30px 0; }
-.review-group h2 { display: flex; align-items: baseline; gap: 8px; margin: 0 0 12px; font-size: 15px; color: var(--text2); }
-.review-group h2 span { color: var(--muted); font-size: 12.5px; font-weight: 400; }
-.review-empty { margin: 0; color: var(--muted); font-size: 13.5px; }
-.review-list { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
-.review-item { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 4px 16px; padding: 14px 18px; }
-.review-item a, .review-item strong { font-weight: 600; overflow-wrap: anywhere; }
-.review-item a:hover { color: var(--accent-d); }
-.review-item small { color: var(--muted); font-size: 12.5px; }
-.review-page .post-edit-actions { flex-wrap: wrap; }
-.review-page .detail-meta { margin-bottom: 14px; }
-/* 공개 글 상세에서 관리자에게만 보이는 연결 글 */
-.private-links { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; margin: 0 0 22px; padding: 10px 14px; border: 1px dashed var(--line2); border-radius: 8px; font-size: 13.5px; }
-.private-links[hidden] { display: none; }
-.private-links-label { color: var(--muted); font-size: 12.5px; font-weight: 700; }
-.private-links ul { display: flex; flex-wrap: wrap; gap: 4px 16px; margin: 0; padding: 0; list-style: none; }
-.private-links a { color: var(--accent-d); font-weight: 600; }
-.private-links small { margin-left: 6px; color: var(--muted); font-size: 12px; }

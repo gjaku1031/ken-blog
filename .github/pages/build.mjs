@@ -194,7 +194,7 @@ async function markdownSource(file, fixture) {
  * 1. 빌드 입력을 fixture 또는 공개 API 스냅샷으로 선택
  * 2. 본문 첨부를 글 권한 경로로 내려받아 정적 주소 구성
  * 3. 프로젝트 기술 이미지는 ID별로 한 번만 수집
- * 4. 최초 출간 글을 위키 제목의 대표 주소로 선택, 공개하지 않은 글로 가는 본문 링크는 글자로 낮춤
+ * 4. 최초 출간 글을 위키 제목의 대표 주소로 선택
  * 5. 정적 문서를 생성하고 산출물 검사
  * 6. API 데이터 revision이 빌드 중 바뀌지 않았는지 재확인
  * 7. 검증 완료한 임시 산출물로 출력 디렉터리 교체
@@ -264,17 +264,12 @@ async function main() {
   for (const post of [...allPosts].sort((a, b) => a.publishedAt.localeCompare(b.publishedAt) || a.id - b.id)) {
     const key = wikiKey(post.title); if (!links.has(key)) links.set(key, postPath(post));
   }
-  // 공개하지 않은 글로 가는 본문 링크는 404가 되므로 글자로 낮추고 대상을 기록, 다시 공개하면 원고 수정 없이 복구
-  const dropped = [];
   for (const post of allPosts) {
     const rendered = await renderPreparedMarkdown(post.prepared, { attachmentUrl: (id) => attachmentUrls.get(id)?.url ?? null,
       attachmentSize: (id) => attachmentUrls.get(id) ?? null,
-      wikiUrl: (title) => links.get(wikiKey(title)) ?? null,
-      postLink: (slug, hash) => usedSlugs.has(slug) ? postPath({ slug }) + hash : null });
+      wikiUrl: (title) => links.get(wikiKey(title)) ?? null });
     post.rendered = { html: rendered.html, headings: rendered.headings, wikiTargets: rendered.wikiTargets };
-    for (const slug of rendered.droppedPostLinks) dropped.push(`${post.slug} -> ${slug}`);
   }
-  if (dropped.length) console.log(`공개 대상이 아니어서 글자로 낮춘 글 링크 ${dropped.length}건:\n${dropped.join("\n")}`);
   // 정적 문서를 생성하고 산출물 검사
   await generateSite({ snapshot, assets, adminHref: route("manage/"),
     gaMeasurementId: process.env.GA_MEASUREMENT_ID,
