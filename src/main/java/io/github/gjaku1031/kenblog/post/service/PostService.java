@@ -28,7 +28,7 @@ import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 /**
- * 게시글의 DB 메타데이터·공개 범위·검수 표시·첨부 연결 관리
+ * 게시글의 DB 메타데이터·출간 상태·첨부 연결 관리
  */
 @Service
 @RequiredArgsConstructor
@@ -47,11 +47,6 @@ public class PostService {
      * 게시글 태그 저장소
      */
     private final PostTagRepository tags;
-
-    /**
-     * 공개하지 않은 글의 DB 본문 저장소
-     */
-    private final PostBodyRepository bodies;
 
     /**
      * 분류·태그 조회기
@@ -122,82 +117,18 @@ public class PostService {
     }
 
     /**
-     * 공개 범위만 명시적으로 전환하고 편집 기준 무효화
-     *
-     * 공개 글의 본문은 저장소 원고에서만 읽으므로 DB 본문이 남은 글은 공개로 바꾸지 않음
-     * 원고를 저장소로 옮기고 DB 본문을 지우는 운영 절차가 끝난 글만 공개 가능
-     *
-     * @throws PostStateConflictException DB 본문이 남은 글을 공개로 바꾸려 할 때
+     * 출간 상태만 명시적으로 전환하고 편집 기준 무효화
      */
     @Transactional
-    public PostDetailResponse changeStatus(long id, PostStatus target) {
+    public PostDetailResponse setPublished(long id, boolean published) {
         var post = lockedPost(id);
-        // 글 잠금 뒤에 본문 위치를 확인하여 운영 절차의 본문 변경과 순서 고정
-        if (target == PostStatus.PUBLISHED
-                && post.getStatus() != PostStatus.PUBLISHED
-                && bodies.existsById(id))
-            throw new PostStateConflictException(
-                    "본문이 DB에 있는 글은 여기서 공개할 수 없습니다. 검수 완료 뒤 공개 전환 절차로 원고를 저장소에 옮기세요.");
-        var now = now();
-        post.changeStatus(target, now);
-        post.advanceEdit(now);
+        if (published)
+            post.publish(now());
+        else
+            post.unpublish(now());
+        post.advanceEdit(now());
         repository.saveAndFlush(post);
         return adminDetail(post);
-    }
-
-    /**
-     * 미검수 글의 검수 완료 표시·해제, 메타데이터 편집 기준은 유지
-     *
-     * 1. 글 잠금 취득 후 미검수 상태 확인
-     * 2. 표시할 때는 화면이 읽은 본문 시각과 현재 DB 본문 시각 대조
-     * 3. 일치하면 검수 시각 기록, 해제는 대조 없이 초기화
-     *
-     * @param bodyUpdatedAt 검수한 화면이 읽은 본문 수정 시각, 해제 요청에서는 사용하지 않음
-     * @throws PostStateConflictException 미검수 글이 아니거나, DB 본문이 없거나, 읽은 뒤 본문이 바뀌었을 때
-     */
-    @Transactional
-    public PostDetailResponse setReviewed(long id, boolean reviewed, LocalDateTime bodyUpdatedAt) {
-        var post = lockedPost(id);
-        if (post.getStatus() != PostStatus.UNREVIEWED)
-            throw new PostStateConflictException("미검수 글만 검수 완료로 표시할 수 있습니다. 글을 다시 열어 확인하세요.");
-        if (reviewed) {
-            // 잠금 뒤의 첫 조회로 본문 시각을 읽어 검수한 본문과 같은지 확인
-            var current = bodies.findUpdatedAtByPostId(id);
-            if (current == null)
-                throw new PostStateConflictException("DB에 본문이 없어 검수할 수 없습니다.");
-            if (!current.equals(bodyUpdatedAt))
-                throw new PostStateConflictException("읽은 뒤 본문이 바뀌었습니다. 글을 다시 열어 확인하세요.");
-            post.markReviewed(now());
-        } else {
-            post.clearReview();
-        }
-        repository.saveAndFlush(post);
-        return adminDetail(post);
-    }
-
-    /**
-     * 공개하지 않은 글의 DB 본문 조회
-     *
-     * @throws PostNotFoundException 글이 없거나 본문이 저장소 원고에만 있을 때
-     */
-    @Transactional(readOnly = true)
-    public PostBodyResponse body(long id) {
-        if (id <= 0)
-            throw new InvalidPostRequestException();
-        var body = bodies.findById(id).orElseThrow(PostNotFoundException::new);
-        return new PostBodyResponse(id, body.getBody(), body.getUpdatedAt());
-    }
-
-    /**
-     * 관리자에게만 보이는 연결 글 목록, 글이 없으면 404
-     */
-    @Transactional(readOnly = true)
-    public List<PostLinkResponse> links(long id) {
-        if (id <= 0)
-            throw new InvalidPostRequestException();
-        if (!repository.existsById(id))
-            throw new PostNotFoundException();
-        return queries.linkedPosts(id);
     }
 
     /**
@@ -227,8 +158,6 @@ public class PostService {
                 row.createdAt(),
                 row.updatedAt(),
                 row.status(),
-                row.reviewedAt(),
-                row.bodyUpdatedAt(),
                 row.publishedAt(),
                 view.category(),
                 view.tags(),
@@ -269,8 +198,6 @@ public class PostService {
                                     row.createdAt(),
                                     row.updatedAt(),
                                     row.status(),
-                                    row.reviewedAt(),
-                                    row.bodyUpdatedAt(),
                                     row.publishedAt(),
                                     view.category(),
                                     view.tags(),
@@ -316,7 +243,7 @@ public class PostService {
     }
 
     /**
-     * 본문의 첨부 참조 선언, 공개 글이면 익명 다운로드 권한이 되고 그 밖의 글이면 관리자 열람에만 사용
+     * Git 원고의 첨부 참조에 대한 공개 다운로드 권한 선언
      */
     @Transactional
     public PostDetailResponse replaceAttachments(long id, List<Long> attachmentIds) {
@@ -326,7 +253,7 @@ public class PostService {
     }
 
     /**
-     * 공개하지 않은 글을 포함한 관리자 태그 사용량 조회
+     * 초안 포함 관리자 태그 사용량 조회
      */
     @Transactional(readOnly = true)
     public List<TagCountResponse> adminTags() {
@@ -367,8 +294,6 @@ public class PostService {
                 post.getCreatedAt(),
                 post.getUpdatedAt(),
                 post.getStatus(),
-                post.getReviewedAt(),
-                bodies.findUpdatedAtByPostId(id),
                 post.getPublishedAt(),
                 view.category(),
                 view.tags(),

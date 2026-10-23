@@ -13,12 +13,10 @@ import org.springframework.web.bind.annotation.*;
 import tools.jackson.databind.JsonNode;
 
 import java.net.URI;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeParseException;
 import java.util.List;
 
 /**
- * 관리자 메타데이터·공개 범위·검수·DB 본문 열람 HTTP API
+ * 관리자 메타데이터·출간 상태 HTTP API
  */
 @RestController
 @RequestMapping("/api/v1/admin/posts")
@@ -69,7 +67,7 @@ public final class PostController {
     }
 
     /**
-     * 단일 상태 이름 입력으로 공개 범위 변경
+     * 단일 불리언 입력으로 출간 상태 변경
      */
     @PutMapping(
             value = "/{id}/publication",
@@ -77,66 +75,14 @@ public final class PostController {
             produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<PostDetailResponse> publication(
             @PathVariable long id, @RequestBody JsonNode request) {
-        var value = request.get("status");
-        if (!request.isObject() || value == null || !value.isString() || request.size() != 1)
+        var value = request.get("published");
+        if (!request.isObject() || value == null || !value.isBoolean() || request.size() != 1)
             throw new InvalidPostRequestException();
-        PostStatus target;
-        try {
-            target = PostStatus.valueOf(value.stringValue());
-        } catch (IllegalArgumentException exception) {
-            throw new InvalidPostRequestException();
-        }
-        return noStore(service.changeStatus(id, target));
+        return noStore(service.setPublished(id, value.booleanValue()));
     }
 
     /**
-     * 공개하지 않은 글의 DB 본문, 본문이 저장소 원고에만 있으면 404
-     */
-    @GetMapping(value = "/{id}/body", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<PostBodyResponse> body(@PathVariable long id) {
-        return noStore(service.body(id));
-    }
-
-    /**
-     * 검수 완료 표시·해제
-     *
-     * 표시는 {@code reviewed}와 화면이 읽은 {@code bodyUpdatedAt} 두 키, 해제는 {@code reviewed} 한 키만 허용
-     */
-    @PutMapping(
-            value = "/{id}/review",
-            consumes = MediaType.APPLICATION_JSON_VALUE,
-            produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<PostDetailResponse> review(
-            @PathVariable long id, @RequestBody JsonNode request) {
-        var reviewed = request.get("reviewed");
-        if (!request.isObject() || reviewed == null || !reviewed.isBoolean())
-            throw new InvalidPostRequestException();
-        if (!reviewed.booleanValue()) {
-            if (request.size() != 1) throw new InvalidPostRequestException();
-            return noStore(service.setReviewed(id, false, null));
-        }
-        var at = request.get("bodyUpdatedAt");
-        if (at == null || !at.isString() || request.size() != 2)
-            throw new InvalidPostRequestException();
-        LocalDateTime bodyUpdatedAt;
-        try {
-            bodyUpdatedAt = LocalDateTime.parse(at.stringValue());
-        } catch (DateTimeParseException exception) {
-            throw new InvalidPostRequestException();
-        }
-        return noStore(service.setReviewed(id, true, bodyUpdatedAt));
-    }
-
-    /**
-     * 관리자에게만 보이는 연결 글 목록
-     */
-    @GetMapping(value = "/{id}/links", produces = MediaType.APPLICATION_JSON_VALUE)
-    public ResponseEntity<List<PostLinkResponse>> links(@PathVariable long id) {
-        return noStore(service.links(id));
-    }
-
-    /**
-     * 본문의 이미지 ID를 글에 연결, 공개 글이면 익명 전달 권한이 됨
+     * Git 원고의 이미지 ID에 공개 전달 권한 연결
      */
     @PutMapping(
             value = "/{id}/attachments",

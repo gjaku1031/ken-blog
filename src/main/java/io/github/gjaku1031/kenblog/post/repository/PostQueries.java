@@ -8,7 +8,6 @@ import static org.jooq.impl.DSL.*;
 
 import io.github.gjaku1031.kenblog.attachment.dto.AttachmentDeliveryRow;
 import io.github.gjaku1031.kenblog.category.dto.CategoryPostCountRow;
-import io.github.gjaku1031.kenblog.jooq.tables.PostBodies;
 import io.github.gjaku1031.kenblog.jooq.tables.Posts;
 import io.github.gjaku1031.kenblog.jooq.tables.Series;
 import io.github.gjaku1031.kenblog.post.domain.*;
@@ -44,15 +43,10 @@ public class PostQueries {
     private final Series s = SERIES;
 
     /**
-     * DB 본문 테이블
-     */
-    private final PostBodies b = POST_BODIES;
-
-    /**
-     * 게시글·시리즈·DB 본문 LEFT JOIN 구성, 본문은 글마다 최대 한 행
+     * 게시글·시리즈 LEFT JOIN 구성
      */
     private Table<?> joined() {
-        return p.leftJoin(s).on(p.SERIES_ID.eq(s.ID)).leftJoin(b).on(b.POST_ID.eq(p.ID));
+        return p.leftJoin(s).on(p.SERIES_ID.eq(s.ID));
     }
 
     /**
@@ -68,8 +62,6 @@ public class PostQueries {
                 p.UPDATED_AT,
                 p.PUBLISHED_AT,
                 p.STATUS,
-                p.REVIEWED_AT,
-                b.UPDATED_AT,
                 p.CATEGORY_ID,
                 p.SERIES_ORDER,
                 p.RELATED_SERIES_ID,
@@ -119,14 +111,14 @@ public class PostQueries {
     }
 
     /**
-     * 본문을 제외한 관리자 단건 메타데이터
+     * 본문 없는 관리자 단건 메타데이터
      */
     public PostRow adminById(long id) {
         return sql.select(fields()).from(joined()).where(p.ID.eq(id)).fetchOne(this::row);
     }
 
     /**
-     * 시리즈 문서, 공개 여부에 따라 공개하지 않은 글 포함
+     * 시리즈 문서, 공개 여부에 따라 초안 포함
      */
     public List<PostRow> seriesPosts(long id, boolean publicOnly) {
         return sql.select(fields())
@@ -137,7 +129,7 @@ public class PostQueries {
     }
 
     /**
-     * 공개하지 않은 글을 포함한 분류별 글 수
+     * 초안 포함 분류별 글 수
      */
     public List<CategoryPostCountRow> categoryCounts() {
         return sql.select(p.CATEGORY_ID, count())
@@ -151,7 +143,7 @@ public class PostQueries {
     }
 
     /**
-     * 공개하지 않은 글을 포함한 관리자 태그 사용량
+     * 초안 포함 관리자 태그 사용량
      */
     public List<TagCountResponse> tagCounts() {
         return sql.select(min(POST_TAGS.DISPLAY_NAME), count())
@@ -176,12 +168,9 @@ public class PostQueries {
     }
 
     /**
-     * 글에 연결된 첨부의 전달 정보
-     *
-     * @param publicOnly true면 공개 글의 첨부만, false면 관리자용으로 상태와 무관하게 조회
-     * @return 글·연결·첨부 중 하나라도 없거나 공개 조건에 맞지 않으면 null
+     * 공개 출간 글에 연결된 첨부의 전달 정보
      */
-    public AttachmentDeliveryRow attachment(long postId, long attachmentId, boolean publicOnly) {
+    public AttachmentDeliveryRow readableAttachment(long postId, long attachmentId) {
         return sql.select(ATTACHMENTS.OBJECT_KEY, ATTACHMENTS.CONTENT_TYPE, ATTACHMENTS.BYTE_SIZE)
                 .from(
                         joined().join(POST_ATTACHMENTS)
@@ -189,7 +178,7 @@ public class PostQueries {
                                 .join(ATTACHMENTS)
                                 .on(ATTACHMENTS.ID.eq(POST_ATTACHMENTS.ATTACHMENT_ID)))
                 .where(
-                        (publicOnly ? readable() : trueCondition())
+                        readable()
                                 .and(p.ID.eq(postId))
                                 .and(ATTACHMENTS.ID.eq(attachmentId)))
                 .fetchOne(
@@ -224,31 +213,6 @@ public class PostQueries {
     }
 
     /**
-     * 방향과 관계없이 지정 글과 연결된 글의 표시 정보, 제목·ID 오름차순
-     */
-    public List<PostLinkResponse> linkedPosts(long id) {
-        return sql.select(p.ID, p.TITLE, p.SLUG, p.STATUS)
-                .from(p)
-                .where(
-                        p.ID.in(
-                                select(POST_LINKS.LINKED_POST_ID)
-                                        .from(POST_LINKS)
-                                        .where(POST_LINKS.POST_ID.eq(id))
-                                        .union(
-                                                select(POST_LINKS.POST_ID)
-                                                        .from(POST_LINKS)
-                                                        .where(POST_LINKS.LINKED_POST_ID.eq(id)))))
-                .orderBy(p.TITLE.asc(), p.ID.asc())
-                .fetch(
-                        record ->
-                                new PostLinkResponse(
-                                        record.value1(),
-                                        record.value2(),
-                                        record.value3(),
-                                        PostStatus.valueOf(record.value4())));
-    }
-
-    /**
      * 본문 없는 SQL 행을 글 메타데이터로 변환
      */
     private PostRow row(Record r) {
@@ -262,8 +226,6 @@ public class PostQueries {
                 r.get(p.UPDATED_AT),
                 r.get(p.PUBLISHED_AT),
                 PostStatus.valueOf(r.get(p.STATUS)),
-                r.get(p.REVIEWED_AT),
-                r.get(b.UPDATED_AT),
                 r.get(p.CATEGORY_ID),
                 seriesId == null
                         ? null

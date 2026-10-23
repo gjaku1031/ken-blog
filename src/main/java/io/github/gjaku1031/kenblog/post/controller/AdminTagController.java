@@ -23,7 +23,7 @@ public final class AdminTagController {
     private final PostService service;
 
     /**
-     * 공개하지 않은 글을 포함한 태그 사용량과 no-store 응답
+     * 초안 포함 태그 사용량과 no-store 응답
      */
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<TagCountResponse>> list() {

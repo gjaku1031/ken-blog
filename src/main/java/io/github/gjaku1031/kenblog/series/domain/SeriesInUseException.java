@@ -12,6 +12,6 @@ public final class SeriesInUseException extends BusinessException {
      * 업무 오류 초기화
      */
     public SeriesInUseException() {
-        super(HttpStatus.CONFLICT, "소속 글과 관련된 글을 먼저 모두 삭제해야 합니다. 공개하지 않은 글도 포함됩니다.");
+        super(HttpStatus.CONFLICT, "소속 글과 관련된 글을 먼저 모두 삭제해야 합니다. 초안도 포함됩니다.");
     }
 }

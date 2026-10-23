@@ -134,23 +134,17 @@ public class PostEntity {
     }
 
     /**
-     * 공개 범위와 검수 단계
+     * 출간 상태
      */
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, columnDefinition = "varchar(16)")
-    private PostStatus status = PostStatus.UNREVIEWED;
+    private PostStatus status = PostStatus.DRAFT;
 
     /**
      * 최초 출간 시각
      */
     @Column(name = "published_at", columnDefinition = "datetime(6)")
     private LocalDateTime publishedAt = null;
-
-    /**
-     * 검수 완료 시각, 미검수 글이 공개 전환을 기다릴 때만 값이 있음
-     */
-    @Column(name = "reviewed_at", columnDefinition = "datetime(6)")
-    private LocalDateTime reviewedAt = null;
 
     /**
      * 게시글 초기 메타데이터 설정
@@ -190,31 +184,22 @@ public class PostEntity {
     }
 
     /**
-     * 공개 범위 전환, 같은 상태면 변경 없음
-     *
-     * 공개 전환 시 최초 출간 시각을 한 번만 기록하고 이후 내림에도 유지
-     * 검수 완료 표시는 미검수 상태에서만 유효하므로 전환 시 초기화
+     * 출간으로 전환하고 최초 출간 시각 기록
      */
-    public void changeStatus(PostStatus target, LocalDateTime now) {
-        if (status == target) return;
-        if (target == PostStatus.PUBLISHED && publishedAt == null) publishedAt = now;
-        status = target;
-        reviewedAt = null;
+    public void publish(LocalDateTime now) {
+        if (status == PostStatus.PUBLISHED) return;
+        if (publishedAt == null) publishedAt = now;
+        status = PostStatus.PUBLISHED;
         updatedAt = now;
     }
 
     /**
-     * 미검수 글의 검수 완료 시각 기록, 호출자가 상태와 본문 시각을 먼저 검사
+     * 초안으로 전환하고 수정 시각 갱신
      */
-    public void markReviewed(LocalDateTime now) {
-        reviewedAt = now;
-    }
-
-    /**
-     * 검수 완료 표시 해제
-     */
-    public void clearReview() {
-        reviewedAt = null;
+    public void unpublish(LocalDateTime now) {
+        if (status == PostStatus.DRAFT) return;
+        status = PostStatus.DRAFT;
+        updatedAt = now;
     }
 
     /**
@@ -411,19 +396,5 @@ public class PostEntity {
      */
     protected void setPublishedAt(LocalDateTime publishedAt) {
         this.publishedAt = publishedAt;
-    }
-
-    /**
-     * reviewedAt 조회
-     */
-    public LocalDateTime getReviewedAt() {
-        return reviewedAt;
-    }
-
-    /**
-     * JPA 프록시의 reviewedAt 변경
-     */
-    protected void setReviewedAt(LocalDateTime reviewedAt) {
-        this.reviewedAt = reviewedAt;
     }
 }

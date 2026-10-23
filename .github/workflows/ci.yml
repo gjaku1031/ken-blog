@@ -294,7 +294,7 @@ jobs:
               stored = request('GET', badge['imageUrl'], authenticated=False)
               assert stored == icon and struct.unpack('>II', stored[16:24]) == (64, 64)
 
-          # 분류·프로젝트·미검수 글 메타데이터 생성
+          # 분류·프로젝트·미발행 글 메타데이터 생성
           category = request('POST', '/api/v1/admin/categories', {'path': 'CI/HTTP'}, 201)
           series = request('POST', '/api/v1/admin/series', {
               'slug': 'jvm-ci-series', 'kind': 'PROJECT',
@@ -308,7 +308,7 @@ jobs:
               'title': 'JVM CI Project', 'slug': slug, 'seriesId': series['id'], 'order': 1,
               'categoryId': category['id'], 'tags': ['Java'],
           }, 201))
-          assert post['series']['id'] == series['id'] and post['section'] == 'PROJECT' and post['status'] == 'UNREVIEWED', post
+          assert post['series']['id'] == series['id'] and post['section'] == 'PROJECT' and post['status'] == 'DRAFT', post
           # 글 메타데이터와 첨부 연결 교체 검증
           post_path = '/api/v1/admin/posts/' + str(post['id'])
           assert metadata(request('GET', post_path))['slug'] == slug
@@ -323,39 +323,18 @@ jobs:
           assert snapshot['version'] == 3 and len(snapshot['revision']) == 64
           assert snapshot['posts'] == [] and snapshot['series'] == []
 
-          # 운영 절차처럼 SQL로 넣은 DB 본문은 관리자만 읽고 공개 스냅샷·익명 이미지에는 없음
-          def post_sql(statement):
-              subprocess.run(['docker', 'exec', '-i', '${{ job.services.mysql.id }}', 'sh', '-c',
-                              'MYSQL_PWD="$MYSQL_PASSWORD" exec mysql -u"$MYSQL_USER" "$MYSQL_DATABASE"'],
-                             input=statement, text=True, check=True)
-          post_sql(f"INSERT INTO post_bodies (post_id,body,updated_at) VALUES ({post['id']},'# hidden body',UTC_TIMESTAMP(6));")
-          request('GET', post_path + '/body', expected=401, authenticated=False)
-          stored_body = request('GET', post_path + '/body')
-          assert stored_body['body'] == '# hidden body', stored_body
-          assert request('GET', '/api/v1/pages/snapshot', authenticated=False)['revision'] == snapshot['revision']
-          image_path = '/attachments/' + str(attachment_ids[0]) + '/content'
-          request('GET', '/api/v1/posts/' + str(post['id']) + image_path, expected=404, authenticated=False)
-          assert request('GET', post_path + image_path) == png
-          # 검수 완료 표시 후에도 DB 본문이 남아 있으면 공개 거부, 본문을 지운 뒤 공개
-          assert metadata(request('PUT', post_path + '/review', {'reviewed': True, 'bodyUpdatedAt': stored_body['updatedAt']}))['reviewedAt']
-          request('PUT', post_path + '/publication', {'published': True}, expected=400)
-          request('PUT', post_path + '/publication', {'status': 'PUBLISHED'}, expected=409)
-          post_sql(f"DELETE FROM post_bodies WHERE post_id={post['id']};")
-          assert request('GET', post_path + '/links') == []
-
-          # 공개 후 스냅샷·검색·이미지 공개 확인
-          published = metadata(request('PUT', post_path + '/publication', {'status': 'PUBLISHED'}))
-          assert published['status'] == 'PUBLISHED' and published['reviewedAt'] is None, published
+          # 발행 후 스냅샷·검색·이미지 공개 확인
+          metadata(request('PUT', post_path + '/publication', {'published': True}))
           snapshot = request('GET', '/api/v1/pages/snapshot', authenticated=False)
           assert len(snapshot['posts']) == 1 and len(snapshot['series']) == 1
           assert snapshot['series'][0]['cover']['id'] == post['id']
           assert metadata(snapshot['posts'][0])['section'] == 'PROJECT'
           for image_id, original in zip(attachment_ids, [png, jpeg]):
               assert request('GET', '/api/v1/posts/' + str(post['id']) + '/attachments/' + str(image_id) + '/content', authenticated=False) == original
-          # 비공개 전환·로그아웃 후 공개 데이터·인증 상태 회수 확인
-          assert metadata(request('PUT', post_path + '/publication', {'status': 'PRIVATE'}))['status'] == 'PRIVATE'
+          # 발행 취소·로그아웃 후 공개 데이터·인증 상태 회수 확인
+          metadata(request('PUT', post_path + '/publication', {'published': False}))
           assert request('GET', '/api/v1/pages/snapshot', authenticated=False)['posts'] == []
-          # 표시명 수정·원자적 형제 정렬과 공개하지 않은 글·관련 글 삭제 제약 검증
+          # 표시명 수정·원자적 형제 정렬과 초안·관련 글 삭제 제약 검증
           renamed = request('PUT', '/api/v1/admin/categories/' + str(category['id']) + '/name', {'name': 'Renamed'})
           assert renamed['path'] == category['path'] and renamed['name'] == 'Renamed'
           roots = request('GET', '/api/v1/admin/categories')
@@ -371,7 +350,7 @@ jobs:
           request('GET', series_path, expected=404)
           request('POST', '/api/v1/auth/logout', expected=204)
           request('GET', '/api/v1/auth/me', expected=401)
-          print('PASS HTTP login/logout, metadata/publication/review, hidden body, PNG/JPEG attachments, local 64px icons, jOOQ reads, Pages v3 and removed endpoint; no API Markdown files')
+          print('PASS HTTP login/logout, metadata/publication, PNG/JPEG attachments, local 64px icons, jOOQ reads, Pages v3 and removed endpoint; no API Markdown files')
           PY
       - name: Verify release script with production Compose files
         run: bash deploy/tests/release-test.sh "$RUNNER_TEMP/ken-blog-jvm-image/image.tar.gz"

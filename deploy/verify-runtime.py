@@ -108,7 +108,7 @@ def verify(browser_container):
             sql(Path("deploy/sql/bootstrap-auth.sql").read_text())
             sql("INSERT INTO content_state (id) VALUES (1);"
                 "INSERT INTO posts (title,slug,summary,created_at,updated_at,status,series_order) "
-                "VALUES ('legacy','legacy','',UTC_TIMESTAMP(6),UTC_TIMESTAMP(6),'UNREVIEWED',7);"
+                "VALUES ('legacy','legacy','',UTC_TIMESTAMP(6),UTC_TIMESTAMP(6),'DRAFT',7);"
                 "INSERT INTO users (username,password_hash,role,created_at,enabled) VALUES ('review_admin',"
                 "'{bcrypt}$2b$10$4FBi6otvIFtcNbMAYerE3O1eSZAmB9sw3r4iEgU2ovjbUuSVcfivG','ADMIN',UTC_TIMESTAMP(6),true);")
             start("missing-edit-version", "missing column [edit_version]")

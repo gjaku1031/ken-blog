@@ -37,7 +37,7 @@ public final class AdminCategoryController {
     }
 
     /**
-     * 공개하지 않은 글을 포함한 직접·자손 건수 트리
+     * 초안 포함 직접·자손 건수 트리
      */
     @GetMapping(produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<List<CategoryTreeResponse>> list() {

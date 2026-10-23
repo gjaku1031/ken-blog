@@ -18,7 +18,7 @@ import java.util.Collection;
  */
 public interface PostRepository extends JpaRepository<PostEntity, Long> {
     /**
-     * 공개 범위와 관계없이 시리즈 소속 또는 관련 글의 존재 확인
+     * 출간 상태와 관계없이 시리즈 소속 또는 관련 글의 존재 확인
      */
     boolean existsBySeriesIdOrRelatedSeriesId(long seriesId, long relatedSeriesId);
 
