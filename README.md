@@ -45,7 +45,7 @@
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="docs/images/readme/architecture-dark.png">
-  <img src="docs/images/readme/architecture-light.png" alt="전체 구성도. GitHub(원고 저장·사이트 빌드·Pages), Oracle Cloud ARM VM(Caddy·Spring Boot API·이미지 디스크), OCI 관리형 MySQL의 세 배포 경계와 열람·관리·빌드 경로" width="100%">
+  <img src="docs/images/readme/architecture-light.png" alt="전체 구성도. GitHub(원고 저장·사이트 빌드·Pages), Oracle Cloud ARM VM(Caddy·Spring Boot API·이미지 디스크), OCI 관리형 MySQL의 세 배포 경계와 열람·관리·빌드·API 자동 배포 경로" width="100%">
 </picture>
 
 - **열람**: 독자는 GitHub Pages의 정적 HTML을 읽음. 본문 표시에 API 요청이 필요 없음
