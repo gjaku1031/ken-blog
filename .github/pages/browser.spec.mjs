@@ -41,6 +41,15 @@ async function confirmModal(page) {
 }
 
 /**
+ * 확대 라이브러리가 다음 애니메이션 프레임에 적용하는 이미지 변환까지 대기
+ *
+ * 배율 값과 표시는 바로 바뀌지만 transform은 requestAnimationFrame에서 바뀌므로, 기준 좌표를 재기 전에 두 프레임을 넘김
+ */
+async function zoomFrames(page) {
+  await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
+}
+
+/**
  * 메서드·필수 필드·편집 버전을 검사하고 저장 결과를 후속 읽기에 반영하는 API 대역
  * 지원하지 않는 경로는 501로 실패하여 계약 누락을 숨기지 않음
  */
@@ -915,6 +924,8 @@ test('diagram zoom supports dragging, focal wheel zoom and fit after reopening',
   // 화면보다 큰 배율에서 두 축 드래그와 버튼·출력의 공유 상태 확인
   await range.fill('100'); await range.dispatchEvent('input');
   await expect(dialog.locator('output')).toHaveText('100%');
+  // 100% 변환이 화면에 적용된 뒤의 좌표를 이동 전 기준으로 삼음
+  await zoomFrames(page);
   /**
    * 포인터 입력 영역 좌표
    */
@@ -1017,7 +1028,8 @@ test('diagram zoom supports touch pinch and drag without scrolling the article',
   await session.send('Input.dispatchTouchEvent', { type: 'touchMove', touchPoints: [{ x: x - 85, y, id: 1 }, { x: x + 85, y, id: 2 }] });
   await session.send('Input.dispatchTouchEvent', { type: 'touchEnd', touchPoints: [] });
   await expect.poll(async () => Number(await range.inputValue())).toBeGreaterThan(initial);
-  // 확대 후 한 손가락 이동, 본문 스크롤은 유지
+  // 확대 후 한 손가락 이동, 본문 스크롤은 유지. 핀치 변환이 화면에 적용된 뒤의 좌표를 기준으로 삼음
+  await zoomFrames(page);
   /**
    * 이동 전 이미지 좌표
    */
