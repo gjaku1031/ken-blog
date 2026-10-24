@@ -65,7 +65,7 @@ B에서 눈여겨볼 점은 재고는 지켜지지만 거절의 모양이 다르
 
 ### 환경
 
-- API: damdam 커밋 `3b57c18`의 `Dockerfile`로 만든 이미지(Java 25), 컨테이너 한 개
+- API: damdam 커밋 `3b57c18`의 `Dockerfile`로 만든 이미지(Java 25), 컨테이너 한 개. damdam 저장소는 공개하면서 이력을 정리해, 이 커밋에 대응하는 공개 커밋은 `48e0c68`임(주문·재고 코드는 주석 한 줄만 다름)
 - DB: PostgreSQL 16.15(aarch64), 격리 수준 READ COMMITTED, API의 연결은 `statement_timeout` 5초
 - 실행 장비: 개발용 VM 한 대(aarch64, 2 vCPU). 요청을 보내는 스크립트, API, DB가 같은 장비에서 돎
 - 조건 B·C의 읽기와 차감 사이 간격: 20ms
