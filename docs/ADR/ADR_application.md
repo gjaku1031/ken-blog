@@ -14,7 +14,7 @@
 
 본문 정본은 `content/posts/{slug}.md`, DB는 메타데이터와 연결 관계 관리. DB에는 본문 열이 없음(옛 본문 열은 2026-10-08 제거). 공개 원고만 Git 추적하고 미출간·비공개 원고와 비밀값은 공개 저장소에 반영하지 않는 기준.
 
-웹 본문 작성·수정 화면과 본문 쓰기 API는 제거. 원고는 에이전트나 작성자가 로컬 Git 파일에서 직접 수정하고 관리자 화면·HTTP API는 메타데이터·출간 상태·글의 이미지 연결 관리 담당. 이미지 파일과 기술 목록은 DB·디스크에서 직접 관리. Spring은 원고를 보관하거나 읽지 않으며 Markdown 렌더링과 HTML 조립은 Node 빌드의 책임. 첨부는 영속 로컬 디스크로 관리하며 기존 OCI 객체는 해시를 대조해 이관할 때까지 보존.
+웹 본문 작성·수정 화면과 본문 쓰기 API는 제거. 원고는 작성자가 로컬 Git 파일에서 직접 수정하고 관리자 화면·HTTP API는 메타데이터·출간 상태·글의 이미지 연결 관리 담당. 이미지 파일과 기술 목록은 DB·디스크에서 직접 관리. Spring은 원고를 보관하거나 읽지 않으며 Markdown 렌더링과 HTML 조립은 Node 빌드의 책임. 첨부는 영속 로컬 디스크로 관리하며 기존 OCI 객체는 해시를 대조해 이관할 때까지 보존.
 
 공개·관리자 화면은 Node/TypeScript·Nunjucks로 빌드한 GitHub Pages 정적 파일. 본문 렌더링과 완성 HTML 조립을 Node로 통일하고 서버 측 사이트 생성기·Thymeleaf 제거. API는 Spring Boot, Node는 빌드 용도. `pages`의 공개 snapshot·revision 계약 유지. 독자용 공개 Post API·SPA 라우터·htmx 추가 없음. 배포 실행과 이력은 GitHub Actions 담당. 상세 배치와 운영 상태는 [인프라 ADR](ADR_infra.md) 참조.
 
@@ -30,7 +30,7 @@
 
 ## 기술 목록의 DB·로컬 파일 관리 — 2026-10-02 결정
 
-기술 이름과 아이콘 키는 기존 `stack_badges` DB, 아이콘은 API의 영속 로컬 이미지 디스크가 정본. 에이전트가 직접 등록·수정·삭제하며 TypeScript 상수·Git 데이터·앱 시작 동기화로 이전하지 않는 결정. 웹 관리자는 기존 화면에서 프로젝트에 쓸 기술만 선택. 대체 CRUD API·MCP·CLI 없음.
+기술 이름과 아이콘 키는 기존 `stack_badges` DB, 아이콘은 API의 영속 로컬 이미지 디스크가 정본. 운영자가 직접 등록·수정·삭제하며 TypeScript 상수·Git 데이터·앱 시작 동기화로 이전하지 않는 결정. 웹 관리자는 기존 화면에서 프로젝트에 쓸 기술만 선택. 대체 CRUD API·MCP·CLI 없음.
 
 기술 목록 등록·이름 변경·아이콘 업로드/교체·삭제 Controller 메서드, 요청 DTO, 서비스/엔티티의 쓰기 메서드와 파일 보상 처리 제거. 호출자가 없는 전체 공개 목록 메서드와 CRUD 화면 전용 사용 수 조회도 제거. `StackBadgeEntity`의 ID·name·name_key·object_key·created_at·updated_at 매핑 및 `series_stack_badges` FK·sort_order는 유지. 생성 DDL·기존 DB 스키마나 행을 삭제하는 변경 없음.
 
@@ -65,7 +65,7 @@ Node 타입 검사·빈 Pages와 실제 API snapshot/로컬 원고/아이콘·�
 
 ## 첨부 쓰기와 미사용 기능 제거 — 2026-10-02 결정
 
-이미지는 에이전트/운영자가 DB와 로컬 디스크에서 직접 관리하는 결정. 프론트에 업로드 UI가 없고 CI만 호출하던 관리자 첨부 Controller 전체(등록·메타데이터 조회·파일 조회·삭제), 전용 DTO·서비스·검증기·보상 절차·`AttachmentRepository`·엔티티 쓰기 메서드 제거. 대체 CLI·API·동기화 계층 미도입. `LocalAssetStorage`는 안전한 읽기 전용으로 축소, 키 생성·쓰기·삭제·디렉터리 생성과 multipart 크기·키 접두사 설정 제거.
+이미지는 운영자가 DB와 로컬 디스크에서 직접 관리하는 결정. 프론트에 업로드 UI가 없고 CI만 호출하던 관리자 첨부 Controller 전체(등록·메타데이터 조회·파일 조회·삭제), 전용 DTO·서비스·검증기·보상 절차·`AttachmentRepository`·엔티티 쓰기 메서드 제거. 대체 CLI·API·동기화 계층 미도입. `LocalAssetStorage`는 안전한 읽기 전용으로 축소, 키 생성·쓰기·삭제·디렉터리 생성과 multipart 크기·키 접두사 설정 제거.
 
 제거한 HTTP 계약은 `POST /api/v1/admin/attachments`, `GET/DELETE /api/v1/admin/attachments/{id}`, `GET /api/v1/admin/attachments/{id}/content`. 인증과 유효 CSRF 이후 API 직접 호출 시 404, Caddy 허용 경로에서도 제거. 인증·CSRF의 기존 401/403 우선 처리 유지. 업로드 형식/크기 검사와 파일 보상·연결된 파일의 삭제 거부는 앱에서 더 이상 제공하지 않으므로 직접 관리자가 파일 적합성·참조·복구 가능성을 확인하는 책임.
 
