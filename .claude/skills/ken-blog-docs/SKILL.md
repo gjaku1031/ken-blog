@@ -171,6 +171,6 @@ ken-blog 문서는 대학원 진학용 포트폴리오이자, 이후 다른 프�
    밝은 캡처도 같은 방법으로 등록한다. 두 행 모두 같은 글에 연결한다.
 4. **원고**: 기본 이미지는 어두운 캡처, `dark=`에는 밝은 캡처(반대 테마 규칙). `![캡션|dark={밝은 ID}|w=100|a=center](attachment:{어두운 ID})`. 캡션에 화면 설명을 쓰고 그림 아래 설명 문단은 두지 않는다.
 5. **반영**: 게시 원고를 커밋·push해 Pages를 재배포하고, 공개 주소에서 두 테마 모두 이미지가 보이는지 확인한다.
-6. **교체·삭제**: 새 첨부를 등록·연결하고 원고를 바꿔 공개 반영을 확인한 뒤, 이전 행의 `post_attachments` 연결을 지우고 다른 글이 참조하지 않으면 `attachments` 행과 파일을 정리한다(`post_attachments`는 `ON DELETE RESTRICT`라 연결부터 지움).
+6. **교체·삭제**: 새 첨부를 등록·연결하고 원고를 바꿔 공개 반영을 확인한 뒤, 이전 행의 `post_attachments` 연결을 지우고 다른 글이 참조하지 않으면 `attachments` 행과 파일을 정리한다(`post_attachments`는 `ON DELETE RESTRICT`라 연결부터 지움). 발행 글에 연결된 첨부는 원고가 쓰지 않아도 공개 API로 내려받을 수 있으므로, 마지막에 `bash .claude/skills/ken-blog-docs/scripts/check-attachments.sh`로 원고가 안 쓰는 연결이 남지 않았는지 확인한다.
 
 [^ssh]: 이 VM의 SSH 원격은 호스트 키 문제로 실패하므로 HTTPS 주소로 push한다.
