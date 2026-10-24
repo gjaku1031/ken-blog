@@ -1,6 +1,6 @@
 # 그림
 
-글에 넣은 그림의 원본. `.claude/skills/ken-blog-experiments/scripts/render-figure.cjs`로 밝은·어두운 PNG를 만듦.
+글에 넣은 그림의 원본. 블로그의 그림 변환 스크립트(`render-figure.cjs`)가 HTML을 밝은·어두운 PNG 두 장으로 찍음.
 
 | 파일 | 내용 | 데이터 |
 | --- | --- | --- |
@@ -8,5 +8,5 @@
 | `pathstore-result.html` | 경로 3만 개·균등·90:10의 연산별 p50·p95, Neo4j 저장 배치화 보조 진단 | `operations/results/summary.json`, `operations/results/source-diagnostic-*.csv` |
 
 ```bash
-node .claude/skills/ken-blog-experiments/scripts/render-figure.cjs docs/experiments/2026-09-29-vowser-path-store/figures/pathstore-result.html out/pathstore-result
+node render-figure.cjs docs/experiments/2026-09-29-vowser-path-store/figures/pathstore-result.html out/pathstore-result
 ```
