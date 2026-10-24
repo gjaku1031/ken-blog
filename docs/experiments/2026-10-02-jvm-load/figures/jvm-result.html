@@ -20,7 +20,7 @@ svg text { fill:var(--ink); font-size:15px; }
 .note { fill:var(--acc); font-size:13.5px; font-weight:600; }
 </style></head><body>
 <div id="figure"><svg id="chart" viewBox="0 0 1144 452" width="1144" height="452" role="img"
-aria-label="도착률 10, 50, 100, 200건/초에서 p95는 23.55, 15.20, 10.17, 33.41ms로 오르내렸고, 호스트 평균 CPU는 18.4, 43.6, 57.5, 88.4%로 계속 올랐음"></svg></div>
+aria-label="도착률 10, 50, 100, 200건/초에서 p95는 23.55, 15.20, 10.17, 33.41ms로 오르내렸고, 호스트 평균 CPU는 18.4, 43.6, 57.5, 88.4%로 계속 올랐다"></svg></div>
 <script>
 (() => {
   const RATES = [10, 50, 100, 200];
@@ -53,7 +53,7 @@ aria-label="도착률 10, 50, 100, 200건/초에서 p95는 23.55, 15.20, 10.17, 
     el("text", { x: a.X(i), y: a.Y(v) + (i === 2 ? 28 : -14), "text-anchor": "middle", class: "lab" }, v.toFixed(2));  // 100건/초는 올라가는 선과 겹치지 않게 아래에
   });
   // 줄어든 구간 표시
-  el("text", { x: a.X(1), y: a.Y(10.17) + 58, "text-anchor": "middle", class: "note" }, "10→100건/초에서는 오히려 줄어듦");
+  el("text", { x: a.X(1), y: a.Y(10.17) + 58, "text-anchor": "middle", class: "note" }, "10→100건/초 구간은 오히려 감소");
 
   // 오른쪽: 호스트 평균 CPU
   const c = frame(PW + 40, "호스트 평균 CPU", "API·MySQL·OS를 합친 서버 전체 · 1코어", 100, 25, "%");

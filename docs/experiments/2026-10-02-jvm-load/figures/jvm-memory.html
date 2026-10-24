@@ -22,7 +22,7 @@ svg text { fill:var(--ink); font-size:15px; }
 .track { fill:var(--bg); stroke:var(--soft); stroke-width:1.4; }
 </style></head><body>
 <div id="figure"><svg id="chart" viewBox="0 0 1144 350" width="1144" height="350" role="img"
-aria-label="API 메모리는 유휴 중앙값 400.2MiB, 최대 474.5MiB로 1,536MiB 컨테이너 한도의 약 31%였고, 테스트 MySQL까지 합친 스택 최대는 749.0MiB, 서버 최소 가용 메모리는 2,361.4MiB였음"></svg></div>
+aria-label="API 메모리는 유휴 중앙값 400.2MiB, 최대 474.5MiB로 1,536MiB 컨테이너 한도의 약 31%였고, 테스트 MySQL까지 합친 스택 최대는 749.0MiB, 서버 최소 가용 메모리는 2,361.4MiB였다"></svg></div>
 <script>
 (() => {
   const RAM = 3894, LIMIT = 1536, IDLE = 400.2, API_MAX = 474.5, STACK_MAX = 749.0, MIN_FREE = 2361.4;
@@ -33,7 +33,7 @@ aria-label="API 메모리는 유휴 중앙값 400.2MiB, 최대 474.5MiB로 1,536
 
   el("rect", { x: 0, y: 0, width: 1144, height: 318, rx: 14, class: "panel" });
   el("text", { x: 24, y: 34, class: "h" }, "메모리 사용량과 한도");
-  el("text", { x: 24, y: 56, class: "sub" }, "2026-10-02 · 1초 간격 수집 · 같은 눈금(MiB)");
+  el("text", { x: 24, y: 56, class: "sub" }, "1초 간격 수집 · 같은 눈금(MiB)");
 
   // 눈금
   const yA = 110, yB = 210, axisY = yB + BH + 34;
@@ -63,7 +63,7 @@ aria-label="API 메모리는 유휴 중앙값 400.2MiB, 최대 474.5MiB로 1,536
   el("text", { x: L, y: yB - 10, class: "v" }, `API·Caddy·테스트 MySQL 합계 최대 ${fmt(STACK_MAX)}`);
   el("text", { x: (X(RAM - MIN_FREE) + R) / 2, y: yB + BH / 2 + 5, "text-anchor": "middle", class: "v b", style: "fill:var(--free)" }, `가장 적었을 때의 가용 메모리 ${fmt(MIN_FREE)}`);
 
-  el("text", { x: 0, y: 342, class: "axis" }, "OOM·자동 재시작 0회. 최대와 최소 가용은 서로 다른 시점일 수 있음.");
+  el("text", { x: 0, y: 342, class: "axis" }, "OOM·자동 재시작 0회. 최대 사용량과 최소 가용 메모리는 서로 다른 시점의 값일 수 있다.");
   document.body.dataset.ready = "1";
 })();
 </script></body></html>
