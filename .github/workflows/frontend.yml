@@ -5,7 +5,7 @@ on:
   pull_request:
     paths: ['src/main/resources/web/**', 'content/posts/**', '.github/pages/**', 'package*.json', 'tsconfig.json', '.github/workflows/frontend.yml']
   push:
-    branches: [main, 'codex/**']
+    branches: [main]
     paths: ['src/main/resources/web/**', 'content/posts/**', '.github/pages/**', 'package*.json', 'tsconfig.json', '.github/workflows/frontend.yml']
 permissions:
   contents: read
