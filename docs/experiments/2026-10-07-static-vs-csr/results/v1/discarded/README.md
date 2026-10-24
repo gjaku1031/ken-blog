@@ -1,9 +1,11 @@
-# Excluded exploratory Mermaid runs
+# 버린 Mermaid 렌더링 기록
 
-These three partial files are retained for audit but excluded from all reported statistics:
+1차 측정 중 Mermaid 도식이 그려진 시각을 재는 계측을 다듬으며 버린 부분 기록 세 개에 대한 메모. 세 파일은 요청 단위 원자료라 저장소에 넣지 않았고, 어느 통계에도 쓰지 않음.
 
-- `erd-new-replacement.jsonl`: early browser instrumentation pass; its observer did not consistently follow Mermaid's lazy-render replacement.
-- `erd-new-readiness.jsonl`: early readiness pass checked the wrong rendered output representation and did not reliably observe the site's Blob-backed image.
-- `erd-new-final.jsonl`: partial follow-up using the preceding instrumentation, before the dedicated six-block scroll-and-image-readiness script was finalized.
+| 기록 | 버린 이유 |
+| --- | --- |
+| `erd-new-replacement.jsonl` | 초기 계측이 Mermaid가 나중에 그린 그림으로 바뀌는 과정을 일관되게 따라가지 못함 |
+| `erd-new-readiness.jsonl` | 준비 시점 검사가 그려진 결과를 엉뚱한 형태로 보고 있어, Blob 주소로 띄운 이미지를 제대로 관찰하지 못함 |
+| `erd-new-final.jsonl` | 도식 6개를 차례로 화면에 올리고 이미지 준비를 확인하는 전용 계측을 완성하기 전, 앞의 계측으로 이어서 잰 일부 기록 |
 
-Use only `../diagram-readiness.jsonl` for the reported Mermaid result. `scripts/run-diagram-readiness.cjs` scrolls each block into view and records readiness when the resulting image is complete and has nonzero `naturalWidth`; all six rendered in all 80 measured visits.
+보고한 Mermaid 결과는 전용 계측으로 잰 기록만 쓰며, 요약은 `../../diagram-summary.md`에 있음(측정한 80회 방문 모두 도식 6개가 그려짐).

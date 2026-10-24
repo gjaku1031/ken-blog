@@ -1,6 +1,6 @@
 # 그림
 
-[JVM 실서버 부하·메모리 측정](https://gjaku1031.github.io/ken-blog/post/post-489faedf-7dda-4afd-8847-ad20e74fe9e4/) 글에 넣은 그림의 원본. 요청별 원자료는 저장소에 없고, 수치는 인프라 ADR의 요약(`docs/ADR/ADR_infra.md`의 "JVM 실서버 부하·메모리 측정", 커밋 `f5001e8` 기준)에서 옮겨 HTML에 적음.
+[1코어 서버에서 일반 JVM API의 부하·메모리 측정](https://gjaku1031.github.io/ken-blog/post/post-489faedf-7dda-4afd-8847-ad20e74fe9e4/) 글에 넣은 그림의 원본. 요청별 원자료는 저장소에 없고, 수치는 인프라 ADR의 요약(`docs/ADR/ADR_infra.md`의 "JVM 실서버 부하·메모리 측정", 커밋 `f5001e8` 기준)에서 옮겨 HTML에 적음. 블로그의 그림 변환 스크립트(`render-figure.cjs`)가 HTML을 밝은·어두운 PNG 두 장으로 찍음.
 
 | 파일 | 내용 | 데이터 |
 | --- | --- | --- |
@@ -8,5 +8,5 @@
 | `jvm-memory.html` | API 메모리(유휴 중앙값·최대)와 컨테이너 한도, 스택 최대와 서버 최소 가용 메모리 | ADR 본문의 메모리 요약 문단 |
 
 ```bash
-node .claude/skills/ken-blog-experiments/scripts/render-figure.cjs docs/experiments/2026-10-02-jvm-load/figures/jvm-result.html out/jvm-result
+node render-figure.cjs docs/experiments/2026-10-02-jvm-load/figures/jvm-result.html out/jvm-result
 ```

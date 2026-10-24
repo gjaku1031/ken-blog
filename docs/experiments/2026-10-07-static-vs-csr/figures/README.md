@@ -1,6 +1,6 @@
 # 그림
 
-글에 넣은 그림의 원본. `.claude/skills/ken-blog-experiments/scripts/render-figure.cjs`로 밝은·어두운 PNG를 만듦.
+측정 설계와 결과를 그린 그림의 원본. 블로그의 그림 변환 스크립트(`render-figure.cjs`)가 HTML을 밝은·어두운 PNG 두 장으로 찍음.
 
 | 파일 | 내용 | 데이터 |
 | --- | --- | --- |
@@ -8,5 +8,5 @@
 | `static-result.html` | ERD 문서 첫 방문의 본문 표시 시각(중앙값·p95), 네트워크 R·M | `results/summary.csv` (`erd_document`, `cold`) |
 
 ```bash
-node .claude/skills/ken-blog-experiments/scripts/render-figure.cjs docs/experiments/2026-10-07-static-vs-csr/figures/static-result.html out/static-result
+node render-figure.cjs docs/experiments/2026-10-07-static-vs-csr/figures/static-result.html out/static-result
 ```

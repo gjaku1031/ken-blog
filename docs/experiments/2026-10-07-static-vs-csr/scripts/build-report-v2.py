@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-OUT = Path("/tmp/claude-1001/-home-ubuntu-Develop-project-ken-blog/c2ce2f06-7520-4f93-9149-d9a68ed4f1aa/scratchpad/perf-results-v2-report.md")
+OUT = ROOT / "results-v2/report.md"
 with (ROOT / "results-v2/summary.csv").open(encoding="utf-8", newline="") as f:
     summary_rows = list(csv.DictReader(f))
 lookup = {(r["scenario"], r["profile"], r["cache"], r["implementation"]): r for r in summary_rows}
