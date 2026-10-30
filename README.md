@@ -76,7 +76,7 @@
 7. [배포와 운영](https://gjaku1031.github.io/ken-blog/post/doc-aaa3ec9d-c135-4bc6-a1cd-398a3493480c/)
 8. [보안 설계](https://gjaku1031.github.io/ken-blog/post/doc-b707888f-a270-4aef-a617-f3345644a3f3/)
 
-관련 글: [1코어 서버에서 일반 JVM API의 부하·메모리 측정](https://gjaku1031.github.io/ken-blog/post/post-489faedf-7dda-4afd-8847-ad20e74fe9e4/) · [ken-blog 성능 측정 목록과 회귀 기준](https://gjaku1031.github.io/ken-blog/post/post-b46d1115-97ad-4d25-a9d9-1801b56857db/) · [150번에 한 번 끊기던 이미지 응답을 쫓다 찾은 헤더 경합](https://gjaku1031.github.io/ken-blog/post/post-f95ad3b1-cfc3-4e4f-8c57-06ddbfd87d9d/)
+관련 글: [1코어 서버에서 일반 JVM API의 부하·메모리 측정](https://gjaku1031.github.io/ken-blog/post/post-489faedf-7dda-4afd-8847-ad20e74fe9e4/)
 
 저장소 문서: [설계 결정 기록(ADR)](docs/ADR/README.md) · [코드 컨벤션](docs/convention/CODE.md) · [주석 컨벤션](docs/convention/COMMENTS.md)
 
